@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users live in Clerk; userId is the Clerk user id.
+model Generation {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  prompt    String
+  imageUrl  String   @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("generations")
+}

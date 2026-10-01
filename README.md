@@ -1,0 +1,16 @@
+# Eclipse (MVP)
+
+AI image generation for Cosmos Labs. Sign in, enter a prompt, get an image from Higgsfield, browse past generations.
+
+Stack: Next.js 14 (App Router) · TypeScript · Tailwind · Clerk · Prisma/Postgres · Higgsfield API.
+
+## Setup
+1. `cp .env.example .env` and fill in `DATABASE_URL`, the Clerk keys and `HIGGSFIELD_API_KEY`.
+2. `npm install`
+3. `npx prisma db push` (creates the `generations` table)
+4. `npm run dev`
+
+Higgsfield endpoint/model/auth live in `src/lib/higgsfield.ts` (overridable via `HIGGSFIELD_BASE_URL` / `HIGGSFIELD_MODEL`).
+
+## Deploy
+Import the repo in Vercel, set the same env vars, and run `prisma db push` against the production database.
