@@ -52,15 +52,20 @@ export default function Landing() {
           <a href="#examples" onClick={close}>Examples</a>
           <a href="#how-it-works" onClick={close}>How it Works</a>
           <a href="#faq" onClick={close}>FAQ</a>
-          <SignedOut>
-            <Link className="mobile-login" href="/sign-in">Log in</Link>
-          </SignedOut>
         </nav>
         <div className="nav-actions">
           <SignedOut>
-            <Link className="login" href="/sign-in">Log in</Link>
+            <Link className="pill-btn" href="/sign-in">
+              Log In
+              <ArrowRight size={15} strokeWidth={1.7} />
+            </Link>
           </SignedOut>
-          <Cta />
+          <SignedIn>
+            <Link className="pill-btn" href="/create">
+              Open Studio
+              <ArrowRight size={15} strokeWidth={1.7} />
+            </Link>
+          </SignedIn>
           <button className="menu-toggle" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
