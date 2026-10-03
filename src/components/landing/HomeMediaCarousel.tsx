@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { carouselItems, type CarouselItem } from "./carouselItems";
 
+const SLIDE_W = 384; // px per slide (368px card + 8px padding each side); 3 slides visible
+const CARD_H = Math.round(((SLIDE_W - 16) * 16) / 9); // 9:16 card
+
 const tryPlay = (video: HTMLVideoElement) => {
   video.muted = true;
   video.defaultMuted = true;
@@ -15,7 +18,7 @@ function Slide({ item, index }: { item: CarouselItem; index: number }) {
 
   return (
     <div className="carousel-slide flex justify-center">
-      <div className="relative aspect-[9/16] w-full overflow-hidden rounded-xl bg-black">
+      <div className="relative w-full overflow-hidden rounded-xl bg-black" style={{ height: CARD_H }}>
         {failed ? (
           // Placeholder until the file is added to public/carousel/
           <div className={`tile tone-${index % 8} h-full`} style={{ borderRadius: 0 }} />
@@ -86,18 +89,24 @@ export default function HomeMediaCarousel() {
 
   const n = carouselItems.length;
 
+  // Fixed geometry: the carousel is the same size at every screen width. Narrow
+  // screens simply see less of it, clipped equally on both sides.
   return (
-    <div ref={rootRef} className="relative z-[1] mx-auto mt-16 w-full max-w-6xl overflow-hidden bg-black" aria-label="Examples of generated content">
-      <style>{`
-        @keyframes glide { to { transform: translateX(calc(-100% * ${n} / 6)); } }
-        .carousel-track { display: flex; width: 200%; animation: glide 100s linear infinite; pointer-events: none; }
-        .carousel-slide { flex: 0 0 calc(100% / 6); padding: 0 8px; }
-        @media (prefers-reduced-motion: reduce) { .carousel-track { animation: none; } }
-      `}</style>
-      <div className="carousel-track">
-        {[...carouselItems, ...carouselItems].map((item, i) => (
-          <Slide key={i} item={item} index={i} />
-        ))}
+    <div className="carousel-frame z-[1] mt-16" aria-label="Examples of generated content">
+      <div ref={rootRef} className="carousel-viewport overflow-hidden bg-black">
+        <style>{`
+          .carousel-frame { position: relative; width: 100%; height: ${CARD_H}px; }
+          .carousel-viewport { position: absolute; left: 50%; width: ${SLIDE_W * 3}px; transform: translateX(-50%); }
+          @keyframes glide { to { transform: translateX(-${SLIDE_W * n}px); } }
+          .carousel-track { display: flex; width: max-content; animation: glide 100s linear infinite; pointer-events: none; }
+          .carousel-slide { flex: 0 0 ${SLIDE_W}px; width: ${SLIDE_W}px; padding: 0 8px; }
+          @media (prefers-reduced-motion: reduce) { .carousel-track { animation: none; } }
+        `}</style>
+        <div className="carousel-track">
+          {[...carouselItems, ...carouselItems].map((item, i) => (
+            <Slide key={i} item={item} index={i} />
+          ))}
+        </div>
       </div>
     </div>
   );
