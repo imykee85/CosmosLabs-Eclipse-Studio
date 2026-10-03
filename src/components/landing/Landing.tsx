@@ -9,17 +9,18 @@ import { audience, faqs, heroTiles, results, steps, wowTiles } from "./data";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
 
-function Cta({ dark = false, children = "Start Creating" }: { dark?: boolean; children?: React.ReactNode }) {
+function Cta({ dark = false, glint = false, children = "Start Creating" }: { dark?: boolean; glint?: boolean; children?: React.ReactNode }) {
+  const cls = `pill-btn ${dark ? "pill-btn-dark" : ""} ${glint ? "glint-btn" : ""}`;
   return (
     <>
       <SignedOut>
-        <Link className={`pill-btn ${dark ? "pill-btn-dark" : ""}`} href="/sign-up">
+        <Link className={cls} href="/sign-up">
           {children}
           <ArrowRight size={15} strokeWidth={1.7} />
         </Link>
       </SignedOut>
       <SignedIn>
-        <Link className={`pill-btn ${dark ? "pill-btn-dark" : ""}`} href="/create">
+        <Link className={cls} href="/create">
           Open Studio
           <ArrowRight size={15} strokeWidth={1.7} />
         </Link>
@@ -67,14 +68,13 @@ export default function Landing() {
 
       <section id="top" className="hero section-pad">
         <div className="hero-copy">
-          <div className="eyebrow">BY COSMOS LABS AI</div>
           <h1>AI Creative Studio</h1>
           <p className="hero-deck">
             Turn any idea into premium images — <br className="desktop-only" />
             from a single prompt to finished content, all in one place.
           </p>
           <p className="hero-note">No team. No prompting skills. No complicated tools.</p>
-          <Cta />
+          <Cta glint />
         </div>
         <div className="hero-mosaic" aria-label="Examples of generated content">
           {heroTiles.map((t, i) => (
