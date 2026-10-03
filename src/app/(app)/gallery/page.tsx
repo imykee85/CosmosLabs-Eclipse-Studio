@@ -1,9 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
+import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
+  if (!clerkEnabled) {
+    return <p className="text-neutral-400">Preview mode: sign-in and the database are not configured yet.</p>;
+  }
   const { userId } = auth().protect();
   const generations = await db.generation.findMany({
     where: { userId },

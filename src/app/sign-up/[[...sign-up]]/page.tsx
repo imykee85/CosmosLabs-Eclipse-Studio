@@ -1,10 +1,18 @@
 import { SignUp } from "@clerk/nextjs";
+import { clerkEnabled } from "@/lib/clerk-enabled";
 import AuthShell from "@/components/AuthShell";
 
 export default function Page() {
   return (
     <AuthShell>
-      <SignUp appearance={{ variables: { colorPrimary: "#6d4fd6", borderRadius: "0.75rem" } }} />
+      {!clerkEnabled ? (
+        <div className="login-card">
+          <h1>sign up</h1>
+          <p className="login-intro">Preview mode: sign-in is switched on once Clerk keys are added.</p>
+        </div>
+      ) : (
+        <SignUp appearance={{ variables: { colorPrimary: "#6d4fd6", borderRadius: "0.75rem" } }} />
+      )}
     </AuthShell>
   );
 }

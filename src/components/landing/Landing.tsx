@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, Check, ChevronUp, Menu, Plus, Sparkles, X } from "lucide-react";
 import { audience, faqs, heroTiles, results, steps, wowTiles } from "./data";
 import "@/app/landing.css";
