@@ -40,7 +40,7 @@ export default function PromptForm() {
           rows={4}
           maxLength={2000}
           placeholder="Describe the image you want to create…"
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-900 p-4 text-neutral-100 placeholder-neutral-500 focus:border-neutral-400 focus:outline-none"
+          className="w-full rounded-lg border border-neutral-700 bg-[#1a1a1a] p-4 text-neutral-100 placeholder-neutral-500 focus:border-neutral-400 focus:outline-none"
         />
         <button
           type="submit"
