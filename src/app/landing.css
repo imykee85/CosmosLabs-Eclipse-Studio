@@ -233,7 +233,7 @@
 
 /* Mobile header proportions, matched to the Cosmos Labs site: smaller mark, short wide button without arrow */
 @media (max-width: 800px) {
-  .nav-wrap .wordmark svg { width: 56px; height: 56px; }
-  .nav-actions .pill-btn { font-size: 14px; padding: 3px 16px; gap: 0; }
+  .nav-wrap .wordmark svg { width: 46px; height: 46px; }
+  .nav-actions .pill-btn { font-size: 14px; padding: 1px 16px; gap: 0; }
   .nav-actions .pill-btn svg { display: none; }
 }
