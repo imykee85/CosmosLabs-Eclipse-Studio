@@ -68,7 +68,7 @@ export default function Landing() {
       <section id="top" className="hero section-pad">
         <div className="hero-copy">
           <div className="eyebrow">BY COSMOS LABS AI</div>
-          <h1>your creative studio<span>.</span></h1>
+          <h1>AI Creative Studio</h1>
           <p className="hero-deck">
             Turn any idea into premium images — <br className="desktop-only" />
             from a single prompt to finished content, all in one place.
