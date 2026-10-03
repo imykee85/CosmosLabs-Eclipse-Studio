@@ -220,3 +220,6 @@
 .site-shell h1, .site-shell h2, .section-kicker, .wow-label b, .audience-card b, .audience-preview b, .process-row b, .stats strong, .price { font-weight: 700; }
 .nav-links a, .nav-actions .login { font-weight: 500; }
 .pill-btn, .create-btn, .google-login, .login-submit, .menu-toggle { font-weight: 500; }
+
+/* Same spacing between nav links and before the Log In button */
+@media (min-width: 801px) { .nav-links { margin-right: clamp(20px,3vw,42px); } }
