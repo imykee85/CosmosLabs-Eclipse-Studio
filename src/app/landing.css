@@ -1,7 +1,7 @@
 :root { --ink: #000000; --paper: #f0ede8; --muted: #aaa7a2; --line: rgba(240,237,232,.18); --accent: #b0261b; --warm: #7dd3fc; --ease: cubic-bezier(.23,1,.32,1); }
 .site-shell { overflow: hidden; background: var(--ink); }
 .nav-wrap { position: absolute; z-index: 20; inset: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 21px clamp(20px,5vw,72px); }
-.wordmark { font-family: var(--font-display); font-size: 17px; letter-spacing: -.03em; font-weight: 600; }
+.wordmark { display: inline-flex; line-height: 0; font-family: var(--font-display); font-size: 17px; letter-spacing: -.03em; font-weight: 600; }
 .wordmark-mark { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 1px; border: 2px solid currentColor; border-radius: 4px; font-size: 17px; letter-spacing: -.03em; }
 .nav-links, .nav-actions, .footer-links, .footer-bottom div { display: flex; align-items: center; gap: clamp(20px,3vw,42px); }
 .nav-links { margin-left: auto; margin-right: clamp(35px,5vw,85px); }
@@ -128,7 +128,7 @@
 /* HubContent-inspired authentication surface */
 .login-shell { min-height: 100vh; position: relative; overflow: hidden; display: grid; place-items: center; padding: 96px 20px 48px; background: #f4f0e8; color: #111; }
 .login-shell:after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .2; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E"); mix-blend-mode: multiply; }
-.login-brand { position: absolute; z-index: 2; top: 26px; left: 50%; transform: translateX(-50%); font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -.03em; }
+.login-brand { line-height: 0; position: absolute; z-index: 2; top: 20px; left: 50%; transform: translateX(-50%); font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -.03em; }
 .login-back { position: absolute; z-index: 2; top: 30px; left: clamp(20px, 5vw, 72px); display: flex; align-items: center; gap: 7px; color: #777168; font-size: 12px; transition: color .18s ease, transform .18s ease; }
 .login-back:hover { color: #111; transform: translateX(-3px); }
 .login-shape { position: absolute; z-index: 0; background: #ebe5db; opacity: .68; }

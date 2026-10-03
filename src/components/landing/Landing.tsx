@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, Check, ChevronUp, Menu, Plus, Sparkles, X } from "lucide-react";
 import { audience, faqs, heroTiles, results, steps, wowTiles } from "./data";
+import Logo from "@/components/Logo";
 import "@/app/landing.css";
 
 function Cta({ dark = false, children = "Start Creating" }: { dark?: boolean; children?: React.ReactNode }) {
@@ -28,11 +29,7 @@ function Cta({ dark = false, children = "Start Creating" }: { dark?: boolean; ch
 }
 
 function Wordmark() {
-  return (
-    <Link className="wordmark" href="/" aria-label="Eclipse home">
-      <span className="wordmark-mark">e</span>clipse
-    </Link>
-  );
+  return <Logo className="wordmark" size={60} />;
 }
 
 export default function Landing() {
