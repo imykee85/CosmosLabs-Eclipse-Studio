@@ -223,3 +223,7 @@
 
 /* Same spacing between nav links and before the Log In button */
 @media (min-width: 801px) { .nav-links { margin-right: clamp(20px,3vw,42px); } }
+
+/* Button/nav consistency: footer links and FAQ questions follow the same type spec */
+.footer-links a, .footer-links .pill-btn { font-size: 16px; font-weight: 500; }
+.faq-item button { font-weight: 500; }
