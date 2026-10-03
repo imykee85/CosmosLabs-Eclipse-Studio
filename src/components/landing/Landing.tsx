@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, Check, ChevronUp, Menu, Plus, Sparkles, X } from "lucide-react";
-import { audience, faqs, heroTiles, results, steps, wowTiles } from "./data";
+import { audience, faqs, results, steps, wowTiles } from "./data";
+import HomeMediaCarousel from "./HomeMediaCarousel";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
 
@@ -76,14 +77,7 @@ export default function Landing() {
           <p className="hero-note">No team. No prompting skills. No complicated tools.</p>
           <Cta glint />
         </div>
-        <div className="hero-mosaic" aria-label="Examples of generated content">
-          {heroTiles.map((t, i) => (
-            <figure className={`hero-tile ${t.cls}`} key={t.label}>
-              <figcaption><span>{t.label}</span><ArrowRight size={12} /><span>{t.result}</span></figcaption>
-              <div className={`tile tone-${i}`} role="img" aria-label={`${t.label} to ${t.result}`} />
-            </figure>
-          ))}
-        </div>
+        <HomeMediaCarousel />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
       </section>
 

@@ -1,10 +1,3 @@
-export const heroTiles = [
-  { label: "Product shot", result: "Campaign visual", cls: "hero-tile-a" },
-  { label: "Portrait", result: "Editorial look", cls: "hero-tile-b" },
-  { label: "Floor plan", result: "Cinematic walkthrough", cls: "hero-tile-c" },
-  { label: "One-line idea", result: "Finished concept", cls: "hero-tile-d" },
-];
-
 export const wowTiles = [
   ["PORTRAIT", "AI PHOTOSHOOT"],
   ["PRODUCT", "CAMPAIGN"],
