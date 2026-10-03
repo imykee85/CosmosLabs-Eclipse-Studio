@@ -227,3 +227,6 @@
 /* Button/nav consistency: footer links and FAQ questions follow the same type spec */
 .footer-links a, .footer-links .pill-btn { font-size: 16px; font-weight: 500; }
 .faq-item button { font-weight: 500; }
+
+/* Buttons inside spaced-caps containers (beige sections) keep normal Inter tracking */
+.pill-btn, .create-btn, .faq-item button { letter-spacing: normal; text-transform: none; }

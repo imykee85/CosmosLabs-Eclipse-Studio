@@ -197,9 +197,6 @@ export default function Landing() {
       <footer id="footer" className="footer">
         <div className="footer-top">
           <Wordmark />
-          <div className="footer-links">
-            <Cta />
-          </div>
         </div>
         <div className="footer-bottom"><span>© 2026 Cosmos Labs AI. All rights reserved.</span></div>
       </footer>
