@@ -198,10 +198,6 @@ export default function Landing() {
         <div className="footer-top">
           <Wordmark />
           <div className="footer-links">
-            <a href="#examples">Examples</a>
-            <a href="#how-it-works">How it Works</a>
-            <a href="#faq">FAQ</a>
-            <SignedOut><Link href="/sign-in">Log in</Link></SignedOut>
             <Cta />
           </div>
         </div>
