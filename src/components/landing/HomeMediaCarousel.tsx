@@ -15,10 +15,10 @@ function Slide({ item, index }: { item: CarouselItem; index: number }) {
 
   return (
     <div className="carousel-slide flex justify-center">
-      <div className="relative aspect-[9/16] w-full overflow-hidden bg-black">
+      <div className="carousel-card relative w-full overflow-hidden bg-black">
         {failed ? (
           // Placeholder until the file is added to public/carousel/
-          <div className={`tile tone-${index % 8} h-full`} style={{ borderRadius: 0 }} />
+          <div className={`tile tone-${index % 8} absolute inset-0 h-full`} style={{ borderRadius: 0 }} />
         ) : item.type === "video" ? (
           <video
             autoPlay
@@ -26,7 +26,7 @@ function Slide({ item, index }: { item: CarouselItem; index: number }) {
             loop
             playsInline
             preload="auto"
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
             onLoadedMetadata={(e) => tryPlay(e.currentTarget)}
             onCanPlay={(e) => tryPlay(e.currentTarget)}
             onLoadedData={(e) => tryPlay(e.currentTarget)}
@@ -39,7 +39,7 @@ function Slide({ item, index }: { item: CarouselItem; index: number }) {
           <img
             src={item.src}
             alt={`Example creation ${(index % carouselItems.length) + 1}`}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
             loading={index < 3 ? "eager" : "lazy"}
             decoding="async"
             onError={() => setFailed(true)}
@@ -89,12 +89,20 @@ export default function HomeMediaCarousel() {
   return (
     <div ref={rootRef} className="carousel-root relative z-[1] mx-auto mt-16 overflow-hidden bg-black" aria-label="Examples of generated content">
       <style>{`
-        /* Sized in vw so the carousel looks identical at any browser zoom (50%, 75%, 100%...). */
+        /* Sized only in vw, so the carousel is the same share of the screen at any browser zoom.
+           Shape is locked: 3 slides across, every card exactly 9:16, nothing inside can resize it. */
         .carousel-root { width: 80vw; }
-        .carousel-slide > div { border-radius: 0.833vw; }
-        @keyframes glide { to { transform: translateX(calc(-100% * ${n} / 6)); } }
+        .carousel-card { aspect-ratio: 9 / 16; border-radius: 0.833vw; }
+        .carousel-track { align-items: flex-start; }
+        .carousel-slide { padding: 0 0.556vw; }
+        @media (pointer: coarse) {
+          .carousel-root { width: 90vw; }
+          .carousel-card { border-radius: 2.8vw; }
+          .carousel-slide { padding: 0 0.93vw; }
+        }
+        @keyframes glide { to { transform: translateX(calc(-100% * 14 / 6)); } }
         .carousel-track { display: flex; width: 200%; animation: glide 100s linear infinite; pointer-events: none; }
-        .carousel-slide { flex: 0 0 calc(100% / 6); padding: 0 0.556vw; }
+        .carousel-slide { flex: 0 0 calc(100% / 6); }
         @media (prefers-reduced-motion: reduce) { .carousel-track { animation: none; } }
       `}</style>
       <div className="carousel-track">
