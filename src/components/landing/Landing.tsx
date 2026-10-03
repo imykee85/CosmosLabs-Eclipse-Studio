@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
-import { ArrowDown, ArrowRight, Check, ChevronUp, Menu, Plus, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Sparkles, X } from "lucide-react";
 import { audience, faqs, results, steps, wowTiles } from "./data";
 import HomeMediaCarousel from "./HomeMediaCarousel";
 import Logo from "@/components/Logo";
@@ -191,7 +191,10 @@ export default function Landing() {
       <section className="final-section section-pad">
         <div className="eyebrow">YOUR NEXT IDEA SHOULDN’T STAY AN IDEA</div>
         <h2>TURN IT INTO<br /><em>CONTENT WITH ECLIPSE.</em></h2>
-        <Cta />
+        <button className="pill-btn" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          Back To Top
+          <ArrowUp size={15} strokeWidth={1.7} />
+        </button>
       </section>
 
       <footer id="footer" className="footer">
