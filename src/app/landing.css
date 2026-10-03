@@ -231,9 +231,8 @@
 /* Buttons inside spaced-caps containers (beige sections) keep normal Inter tracking */
 .pill-btn, .create-btn, .faq-item button { letter-spacing: normal; text-transform: none; }
 
-/* Mobile header proportions, matched to the Cosmos Labs site: smaller mark, short wide button without arrow */
-@media (max-width: 800px) {
-  .nav-wrap .wordmark svg { width: 46px; height: 46px; }
-  .nav-actions .pill-btn { font-size: 14px; padding: 1px 16px; gap: 0; }
-  .nav-actions .pill-btn svg { display: none; }
-}
+
+/* Header mark and button, same on every screen width */
+.nav-wrap .wordmark svg { width: 16px; height: 16px; }
+.nav-actions .pill-btn { font-size: 14px; line-height: 1; height: 19px; padding: 0 16px; gap: 0; }
+.nav-actions .pill-btn svg { display: none; }
