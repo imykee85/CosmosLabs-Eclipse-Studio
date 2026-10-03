@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Result = { id: string; prompt: string; imageUrl: string };
 
 export default function PromptForm() {
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);

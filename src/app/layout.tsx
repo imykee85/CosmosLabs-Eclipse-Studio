@@ -1,31 +1,22 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ClerkProvider, SignedIn, UserButton } from "@clerk/nextjs";
+import { DM_Sans, Space_Grotesk } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
+const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
+const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" });
+
 export const metadata: Metadata = {
-  title: "Eclipse",
-  description: "AI image generation by Cosmos Labs",
+  title: "Eclipse — your creative studio",
+  description: "Turn any idea into premium images. By Cosmos Labs AI.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="en">
-        <body className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
-          <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Eclipse
-            </Link>
-            <SignedIn>
-              <nav className="flex items-center gap-4 text-sm">
-                <Link href="/" className="text-neutral-300 hover:text-white">Create</Link>
-                <Link href="/gallery" className="text-neutral-300 hover:text-white">Gallery</Link>
-                <UserButton afterSignOutUrl="/sign-in" />
-              </nav>
-            </SignedIn>
-          </header>
-          <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
+      <html lang="en" className={`${sans.variable} ${display.variable}`}>
+        <body className="min-h-screen bg-neutral-950 font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
+          {children}
         </body>
       </html>
     </ClerkProvider>
