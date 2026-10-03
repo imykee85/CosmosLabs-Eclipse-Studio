@@ -45,7 +45,7 @@ export default function PromptForm() {
         <button
           type="submit"
           disabled={loading || !prompt.trim()}
-          className="rounded-lg bg-[#e11d2e] px-5 py-2.5 font-medium text-white hover:bg-[#f0303f] disabled:opacity-50"
+          className="rounded-lg bg-[#b3261e] px-5 py-2.5 font-medium text-white hover:bg-[#c7342b] disabled:opacity-50"
         >
           {loading ? "Generating…" : "Generate"}
         </button>
