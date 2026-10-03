@@ -56,7 +56,7 @@ export default function Landing() {
         <div className="nav-actions">
           <SignedOut>
             <Link className="pill-btn" href="/sign-in">
-              Log In
+              Sign Up/Log In
               <ArrowRight size={15} strokeWidth={1.7} />
             </Link>
           </SignedOut>
