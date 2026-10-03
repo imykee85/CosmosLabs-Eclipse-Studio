@@ -30,8 +30,7 @@
 .hero-tile .tile { width: 100%; display: block; object-fit: cover; border-radius: 12px; filter: saturate(.88); transition: transform .4s var(--ease), filter .3s ease; }
 .hero-tile:hover .tile { transform: translateY(-8px); filter: saturate(1.12); }
 .hero-tile-a .tile { height: 235px; }
-.hero-tile-b { margin-bottom: 51px; transform: translateY(-125px); }
-.hero-tile-b .tile { height: 150px; }
+.hero-tile-b .tile { height: 235px; }
 .hero-tile-c { margin-bottom: 23px; }
 .hero-tile-c .tile { height: 205px; }
 .hero-tile-d .tile { height: 235px; }
