@@ -190,3 +190,16 @@
   filter: drop-shadow(0 0 5px rgba(255,255,255,.55)); animation: glint-spin 2.8s linear infinite; }
 @keyframes glint-spin { to { --glint-angle: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .glint-btn::before { animation: none; } }
+
+/* Type and logo sizes (mobile / desktop, breakpoint 800px) */
+.nav-wrap .wordmark svg { width: 80px; height: 80px; }
+.nav-links a, .nav-actions .login, .pill-btn, .create-btn, .menu-toggle { font-size: 16px; }
+.site-shell .hero h1 { font-size: 48px; }
+.hero-deck { font-size: 16px; }
+.hero { padding-top: 120px; }
+@media (min-width: 801px) {
+  .nav-wrap .wordmark svg { width: 96px; height: 96px; }
+  .site-shell .hero h1 { font-size: 60px; }
+  .hero-deck { font-size: 18px; }
+  .hero { padding-top: 150px; }
+}
