@@ -213,3 +213,10 @@
 .login-card { background: #1c1c1c; border-color: rgba(255,255,255,.1); box-shadow: 0 25px 80px rgba(0,0,0,.5); }
 .login-card h1 { color: #f2f2f2; }
 .login-intro { color: #a09b94; }
+
+/* Typography: Inter everywhere. Headings 700, body 400, nav and buttons 500. */
+:root { --font-display: var(--font-sans); }
+.site-shell, .login-shell { font-family: var(--font-sans), Inter, sans-serif; font-weight: 400; }
+.site-shell h1, .site-shell h2, .section-kicker, .wow-label b, .audience-card b, .audience-preview b, .process-row b, .stats strong, .price { font-weight: 700; }
+.nav-links a, .nav-actions .login { font-weight: 500; }
+.pill-btn, .create-btn, .google-login, .login-submit, .menu-toggle { font-weight: 500; }

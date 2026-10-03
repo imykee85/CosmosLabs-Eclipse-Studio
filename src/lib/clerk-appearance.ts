@@ -8,6 +8,7 @@ export const clerkAppearance = {
     colorInputBackground: "#121212",
     colorInputText: "#f2f2f2",
     colorNeutral: "#ffffff",
+    fontFamily: "var(--font-sans), Inter, sans-serif",
     borderRadius: "0.75rem",
   },
 };
