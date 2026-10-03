@@ -232,8 +232,8 @@
 .pill-btn, .create-btn, .faq-item button { letter-spacing: normal; text-transform: none; }
 
 
-/* Header mark (51px mobile / 81px desktop) and button (same everywhere) */
-.nav-wrap .wordmark svg { width: 51px; height: 51px; }
-@media (min-width: 801px) { .nav-wrap .wordmark svg { width: 81px; height: 81px; } }
-.nav-actions .pill-btn { font-size: 14px; line-height: 1; height: 19px; padding: 0 16px; gap: 0; }
+/* Header mark (61px mobile / 91px desktop) and button (same everywhere) */
+.nav-wrap .wordmark svg { width: 61px; height: 61px; }
+@media (min-width: 801px) { .nav-wrap .wordmark svg { width: 91px; height: 91px; } }
+.nav-actions .pill-btn { font-size: 14px; line-height: 1; height: 23px; padding: 0 16px; gap: 0; }
 .nav-actions .pill-btn svg { display: none; }
