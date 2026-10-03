@@ -95,6 +95,11 @@ export default function HomeMediaCarousel() {
         .carousel-card { aspect-ratio: 9 / 16; border-radius: 0.833vw; }
         .carousel-track { align-items: flex-start; }
         .carousel-slide { padding: 0 0.556vw; }
+        @media (pointer: coarse) {
+          .carousel-root { width: 90vw; }
+          .carousel-card { border-radius: 2.8vw; }
+          .carousel-slide { padding: 0 0.93vw; }
+        }
         @keyframes glide { to { transform: translateX(calc(-100% * 14 / 6)); } }
         .carousel-track { display: flex; width: 200%; animation: glide 100s linear infinite; pointer-events: none; }
         .carousel-slide { flex: 0 0 calc(100% / 6); }

@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { clerkEnabled } from "@/lib/clerk-enabled";
@@ -11,13 +11,10 @@ export const metadata: Metadata = {
   description: "Turn any idea into premium images. By Cosmos Labs AI.",
 };
 
-// Desktop layout only: phones and tablets render the 1440px desktop page scaled to fit.
-export const viewport: Viewport = { width: 1440 };
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const page = (
     <html lang="en" className={`${inter.variable}`}>
-      <body className="min-h-screen min-w-[1280px] bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
+      <body className="min-h-screen bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
         {children}
       </body>
     </html>

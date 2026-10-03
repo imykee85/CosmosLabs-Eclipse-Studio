@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
-import { ArrowDown, ArrowRight, ArrowUp, ChevronUp, Plus, Sparkles } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Sparkles, X } from "lucide-react";
 import { audience, faqs, results, steps, wowTiles } from "./data";
 import HomeMediaCarousel from "./HomeMediaCarousel";
 import Logo from "@/components/Logo";
@@ -36,20 +36,22 @@ function Wordmark() {
 
 export default function Landing() {
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [idea, setIdea] = useState("");
   const [openFaq, setOpenFaq] = useState(0);
   const [selected, setSelected] = useState(0);
 
+  const close = () => setMobileOpen(false);
   const tryIt = () => router.push(idea.trim() ? `/create?prompt=${encodeURIComponent(idea.trim())}` : "/create");
 
   return (
     <main className="site-shell">
       <header className="nav-wrap">
         <Wordmark />
-        <nav className="nav-links">
-          <a href="#examples">Examples</a>
-          <a href="#how-it-works">How it Works</a>
-          <a href="#faq">FAQ</a>
+        <nav className={mobileOpen ? "nav-links mobile-visible" : "nav-links"}>
+          <a href="#examples" onClick={close}>Examples</a>
+          <a href="#how-it-works" onClick={close}>How it Works</a>
+          <a href="#faq" onClick={close}>FAQ</a>
         </nav>
         <div className="nav-actions">
           <SignedOut>
@@ -64,6 +66,9 @@ export default function Landing() {
               <ArrowRight size={15} strokeWidth={1.7} />
             </Link>
           </SignedIn>
+          <button className="menu-toggle" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </header>
 

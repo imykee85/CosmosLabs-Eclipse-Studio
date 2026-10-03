@@ -120,6 +120,8 @@
 .price-label { font-size: 10px; letter-spacing: .2em; color: #aaa6a0; }.price { font: 500 80px/.9 var(--font-display); letter-spacing: -.03em; margin: 15px 0; }.price-card p { margin: 0; color: #98958f; font-size: 12px; }.price-card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 13px; color: #d8d4ce; font-size: 12px; }.price-card li { display: flex; align-items: center; gap: 8px; }.price-card li svg { color: var(--accent); }.compare { display: flex; justify-content: space-between; color: #7f7b76; font-size: 12px; padding: 23px 2px; }.compare a { display: flex; align-items: center; gap: 8px; color: var(--paper); }
 .faq-section { padding-top: 145px; padding-bottom: 165px; background: var(--paper); color: var(--ink); }.faq-section h2 { margin-bottom: 65px; }.faq-list { max-width: 740px; margin-left: auto; }.faq-item { border-top: 1px solid #c5c0b8; }.faq-item button { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 22px 0; border: 0; background: none; text-align: left; font-family: var(--font-display); font-size: 16px; }.faq-item button svg { color: #8d887f; }.faq-item p { max-width: 560px; margin: -5px 0 21px; color: #77716a; font-size: 13px; line-height: 1.55; }.final-section { text-align: center; padding-top: 150px; padding-bottom: 175px; background: #000; }.final-section h2 { margin-bottom: 45px; }
 .footer { padding: 36px clamp(20px,5vw,72px) 24px; background: #000; }.footer-top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 75px; }.footer-links { gap: 25px; }.footer-bottom { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 19px; color: #77736e; }.footer-bottom div { gap: 18px; }
+@media (max-width: 800px) { .nav-links { display: none; position: absolute; top: 70px; left: 20px; right: 20px; padding: 18px; background: rgba(25,25,25,.96); border: 1px solid var(--line); border-radius: 10px; flex-direction: column; align-items: flex-start; gap: 17px; margin: 0; }.nav-links.mobile-visible { display: flex; }.menu-toggle { display: grid; place-items: center; border: 0; background: none; }.nav-actions .login { display: none; }.mobile-login { display: block; }.hero { min-height: 860px; padding-top: 104px; }.hero h1 { white-space: normal; font-size: clamp(52px,13vw,86px); }.hero-mosaic { grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 52px; }.hero-tile .tile { height: 170px !important; }.hero-tile-b, .hero-tile-c { margin-bottom: 0; transform: none; }.hero-tile figcaption { font-size: 9px; height: 31px; }.scroll-cue { display: none; }.wow-section, .audience-section, .process-section, .try-section, .results-section, .platform-section, .pricing-section, .faq-section, .final-section { padding-top: 100px; padding-bottom: 100px; }.wow-grid { grid-template-columns: repeat(2,1fr); margin-top: 48px; gap: 10px; }.wow-card, .wow-1, .wow-2, .wow-3, .wow-4, .wow-5, .wow-6 { grid-column: span 1; height: 280px; }.wow-2, .wow-4, .wow-5 { height: 220px; }.section-heading-row, .process-section, .platform-section { display: block; }.audience-preview { margin-top: 35px; width: auto; }.audience-grid { grid-template-columns: 1fr 1fr; }.process-list { margin-top: 62px; }.results-heading p { margin-top: 22px; }.results-grid { grid-template-columns: repeat(2,1fr); }.results-grid article { height: 220px; }.platform-copy { margin: 0; }.loop-art { margin-top: 70px; width: min(420px,100%); }.price-card { grid-template-columns: 1fr; padding: 27px; }.price-card .pill-btn { justify-self: start; }.faq-section h2 { margin-bottom: 42px; }.faq-list { margin: 0; }.footer-top { align-items: flex-start; gap: 40px; flex-direction: column; padding-bottom: 40px; }.footer-links { flex-wrap: wrap; }.footer-bottom { flex-direction: column; gap: 15px; }.desktop-only { display: none; } }
+@media (max-width: 480px) { .hero { min-height: 800px; }.eyebrow { letter-spacing: .28em; }.section-kicker { font-size: 48px; }.audience-grid { grid-template-columns: 1fr; }.audience-card { min-height: 190px; }.results-grid article { height: 190px; }.stats { gap: 12px; }.stats strong { font-size: 42px; }.stats small { font-size: 8px; }.price { font-size: 70px; }.compare { flex-direction: column; gap: 13px; }.footer-links .pill-btn { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *:before, *:after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
 /* HubContent-inspired authentication surface */
@@ -160,6 +162,7 @@
 .login-register { margin: 22px 0 0; color: #8b847b; font-size: 11px; }
 .login-register a { color: #25221e; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 @keyframes login-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 600px) { .login-shell { padding-top: 84px; }.login-back { top: 30px; }.login-shape-top { left: 48%; width: 150px; height: 75px; }.login-shape-left { width: 180px; height: 125px; left: -100px; }.login-shape-right { width: 130px; height: 110px; right: -55px; }.login-card { padding: 32px 22px 27px; border-radius: 18px; } }
 
 
 /* Generated placeholder art (swap for real renders later) */
@@ -188,12 +191,18 @@
 @keyframes glint-spin { to { --glint-angle: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .glint-btn::before { animation: none; } }
 
-/* Type and logo sizes */
-.nav-wrap .wordmark svg { width: 96px; height: 96px; }
+/* Type and logo sizes (mobile / desktop, breakpoint 800px) */
+.nav-wrap .wordmark svg { width: 80px; height: 80px; }
 .nav-links a, .nav-actions .login, .pill-btn, .create-btn, .menu-toggle { font-size: 16px; }
-.site-shell .hero h1 { font-size: 60px; }
-.hero-deck { font-size: 18px; }
-.hero { padding-top: 150px; }
+.site-shell .hero h1 { font-size: 48px; }
+.hero-deck { font-size: 16px; }
+.hero { padding-top: 120px; }
+@media (min-width: 801px) {
+  .nav-wrap .wordmark svg { width: 96px; height: 96px; }
+  .site-shell .hero h1 { font-size: 60px; }
+  .hero-deck { font-size: 18px; }
+  .hero { padding-top: 150px; }
+}
 
 /* Charcoal-black sign-in / sign-up screen */
 .login-shell { background: #121212; color: #f2f2f2; }
@@ -213,7 +222,7 @@
 .pill-btn, .create-btn, .google-login, .login-submit, .menu-toggle { font-weight: 500; }
 
 /* Same spacing between nav links and before the Log In button */
-.nav-links { margin-right: clamp(20px,3vw,42px); }
+@media (min-width: 801px) { .nav-links { margin-right: clamp(20px,3vw,42px); } }
 
 /* Button/nav consistency: footer links and FAQ questions follow the same type spec */
 .footer-links a, .footer-links .pill-btn { font-size: 16px; font-weight: 500; }
