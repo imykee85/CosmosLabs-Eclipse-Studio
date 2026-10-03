@@ -11,7 +11,7 @@ export default function Page() {
           <p className="login-intro">Preview mode: sign-in is switched on once Clerk keys are added.</p>
         </div>
       ) : (
-        <SignIn appearance={{ variables: { colorPrimary: "#6d4fd6", borderRadius: "0.75rem" } }} />
+        <SignIn appearance={{ variables: { colorPrimary: "#b91c1c", borderRadius: "0.75rem" } }} />
       )}
     </AuthShell>
   );
