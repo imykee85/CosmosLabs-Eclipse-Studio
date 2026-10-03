@@ -1,5 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 import { clerkEnabled } from "@/lib/clerk-enabled";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 import AuthShell from "@/components/AuthShell";
 
 export default function Page() {
@@ -11,7 +12,7 @@ export default function Page() {
           <p className="login-intro">Preview mode: sign-in is switched on once Clerk keys are added.</p>
         </div>
       ) : (
-        <SignIn appearance={{ variables: { colorPrimary: "#b91c1c", borderRadius: "0.75rem" } }} />
+        <SignIn appearance={clerkAppearance} />
       )}
     </AuthShell>
   );

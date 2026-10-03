@@ -203,3 +203,13 @@
   .hero-deck { font-size: 18px; }
   .hero { padding-top: 150px; }
 }
+
+/* Charcoal-black sign-in / sign-up screen */
+.login-shell { background: #121212; color: #f2f2f2; }
+.login-shell:after { opacity: 0; }
+.login-shape { background: #1b1b1b; opacity: 1; }
+.login-back { color: #9a9690; }
+.login-back:hover { color: #fff; }
+.login-card { background: #1c1c1c; border-color: rgba(255,255,255,.1); box-shadow: 0 25px 80px rgba(0,0,0,.5); }
+.login-card h1 { color: #f2f2f2; }
+.login-intro { color: #a09b94; }
