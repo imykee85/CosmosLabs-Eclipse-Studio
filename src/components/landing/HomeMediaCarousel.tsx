@@ -89,17 +89,12 @@ export default function HomeMediaCarousel() {
   return (
     <div ref={rootRef} className="carousel-root relative z-[1] mx-auto mt-16 overflow-hidden bg-black" aria-label="Examples of generated content">
       <style>{`
-        /* Sized only in vw, so the carousel is the same share of the screen at any browser zoom.
-           Shape is locked: 3 slides across, every card exactly 9:16, nothing inside can resize it. */
-        .carousel-root { width: 80vw; }
-        .carousel-card { aspect-ratio: 9 / 16; border-radius: 0.833vw; }
+        /* No viewport units and no JS measuring: width comes from the container (%), height from
+           aspect-ratio, so a card is always exactly 9:16 at any browser zoom level. */
+        .carousel-root { width: 100%; max-width: 1152px; }
+        .carousel-card { aspect-ratio: 9 / 16; height: auto; border-radius: 10% / 5.6%; }
         .carousel-track { align-items: flex-start; }
-        .carousel-slide { padding: 0 0.556vw; }
-        @media (pointer: coarse) {
-          .carousel-root { width: 90vw; }
-          .carousel-card { border-radius: 2.8vw; }
-          .carousel-slide { padding: 0 0.93vw; }
-        }
+        .carousel-slide { padding: 0 0.52%; }
         @keyframes glide { to { transform: translateX(calc(-100% * 14 / 6)); } }
         .carousel-track { display: flex; width: 200%; animation: glide 100s linear infinite; pointer-events: none; }
         .carousel-slide { flex: 0 0 calc(100% / 6); }
