@@ -1,4 +1,4 @@
-.ob-page { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 28px; padding: 40px 20px; background: #000; color: #f2f2f2; font-family: var(--font-sans), Inter, sans-serif; }
+.ob-page { height: 100vh; height: 100dvh; display: flex; padding: 24px 16px; overflow-x: hidden; overflow-y: auto; background: #000; color: #f2f2f2; font-family: var(--font-sans), Inter, sans-serif; }
 .ob-card { width: min(100%, 520px); padding: 40px; border: 1px solid rgba(255,255,255,.1); border-radius: 28px; background: #1a1a1a; box-shadow: 0 25px 80px rgba(0,0,0,.5); }
 .ob-step { margin: 0 0 12px; color: #a09b94; font-size: 14px; }
 .ob-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
@@ -30,7 +30,7 @@
 @media (prefers-reduced-motion: reduce) { .ob-fill, .ob-next, .ob-back { transition: none; } }
 
 /* Fade from the form into the welcome video */
-.ob-stage { display: grid; justify-items: center; gap: 28px; transition: opacity .6s ease; }
+.ob-stage { display: grid; justify-items: center; gap: 24px; margin: auto; width: 100%; transition: opacity .6s ease; }
 .ob-stage.is-leaving { opacity: 0; pointer-events: none; }
 .ob-video { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; opacity: 0; animation: ob-fade-in .9s .35s ease forwards; }
 .ob-video-el { width: 100%; height: 100%; object-fit: cover; }
@@ -42,3 +42,29 @@
 @keyframes ob-fade-in { to { opacity: 1; } }
 @keyframes ob-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ob-video { animation-duration: .01s; animation-delay: 0s; } .ob-welcome { animation: none; } }
+
+/* Same card on every step (the step-2 sizing); only its height follows the options.
+   Centred in the visible screen. Short screens shrink everything together, never per step. */
+.ob-card { width: min(100%, 520px); flex: none; }
+.ob-brand svg { display: block; }
+@media (max-height: 940px) {
+  .ob-page { padding: 16px; } .ob-stage { gap: 16px; }
+  .ob-brand svg { width: 44px; height: 44px; }
+  .ob-card { padding: 28px 30px; }
+  .ob-fieldset { margin-top: 24px; } .ob-title { font-size: 24px; margin-bottom: 20px; }
+  .ob-options { gap: 8px; } .ob-option { padding: 13px 20px; font-size: 15px; } .ob-radio, .ob-check { width: 24px; height: 24px; }
+  .ob-actions { margin-top: 22px; } .ob-back, .ob-next { padding: 12px 24px; font-size: 15px; }
+}
+@media (max-height: 700px) {
+  .ob-brand svg { width: 36px; height: 36px; }
+  .ob-card { padding: 22px 24px; }
+  .ob-fieldset { margin-top: 18px; } .ob-title { font-size: 21px; margin-bottom: 14px; }
+  .ob-hint { margin: -8px 0 12px; font-size: 13px; }
+  .ob-options { gap: 6px; } .ob-option { padding: 10px 18px; font-size: 14px; } .ob-radio, .ob-check { width: 22px; height: 22px; }
+  .ob-actions { margin-top: 16px; } .ob-back, .ob-next { padding: 10px 22px; font-size: 14px; }
+}
+@media (max-height: 600px) {
+  .ob-brand { display: none; }
+  .ob-card { padding: 18px 22px; } .ob-step { margin-bottom: 8px; }
+  .ob-title { font-size: 19px; } .ob-option { padding: 8px 16px; } .ob-actions { margin-top: 12px; }
+}
