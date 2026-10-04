@@ -55,11 +55,6 @@ a.ws-card .ws-card-cta { color: #ff5a5a; }
 }
 @media (prefers-reduced-motion: reduce) { .ws-sidebar, .ws-card { transition: none; } }
 
-.ws-agents { display: grid; gap: 2px; }
-.ws-agent { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
-.ws-agent:hover { background: #151515; }
-.ws-agent.is-active { background: #1f1f1f; }
-.ws-agent-check { flex: none; color: #ff5a5a; }
 
 /* Ingredients page */
 .ws-ing h1 { margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -.03em; }
@@ -80,3 +75,10 @@ a.ws-card .ws-card-cta { color: #ff5a5a; }
 .ws-add { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 24px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 15px; font-weight: 500; }
 .ws-add:disabled { background: #3a3a3a; color: #8a857e; cursor: not-allowed; }
 @media (max-width: 800px) { .ws-kinds { grid-template-columns: 1fr; } .ws-ing h1 { font-size: 32px; } .ws-kind { min-height: 0; } }
+
+/* Agents page: selectable cards */
+.ws-pick { font: inherit; color: inherit; cursor: pointer; transition: border-color .2s, transform .25s cubic-bezier(.23,1,.32,1); }
+.ws-pick:hover { border-color: rgba(255,255,255,.4); transform: translateY(-2px); }
+.ws-pick.is-selected { border-color: #c00707; background: #1d0e0e; }
+.ws-pick-state { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; color: #a09b94; font-size: 14px; font-weight: 500; }
+.ws-pick.is-selected .ws-pick-state { color: #ff5a5a; }
