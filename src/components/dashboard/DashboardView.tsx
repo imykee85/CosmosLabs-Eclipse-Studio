@@ -6,7 +6,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock, Coins, FolderOpen, GraduationCap, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { tutorialHref } from "@/lib/tutorial";
-import { AccountName, SignOutButton } from "@/components/account";
+import { SignOutButton } from "@/components/account";
+import UserMenu from "@/components/UserMenu";
 import {
   deleteProjectForever, listProjects, restoreProject, setCurrentProject, timeAgo, trashProject, type Project,
 } from "@/lib/projects";
@@ -65,7 +66,7 @@ export default function DashboardView() {
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
           <SignOutButton className="db-icon" />
-          <AccountName>{(name) => <div className="db-user"><strong>{name}</strong><span>trial plan</span></div>}</AccountName>
+          <UserMenu />
         </div>
       </header>
 

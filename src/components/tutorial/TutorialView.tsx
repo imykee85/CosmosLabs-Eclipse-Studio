@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Coins, Play, X } from "lucide-react";
-import { AccountName, SignOutButton } from "@/components/account";
+import { SignOutButton } from "@/components/account";
+import UserMenu from "@/components/UserMenu";
 import { LogoMark } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { lessons, type Lesson } from "@/lib/tutorial";
@@ -45,7 +46,7 @@ export default function TutorialView({ back }: { back: { path: string; label: st
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
           <SignOutButton className="db-icon" />
-          <AccountName>{(name) => <div className="db-user"><strong>{name}</strong><span>trial plan</span></div>}</AccountName>
+          <UserMenu />
         </div>
       </header>
 
