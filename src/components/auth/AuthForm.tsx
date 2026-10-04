@@ -21,7 +21,7 @@ function DemoAuth({ mode }: { mode: Mode }) {
         return;
       }
       if (email.trim().toLowerCase() === DEMO_LOGIN.email && password === DEMO_LOGIN.password) {
-        router.push("/create");
+        router.push("/dashboard");
         return;
       }
       return { error: `Demo mode: sign in with ${DEMO_LOGIN.email} / ${DEMO_LOGIN.password}, or create an account.` };

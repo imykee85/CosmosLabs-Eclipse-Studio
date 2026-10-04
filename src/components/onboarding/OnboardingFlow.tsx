@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/Logo";
 import { questions, type QuestionId } from "@/lib/onboarding";
 import "./onboarding.css";
@@ -12,6 +12,24 @@ export default function OnboardingFlow() {
   const [answers, setAnswers] = useState<Partial<Record<QuestionId, string | string[]>>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // "form" -> card fades out -> "video" welcome playback -> dashboard
+  const [stage, setStage] = useState<"form" | "video">("form");
+  const [videoFailed, setVideoFailed] = useState(false);
+  const left = useRef(false);
+
+  const goToDashboard = useCallback(() => {
+    if (left.current) return;
+    left.current = true;
+    router.push("/dashboard");
+  }, [router]);
+
+  // Safety net so nobody is stuck on the welcome screen: videos are 5-10s, fallback is 6s.
+  useEffect(() => {
+    if (stage !== "video") return;
+    router.prefetch("/dashboard");
+    const t = window.setTimeout(goToDashboard, videoFailed ? 6000 : 20000);
+    return () => window.clearTimeout(t);
+  }, [stage, videoFailed, goToDashboard, router]);
 
   const q = questions[step];
   const selected = answers[q.id];
@@ -35,7 +53,8 @@ export default function OnboardingFlow() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Could not save your answers. Please try again.");
       }
-      router.push("/create");
+      setBusy(false);
+      setStage("video");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save your answers. Please try again.");
       setBusy(false);
@@ -44,6 +63,30 @@ export default function OnboardingFlow() {
 
   return (
     <main className="ob-page">
+      {stage === "video" && (
+        <div className="ob-video" role="dialog" aria-label="Welcome to Eclipse">
+          {videoFailed ? (
+            <div className="ob-welcome">
+              <LogoMark size={96} />
+              <h2>Welcome to Eclipse</h2>
+              <p>Setting up your studio…</p>
+            </div>
+          ) : (
+            <video
+              className="ob-video-el"
+              src="/onboarding/welcome.mp4"
+              autoPlay
+              muted
+              playsInline
+              preload="auto"
+              onEnded={goToDashboard}
+              onError={() => setVideoFailed(true)}
+            />
+          )}
+          <button type="button" className="ob-skip" onClick={goToDashboard}>Skip</button>
+        </div>
+      )}
+      <div className={`ob-stage ${stage === "video" ? "is-leaving" : ""}`}>
       <div className="ob-brand"><LogoMark size={52} /></div>
       <section className="ob-card" aria-labelledby="ob-title">
         <p className="ob-step">Step {step + 1} of {questions.length}</p>
@@ -87,6 +130,7 @@ export default function OnboardingFlow() {
           </button>
         </div>
       </section>
+      </div>
     </main>
   );
 }

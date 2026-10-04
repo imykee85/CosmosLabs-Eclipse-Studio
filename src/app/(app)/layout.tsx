@@ -9,6 +9,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
         <Logo size={40} />
         <nav className="flex items-center gap-4 text-sm">
+          <Link href="/dashboard" className="text-neutral-300 hover:text-white">Dashboard</Link>
           <Link href="/create" className="text-neutral-300 hover:text-white">Create</Link>
           <Link href="/gallery" className="text-neutral-300 hover:text-white">Gallery</Link>
           {clerkEnabled && <UserButton afterSignOutUrl="/" />}

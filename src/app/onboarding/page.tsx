@@ -10,7 +10,7 @@ export default async function OnboardingPage() {
   if (clerkEnabled) {
     const { userId } = auth().protect();
     const done = await db.onboarding.findUnique({ where: { userId } }).catch(() => null);
-    if (done) redirect("/create");
+    if (done) redirect("/dashboard");
   }
   return <OnboardingFlow />;
 }

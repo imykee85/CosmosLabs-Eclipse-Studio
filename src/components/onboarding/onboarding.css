@@ -28,3 +28,17 @@
 .ob-back:disabled { opacity: .5; cursor: default; }
 @media (max-width: 600px) { .ob-card { padding: 28px 22px; border-radius: 22px; } .ob-title { font-size: 24px; } }
 @media (prefers-reduced-motion: reduce) { .ob-fill, .ob-next, .ob-back { transition: none; } }
+
+/* Fade from the form into the welcome video */
+.ob-stage { display: grid; justify-items: center; gap: 28px; transition: opacity .6s ease; }
+.ob-stage.is-leaving { opacity: 0; pointer-events: none; }
+.ob-video { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; opacity: 0; animation: ob-fade-in .9s .35s ease forwards; }
+.ob-video-el { width: 100%; height: 100%; object-fit: cover; }
+.ob-welcome { display: grid; justify-items: center; gap: 14px; text-align: center; animation: ob-rise 1s .6s ease both; }
+.ob-welcome h2 { margin: 12px 0 0; font-size: 36px; font-weight: 700; letter-spacing: -.02em; }
+.ob-welcome p { margin: 0; color: #a09b94; font-size: 16px; }
+.ob-skip { position: absolute; right: 24px; bottom: 28px; padding: 10px 20px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; background: rgba(0,0,0,.35); color: #fff; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; backdrop-filter: blur(6px); }
+.ob-skip:hover { border-color: #fff; }
+@keyframes ob-fade-in { to { opacity: 1; } }
+@keyframes ob-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ob-video { animation-duration: .01s; animation-delay: 0s; } .ob-welcome { animation: none; } }

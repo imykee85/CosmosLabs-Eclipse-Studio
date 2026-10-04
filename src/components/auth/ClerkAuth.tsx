@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import AuthView, { type Handlers, type Mode } from "./AuthView";
 
-const AFTER_SIGN_IN = "/create";
+const AFTER_SIGN_IN = "/dashboard";
 const AFTER_SIGN_UP = "/onboarding"; // new accounts answer a few questions first
 
 function message(err: unknown) {
