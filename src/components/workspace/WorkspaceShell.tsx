@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, Images, Layers, PanelLeft, PenLine,
+  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Menu, MoreHorizontal, PanelLeft, PenLine, X,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -59,17 +59,26 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
   );
 }
 
+const TITLES: Record<string, string> = {
+  "/project": "Studio", "/create": "Create", "/gallery": "Gallery", "/ingredients": "Ingredients", "/agents": "Agents",
+};
+const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(true);
   const [project, setProject] = useState("");
+  const [drawer, setDrawer] = useState(false);
 
   useEffect(() => setProject(readCurrentProjectName()), [pathname]);
 
-  // Sidebar starts closed on small screens and closes after navigating there.
+  // Phone menu: closes after navigating, and the page behind it does not scroll while it is open.
+  useEffect(() => setDrawer(false), [pathname]);
   useEffect(() => {
-    if (window.matchMedia("(max-width: 800px)").matches) setOpen(false);
-  }, [pathname]);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = drawer ? "hidden" : previous;
+    return () => { document.body.style.overflow = previous; };
+  }, [drawer]);
 
   return (
     <div className={`ws-root ${open ? "is-open" : ""}`}>
@@ -93,7 +102,6 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           )}
         </AccountName>
       </aside>
-      {open && <button className="ws-scrim" aria-label="Close sidebar" onClick={() => setOpen(false)} />}
 
       <div className="ws-content">
         <header className="ws-topbar">
@@ -107,7 +115,51 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             <SignOutButton className="ws-icon-btn" />
           </div>
         </header>
+        <header className="mb-top">
+          <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
+          <h1 className="mb-title">{TITLES[pathname] ?? "Studio"}</h1>
+          <AccountName>
+            {(name) => <button className="mb-avatar" aria-label="Open menu" onClick={() => setDrawer(true)}>{initials(name)}</button>}
+          </AccountName>
+        </header>
         <main className="ws-main">{children}</main>
+      </div>
+
+      <nav className="mb-tabs" aria-label="Main">
+        <Link href="/dashboard" className="mb-tab"><span className="mb-tab-icon"><House size={21} /></span><span>Home</span></Link>
+        <Link href="/create" className={`mb-tab ${pathname === "/create" ? "is-active" : ""}`}><span className="mb-tab-icon"><PenLine size={21} /></span><span>Create</span></Link>
+        <Link href="/gallery" className={`mb-tab ${pathname === "/gallery" ? "is-active" : ""}`}><span className="mb-tab-icon"><Images size={21} /></span><span>Gallery</span></Link>
+        <button type="button" className={`mb-tab ${drawer ? "is-active" : ""}`} onClick={() => setDrawer(true)}><span className="mb-tab-icon"><MoreHorizontal size={21} /></span><span>More</span></button>
+      </nav>
+
+      <div className={`mb-drawer ${drawer ? "is-open" : ""}`} aria-hidden={!drawer}>
+        <button className="mb-scrim" aria-label="Close menu" tabIndex={drawer ? 0 : -1} onClick={() => setDrawer(false)} />
+        <aside className="mb-panel" aria-label="Menu">
+          <AccountName>
+            {(name) => (
+              <div className="mb-profile">
+                <span className="ws-avatar">{initials(name)}</span>
+                <span><b>{name}</b><small>Trial plan</small></span>
+                <button className="mb-icon" aria-label="Close menu" onClick={() => setDrawer(false)}><X size={20} /></button>
+              </div>
+            )}
+          </AccountName>
+          <nav className="mb-nav">
+            <NavItem item={ingredients} pathname={pathname} />
+            <NavItem item={agentsItem} pathname={pathname} />
+            <Section title="PHOTO" items={photo} pathname={pathname} />
+            <Section title="VIDEO" items={video} pathname={pathname} />
+          </nav>
+          <div className="mb-foot">
+            <Link href="/dashboard" className="mb-foot-link"><LayoutDashboard size={19} /> Dashboard</Link>
+            <Link href="/#how-it-works" className="mb-foot-link"><GraduationCap size={19} /> Tutorial</Link>
+            <div className="mb-foot-row">
+              <span className="mb-credits"><Coins size={15} /> 0 credits</span>
+              <ThemeToggle className="ws-icon-btn" />
+              <SignOutButton className="ws-icon-btn" />
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
