@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Box, MapPin, Plus, User } from "lucide-react";
+import { ArrowRight, Box, Clapperboard, Plus, User } from "lucide-react";
 
 const kinds = [
   { icon: User, title: "Character", copy: "A person or spokesperson to anchor your content." },
   { icon: Box, title: "Product", copy: "Your product, locked in so it looks the same in every shot." },
-  { icon: MapPin, title: "Location", copy: "The settings and environments for your scenes." },
+  { icon: Clapperboard, title: "Scene", copy: "The setting or environment your content takes place in." },
 ];
 
 export default function IngredientsPage() {
