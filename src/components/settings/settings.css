@@ -50,3 +50,15 @@
 .st-empty-title { margin: 10px 0 0; color: var(--a-fg); font-size: 18px; font-weight: 600; }
 @media (min-width: 801px) { .st-plan { grid-template-columns: 1fr 1fr; } }
 .st-planCard { grid-template-rows: auto auto 1fr auto; align-content: stretch; } .st-planCard .st-meta { align-self: start; }
+
+/* Team + API/MCP tabs */
+.st-gate { padding: 48px 24px; }
+.st-gate .st-meta { max-width: 360px; line-height: 1.5; }
+.st-inline { display: inline-block; margin-left: 10px; padding: 3px 12px; vertical-align: middle; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.st-keys { margin: 0 0 14px; font-size: 15px; }
+.st-gap { margin-top: 36px; }
+.st-code { position: relative; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-input); }
+.st-code pre { margin: 0; padding: 18px 64px 18px 20px; overflow-x: auto; color: var(--a-fg); font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.st-copy { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--a-line3); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; transition: border-color .18s; }
+.st-copy:hover { border-color: var(--a-line4); }
+.sr-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

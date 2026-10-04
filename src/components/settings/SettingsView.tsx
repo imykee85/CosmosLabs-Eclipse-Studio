@@ -1,17 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import ApiPanel from "./ApiPanel";
 import BillingPanel from "./BillingPanel";
 import ProfilePanel from "./ProfilePanel";
+import TeamPanel from "./TeamPanel";
 import "./settings.css";
 
-const TABS = ["Profile", "Billing", "Team", "API"] as const;
+const TABS = ["Profile", "Billing", "Team", "API/MCP"] as const;
 type Tab = (typeof TABS)[number];
 
-const SOON: Record<"Team" | "API", { title: string; copy: string }> = {
-  Team: { title: "Team", copy: "Invite teammates and share projects. Coming soon." },
-  API: { title: "API", copy: "Create keys to use Eclipse from your own tools. Coming soon." },
-};
 
 export default function SettingsView() {
   const [tab, setTab] = useState<Tab>("Profile");
@@ -32,12 +30,10 @@ export default function SettingsView() {
           <ProfilePanel />
         ) : tab === "Billing" ? (
           <BillingPanel />
+        ) : tab === "Team" ? (
+          <TeamPanel />
         ) : (
-          <section className="st-section">
-            <h2>{SOON[tab].title}</h2>
-            <p className="st-sub">{SOON[tab].copy}</p>
-            <p className="st-soon">Coming soon</p>
-          </section>
+          <ApiPanel />
         )}
       </div>
     </div>
