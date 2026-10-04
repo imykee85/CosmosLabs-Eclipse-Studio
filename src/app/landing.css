@@ -226,9 +226,9 @@
 .pill-btn, .create-btn, .faq-item button { letter-spacing: normal; text-transform: none; }
 
 
-/* Header mark (61px mobile / 91px desktop) and button (same everywhere) */
-.nav-wrap .wordmark svg { width: 61px; height: 61px; }
-@media (min-width: 801px) { .nav-wrap .wordmark svg { width: 91px; height: 91px; } }
+/* Header mark (58px mobile / 88px desktop) and button (same everywhere) */
+.nav-wrap .wordmark svg { width: 58px; height: 58px; }
+@media (min-width: 801px) { .nav-wrap .wordmark svg { width: 88px; height: 88px; } }
 .nav-actions .pill-btn { font-size: 14px; line-height: 1; height: 33px; padding: 0 16px; gap: 0; }
 .nav-actions .pill-btn svg { display: none; }
 
