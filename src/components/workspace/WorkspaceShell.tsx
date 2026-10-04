@@ -13,13 +13,13 @@ import "@/components/app-theme.css";
 import { readCurrentProjectName } from "@/lib/projects";
 import "./workspace.css";
 
-type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number };
+type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
 
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const photo: Item[] = [
   { label: "Create", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
-  { label: "Assets", hint: "Reference photos", icon: <FolderOpen size={17} /> },
+  { label: "Assets", hint: "Reference photos", href: "/assets", soon: true, icon: <FolderOpen size={17} /> },
 ];
 const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <Bot size={17} /> };
 const video: Item[] = [
@@ -37,7 +37,7 @@ function NavItem({ item, pathname }: { item: Item; pathname: string }) {
         <b>{item.label}</b>
         <small>{item.hint}</small>
       </span>
-      {!item.href && <em className="ws-soon">Soon</em>}
+      {(!item.href || item.soon) && <em className="ws-soon">Soon</em>}
     </>
   );
   if (!item.href) return <div className="ws-item is-soon" aria-disabled="true">{body}</div>;
@@ -61,7 +61,7 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Studio", "/create": "Create", "/gallery": "Gallery", "/ingredients": "Ingredients", "/agents": "Agents", "/settings": "Settings",
+  "/project": "Studio", "/create": "Create", "/gallery": "Gallery", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -129,7 +129,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
       <nav className="mb-tabs" aria-label="Main">
         <Link href="/dashboard" className="mb-tab"><span className="mb-tab-icon"><House size={21} /></span><span>Home</span></Link>
         <Link href="/create" className={`mb-tab ${pathname === "/create" ? "is-active" : ""}`}><span className="mb-tab-icon"><PenLine size={21} /></span><span>Create</span></Link>
-        <Link href="/gallery" className={`mb-tab ${pathname === "/gallery" ? "is-active" : ""}`}><span className="mb-tab-icon"><Images size={21} /></span><span>Gallery</span></Link>
+        <Link href="/assets" className={`mb-tab ${pathname === "/assets" ? "is-active" : ""}`}><span className="mb-tab-icon"><FolderOpen size={21} /></span><span>Assets</span></Link>
         <Link href="/settings" className={`mb-tab ${pathname === "/settings" ? "is-active" : ""}`}><span className="mb-tab-icon"><Settings size={21} /></span><span>Settings</span></Link>
       </nav>
 
