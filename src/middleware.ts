@@ -2,7 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 
-const isPublic = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
+const isPublic = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/sso-callback(.*)"]);
 
 const withClerk = clerkMiddleware((auth, req) => {
   if (!isPublic(req)) auth().protect();
