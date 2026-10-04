@@ -27,7 +27,7 @@ model Onboarding {
   audience    String
   contentType String   @map("content_type")
   source      String
-  blocker     String
+  blocker     String[] // multiple challenges can be chosen
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("onboarding")

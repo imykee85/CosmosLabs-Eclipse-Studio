@@ -1,8 +1,11 @@
 // Onboarding questions, shared by the UI and the API route (which validates answers against them).
+export type QuestionId = "usage" | "experience" | "audience" | "contentType" | "source" | "blocker";
+
 export type Question = {
-  id: "usage" | "experience" | "audience" | "contentType" | "source" | "blocker";
+  id: QuestionId;
   title: string;
   options: string[];
+  multi?: boolean; // several options can be chosen
 };
 
 export const questions: Question[] = [
@@ -21,20 +24,36 @@ export const questions: Question[] = [
   },
   {
     id: "blocker",
-    title: "What's your biggest challenge right now?",
+    title: "What are your biggest challenges right now?",
     options: ["Cost", "Time", "Consistent quality", "Too many separate tools", "Getting approvals"],
+    multi: true,
   },
 ];
 
-export type Answers = Record<Question["id"], string>;
+export type Answers = {
+  usage: string;
+  experience: string;
+  audience: string;
+  contentType: string;
+  source: string;
+  blocker: string[];
+};
 
 export function validAnswers(body: unknown): Answers | null {
   if (!body || typeof body !== "object") return null;
-  const out = {} as Answers;
+  const b = body as Record<string, unknown>;
+  const out: Record<string, string | string[]> = {};
   for (const q of questions) {
-    const v = (body as Record<string, unknown>)[q.id];
-    if (typeof v !== "string" || !q.options.includes(v)) return null;
-    out[q.id] = v;
+    const v = b[q.id];
+    if (q.multi) {
+      if (!Array.isArray(v) || v.length === 0) return null;
+      const picked = Array.from(new Set(v));
+      if (!picked.every((x) => typeof x === "string" && q.options.includes(x))) return null;
+      out[q.id] = picked as string[];
+    } else {
+      if (typeof v !== "string" || !q.options.includes(v)) return null;
+      out[q.id] = v;
+    }
   }
-  return out;
+  return out as unknown as Answers;
 }
