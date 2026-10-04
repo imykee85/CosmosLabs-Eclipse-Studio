@@ -120,9 +120,12 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         <header className="mb-top">
           <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
           <h1 className="mb-title">{TITLES[pathname] ?? "Eclipse Studio"}</h1>
-          <AccountName>
-            {(name, image) => <button className="mb-avatar" aria-label="Open menu" onClick={() => setDrawer(true)}><Avatar name={name} image={image} className="mb-avatar-in" /></button>}
-          </AccountName>
+          <div className="mb-right">
+            <ThemeToggle className="mb-theme" />
+            <AccountName>
+              {(name, image) => <button className="mb-avatar" aria-label="Open menu" onClick={() => setDrawer(true)}><Avatar name={name} image={image} className="mb-avatar-in" /></button>}
+            </AccountName>
+          </div>
         </header>
         <main className="ws-main">{children}</main>
       </div>

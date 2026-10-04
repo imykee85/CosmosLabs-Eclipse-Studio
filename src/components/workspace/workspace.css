@@ -90,7 +90,10 @@ a.ws-card .ws-card-cta { color: var(--a-redtext); }
   .ws-content { min-height: 100vh; min-height: 100dvh; }
   .ws-main { max-width: none; padding: 28px 18px calc(96px + env(safe-area-inset-bottom, 0px)); }
 
-  .mb-top { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; height: 58px; padding: 0 10px; border-bottom: 1px solid var(--a-line); background: var(--a-bg); }
+  .mb-top { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 58px; padding: 0 10px; border-bottom: 1px solid var(--a-line); background: var(--a-bg); }
+  .mb-top .mb-icon { justify-self: start; }
+  .mb-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .mb-theme { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: transparent; color: var(--a-fg); cursor: pointer; }
   .mb-title { margin: 0; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
   .mb-icon { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg); cursor: pointer; }
   .mb-avatar { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--a-line2); border-radius: 50%; background: transparent; color: var(--a-fg); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; justify-self: end; }
