@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { FolderOpen, Images, Layers, Settings } from "lucide-react";
+import { Award, Images, LayoutGrid, Settings, User } from "lucide-react";
 import { AccountName } from "@/components/account";
 import Avatar from "@/components/Avatar";
 import "./user-menu.css";
 
 const ITEMS = [
   { label: "Gallery", href: "/gallery", icon: Images },
-  { label: "Assets", href: "/assets", icon: FolderOpen },
-  { label: "Ingredients", href: "/ingredients", icon: Layers },
+  { label: "Avatars", href: "/avatars", icon: User },
+  { label: "Portfolio", href: "/portfolio", icon: LayoutGrid },
+  { label: "Certificates", href: "/certificates", icon: Award },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

@@ -8,6 +8,9 @@ const ORIGINS: Record<string, string> = {
   "/ingredients": "Ingredients",
   "/agents": "Agents",
   "/assets": "Assets",
+  "/avatars": "Avatars",
+  "/portfolio": "Portfolio",
+  "/certificates": "Certificates",
   "/settings": "Settings",
 };
 

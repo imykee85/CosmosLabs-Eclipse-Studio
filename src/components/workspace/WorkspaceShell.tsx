@@ -62,7 +62,7 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
