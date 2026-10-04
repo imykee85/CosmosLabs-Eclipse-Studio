@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import Avatar from "@/components/Avatar";
+import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
 import "@/components/app-theme.css";
 import { readCurrentProjectName } from "@/lib/projects";
@@ -94,15 +95,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
         </nav>
-        <AccountName>
-          {(name, image) => (
-            <Link href="/settings" className={`ws-account ${pathname === "/settings" ? "is-active" : ""}`} title="Settings">
-              <Avatar name={name} image={image} className="ws-avatar" />
-              <span><b>{name}</b><small>Trial plan</small></span>
-              <Settings size={16} className="ws-account-gear" aria-hidden="true" />
-            </Link>
-          )}
-        </AccountName>
+        <UserMenu variant="sidebar" />
       </aside>
 
       <div className="ws-content">
@@ -122,9 +115,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <h1 className="mb-title">{TITLES[pathname] ?? "Eclipse Studio"}</h1>
           <div className="mb-right">
             <ThemeToggle className="mb-theme" />
-            <AccountName>
-              {(name, image) => <button className="mb-avatar" aria-label="Open menu" onClick={() => setDrawer(true)}><Avatar name={name} image={image} className="mb-avatar-in" /></button>}
-            </AccountName>
+            <UserMenu variant="avatar" />
           </div>
         </header>
         <main className="ws-main">{children}</main>

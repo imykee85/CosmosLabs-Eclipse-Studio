@@ -16,7 +16,7 @@ const ITEMS = [
 ];
 
 // Account button for the header: avatar (+ name on wide screens) that opens a small menu of shortcuts.
-export default function UserMenu() {
+export default function UserMenu({ variant = "header" }: { variant?: "header" | "sidebar" | "avatar" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -31,11 +31,11 @@ export default function UserMenu() {
   }, [open]);
 
   return (
-    <div className="um" ref={ref}>
+    <div className={`um um-v-${variant}`} ref={ref}>
       <AccountName>
         {(name, image) => (
           <button type="button" className="um-btn" aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" onClick={() => setOpen((o) => !o)}>
-            <span className="um-text"><strong>{name}</strong><span>trial plan</span></span>
+            {variant !== "avatar" && <span className="um-text"><strong>{name}</strong><span>{variant === "sidebar" ? "Trial plan" : "trial plan"}</span></span>}
             <Avatar name={name} image={image} className="um-avatar" />
           </button>
         )}

@@ -9,3 +9,11 @@
 .um-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; color: var(--a-muted); font-size: 15px; font-weight: 500; transition: background .15s, color .15s; }
 .um-item:hover, .um-item:focus-visible { background: var(--a-hover); color: var(--a-fg); }
 @media (max-width: 700px) { .um-text { display: none; } }
+
+/* Sidebar: full-width account row at the bottom; the menu opens upward. */
+.um-v-sidebar { margin: 0; border-top: 1px solid var(--a-line); }
+.um-v-sidebar .um-btn { width: 100%; padding: 16px 18px; gap: 12px; text-align: left; flex-direction: row-reverse; justify-content: flex-end; transition: background .18s; }
+.um-v-sidebar .um-btn:hover { background: var(--a-hover); }
+.um-v-sidebar .um-text { flex: 1; min-width: 0; text-align: left; }
+.um-v-sidebar .um-text strong { max-width: 100%; }
+.um-v-sidebar .um-menu { top: auto; bottom: calc(100% + 8px); left: 12px; right: 12px; min-width: 0; }
