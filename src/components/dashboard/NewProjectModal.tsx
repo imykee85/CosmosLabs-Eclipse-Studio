@@ -3,11 +3,13 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { saveProjectName } from "@/lib/project";
+import { createProject, setCurrentProject } from "@/lib/projects";
 
 export default function NewProjectModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const card = useRef<HTMLDivElement>(null);
 
@@ -33,12 +35,20 @@ export default function NewProjectModal({ onClose }: { onClose: () => void }) {
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const clean = name.trim();
-    if (!clean) return;
-    saveProjectName(clean);
-    router.push("/project");
+    if (!clean || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const project = await createProject(clean);
+      setCurrentProject(project);
+      router.push("/project");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create the project.");
+      setBusy(false);
+    }
   }
 
   return (
@@ -50,7 +60,8 @@ export default function NewProjectModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={submit}>
           <label htmlFor="nm-name">PROJECT NAME</label>
           <input id="nm-name" ref={input} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="off" placeholder="e.g. Summer Collection Launch" />
-          <button type="submit" className="nm-create" disabled={!name.trim()}>Create Project</button>
+          {error && <p className="nm-error" role="alert">{error}</p>}
+          <button type="submit" className="nm-create" disabled={!name.trim() || busy}>{busy ? "Creating…" : "Create Project"}</button>
         </form>
       </div>
     </div>

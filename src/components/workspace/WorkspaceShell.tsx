@@ -7,7 +7,7 @@ import {
   ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, Images, Layers, PanelLeft, PenLine,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
-import { readProjectName } from "@/lib/project";
+import { readCurrentProjectName } from "@/lib/projects";
 import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number };
@@ -62,7 +62,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
   const [open, setOpen] = useState(true);
   const [project, setProject] = useState("");
 
-  useEffect(() => setProject(readProjectName()), [pathname]);
+  useEffect(() => setProject(readCurrentProjectName()), [pathname]);
 
   // Sidebar starts closed on small screens and closes after navigating there.
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
       <div className="ws-content">
         <header className="ws-topbar">
           {!open && <button className="ws-icon-btn" aria-label="Open sidebar" onClick={() => setOpen(true)}><PanelLeft size={16} /></button>}
-          <Link href="/dashboard" className="ws-back"><ArrowLeft size={15} /> back to dashboard</Link>
+          <Link href="/dashboard" className="ws-back"><ArrowLeft size={15} /> Dashboard</Link>
           {project && <span className="ws-project" title="Current project">{project}</span>}
           <div className="ws-topbar-right">
             <Link href="/#how-it-works" className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
