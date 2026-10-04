@@ -33,7 +33,7 @@ const copy = {
   signup: { title: "create account", intro: "Start creating with Eclipse. It only takes a minute.", submit: "Create account" },
 };
 
-export default function AuthView({ mode, handlers }: { mode: Mode; handlers: Handlers }) {
+export default function AuthView({ mode, handlers, demo }: { mode: Mode; handlers: Handlers; demo?: { email: string; password: string } }) {
   const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -113,6 +113,20 @@ export default function AuthView({ mode, handlers }: { mode: Mode; handlers: Han
     <section className="login-card auth-card" aria-labelledby="auth-title">
       <h1 id="auth-title">{title}</h1>
       <p className="login-intro">{intro}</p>
+
+      {demo && step === "credentials" && (
+        <div className="auth-demo" role="note">
+          <p>
+            <strong>Demo mode.</strong>{" "}
+            {mode === "signup"
+              ? "Sign up with any email and a password of 8+ characters to try onboarding."
+              : `Sign in with ${demo.email} / ${demo.password}.`}
+          </p>
+          <button type="button" onClick={() => { setEmail(demo.email); setPassword(demo.password); setError(""); }}>
+            Fill demo login
+          </button>
+        </div>
+      )}
 
       {step === "credentials" && (
         <>
