@@ -106,10 +106,6 @@ export default function Landing() {
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
             <h2>what do you want<br /><em>to create?</em></h2>
           </div>
-          <div className="audience-preview">
-            <div className={`tile tone-${selected}`} />
-            <div><b>{audience[selected][0]}</b><p>{audience[selected][1]}</p></div>
-          </div>
         </div>
         <div className="audience-grid">
           {audience.map(([title, copy], i) => (

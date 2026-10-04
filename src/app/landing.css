@@ -306,3 +306,7 @@
   .auth-input-wrap { min-height: 38px; }
   .auth-switch { margin-top: 10px; }
 }
+
+/* Audience cards: number top-left, arrow bottom-right */
+.audience-card > .audience-number { position: absolute; top: 18px; left: 20px; }
+.audience-card > .audience-arrow { position: absolute; right: 19px; bottom: 20px; }
