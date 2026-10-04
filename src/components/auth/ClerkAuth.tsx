@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import AuthView, { type Handlers, type Mode } from "./AuthView";
 
-const AFTER_AUTH = "/create";
+const AFTER_SIGN_IN = "/create";
+const AFTER_SIGN_UP = "/onboarding"; // new accounts answer a few questions first
 
 function message(err: unknown) {
   const e = err as { errors?: { longMessage?: string; message?: string }[] };
@@ -25,7 +26,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
           const res = await signIn.create({ identifier: email, password });
           if (res.status === "complete") {
             await setActiveIn({ session: res.createdSessionId });
-            router.push(AFTER_AUTH);
+            router.push(AFTER_SIGN_IN);
             return;
           }
           return { error: "Extra verification is required for this account." };
@@ -41,7 +42,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
 
     async google() {
       try {
-        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: AFTER_AUTH } as const;
+        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: mode === "signup" ? AFTER_SIGN_UP : AFTER_SIGN_IN } as const;
         if (mode === "signin") {
           if (!inLoaded) return loading;
           await signIn.authenticateWithRedirect(opts);
@@ -60,7 +61,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
         const res = await signUp.attemptEmailAddressVerification({ code });
         if (res.status === "complete") {
           await setActiveUp({ session: res.createdSessionId });
-          router.push(AFTER_AUTH);
+          router.push(AFTER_SIGN_UP);
           return;
         }
         return { error: "That code didn't work. Check it and try again." };
@@ -85,7 +86,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
         const res = await signIn.attemptFirstFactor({ strategy: "reset_password_email_code", code, password });
         if (res.status === "complete") {
           await setActiveIn({ session: res.createdSessionId });
-          router.push(AFTER_AUTH);
+          router.push(AFTER_SIGN_IN);
           return;
         }
         return { error: "Could not reset the password. Please try again." };

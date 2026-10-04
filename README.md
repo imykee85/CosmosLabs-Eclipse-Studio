@@ -15,6 +15,7 @@ Higgsfield endpoint/model/auth live in `src/lib/higgsfield.ts` (overridable via 
 ## Pages
 - `/` public landing page (placeholder gradient art, swap for real renders)
 - `/sign-in`, `/sign-up` Clerk, styled to match
+- `/onboarding` six questions shown once after sign-up (saved to the `onboarding` table)
 - `/create` prompt → generate (protected), `/gallery` past generations (protected)
 
 ## Deploy

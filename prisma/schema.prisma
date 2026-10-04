@@ -18,3 +18,17 @@ model Generation {
   @@index([userId, createdAt(sort: Desc)])
   @@map("generations")
 }
+
+// One row per user, written when they finish onboarding right after signing up.
+model Onboarding {
+  userId      String   @id @map("user_id")
+  usage       String
+  experience  String
+  audience    String
+  contentType String   @map("content_type")
+  source      String
+  blocker     String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("onboarding")
+}
