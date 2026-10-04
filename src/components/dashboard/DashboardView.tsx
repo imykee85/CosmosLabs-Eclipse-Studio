@@ -1,48 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useClerk, useUser } from "@clerk/nextjs";
 import { useState } from "react";
-import { Coins, FolderOpen, GraduationCap, LogOut, Plus, Search, Trash2 } from "lucide-react";
+import { Coins, FolderOpen, GraduationCap, Plus, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
-import { clerkEnabled } from "@/lib/clerk-enabled";
+import { AccountName, SignOutButton } from "@/components/account";
 import "./dashboard.css";
-
-function UserBlock({ name }: { name: string }) {
-  return (
-    <div className="db-user">
-      <strong>{name}</strong>
-      <span>trial plan</span>
-    </div>
-  );
-}
-
-function ClerkUser() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
-  const name = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Your account";
-  return (
-    <>
-      <button className="db-icon" aria-label="Sign out" onClick={() => signOut({ redirectUrl: "/" })}>
-        <LogOut size={16} />
-      </button>
-      <UserBlock name={name} />
-    </>
-  );
-}
-
-function DemoUser() {
-  const router = useRouter();
-  return (
-    <>
-      <button className="db-icon" aria-label="Sign out" onClick={() => router.push("/")}>
-        <LogOut size={16} />
-      </button>
-      <UserBlock name="Demo User" />
-    </>
-  );
-}
 
 export default function DashboardView() {
   const [tab, setTab] = useState<"projects" | "bin">("projects");
@@ -55,7 +18,8 @@ export default function DashboardView() {
         <div className="db-header-right">
           <Link href="/#how-it-works" className="db-pill"><GraduationCap size={15} /> tutorial</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
-          {clerkEnabled ? <ClerkUser /> : <DemoUser />}
+          <SignOutButton className="db-icon" />
+          <AccountName>{(name) => <div className="db-user"><strong>{name}</strong><span>trial plan</span></div>}</AccountName>
         </div>
       </header>
 
@@ -73,16 +37,16 @@ export default function DashboardView() {
             <Search size={16} />
             <input type="search" placeholder="Search projects…" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search projects" />
           </label>
-          <Link href="/create" className="db-new"><Plus size={16} /> New Project</Link>
+          <Link href="/project" className="db-new"><Plus size={16} /> New Project</Link>
         </div>
 
         <section className="db-empty" aria-live="polite">
-          <Link href="/create" className="db-empty-plus" aria-label="New project"><Plus size={22} /></Link>
+          <Link href="/project" className="db-empty-plus" aria-label="New project"><Plus size={22} /></Link>
           {tab === "projects" ? (
             <>
               <h1>No projects yet</h1>
               <p>Create your first project to get started.</p>
-              <Link href="/create" className="db-new"><Plus size={16} /> New Project</Link>
+              <Link href="/project" className="db-new"><Plus size={16} /> New Project</Link>
             </>
           ) : (
             <>
