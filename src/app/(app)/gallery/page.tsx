@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
   if (!clerkEnabled) {
-    return <p className="text-neutral-400">Preview mode: sign-in and the database are not configured yet.</p>;
+    return <p className="app-muted">Preview mode: sign-in and the database are not configured yet.</p>;
   }
   const { userId } = auth().protect();
   const generations = await db.generation.findMany({
@@ -16,16 +16,16 @@ export default async function GalleryPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Gallery</h1>
+      <h1 className="text-2xl font-bold">Gallery</h1>
       {generations.length === 0 ? (
-        <p className="text-neutral-400">Nothing here yet. Generate something first.</p>
+        <p className="app-muted">Nothing here yet. Generate something first.</p>
       ) : (
         <ul className="grid grid-cols-2 gap-4 md:grid-cols-3">
           {generations.map((g) => (
             <li key={g.id} className="space-y-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={g.imageUrl} alt={g.prompt} className="aspect-square w-full rounded-lg object-cover" />
-              <p className="line-clamp-2 text-sm text-neutral-400">{g.prompt}</p>
+              <p className="line-clamp-2 text-sm app-muted">{g.prompt}</p>
             </li>
           ))}
         </ul>

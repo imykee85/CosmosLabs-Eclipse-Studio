@@ -9,7 +9,9 @@ import { AccountName, SignOutButton } from "@/components/account";
 import {
   deleteProjectForever, listProjects, restoreProject, setCurrentProject, timeAgo, trashProject, type Project,
 } from "@/lib/projects";
+import ThemeToggle from "@/components/ThemeToggle";
 import NewProjectModal from "./NewProjectModal";
+import "@/components/app-theme.css";
 import "./dashboard.css";
 
 export default function DashboardView() {
@@ -60,6 +62,7 @@ export default function DashboardView() {
         <div className="db-header-right">
           <Link href="/#how-it-works" className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
+          <ThemeToggle className="db-icon" />
           <SignOutButton className="db-icon" />
           <AccountName>{(name) => <div className="db-user"><strong>{name}</strong><span>trial plan</span></div>}</AccountName>
         </div>

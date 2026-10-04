@@ -7,6 +7,8 @@ import {
   ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, Images, Layers, PanelLeft, PenLine,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
+import ThemeToggle from "@/components/ThemeToggle";
+import "@/components/app-theme.css";
 import { readCurrentProjectName } from "@/lib/projects";
 import "./workspace.css";
 
@@ -101,6 +103,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <div className="ws-topbar-right">
             <Link href="/#how-it-works" className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
             <span className="ws-pill ws-pill-solid" title="Credits"><Coins size={14} /> 0</span>
+            <ThemeToggle className="ws-icon-btn" />
             <SignOutButton className="ws-icon-btn" />
           </div>
         </header>

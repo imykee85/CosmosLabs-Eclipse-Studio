@@ -1,0 +1,28 @@
+/* App appearance: dark (default) and light. Applies to the dashboard and workspace screens only;
+   the marketing site, sign-in and onboarding stay dark. Switched with html[data-app-theme="light"]. */
+.db-page, .ws-root {
+  --a-bg: #000; --a-card: #1a1a1a; --a-input: #121212; --a-hover: #151515; --a-active: #1f1f1f;
+  --a-fg: #f2f2f2; --a-fg2: #d6d2cb; --a-muted: #a09b94; --a-muted2: #8a857e; --a-ph: #6f6b65;
+  --a-line: rgba(255,255,255,.1); --a-line2: rgba(255,255,255,.14); --a-line3: rgba(255,255,255,.2); --a-line4: rgba(255,255,255,.45);
+  --a-disabled: #3a3a3a; --a-sel: #1d0e0e; --a-danger: #ff6b6b; --a-redtext: #ff5a5a; --a-shadow: rgba(0,0,0,.5);
+  --a-thumb: linear-gradient(135deg, #2a0f0f, #111); --a-thumbtext: rgba(255,255,255,.5);
+}
+html[data-app-theme="light"] .db-page, html[data-app-theme="light"] .ws-root {
+  --a-bg: #faf8f5; --a-card: #ffffff; --a-input: #f1ede7; --a-hover: #f1ede7; --a-active: #ece7e0;
+  --a-fg: #141414; --a-fg2: #3b3833; --a-muted: #6b665f; --a-muted2: #7a756e; --a-ph: #9a958d;
+  --a-line: rgba(0,0,0,.1); --a-line2: rgba(0,0,0,.14); --a-line3: rgba(0,0,0,.2); --a-line4: rgba(0,0,0,.45);
+  --a-disabled: #dcd7cf; --a-sel: #fdecec; --a-danger: #c62828; --a-redtext: #c00707; --a-shadow: rgba(60,40,20,.14);
+  --a-thumb: linear-gradient(135deg, #f1dcd8, #e9e4dd); --a-thumbtext: rgba(20,20,20,.35);
+}
+html[data-app-theme="light"] body:has(.db-page, .ws-root) { background: #faf8f5; color: #141414; }
+.app-muted { color: var(--a-muted); }
+
+/* Red buttons keep white text in both themes */
+.db-page .db-new, .db-page .nm-create:not(:disabled), .ws-root .cr-go:not(:disabled), .ws-root .ws-add:not(:disabled) { color: #fff; }
+.db-page .db-badge { background: rgba(0,0,0,.55); border-color: rgba(255,255,255,.22); color: #f2f2f2; }
+.db-page .nm-card input, .db-page .db-search input { color: var(--a-fg); }
+/* Logo dots follow the theme */
+.db-logo svg { color: #fff; }
+html[data-app-theme="light"] .db-logo svg { color: #141414; }
+.nm-backdrop select option { background: var(--a-card); }
+.cr-select select option { background: var(--a-card); color: var(--a-fg); }
