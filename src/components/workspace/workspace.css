@@ -54,3 +54,9 @@ a.ws-card .ws-card-cta { color: #ff5a5a; }
   .ws-main { padding-top: 36px; }
 }
 @media (prefers-reduced-motion: reduce) { .ws-sidebar, .ws-card { transition: none; } }
+
+.ws-agents { display: grid; gap: 2px; }
+.ws-agent { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.ws-agent:hover { background: #151515; }
+.ws-agent.is-active { background: #1f1f1f; }
+.ws-agent-check { flex: none; color: #ff5a5a; }

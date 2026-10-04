@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, Images, Layers, PanelLeft, PenLine,
+  ArrowLeft, Bot, Check, ChevronDown, Coins, FolderOpen, GraduationCap, Images, Layers, PanelLeft, PenLine,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import "./workspace.css";
@@ -17,6 +17,8 @@ const photo: Item[] = [
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
   { label: "Assets", hint: "Reference photos", icon: <FolderOpen size={17} /> },
 ];
+const agents = ["Agent 1", "Agent 2", "Agent 3"];
+const AGENT_KEY = "eclipse-agent";
 const video: Item[] = [
   { label: "Story", hint: "Plan the scenes", step: 1 },
   { label: "Prompts", hint: "Scene by scene", step: 2 },
@@ -55,6 +57,53 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
   );
 }
 
+// Pick one agent from the list; the choice is remembered in this browser. Click it again to clear.
+function AgentSection() {
+  const [open, setOpen] = useState(true);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(AGENT_KEY);
+      if (saved && agents.includes(saved)) setSelected(saved);
+    } catch {}
+  }, []);
+
+  function choose(name: string) {
+    const next = selected === name ? null : name;
+    setSelected(next);
+    try {
+      if (next) localStorage.setItem(AGENT_KEY, next);
+      else localStorage.removeItem(AGENT_KEY);
+    } catch {}
+  }
+
+  return (
+    <div className="ws-section">
+      <button className="ws-section-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <ChevronDown size={13} className={open ? "" : "is-closed"} /> AGENTS
+      </button>
+      {open && (
+        <div role="group" aria-label="Agents" className="ws-agents">
+          {agents.map((name) => {
+            const on = selected === name;
+            return (
+              <button key={name} type="button" className={`ws-item ws-agent ${on ? "is-active" : ""}`} aria-pressed={on} onClick={() => choose(name)}>
+                <span className="ws-icon"><Bot size={17} /></span>
+                <span className="ws-item-text">
+                  <b>{name}</b>
+                  <small>{on ? "Selected" : "Tap to select"}</small>
+                </span>
+                {on && <Check size={16} className="ws-agent-check" aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(true);
@@ -73,6 +122,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         </div>
         <nav className="ws-nav">
           <NavItem item={references} pathname={pathname} />
+          <AgentSection />
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
         </nav>
