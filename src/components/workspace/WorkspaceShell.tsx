@@ -62,7 +62,7 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Studio", "/create": "Create", "/gallery": "Gallery", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -119,7 +119,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         </header>
         <header className="mb-top">
           <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
-          <h1 className="mb-title">{TITLES[pathname] ?? "Studio"}</h1>
+          <h1 className="mb-title">{TITLES[pathname] ?? "Eclipse Studio"}</h1>
           <AccountName>
             {(name, image) => <button className="mb-avatar" aria-label="Open menu" onClick={() => setDrawer(true)}><Avatar name={name} image={image} className="mb-avatar-in" /></button>}
           </AccountName>
