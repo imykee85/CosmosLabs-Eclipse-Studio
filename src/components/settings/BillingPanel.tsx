@@ -1,0 +1,49 @@
+import { CreditCard, Inbox, Zap } from "lucide-react";
+import { plans } from "@/lib/plans";
+
+// Billing is not connected yet: the plan is always "Trial", credits are 0 and upgrades are disabled.
+export default function BillingPanel() {
+  return (
+    <>
+      <section className="st-section" aria-labelledby="st-billing">
+        <h2 id="st-billing">Billing &amp; credits</h2>
+        <p className="st-sub">Manage your subscription and view credit history.</p>
+
+        <div className="st-plan">
+          <div>
+            <p className="st-eyebrow"><CreditCard size={15} /> CURRENT PLAN</p>
+            <p className="st-big">Trial</p>
+          </div>
+          <div>
+            <p className="st-eyebrow"><Zap size={15} /> CREDITS</p>
+            <p className="st-big">0</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="st-section" aria-labelledby="st-upgrade">
+        <h3 id="st-upgrade" className="st-h3">Upgrade your plan</h3>
+        <div className="st-plans">
+          {plans.map((p) => (
+            <article key={p.name} className="st-planCard">
+              <span className="st-pill">{p.name}</span>
+              <p className="st-price">${p.price}<small>/mo</small></p>
+              <p className="st-meta">{p.credits.toLocaleString("en-US")} credits/mo · {p.seats} seat{p.seats === 1 ? "" : "s"}</p>
+              <button type="button" className="st-upgrade" disabled title="Billing is coming soon">Upgrade</button>
+            </article>
+          ))}
+        </div>
+        <p className="st-hint">Upgrades open when billing launches.</p>
+      </section>
+
+      <section className="st-section" aria-labelledby="st-history">
+        <h3 id="st-history" className="st-h3">Credit history</h3>
+        <div className="st-empty">
+          <Inbox size={44} strokeWidth={1.4} />
+          <p className="st-empty-title">No transactions yet</p>
+          <p className="st-meta">Credit activity will appear here.</p>
+        </div>
+      </section>
+    </>
+  );
+}
