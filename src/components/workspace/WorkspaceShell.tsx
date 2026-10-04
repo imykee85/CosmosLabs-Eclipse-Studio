@@ -11,6 +11,7 @@ import Avatar from "@/components/Avatar";
 import ThemeToggle from "@/components/ThemeToggle";
 import "@/components/app-theme.css";
 import { readCurrentProjectName } from "@/lib/projects";
+import { tutorialHref } from "@/lib/tutorial";
 import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
@@ -110,7 +111,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <Link href="/dashboard" className="ws-back"><ArrowLeft size={15} /> Dashboard</Link>
           {project && <span className="ws-project" title="Current project">{project}</span>}
           <div className="ws-topbar-right">
-            <Link href="/#how-it-works" className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
+            <Link href={tutorialHref(pathname)} className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
             <span className="ws-pill ws-pill-solid" title="Credits"><Coins size={14} /> 0</span>
             <ThemeToggle className="ws-icon-btn" />
             <SignOutButton className="ws-icon-btn" />
@@ -154,7 +155,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <div className="mb-foot">
             <Link href="/dashboard" className="mb-foot-link"><LayoutDashboard size={19} /> Dashboard</Link>
             <Link href="/settings" className="mb-foot-link"><Settings size={19} /> Settings</Link>
-            <Link href="/#how-it-works" className="mb-foot-link"><GraduationCap size={19} /> Tutorial</Link>
+            <Link href={tutorialHref(pathname)} className="mb-foot-link"><GraduationCap size={19} /> Tutorial</Link>
             <div className="mb-foot-row">
               <span className="mb-credits"><Coins size={15} /> 0 credits</span>
               <ThemeToggle className="ws-icon-btn" />

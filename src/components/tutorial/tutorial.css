@@ -1,0 +1,21 @@
+.tu-main { position: relative; max-width: 1100px; margin: 0 auto; padding: 56px clamp(16px, 4%, 48px) 80px; text-align: center; }
+.tu-close { position: absolute; top: 20px; right: clamp(16px, 4%, 48px); display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--a-line2); border-radius: 50%; color: var(--a-fg); transition: border-color .18s; }
+.tu-close:hover { border-color: var(--a-line4); }
+.tu-main h1 { margin: 24px 0 0; font-size: 44px; font-weight: 700; letter-spacing: -.03em; }
+.tu-lead { max-width: 600px; margin: 16px auto 0; color: var(--a-muted); font-size: 16px; line-height: 1.55; }
+.tu-grid { list-style: none; margin: 44px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; text-align: center; }
+.tu-card { display: grid; justify-items: center; gap: 16px; padding: 22px; border: 1px solid var(--a-line2); border-radius: 26px; background: var(--a-card); }
+.tu-tag { padding: 5px 14px; border: 1px solid var(--a-line3); border-radius: 999px; color: var(--a-muted); font-size: 11px; font-weight: 500; letter-spacing: .24em; }
+.tu-card h2 { margin: 0; max-width: 240px; font-size: 17px; font-weight: 600; line-height: 1.35; letter-spacing: -.01em; }
+.tu-thumb { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; background: var(--tone, linear-gradient(135deg, #3b0d12, #0f172a)); color: rgba(255,255,255,.85); }
+.tu-thumb span { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.3); }
+.tu-watch { width: min(100%, 210px); height: 46px; border: 1px solid var(--a-line3); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: border-color .18s, background .18s; }
+.tu-watch:hover:not(:disabled) { border-color: var(--a-line4); background: var(--a-hover); }
+.tu-watch:disabled { color: var(--a-muted2); cursor: not-allowed; }
+.tu-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.78); }
+.tu-player { position: relative; width: min(100%, 920px); }
+.tu-player video { display: block; width: 100%; max-height: 78vh; border-radius: 16px; background: #000; }
+.tu-player p { margin: 12px 0 0; color: #f2f2f2; text-align: center; font-size: 15px; }
+.tu-x { position: absolute; top: -46px; right: 0; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; background: transparent; color: #fff; cursor: pointer; }
+.tone-0 { --tone: linear-gradient(135deg, #7f1d1d, #0f0f10); } .tone-1 { --tone: linear-gradient(135deg, #be123c, #1a0b0d); } .tone-2 { --tone: linear-gradient(135deg, #9f1239, #1c1917); }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .tu-main { padding-top: 48px; } .tu-main h1 { font-size: 34px; } .tu-close { top: 14px; } }

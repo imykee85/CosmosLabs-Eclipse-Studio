@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock, Coins, FolderOpen, GraduationCap, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
+import { tutorialHref } from "@/lib/tutorial";
 import { AccountName, SignOutButton } from "@/components/account";
 import {
   deleteProjectForever, listProjects, restoreProject, setCurrentProject, timeAgo, trashProject, type Project,
@@ -60,7 +61,7 @@ export default function DashboardView() {
       <header className="db-header">
         <Link href="/" aria-label="Eclipse home" className="db-logo"><LogoMark size={48} /></Link>
         <div className="db-header-right">
-          <Link href="/#how-it-works" className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
+          <Link href={tutorialHref("/dashboard")} className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
           <SignOutButton className="db-icon" />
