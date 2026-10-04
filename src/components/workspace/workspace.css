@@ -82,3 +82,6 @@ a.ws-card .ws-card-cta { color: #ff5a5a; }
 .ws-pick.is-selected { border-color: #c00707; background: #1d0e0e; }
 .ws-pick-state { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; color: #a09b94; font-size: 14px; font-weight: 500; }
 .ws-pick.is-selected .ws-pick-state { color: #ff5a5a; }
+
+.ws-project { max-width: 220px; padding: 6px 14px; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; background: #121212; color: #f2f2f2; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 800px) { .ws-project { display: none; } }

@@ -5,11 +5,13 @@ import { useState } from "react";
 import { Coins, FolderOpen, GraduationCap, Plus, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { AccountName, SignOutButton } from "@/components/account";
+import NewProjectModal from "./NewProjectModal";
 import "./dashboard.css";
 
 export default function DashboardView() {
   const [tab, setTab] = useState<"projects" | "bin">("projects");
   const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
 
   return (
     <div className="db-page">
@@ -37,16 +39,16 @@ export default function DashboardView() {
             <Search size={16} />
             <input type="search" placeholder="Search projects…" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search projects" />
           </label>
-          <Link href="/project" className="db-new"><Plus size={16} /> New Project</Link>
+          <button type="button" className="db-new" onClick={() => setCreating(true)}><Plus size={16} /> New Project</button>
         </div>
 
         <section className="db-empty" aria-live="polite">
-          <Link href="/project" className="db-empty-plus" aria-label="New project"><Plus size={22} /></Link>
+          <button type="button" className="db-empty-plus" aria-label="New project" onClick={() => setCreating(true)}><Plus size={22} /></button>
           {tab === "projects" ? (
             <>
               <h1>No projects yet</h1>
               <p>Create your first project to get started.</p>
-              <Link href="/project" className="db-new"><Plus size={16} /> New Project</Link>
+              <button type="button" className="db-new" onClick={() => setCreating(true)}><Plus size={16} /> New Project</button>
             </>
           ) : (
             <>
@@ -56,6 +58,7 @@ export default function DashboardView() {
           )}
         </section>
       </main>
+      {creating && <NewProjectModal onClose={() => setCreating(false)} />}
     </div>
   );
 }
