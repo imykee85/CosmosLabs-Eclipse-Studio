@@ -60,3 +60,23 @@ a.ws-card .ws-card-cta { color: #ff5a5a; }
 .ws-agent:hover { background: #151515; }
 .ws-agent.is-active { background: #1f1f1f; }
 .ws-agent-check { flex: none; color: #ff5a5a; }
+
+/* Ingredients page */
+.ws-ing h1 { margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -.03em; }
+.ws-ing > p { max-width: 620px; margin: 14px 0 22px; color: #a09b94; font-size: 16px; line-height: 1.5; }
+.ws-ghost { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; color: #f2f2f2; font-size: 15px; font-weight: 500; transition: border-color .18s; }
+.ws-ghost:hover { border-color: #fff; }
+.ws-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 36px; }
+.ws-kind { display: grid; justify-items: center; align-content: start; gap: 8px; padding: 28px 20px 24px; min-height: 250px; border: 1px solid rgba(255,255,255,.12); border-radius: 28px; background: #1a1a1a; text-align: center; }
+.ws-kind.is-soon { opacity: .6; }
+.ws-kind .ws-card-icon { margin-bottom: 8px; }
+.ws-kind h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.ws-kind p { margin: 0; max-width: 220px; color: #a09b94; font-size: 14px; line-height: 1.5; }
+.ws-kind .ws-soon { margin-top: 8px; }
+.ws-ing-empty { display: grid; justify-items: center; gap: 10px; margin-top: 64px; text-align: center; }
+.ws-ing-empty h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.ws-ing-empty p { margin: 0 0 8px; color: #a09b94; font-size: 15px; }
+.ws-ing-empty small { color: #8a857e; font-size: 13px; }
+.ws-add { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 24px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 15px; font-weight: 500; }
+.ws-add:disabled { background: #3a3a3a; color: #8a857e; cursor: not-allowed; }
+@media (max-width: 800px) { .ws-kinds { grid-template-columns: 1fr; } .ws-ing h1 { font-size: 32px; } .ws-kind { min-height: 0; } }

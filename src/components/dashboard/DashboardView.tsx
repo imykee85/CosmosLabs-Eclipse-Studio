@@ -16,7 +16,7 @@ export default function DashboardView() {
       <header className="db-header">
         <Link href="/" aria-label="Eclipse home" className="db-logo"><LogoMark size={48} /></Link>
         <div className="db-header-right">
-          <Link href="/#how-it-works" className="db-pill"><GraduationCap size={15} /> tutorial</Link>
+          <Link href="/#how-it-works" className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <SignOutButton className="db-icon" />
           <AccountName>{(name) => <div className="db-user"><strong>{name}</strong><span>trial plan</span></div>}</AccountName>

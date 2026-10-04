@@ -11,7 +11,7 @@ import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number };
 
-const references: Item = { label: "References", hint: "Character · Product · Location", icon: <Layers size={17} /> };
+const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Location", href: "/ingredients", icon: <Layers size={17} /> };
 const photo: Item[] = [
   { label: "Create", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
@@ -121,7 +121,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="ws-icon-btn" aria-label="Collapse sidebar" onClick={() => setOpen(false)}><PanelLeft size={16} /></button>
         </div>
         <nav className="ws-nav">
-          <NavItem item={references} pathname={pathname} />
+          <NavItem item={ingredients} pathname={pathname} />
           <AgentSection />
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
@@ -142,7 +142,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           {!open && <button className="ws-icon-btn" aria-label="Open sidebar" onClick={() => setOpen(true)}><PanelLeft size={16} /></button>}
           <Link href="/dashboard" className="ws-back"><ArrowLeft size={15} /> back to dashboard</Link>
           <div className="ws-topbar-right">
-            <Link href="/#how-it-works" className="ws-pill"><GraduationCap size={15} /> tutorial</Link>
+            <Link href="/#how-it-works" className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
             <span className="ws-pill ws-pill-solid" title="Credits"><Coins size={14} /> 0</span>
             <SignOutButton className="ws-icon-btn" />
           </div>
