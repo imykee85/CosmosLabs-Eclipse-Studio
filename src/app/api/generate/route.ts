@@ -6,6 +6,8 @@ import { generateImage } from "@/lib/higgsfield";
 
 export const maxDuration = 60;
 
+const ASPECT_RATIOS = ["1:1", "4:5", "9:16", "16:9"];
+
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { userId } = auth();
@@ -16,8 +18,10 @@ export async function POST(req: Request) {
   if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
   if (prompt.length > 2000) return NextResponse.json({ error: "Prompt is too long" }, { status: 400 });
 
+  const aspectRatio = typeof body?.aspectRatio === "string" && ASPECT_RATIOS.includes(body.aspectRatio) ? body.aspectRatio : undefined;
+
   try {
-    const imageUrl = await generateImage(prompt);
+    const imageUrl = await generateImage(prompt, aspectRatio);
     const generation = await db.generation.create({ data: { userId, prompt, imageUrl } });
     return NextResponse.json(generation);
   } catch (err) {

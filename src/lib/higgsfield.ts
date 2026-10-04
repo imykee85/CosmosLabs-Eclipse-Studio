@@ -29,11 +29,11 @@ function extractUrl(job: JobResponse): string | undefined {
   return job.images?.[0]?.url ?? job.image?.url;
 }
 
-export async function generateImage(prompt: string): Promise<string> {
+export async function generateImage(prompt: string, aspectRatio?: string): Promise<string> {
   const res = await fetch(`${BASE_URL}/${MODEL}`, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify(aspectRatio ? { prompt, aspect_ratio: aspectRatio } : { prompt }),
   });
   if (!res.ok) throw new Error(`Higgsfield request failed (${res.status}): ${await res.text()}`);
 

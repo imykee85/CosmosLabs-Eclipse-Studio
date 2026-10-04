@@ -1,15 +1,12 @@
 import { Suspense } from "react";
-import PromptForm from "@/components/PromptForm";
+import CreateStudio from "@/components/create/CreateStudio";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default function CreatePage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Create</h1>
-      <Suspense>
-        <PromptForm />
-      </Suspense>
-    </div>
+    <Suspense>
+      <CreateStudio />
+    </Suspense>
   );
 }
