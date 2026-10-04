@@ -121,3 +121,13 @@ a.ws-card .ws-card-cta { color: var(--a-redtext); }
   .mb-credits { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; color: var(--a-muted); font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .mb-panel, .mb-scrim { transition: none; } }
+
+/* Account block in the sidebar is a link to Settings; avatars may hold a photo */
+a.ws-account { color: inherit; transition: background .18s; }
+a.ws-account:hover, a.ws-account.is-active { background: var(--a-hover); }
+.ws-account span:nth-child(2) { flex: 1; min-width: 0; }
+.ws-account-gear { flex: none; color: var(--a-muted2); }
+.ws-avatar, .mb-avatar-in { display: grid; place-items: center; }
+.mb-avatar { overflow: hidden; padding: 0; }
+.mb-avatar-in { width: 100%; height: 100%; }
+.ws-account span:nth-child(2) { display: grid; line-height: 1.3; }

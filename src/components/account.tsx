@@ -1,19 +1,41 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { clerkEnabled } from "@/lib/clerk-enabled";
+import { DEMO_PROFILE_EVENT, readDemoProfile, type DemoProfile } from "@/lib/demo-profile";
 
 // Clerk hooks only run inside the keyed branch; without keys these fall back to a demo account.
-function ClerkName({ children }: { children: (name: string) => ReactNode }) {
+type Render = (name: string, image?: string) => ReactNode;
+
+function ClerkName({ children }: { children: Render }) {
   const { user } = useUser();
-  return <>{children(user?.fullName || user?.primaryEmailAddress?.emailAddress || "Your account")}</>;
+  return <>{children(user?.fullName || user?.primaryEmailAddress?.emailAddress || "Your account", user?.hasImage ? user.imageUrl : undefined)}</>;
 }
 
-export function AccountName({ children }: { children: (name: string) => ReactNode }) {
-  return clerkEnabled ? <ClerkName>{children}</ClerkName> : <>{children("Demo User")}</>;
+// Demo account: follows edits made on the Settings page.
+export function useDemoProfile(): DemoProfile {
+  const [profile, setProfile] = useState<DemoProfile>({ name: "Demo User" });
+  useEffect(() => {
+    const sync = () => setProfile(readDemoProfile());
+    sync();
+    window.addEventListener(DEMO_PROFILE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => { window.removeEventListener(DEMO_PROFILE_EVENT, sync); window.removeEventListener("storage", sync); };
+  }, []);
+  return profile;
+}
+
+function DemoName({ children }: { children: Render }) {
+  const p = useDemoProfile();
+  return <>{children(p.name, p.avatar)}</>;
+}
+
+export function AccountName({ children }: { children: Render }) {
+  return clerkEnabled ? <ClerkName>{children}</ClerkName> : <DemoName>{children}</DemoName>;
 }
 
 function ClerkSignOut({ className }: { className?: string }) {

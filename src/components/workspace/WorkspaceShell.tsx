@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Menu, MoreHorizontal, PanelLeft, PenLine, X,
+  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Menu, PanelLeft, PenLine, Settings, X,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
+import Avatar from "@/components/Avatar";
 import ThemeToggle from "@/components/ThemeToggle";
 import "@/components/app-theme.css";
 import { readCurrentProjectName } from "@/lib/projects";
@@ -60,9 +61,8 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Studio", "/create": "Create", "/gallery": "Gallery", "/ingredients": "Ingredients", "/agents": "Agents",
+  "/project": "Studio", "/create": "Create", "/gallery": "Gallery", "/ingredients": "Ingredients", "/agents": "Agents", "/settings": "Settings",
 };
-const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -94,11 +94,12 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <Section title="VIDEO" items={video} pathname={pathname} />
         </nav>
         <AccountName>
-          {(name) => (
-            <div className="ws-account">
-              <span className="ws-avatar">{name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}</span>
+          {(name, image) => (
+            <Link href="/settings" className={`ws-account ${pathname === "/settings" ? "is-active" : ""}`} title="Settings">
+              <Avatar name={name} image={image} className="ws-avatar" />
               <span><b>{name}</b><small>Trial plan</small></span>
-            </div>
+              <Settings size={16} className="ws-account-gear" aria-hidden="true" />
+            </Link>
           )}
         </AccountName>
       </aside>
@@ -119,7 +120,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
           <h1 className="mb-title">{TITLES[pathname] ?? "Studio"}</h1>
           <AccountName>
-            {(name) => <button className="mb-avatar" aria-label="Open menu" onClick={() => setDrawer(true)}>{initials(name)}</button>}
+            {(name, image) => <button className="mb-avatar" aria-label="Open menu" onClick={() => setDrawer(true)}><Avatar name={name} image={image} className="mb-avatar-in" /></button>}
           </AccountName>
         </header>
         <main className="ws-main">{children}</main>
@@ -129,16 +130,16 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         <Link href="/dashboard" className="mb-tab"><span className="mb-tab-icon"><House size={21} /></span><span>Home</span></Link>
         <Link href="/create" className={`mb-tab ${pathname === "/create" ? "is-active" : ""}`}><span className="mb-tab-icon"><PenLine size={21} /></span><span>Create</span></Link>
         <Link href="/gallery" className={`mb-tab ${pathname === "/gallery" ? "is-active" : ""}`}><span className="mb-tab-icon"><Images size={21} /></span><span>Gallery</span></Link>
-        <button type="button" className={`mb-tab ${drawer ? "is-active" : ""}`} onClick={() => setDrawer(true)}><span className="mb-tab-icon"><MoreHorizontal size={21} /></span><span>More</span></button>
+        <Link href="/settings" className={`mb-tab ${pathname === "/settings" ? "is-active" : ""}`}><span className="mb-tab-icon"><Settings size={21} /></span><span>Settings</span></Link>
       </nav>
 
       <div className={`mb-drawer ${drawer ? "is-open" : ""}`} aria-hidden={!drawer}>
         <button className="mb-scrim" aria-label="Close menu" tabIndex={drawer ? 0 : -1} onClick={() => setDrawer(false)} />
         <aside className="mb-panel" aria-label="Menu">
           <AccountName>
-            {(name) => (
+            {(name, image) => (
               <div className="mb-profile">
-                <span className="ws-avatar">{initials(name)}</span>
+                <Avatar name={name} image={image} className="ws-avatar" />
                 <span><b>{name}</b><small>Trial plan</small></span>
                 <button className="mb-icon" aria-label="Close menu" onClick={() => setDrawer(false)}><X size={20} /></button>
               </div>
@@ -152,6 +153,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           </nav>
           <div className="mb-foot">
             <Link href="/dashboard" className="mb-foot-link"><LayoutDashboard size={19} /> Dashboard</Link>
+            <Link href="/settings" className="mb-foot-link"><Settings size={19} /> Settings</Link>
             <Link href="/#how-it-works" className="mb-foot-link"><GraduationCap size={19} /> Tutorial</Link>
             <div className="mb-foot-row">
               <span className="mb-credits"><Coins size={15} /> 0 credits</span>
