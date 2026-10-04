@@ -13,7 +13,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
       <Link className="login-back" href="/">
         <ArrowLeft size={15} /> Back to home
       </Link>
-      <div style={{ position: "relative", zIndex: 1 }}>{children}</div>
+      <div className="auth-slot">{children}</div>
     </main>
   );
 }
