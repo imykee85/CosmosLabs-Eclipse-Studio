@@ -310,3 +310,44 @@
 /* Audience cards: number top-left, arrow bottom-right */
 .audience-card > .audience-number { position: absolute; top: 18px; left: 20px; }
 .audience-card > .audience-arrow { position: absolute; right: 19px; bottom: 20px; }
+
+/* Login: "Back" matches the dashboard back link (14px / 500, 13px on phones); appearance toggle top-right */
+.login-back { font-size: 14px; font-weight: 500; }
+@media (max-width: 800px) { .login-back { font-size: 13px; } }
+.login-theme { position: absolute; z-index: 2; top: 24px; right: clamp(20px, 5vw, 72px); display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: transparent; color: #f2f2f2; cursor: pointer; transition: border-color .18s; }
+.login-theme:hover { border-color: rgba(255,255,255,.45); }
+@media (max-height: 780px) { .login-theme { top: 16px; } }
+
+/* Light appearance for sign-in / sign-up (same setting as the rest of the app) */
+html[data-app-theme="light"] body:has(.login-shell, .ob-page) { background: #faf8f5; }
+html[data-app-theme="light"] .login-shell { background: #faf8f5; color: #141414; }
+html[data-app-theme="light"] .login-shape { background: #f1ede7; }
+html[data-app-theme="light"] .login-brand svg { color: #141414; }
+html[data-app-theme="light"] .login-back { color: #6b665f; }
+html[data-app-theme="light"] .login-back:hover { color: #141414; }
+html[data-app-theme="light"] .login-theme { border-color: rgba(0,0,0,.18); color: #141414; }
+html[data-app-theme="light"] .login-theme:hover { border-color: rgba(0,0,0,.5); }
+html[data-app-theme="light"] .login-card { background: #fff; border-color: rgba(0,0,0,.1); box-shadow: 0 25px 80px rgba(60,40,20,.14); }
+html[data-app-theme="light"] .login-card h1 { color: #141414; }
+html[data-app-theme="light"] .login-intro { color: #6b665f; }
+html[data-app-theme="light"] .auth-google { background: #fff; color: #141414; border-color: rgba(0,0,0,.18); }
+html[data-app-theme="light"] .auth-google:hover { border-color: rgba(0,0,0,.5); }
+html[data-app-theme="light"] .auth-divider { color: #7a756e; }
+html[data-app-theme="light"] .auth-divider:before, html[data-app-theme="light"] .auth-divider:after { background: rgba(0,0,0,.12); }
+html[data-app-theme="light"] .auth-form label { color: #3b3833; }
+html[data-app-theme="light"] .auth-input-wrap { background: #f1ede7; border-color: rgba(0,0,0,.14); }
+html[data-app-theme="light"] .auth-input-wrap input { color: #141414; }
+html[data-app-theme="light"] .auth-input-wrap input::placeholder { color: #9a958d; }
+html[data-app-theme="light"] .auth-eye { color: #7a756e; }
+html[data-app-theme="light"] .auth-eye:hover { color: #141414; }
+html[data-app-theme="light"] .auth-link { color: #6b665f; }
+html[data-app-theme="light"] .auth-link:hover { color: #141414; }
+html[data-app-theme="light"] .auth-link-strong { color: #3b3833; }
+html[data-app-theme="light"] .auth-error { color: #c62828; }
+html[data-app-theme="light"] .auth-switch { color: #6b665f; }
+html[data-app-theme="light"] .auth-switch a { color: #141414; }
+html[data-app-theme="light"] .auth-demo { background: rgba(192,7,7,.06); border-color: rgba(0,0,0,.2); }
+html[data-app-theme="light"] .auth-demo p { color: #3b3833; }
+html[data-app-theme="light"] .auth-demo strong { color: #141414; }
+html[data-app-theme="light"] .auth-demo button { color: #141414; border-color: rgba(0,0,0,.3); }
+html[data-app-theme="light"] .auth-demo button:hover { border-color: #141414; }

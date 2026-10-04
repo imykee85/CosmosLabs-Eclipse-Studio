@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 import "@/app/landing.css";
 
 export default function AuthShell({ children }: { children: React.ReactNode }) {
@@ -11,8 +12,9 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
       <div className="login-shape login-shape-right" />
       <Logo className="login-brand" size={56} />
       <Link className="login-back" href="/">
-        <ArrowLeft size={15} /> Back to home
+        <ArrowLeft size={15} /> Back
       </Link>
+      <ThemeToggle className="login-theme" />
       <div className="auth-slot">{children}</div>
     </main>
   );
