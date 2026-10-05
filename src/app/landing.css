@@ -412,3 +412,10 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .process-section .process-row { border-top-color: #c5c0b8; }
 .process-section .process-row p { color: #77716a; }
 .process-section .process-row > svg { color: #8d887f; }
+
+/* Curved joins: dark sections are rounded cards that overlap the cream sections around them. */
+.site-shell { --curve: clamp(26px, 3.4vw, 46px); }
+.hero, .audience-section, .try-section, .pricing-section, .final-section { position: relative; z-index: 1; background: #000; }
+.hero { border-radius: 0 0 var(--curve) var(--curve); margin-bottom: calc(var(--curve) * -1); }
+.audience-section, .try-section, .pricing-section { border-radius: var(--curve); margin-top: calc(var(--curve) * -1); margin-bottom: calc(var(--curve) * -1); }
+.final-section { border-radius: var(--curve) var(--curve) 0 0; margin-top: calc(var(--curve) * -1); }
