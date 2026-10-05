@@ -435,3 +435,5 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @keyframes strip-scroll { to { transform: translateX(-50%); } }
 @media (max-width: 800px) { .strip { margin-top: 48px; } .strip-set { gap: 40px; padding-right: 40px; } .strip-set li { font-size: 17px; } }
 @media (prefers-reduced-motion: reduce) { .strip-track { animation: none; } .strip-viewport { overflow-x: auto; -webkit-mask-image: none; mask-image: none; } }
+.strip-logo img { display: block; height: 36px; width: auto; filter: brightness(0) invert(1); opacity: .6; }
+@media (max-width: 800px) { .strip-logo img { height: 30px; } }
