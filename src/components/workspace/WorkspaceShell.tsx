@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mountain, Package, PanelLeft, PenLine, Settings, User, Video, X,
+  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Settings, User, Video, Volume2, X,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import AgentIcon from "@/components/AgentIcon";
@@ -33,6 +33,11 @@ const video: Item[] = [
   { label: "Prompts", hint: "Scene by scene", step: 2 },
   { label: "Generate", hint: "Render the clips", step: 3 },
   { label: "Export", hint: "Deliver and share", step: 4 },
+];
+const audio: Item[] = [
+  { label: "Voiceover", hint: "Narrate your script", icon: <Mic size={17} /> },
+  { label: "Music", hint: "Score your content", icon: <Music size={17} /> },
+  { label: "Sound effects", hint: "Add the final touches", icon: <Volume2 size={17} /> },
 ];
 
 function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onPick?: (item: Item) => void }) {
@@ -179,6 +184,7 @@ function CreateTab({ pathname }: { pathname: string }) {
         <NavItem item={agentsItem} pathname={pathname} />
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
         <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
+        <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
       </TabMenuBox>
     </>
   );
@@ -291,6 +297,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <NavItem item={agentsItem} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
+          <Section title="AUDIO" items={audio} pathname={pathname} />
         </nav>
         <UserMenu variant="sidebar" />
       </aside>
@@ -342,6 +349,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             <NavItem item={agentsItem} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />
             <Section title="VIDEO" items={video} pathname={pathname} />
+            <Section title="AUDIO" items={audio} pathname={pathname} />
           </nav>
           <div className="mb-foot">
             <Link href="/dashboard" className="mb-foot-link"><LayoutDashboard size={19} /> Dashboard</Link>
