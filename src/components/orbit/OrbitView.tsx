@@ -39,7 +39,7 @@ export default function OrbitView() {
 
         <form className="or-box" onSubmit={(e) => e.preventDefault()}>
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Message your agent"
-            placeholder="Ask, create, or plan with your agent..." />
+            placeholder="Chatting with your agents is coming soon..." />
           <div className="or-tools">
             <button type="button" className="or-round" disabled aria-label="Attach" title="Attaching is coming soon"><Plus size={18} /></button>
             <label className="or-agent">
@@ -51,7 +51,6 @@ export default function OrbitView() {
             <button type="submit" className="or-send" disabled aria-label="Send" title="Chat is coming soon"><ArrowUp size={18} /></button>
           </div>
         </form>
-        <p className="or-note">Chatting with your agents is coming soon.</p>
       </div>
     </div>
   );
