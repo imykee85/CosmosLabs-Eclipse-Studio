@@ -26,6 +26,13 @@ Branch: develop only on `claude/new-session-1h84ct` (draft PR #1 into `main`). V
 - **Backend:** `/api/generate` (Higgsfield, `src/lib/higgsfield.ts`, unverified against the live API), onboarding and projects API routes, Prisma models Generation/Onboarding/Project.
 - **Demo mode** (no Clerk keys): middleware passes through; login `demo@eclipse.test` / `demo1234`; sign-up accepts any email + 8+ char password. Projects and profile live in browser `localStorage`.
 
+## Product vision: Agents (user-specified, keep wording faithful)
+Agents are skilled creative partners the user picks on the Agents page (currently placeholder cards "Agent 1/2/3"; names and artwork not final).
+- **Agent 1, the brainstorming partner.** Understands all of the user's ideas and concepts, offers perspective, and challenges ideas. Fits the Treatment (Brief/Concept/Guide) stage.
+- **Agent 2, the creative partner.** Assists with real-time asset generation. Masters prompt engineering and is up to date on JSON prompting. Has custom plugins/tools for prompt writing, JSON image breakdown, Seedance prompting, storyboarding and similar. Goal: make the work "10x easier" by writing prompts so detailed you would question if it was AI.
+- **Agent 3, the screening agent.** Checks the quality of what has been created: mistakes, remakes that need to be done, and how it thinks the public will accept or view the content.
+- Backend implications (not built): each agent is a system prompt plus a tool set behind the Anthropic API; Agent 3 needs image/video input for review and a structured verdict (issues, remake list, audience reception); Agent 2 needs generation tools so it can create assets in the chat. See `docs/backend-design.md` section 7a.
+
 ## Key decisions
 - Projects persist only per browser and per web address in demo mode. Interim fix is the stable branch preview address above; projects made on older per-deployment addresses are not carried over. Permanent fix is server persistence, already coded, switching on when Clerk keys and `DATABASE_URL` are set (then run `npx prisma db push` once). Not yet configured.
 - Library is cross-project saved items; Gallery in the sidebar is per-project renders.

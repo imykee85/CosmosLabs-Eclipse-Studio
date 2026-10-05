@@ -188,6 +188,15 @@ Details that matter:
 - Document text is extracted server-side (PDF/DOCX/TXT) and sent as context; images attached through Character / Product / Location / Style become `GenerationIngredient`s later.
 - Model id comes from an env var (`ANTHROPIC_MODEL`), prompt caching on the system prompt, a per-workspace daily message cap. **Open decision**: free within the cap, or a small credit cost per message (section 11).
 
+### 7a. Agents
+
+The Agents page (Agent 1, 2, 3) maps to three configurations of the same chat engine used by Treatment. An `Agent` is code config in `lib/agents.ts`, not a table: `{ id, name, systemPrompt, tools[], model, inputs }`. Conversations are stored per project in `AgentThread` (`projectId`, `agentId`, `createdById`) and `AgentMessage` (`role`, `content`, `attachments`, `toolCalls Json?`), the same shape as `TreatmentMessage`, so Treatment can become "Agent 1 on the Treatment page" without a second chat system. The user's selected agent stays in browser storage today; move it to the user profile once the Agents page is real.
+
+- **Agent 1, brainstorming partner.** Long-context chat over the project's treatment and saved ingredients; its prompt tells it to push back and ask hard questions rather than agree. Tools: read treatment, read ingredients, update the concept JSON.
+- **Agent 2, creative partner.** Tools: `write_prompt` (structured JSON prompts), `break_down_image` (JSON breakdown of a reference image), `seedance_prompt`, `storyboard` (scenes into `Scene` rows), and `generate` (calls the normal generations pipeline, so each use is metered and shows in Gallery). Prompt style guides live as versioned files in the repo so they can be improved without a deploy of logic.
+- **Agent 3, screening agent.** Takes generation outputs (images, video frames, audio transcript), returns a structured verdict `{ score, issues[], remakeRecommended, remakeNotes, audienceReception }`, stored on the generation (`Review` table: `generationId`, `agentId`, `verdict Json`). The UI can show a badge per render and a "remake" action that pre-fills a new generation.
+- Agent usage costs credits (or a daily cap, see decision 4); `generate` calls inside Agent 2 charge normally through the ledger.
+
 ## 8. Video and Export
 
 - Video generation uses the same pipeline with `kind: VIDEO` and longer expected times; webhooks and the sweeper already cover it. Per-scene generations are linked by `sceneId`; the user picks one output per scene (`chosenOutputId`).
@@ -209,6 +218,7 @@ Internal routes (session auth via Clerk; everything workspace-scoped). Errors ar
 | Assets | `POST /api/assets/upload-url`, `POST /api/assets`, `GET /api/assets`, `PATCH /:id` (rename, save to Library), `DELETE /:id` |
 | Ingredients | `GET/POST /api/ingredients`, `PATCH/DELETE /:id`, `POST /:id/assets` |
 | Library | `GET /api/library?kind=&role=&q=&cursor=` |
+| Agents | `GET /api/agents`, `POST /api/agent-threads/:id/messages` (SSE), `POST /api/generations/:id/review` (Agent 3) |
 | Treatment | `GET/PUT /api/projects/:id/treatment`, `POST /api/treatments/:id/messages` (SSE), `GET/PUT /api/treatments/:id/scenes` |
 | Export | `POST /api/projects/:id/exports`, `GET /api/exports/:id` |
 | Billing | `POST /api/billing/checkout`, `POST /api/billing/portal`, `GET /api/billing/ledger` |
@@ -243,7 +253,7 @@ Each phase ships something visible and is safe to stop after.
 | 1. Real generation | Provider interface + Higgsfield adapter (verified against the live API first), R2, `Generation/Asset/Output`, ledger with a manual grant, webhook + sweeper, `/api/generations`, Gallery from the DB | Create works end to end, renders survive, Gallery per project, credits pill shows a real number |
 | 2. Billing | Stripe checkout and portal, plan grants on `invoice.paid`, top-ups, ledger endpoint | Billing & credits panel, Upgrade buttons, Credit history |
 | 3. Library and uploads | Upload flow, Assets, Ingredients, Library query, Ingredients picker in Create | Assets page, Library tabs, Ingredients chip on Create |
-| 4. Treatment | Anthropic streaming, brief extraction, `concept` JSON, scenes | Treatment chat, Brief/Concept/Guide, Continue to prompts |
+| 4. Treatment and agents | Anthropic streaming, brief extraction, `concept` JSON, scenes; Agent 1 and Agent 2 chat, Agent 3 review | Treatment chat, Brief/Concept/Guide, Continue to prompts, Agents page |
 | 5. Video and audio | Video + audio models, scene generations, export renderer | Prompts, Generate, Export steps; Voiceover, Music, Sound effects |
 | 6. Platform | API keys + MCP, Clerk Organizations for Team, Portfolio publish | API/MCP panel, Team & seats, Portfolio Publish and Copy link |
 | Later | Avatars, Certificates, translation | Their "Soon" pages |
