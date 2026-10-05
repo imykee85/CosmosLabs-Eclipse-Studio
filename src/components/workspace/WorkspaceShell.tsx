@@ -153,14 +153,17 @@ function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
   const [slot, setSlot] = useState<Item>(photo[0]);
 
+  // The tab follows the creation feature you are on, whether you got there from the sidebar, the menu or the shortcuts
+  // popup; away from those pages it keeps the last one.
   useEffect(() => {
+    const here = SLOT_ITEMS.find((i) => i.href === pathname);
+    if (here) {
+      setSlot(here);
+      try { localStorage.setItem(SLOT_KEY, here.label); } catch {}
+      return;
+    }
     try { const s = SLOT_ITEMS.find((i) => i.label === localStorage.getItem(SLOT_KEY)); if (s) setSlot(s); } catch {}
-  }, []);
-  function pick(item: Item) {
-    if (!SLOT_ITEMS.includes(item)) return;
-    setSlot(item);
-    try { localStorage.setItem(SLOT_KEY, item.label); } catch {}
-  }
+  }, [pathname]);
 
   return (
     <>
@@ -169,9 +172,9 @@ function CreateTab({ pathname }: { pathname: string }) {
         <span className="mb-tab-icon">{tabIcon(slot.icon)}</span><span>{slot.label}</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
-        <NavItem item={ingredients} pathname={pathname} onPick={pick} />
-        <NavItem item={agentsItem} pathname={pathname} onPick={pick} />
-        <Section title="PHOTO" items={photo} pathname={pathname} onPick={pick} />
+        <NavItem item={ingredients} pathname={pathname} />
+        <NavItem item={agentsItem} pathname={pathname} />
+        <Section title="PHOTO" items={photo} pathname={pathname} />
         <Section title="VIDEO" items={video} pathname={pathname} />
       </TabMenuBox>
     </>
