@@ -26,3 +26,9 @@ html[data-app-theme="light"] body:has(.db-page, .ws-root) { background: #faf8f5;
 html[data-app-theme="light"] .db-logo svg { color: #141414; }
 .nm-backdrop select option { background: var(--a-card); }
 .cr-select select option { background: var(--a-card); color: var(--a-fg); }
+
+/* Text boxes get no outline of their own; the field around them shows focus. */
+.ws-root :is(input:not([type="checkbox"]):not([type="radio"]), textarea):focus-visible,
+.db-page :is(input:not([type="checkbox"]):not([type="radio"]), textarea):focus-visible,
+.st-wrap :is(input:not([type="checkbox"]):not([type="radio"]), textarea):focus-visible,
+.auth-card :is(input:not([type="checkbox"]):not([type="radio"]), textarea):focus-visible { outline: 0; }
