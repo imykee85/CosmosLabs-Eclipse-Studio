@@ -29,7 +29,7 @@ const photo: Item[] = [
 ];
 const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} /> };
 const video: Item[] = [
-  { label: "Story", hint: "Plan the scenes", step: 1, href: "/story", soon: true },
+  { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment", soon: true },
   { label: "Prompts", hint: "Scene by scene", step: 2 },
   { label: "Generate", hint: "Render the clips", step: 3 },
   { label: "Export", hint: "Deliver and share", step: 4 },
@@ -260,7 +260,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/story": "Story", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/treatment": "Treatment", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {

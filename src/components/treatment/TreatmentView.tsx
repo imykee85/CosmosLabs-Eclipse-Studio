@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ArrowRight, FileText, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
-import "./story.css";
+import "./treatment.css";
 
 type Mode = "brief" | "concept" | "guide";
 
@@ -35,7 +35,7 @@ const MEDIA = [
   { label: "Style", icon: <Palette size={14} /> },
 ];
 
-export default function StoryView() {
+export default function TreatmentView() {
   // null = the starting-point screen (desktop). Phones have no such screen, so they open on the first tab.
   const [mode, setMode] = useState<Mode | null>(null);
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
@@ -45,75 +45,75 @@ export default function StoryView() {
   const addFiles = (list: FileList | null) => { const picked = Array.from(list ?? []); if (picked.length) setFiles((f) => [...f, ...picked]); if (picker.current) picker.current.value = ""; };
 
   return (
-    <div className="st-wrap">
-      <div className="st-head">
-        <div className="st-head-text">
-          <h1>Story</h1>
+    <div className="tr-wrap">
+      <div className="tr-head">
+        <div className="tr-head-text">
+          <h1>Treatment</h1>
           <p>{mode ? active.start : "Answer a few questions and Eclipse shapes your video concept. Optional."}</p>
         </div>
-        <div className="st-actions">
-          <span className="st-pill st-pill-quiet st-pill-wide"><Lightbulb size={13} /> No concept yet</span>
-          <span className="st-pill st-pill-quiet st-pill-short" aria-label="No concept yet"><Lightbulb size={14} /></span>
-          <button type="button" className="st-pill st-pill-go" disabled title="Prompts are coming soon">
-            <span className="st-wide">Continue to prompts</span><span className="st-short">Prompts</span> <ArrowRight size={15} />
+        <div className="tr-actions">
+          <span className="tr-pill tr-pill-quiet tr-pill-wide"><Lightbulb size={13} /> No concept yet</span>
+          <span className="tr-pill tr-pill-quiet tr-pill-short" aria-label="No concept yet"><Lightbulb size={14} /></span>
+          <button type="button" className="tr-pill tr-pill-go" disabled title="Prompts are coming soon">
+            <span className="tr-wide">Continue to prompts</span><span className="tr-short">Prompts</span> <ArrowRight size={15} />
           </button>
-          <button type="button" className="st-more" aria-label="More options" disabled><MoreHorizontal size={17} /></button>
+          <button type="button" className="tr-more" aria-label="More options" disabled><MoreHorizontal size={17} /></button>
         </div>
       </div>
 
-      <div className="st-tabs" role="tablist" aria-label="Story mode">
+      <div className="tr-tabs" role="tablist" aria-label="Treatment mode">
         {MODES.map((m) => (
-          <button key={m.id} type="button" role="tab" aria-selected={m.id === active.id} className={`st-tab ${m.id === active.id ? "is-on" : ""}`} onClick={() => setMode(m.id)}>
+          <button key={m.id} type="button" role="tab" aria-selected={m.id === active.id} className={`tr-tab ${m.id === active.id ? "is-on" : ""}`} onClick={() => setMode(m.id)}>
             {m.tabIcon}{m.label}
           </button>
         ))}
       </div>
 
       {mode === null && (
-        <section className="st-choose" aria-label="Starting point">
+        <section className="tr-choose" aria-label="Starting point">
           <h2>Let&apos;s plan your video.</h2>
           <p>Choose a starting point:</p>
-          <div className="st-start">
+          <div className="tr-start">
             {MODES.map((m) => (
-              <button key={m.id} type="button" className="st-start-card" onClick={() => setMode(m.id)}>
-                <span className="st-start-top"><span className="st-ico">{m.icon}</span><b>{m.title}</b></span>
-                <span className="st-start-hint">{m.hint}</span>
-                <span className="st-start-cta">Start <ArrowRight size={14} /></span>
+              <button key={m.id} type="button" className="tr-start-card" onClick={() => setMode(m.id)}>
+                <span className="tr-start-top"><span className="tr-ico">{m.icon}</span><b>{m.title}</b></span>
+                <span className="tr-start-hint">{m.hint}</span>
+                <span className="tr-start-cta">Start <ArrowRight size={14} /></span>
               </button>
             ))}
           </div>
         </section>
       )}
 
-      <section className={`st-chat ${mode === null ? "is-hidden-desktop" : ""}`} aria-label="Story chat">
-        <div className="st-modes">
+      <section className={`tr-chat ${mode === null ? "is-hidden-desktop" : ""}`} aria-label="Treatment chat">
+        <div className="tr-modes">
           {MODES.map((m) => (
-            <button key={m.id} type="button" className={`st-mode ${m.id === active.id ? "is-on" : ""}`} aria-pressed={m.id === active.id} onClick={() => setMode(m.id)}>
-              <span className="st-start-top"><span className="st-ico">{m.icon}</span><b>{m.title}</b></span>
-              <span className="st-start-hint">{m.hint}</span>
+            <button key={m.id} type="button" className={`tr-mode ${m.id === active.id ? "is-on" : ""}`} aria-pressed={m.id === active.id} onClick={() => setMode(m.id)}>
+              <span className="tr-start-top"><span className="tr-ico">{m.icon}</span><b>{m.title}</b></span>
+              <span className="tr-start-hint">{m.hint}</span>
             </button>
           ))}
         </div>
 
-        <p className="st-tabnote">{active.start}</p>
-        <div className="st-msg">
-          <span className="st-ai">AI</span>
-          <div className="st-bubble">
+        <p className="tr-tabnote">{active.start}</p>
+        <div className="tr-msg">
+          <span className="tr-ai">AI</span>
+          <div className="tr-bubble">
             <p>{active.greeting}</p>
             {active.media && (
-              <div className="st-media">
+              <div className="tr-media">
                 <span>Add media:</span>
-                {MEDIA.map((x) => <button key={x.label} type="button" className="st-chip" disabled>{x.icon}{x.label}</button>)}
+                {MEDIA.map((x) => <button key={x.label} type="button" className="tr-chip" disabled>{x.icon}{x.label}</button>)}
               </div>
             )}
           </div>
         </div>
 
-        <form className="st-composer" onSubmit={(e) => e.preventDefault()}>
+        <form className="tr-composer" onSubmit={(e) => e.preventDefault()}>
           {files.length > 0 && (
-            <div className="st-files">
+            <div className="tr-files">
               {files.map((f, i) => (
-                <span key={f.name + i} className="st-file"><FileText size={14} /><span>{f.name}</span>
+                <span key={f.name + i} className="tr-file"><FileText size={14} /><span>{f.name}</span>
                   <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles(files.filter((_, j) => j !== i))}><X size={13} /></button>
                 </span>
               ))}
@@ -121,12 +121,12 @@ export default function StoryView() {
           )}
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Your message"
             placeholder={active.id === "brief" ? "Paste your brief or attach a file..." : "Type your answer..."} />
-          <div className="st-tools">
+          <div className="tr-tools">
             <input ref={picker} type="file" multiple hidden accept=".pdf,.doc,.docx,.txt,.md,.rtf" onChange={(e) => addFiles(e.target.files)} />
-            <button type="button" className="st-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
-            <button type="button" className="st-tool" aria-label="Add a link" title="Links are coming soon" disabled><Link2 size={16} /></button>
-            <button type="button" className="st-tool" aria-label="Voice input" title="Voice is coming soon" disabled><Mic size={16} /></button>
-            <button type="submit" className="st-send" aria-label="Send" title="Sending is coming soon" disabled><Send size={16} /></button>
+            <button type="button" className="tr-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
+            <button type="button" className="tr-tool" aria-label="Add a link" title="Links are coming soon" disabled><Link2 size={16} /></button>
+            <button type="button" className="tr-tool" aria-label="Voice input" title="Voice is coming soon" disabled><Mic size={16} /></button>
+            <button type="submit" className="tr-send" aria-label="Send" title="Sending is coming soon" disabled><Send size={16} /></button>
           </div>
         </form>
       </section>
