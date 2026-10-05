@@ -83,7 +83,6 @@ export default function Landing() {
             Turn any idea into premium images — <br className="desktop-only" />
             from a single prompt to finished content, all in one place.
           </p>
-          <p className="hero-note">No team. No prompting skills. No complicated tools.</p>
           <Cta glint />
         </div>
         <HomeMediaCarousel />

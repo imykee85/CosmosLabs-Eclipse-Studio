@@ -437,3 +437,6 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (prefers-reduced-motion: reduce) { .strip-track { animation: none; } .strip-viewport { overflow-x: auto; -webkit-mask-image: none; mask-image: none; } }
 .strip-logo img { display: block; height: calc(var(--h, 36) * 1px); width: auto; filter: brightness(0) invert(1); opacity: .6; }
 @media (max-width: 800px) { .strip-logo img { height: calc(var(--h, 36) * .8px); } }
+
+/* Start button sits right under the hero text */
+.hero-copy .hero-deck { margin-bottom: 28px; }
