@@ -84,3 +84,8 @@
 }
 /* While the model sheet is open the pinned box rises above the tab bar so the sheet is not clipped. */
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .or-dock:has(.or-sheet) { z-index: 60; } }
+
+.or-mono { font-size: 17px; font-weight: 700; }
+.or-group { margin: 12px 10px 4px; color: var(--a-muted2); font-size: 13px; }
+.or-opt-text em.is-new { background: rgba(120, 200, 80, .14); color: #8ad65a; }
+html[data-app-theme="light"] .or-opt-text em.is-new { color: #3f8a1f; background: rgba(63,138,31,.12); }

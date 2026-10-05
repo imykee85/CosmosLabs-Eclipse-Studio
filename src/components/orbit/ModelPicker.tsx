@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Brain, Check, ChevronDown, Gauge, Scale, Zap } from "lucide-react";
+import { Check, ChevronDown, Gauge } from "lucide-react";
 import { MODEL_KEY, orbitModels, type OrbitModel } from "@/lib/orbit-models";
 
-const ICONS: Record<OrbitModel["icon"], React.ReactNode> = {
-  auto: <Gauge size={20} />, deep: <Brain size={20} />, balanced: <Scale size={20} />, fast: <Zap size={20} />,
-};
+// Neutral tile: the vendor's first letter (no logos), a gauge for Auto.
+const tile = (m: OrbitModel) => (m.id === "auto" ? <Gauge size={20} /> : <span className="or-mono">{m.vendor.slice(0, 1).toUpperCase()}</span>);
+
+function Row({ m, on, pick }: { m: OrbitModel; on: boolean; pick: (m: OrbitModel) => void }) {
+  return (
+    <button type="button" role="option" aria-selected={on} className={`or-opt ${on ? "is-on" : ""}`} onClick={() => pick(m)}>
+      <span className="or-opt-icon">{tile(m)}</span>
+      <span className="or-opt-text"><b>{m.name}{m.tag && <em className={m.tag === "Recommended" ? "" : "is-new"}>{m.tag}</em>}</b>{m.blurb && <small>{m.blurb}</small>}</span>
+      {on && <Check size={18} className="or-opt-check" />}
+    </button>
+  );
+}
 
 // The model chip in the message box. Opens a bottom sheet on phones and a small popup on desktop.
 export default function ModelPicker() {
@@ -45,13 +54,9 @@ export default function ModelPicker() {
           <div className="or-sheet-scrim" aria-hidden="true" onClick={() => setOpen(false)} />
           <div className="or-sheet" role="listbox" aria-label="Choose a model">
             <span className="or-grab" aria-hidden="true" />
-            {orbitModels.map((m) => (
-              <button key={m.id} type="button" role="option" aria-selected={m.id === id} className={`or-opt ${m.id === id ? "is-on" : ""}`} onClick={() => choose(m)}>
-                <span className="or-opt-icon">{ICONS[m.icon]}</span>
-                <span className="or-opt-text"><b>{m.name}{m.tag && <em>{m.tag}</em>}</b><small>{m.blurb}</small></span>
-                {m.id === id && <Check size={18} className="or-opt-check" />}
-              </button>
-            ))}
+            {orbitModels.filter((m) => m.featured).map((m) => <Row key={m.id} m={m} on={m.id === id} pick={choose} />)}
+            <p className="or-group">All models</p>
+            {orbitModels.filter((m) => !m.featured).map((m) => <Row key={m.id} m={m} on={m.id === id} pick={choose} />)}
           </div>
         </>
       )}
