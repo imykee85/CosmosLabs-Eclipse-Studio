@@ -18,6 +18,7 @@ Branch: develop only on `claude/new-session-1h84ct` (draft PR #1 into `main`). V
 ## What's built
 - Landing page, login/sign-up, onboarding (multi-select last step; finish plays `public/onboarding/welcome.mp4`, a test clip, then goes to dashboard).
 - Dashboard: create-project modal, project cards, search, Bin (soft delete/restore/delete forever), theme toggle.
+- Account popup (`UserMenu`): the avatar opens only this popup (dashboard/tutorial header, phone top bar, sidebar account row): Library, Avatars, Portfolio, Certificates, Settings. Library (`/library`) is the cross-project store of reusable saved items (empty state for now); Avatars/Portfolio/Certificates are "Soon" placeholders. The sidebar's Gallery stays per-project renders.
 - Workspace `(app)` group: sidebar + project pill, Studio (`/project`), Create, Gallery, Ingredients, Settings (Profile/Billing/Team/API-MCP tabs; billing/team/API are shells), Assets placeholder.
 - Tutorial page `/tutorial?from=<path>`: back button is named after the origin page (Dashboard, Studio, Create, ...); falls back to Dashboard. Lessons and videos configured in `src/lib/tutorial.ts` (videos go in `public/tutorial/`; no videos yet, so buttons read "Coming soon").
 - Generation API (`/api/generate`, Higgsfield in `src/lib/higgsfield.ts`, unverified against the live API) and onboarding/projects API routes.

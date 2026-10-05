@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Award, Images, LayoutGrid, Settings, User } from "lucide-react";
+import { Award, Library, LayoutGrid, Settings, User } from "lucide-react";
 import { AccountName } from "@/components/account";
 import Avatar from "@/components/Avatar";
 import "./user-menu.css";
 
 const ITEMS = [
-  { label: "Gallery", href: "/gallery", icon: Images },
+  { label: "Library", href: "/library", icon: Library },
   { label: "Avatars", href: "/avatars", icon: User },
   { label: "Portfolio", href: "/portfolio", icon: LayoutGrid },
   { label: "Certificates", href: "/certificates", icon: Award },

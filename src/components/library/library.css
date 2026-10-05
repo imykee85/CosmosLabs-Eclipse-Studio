@@ -1,0 +1,13 @@
+.lib-tabs { display: flex; gap: 4px; padding: 4px; margin-bottom: 14px; overflow-x: auto; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); scrollbar-width: none; }
+.lib-tabs::-webkit-scrollbar { display: none; }
+.lib-tabs button { flex: 1 0 auto; padding: 11px 20px; border: 0; border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .18s, color .18s; }
+.lib-tabs button:hover:not(.is-active) { color: var(--a-fg); }
+.lib-tabs button.is-active { background: var(--a-active); color: var(--a-fg); }
+.lib-search { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 18px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); color: var(--a-muted2); transition: border-color .18s, box-shadow .18s; }
+.lib-search:focus-within { border-color: #c00707; box-shadow: 0 0 0 3px rgba(192,7,7,.25); }
+.lib-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; }
+.lib-search input::placeholder { color: var(--a-ph); }
+.lib-empty { display: grid; justify-items: center; gap: 10px; margin-top: 22px; padding: 72px 24px; border: 1px solid var(--a-line2); border-radius: 32px; background: var(--a-card); color: var(--a-muted2); text-align: center; }
+.lib-empty h2 { margin: 10px 0 0; color: var(--a-fg); font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.lib-empty p { max-width: 420px; margin: 0 0 6px; color: var(--a-muted); font-size: 15px; line-height: 1.5; }
+@media (max-width: 800px) { .lib-empty { padding: 56px 20px; border-radius: 28px; } .lib-tabs button { padding: 10px 16px; } }
