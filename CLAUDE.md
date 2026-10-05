@@ -4,7 +4,7 @@ AI image/video content-generation web app. Next.js 14 App Router, TypeScript, Ta
 Branch: develop only on `claude/new-session-1h84ct` (draft PR #1 into `main`). Vercel project `cosmos-labs-eclipse-studio`, team `ai-labs8`.
 
 ## Workflow
-- After every push: wait for the Vercel build (PR #1 status via `mcp__github__pull_request_read` `get_status`), then give the user the new deployment link, with an honest note of what was and wasn't verified.
+- After every push: wait for the Vercel build (PR #1 status via `mcp__github__pull_request_read` `get_status`), then give the user the stable branch preview address `https://cosmos-labs-eclipse-studio-git-claude-new-sessi-86596b-ai-labs8.vercel.app` (it stays the same across pushes, so browser-stored demo projects survive) plus the per-deployment dashboard link, with an honest note of what was and wasn't verified. Per-deployment hash addresses are a new origin each time and start with empty demo storage.
 - Verify before pushing: `npx tsc --noEmit`, `npx next lint`, `next build`, then Playwright check. Run the local server with Clerk env unset: `env -u NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY -u CLERK_SECRET_KEY npx next start -p 3100`; stop it with `fuser -k 3100/tcp` (never `pkill -f`). Playwright-core lives in `/tmp/claude-0/pw`; Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` with `--no-proxy-server`.
 - Measure in a real browser rather than assuming. The user art-directs from screenshots of other products: adapt layout/feel to Eclipse's own theme and wording; never copy another brand's name, copy, pricing or images.
 
@@ -27,7 +27,7 @@ Branch: develop only on `claude/new-session-1h84ct` (draft PR #1 into `main`). V
 - Demo mode: with no Clerk keys, middleware passes through; login `demo@eclipse.test` / `demo1234`, sign-up accepts any email + 8+ char password. Projects and profile live in browser `localStorage`.
 
 ## Known issue / key decision
-- Projects disappear between logins on Vercel: demo-mode projects are per-browser, per-origin, and each deployment link is a different origin. Real fix is server persistence, which is already coded and switches on when Clerk keys and `DATABASE_URL` are set (then run `npx prisma db push` once). Not yet configured; the user was asked which address they open.
+- Projects disappear between logins on Vercel: demo-mode projects are per-browser, per-origin, and each deployment link is a different origin. Real fix is server persistence, which is already coded and switches on when Clerk keys and `DATABASE_URL` are set (then run `npx prisma db push` once). Not yet configured. Interim fix: use the stable branch preview address above (same origin every push); projects made on older per-deployment addresses are not carried over. Permanent fix needs Clerk keys + Postgres connected in Vercel (the sandbox cannot reach vercel.app, so the stable address has not been fetched from here).
 
 ## Next
 - Connect Clerk keys and Postgres on Vercel so projects persist per account until deleted (new accounts start empty).
