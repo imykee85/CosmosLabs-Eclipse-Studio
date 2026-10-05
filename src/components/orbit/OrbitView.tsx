@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUp, Plug, Plus, Satellite, Wrench } from "lucide-react";
+import { ArrowUp, Plug, Plus, Wrench } from "lucide-react";
+import OrbitIcon from "@/components/OrbitIcon";
 import "./orbit.css";
 
 const AGENTS = ["Agent 1", "Agent 2", "Agent 3"];
@@ -25,7 +26,7 @@ export default function OrbitView() {
   return (
     <div className="or-wrap">
       <div className="or-hero">
-        <span className="or-mark"><Satellite size={34} strokeWidth={1.6} /></span>
+        <span className="or-mark"><OrbitIcon size={42} strokeWidth={1.4} /></span>
         <h1>What are we creating today?</h1>
         <p>Ask your agent, use its tools, or connect the apps you work in.</p>
       </div>

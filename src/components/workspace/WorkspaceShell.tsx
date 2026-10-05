@@ -5,10 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Satellite, Settings, User, Video, Volume2, X,
+  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Settings, User, Video, Volume2, X,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import AgentIcon from "@/components/AgentIcon";
+import OrbitIcon from "@/components/OrbitIcon";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -21,7 +22,7 @@ import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
 
-const orbitItem: Item = { label: "Orbit", hint: "Chat and connect apps", href: "/orbit", soon: true, icon: <Satellite size={17} /> };
+const orbitItem: Item = { label: "Orbit", hint: "Chat and connect apps", href: "/orbit", soon: true, icon: <OrbitIcon size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const photo: Item[] = [
   { label: "Create", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
@@ -330,7 +331,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         <HomeTab pathname={pathname} />
         <CreateTab pathname={pathname} />
         <LibraryTab pathname={pathname} />
-        <Link href="/orbit" className={`mb-tab ${pathname.startsWith("/orbit") ? "is-active" : ""}`}><span className="mb-tab-icon"><Satellite size={21} /></span><span>Orbit</span></Link>
+        <Link href="/orbit" className={`mb-tab ${pathname.startsWith("/orbit") ? "is-active" : ""}`}><span className="mb-tab-icon"><OrbitIcon size={21} /></span><span>Orbit</span></Link>
       </nav>
 
       <div className={`mb-drawer ${drawer ? "is-open" : ""}`} aria-hidden={!drawer}>
