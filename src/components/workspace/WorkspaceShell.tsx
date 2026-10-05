@@ -294,9 +294,9 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="ws-icon-btn" aria-label="Collapse sidebar" onClick={() => setOpen(false)}><PanelLeft size={16} /></button>
         </div>
         <nav className="ws-nav">
-          <NavItem item={orbitItem} pathname={pathname} />
           <NavItem item={ingredients} pathname={pathname} />
           <NavItem item={agentsItem} pathname={pathname} />
+          <NavItem item={orbitItem} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="AUDIO" items={audio} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
@@ -347,9 +347,9 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             )}
           </AccountName>
           <nav className="mb-nav">
-            <NavItem item={orbitItem} pathname={pathname} />
             <NavItem item={ingredients} pathname={pathname} />
             <NavItem item={agentsItem} pathname={pathname} />
+            <NavItem item={orbitItem} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />
             <Section title="AUDIO" items={audio} pathname={pathname} />
             <Section title="VIDEO" items={video} pathname={pathname} />
