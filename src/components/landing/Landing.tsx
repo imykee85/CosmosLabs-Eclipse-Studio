@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results, steps, wowTiles } from "./data";
+import { plans } from "@/lib/plans";
 import HomeMediaCarousel from "./HomeMediaCarousel";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
@@ -30,8 +31,8 @@ function Cta({ dark = false, glint = false, children = "Start Creating" }: { dar
   );
 }
 
-function Wordmark({ name = false }: { name?: boolean }) {
-  return <Logo className="wordmark" size={60} name={name} />;
+function Wordmark() {
+  return <Logo className="wordmark" size={60} />;
 }
 
 export default function Landing() {
@@ -47,10 +48,11 @@ export default function Landing() {
   return (
     <main className="site-shell">
       <header className="nav-wrap">
-        <Wordmark name />
+        <Wordmark />
         <nav className={mobileOpen ? "nav-links mobile-visible" : "nav-links"}>
           <a href="#examples" onClick={close}>Examples</a>
           <a href="#how-it-works" onClick={close}>How it Works</a>
+          <a href="#pricing" onClick={close}>Pricing</a>
           <a href="#faq" onClick={close}>FAQ</a>
         </nav>
         <div className="nav-actions">
@@ -74,7 +76,8 @@ export default function Landing() {
 
       <section id="top" className="hero section-pad">
         <div className="hero-copy">
-          <h1>AI Creative Studio</h1>
+          <h1>Eclipse Studio</h1>
+          <h2 className="hero-sub">AI Creative Studio</h2>
           <p className="hero-deck">
             Turn any idea into premium images — <br className="desktop-only" />
             from a single prompt to finished content, all in one place.
@@ -166,6 +169,27 @@ export default function Landing() {
           ))}
         </div>
         <div className="center-cta" style={{ marginTop: 70 }}><Cta dark>Create Yours</Cta></div>
+      </section>
+
+      <section id="pricing" className="pricing-section section-pad">
+        <div className="eyebrow">SIMPLE PRICING</div>
+        <h2 className="plans-title">pick the plan<br /><em>that fits.</em></h2>
+        <div className="plan-grid">
+          {plans.map((p, i) => (
+            <article className={`plan-card ${i === 1 ? "plan-popular" : ""}`} key={p.name}>
+              {i === 1 && <span className="plan-tag">Most popular</span>}
+              <h3>{p.name}</h3>
+              <p className="plan-price">${p.price}<small>/month</small></p>
+              <ul>
+                <li><Check size={15} /> {p.credits.toLocaleString("en-US")} credits every month</li>
+                <li><Check size={15} /> {p.seats} seat{p.seats === 1 ? "" : "s"}</li>
+                <li><Check size={15} /> Private gallery for every project</li>
+              </ul>
+              <SignedOut><Link className="pill-btn" href="/sign-up">Get started</Link></SignedOut>
+              <SignedIn><Link className="pill-btn" href="/settings">Choose plan</Link></SignedIn>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section id="faq" className="faq-section section-pad">
