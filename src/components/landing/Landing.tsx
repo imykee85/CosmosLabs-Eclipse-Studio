@@ -8,6 +8,7 @@ import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb
 import { audience, faqs, results, steps, wowTiles } from "./data";
 import { plans } from "@/lib/plans";
 import HomeMediaCarousel from "./HomeMediaCarousel";
+import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
 
@@ -86,6 +87,7 @@ export default function Landing() {
           <Cta glint />
         </div>
         <HomeMediaCarousel />
+        <IndustryStrip />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
       </section>
 
