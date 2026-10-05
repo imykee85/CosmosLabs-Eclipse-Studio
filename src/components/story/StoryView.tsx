@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, FileText, MessagesSquare, MapPin, MoreHorizontal, Package, Palette, Send, Sparkles, Upload, User } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowRight, FileText, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Sparkles, Upload, User, X } from "lucide-react";
 import "./story.css";
 
 type Mode = "brief" | "concept" | "guide";
@@ -39,6 +39,10 @@ export default function StoryView() {
   // null = the starting-point screen (desktop). Phones have no such screen, so they open on the first tab.
   const [mode, setMode] = useState<Mode | null>(null);
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
+  const [files, setFiles] = useState<File[]>([]);
+  const [text, setText] = useState("");
+  const picker = useRef<HTMLInputElement>(null);
+  const addFiles = (list: FileList | null) => { const picked = Array.from(list ?? []); if (picked.length) setFiles((f) => [...f, ...picked]); if (picker.current) picker.current.value = ""; };
 
   return (
     <div className="st-wrap">
@@ -106,8 +110,24 @@ export default function StoryView() {
         </div>
 
         <form className="st-composer" onSubmit={(e) => e.preventDefault()}>
-          <textarea rows={2} disabled placeholder="Chatting with the story AI is coming soon" aria-label="Your message" />
-          <button type="submit" disabled aria-label="Send"><Send size={16} /></button>
+          {files.length > 0 && (
+            <div className="st-files">
+              {files.map((f, i) => (
+                <span key={f.name + i} className="st-file"><FileText size={14} /><span>{f.name}</span>
+                  <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles(files.filter((_, j) => j !== i))}><X size={13} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+          <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Your message"
+            placeholder={active.id === "brief" ? "Paste your brief or attach a file..." : "Type your answer..."} />
+          <div className="st-tools">
+            <input ref={picker} type="file" multiple hidden accept=".pdf,.doc,.docx,.txt,.md,.rtf" onChange={(e) => addFiles(e.target.files)} />
+            <button type="button" className="st-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
+            <button type="button" className="st-tool" aria-label="Add a link" title="Links are coming soon" disabled><Link2 size={16} /></button>
+            <button type="button" className="st-tool" aria-label="Voice input" title="Voice is coming soon" disabled><Mic size={16} /></button>
+            <button type="submit" className="st-send" aria-label="Send" title="Sending is coming soon" disabled><Send size={16} /></button>
+          </div>
         </form>
       </section>
     </div>

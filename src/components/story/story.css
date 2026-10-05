@@ -41,12 +41,20 @@
 .st-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); color: var(--a-fg2); font: inherit; font-size: 13px; font-weight: 500; }
 .st-chip:disabled { cursor: default; opacity: .8; }
 
-.st-composer { display: flex; align-items: flex-end; gap: 10px; margin-top: 28px; padding: 12px 12px 12px 18px; border: 1px solid var(--a-line2); border-radius: 24px; background: var(--a-input); }
+.st-composer { display: grid; gap: 8px; margin-top: 28px; padding: 14px 14px 12px 18px; border: 1px solid var(--a-line2); border-radius: 24px; background: var(--a-input); }
 .st-composer:focus-within { border-color: #c00707; }
-.st-composer textarea { flex: 1; min-width: 0; resize: none; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; line-height: 1.5; padding: 6px 0; }
+.st-composer textarea { width: 100%; min-width: 0; resize: none; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; line-height: 1.5; padding: 4px 0; }
 .st-composer textarea::placeholder { color: var(--a-ph); }
-.st-composer button { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 50%; background: #c00707; color: #fff; }
-.st-composer button:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
+.st-tools { display: flex; align-items: center; gap: 8px; }
+.st-tool { display: grid; place-items: center; width: 40px; height: 34px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); cursor: pointer; transition: border-color .18s; }
+.st-tool:hover:not(:disabled) { border-color: var(--a-line4); }
+.st-tool:disabled { opacity: .5; cursor: default; }
+.st-send { margin-left: auto; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #c00707; color: #fff; }
+.st-send:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
+.st-files { display: flex; flex-wrap: wrap; gap: 8px; }
+.st-file { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: 30px; padding: 0 6px 0 11px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); font-size: 13px; }
+.st-file > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.st-file button { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; }
 
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .st-head { align-items: center; gap: 10px; }
@@ -62,9 +70,12 @@
   .st-tab { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; border: 0; border-radius: 14px; background: transparent; color: var(--a-muted); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; }
   .st-tab.is-on { background: var(--a-active); color: var(--a-fg); box-shadow: inset 0 -2px 0 #c00707; }
   .st-tabnote { display: block; margin: 12px 4px 0; color: var(--a-muted); font-size: 13px; }
-  .st-chat, .st-chat.is-hidden-desktop { display: block; margin-top: 4px; }
+  .st-chat, .st-chat.is-hidden-desktop { display: flex; flex-direction: column; margin-top: 4px; }
   .st-msg { margin-top: 18px; gap: 10px; }
   .st-bubble { padding: 14px 16px; }
   .st-bubble p { font-size: 15px; }
-  .st-composer { margin-top: 22px; }
+  /* Pinned above the tab bar so the box stays within reach, like a chat. */
+  .st-composer { position: sticky; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 5; margin-top: 22px; box-shadow: 0 -10px 24px var(--a-bg); }
+  .st-chat, .st-chat.is-hidden-desktop { min-height: calc(100dvh - 240px); }
+  .st-composer { margin-top: auto; }
 }
