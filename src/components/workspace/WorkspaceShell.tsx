@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Menu, PanelLeft, PenLine, Settings, X,
 } from "lucide-react";
@@ -59,6 +59,70 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
       </button>
       {open && items.map((i) => <NavItem key={i.label} item={i} pathname={pathname} />)}
     </div>
+  );
+}
+
+// Bottom "Create" tab: one tap opens Create; a quick second tap pops up the sidebar shortcuts above the tab bar.
+function CreateTab({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const [bottom, setBottom] = useState(76);
+  const lastTap = useRef(0);
+  const tabRef = useRef<HTMLAnchorElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const openedAt = useRef(0);
+  // The first tap of a double tap is still navigating when the menu opens, so ignore a route change that lands right after.
+  useEffect(() => { if (Date.now() - openedAt.current > 1500) setOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent | TouchEvent) => {
+      const t = e.target as Node;
+      if (!menuRef.current?.contains(t) && !tabRef.current?.contains(t)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("touchstart", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("touchstart", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+
+  function show() {
+    const r = tabRef.current?.closest(".mb-tabs")?.getBoundingClientRect();
+    if (r) setBottom(window.innerHeight - r.top + 10);
+    openedAt.current = Date.now();
+    setOpen(true);
+  }
+
+  function onClick(e: React.MouseEvent) {
+    const now = Date.now();
+    if (now - lastTap.current < 400) {
+      e.preventDefault(); // second tap: show shortcuts instead of opening Create again
+      lastTap.current = 0;
+      open ? setOpen(false) : show();
+      return;
+    }
+    lastTap.current = now;
+    setOpen(false);
+  }
+
+  return (
+    <>
+      <Link ref={tabRef} href="/create" className={`mb-tab ${pathname === "/create" ? "is-active" : ""} ${open ? "is-open" : ""}`}
+        aria-haspopup="menu" aria-expanded={open} title="Double-tap for shortcuts" onClick={onClick}
+        onKeyDown={(e) => { if (e.key === "ArrowUp") { e.preventDefault(); show(); } }}>
+        <span className="mb-tab-icon"><PenLine size={21} /></span><span>Create</span>
+      </Link>
+      {open && (
+        <div ref={menuRef} className="mb-shortcuts" role="menu" aria-label="Shortcuts" style={{ bottom }} onClick={() => setOpen(false)}>
+          <NavItem item={ingredients} pathname={pathname} />
+          <NavItem item={agentsItem} pathname={pathname} />
+          <p className="mb-sc-label">PHOTO</p>
+          {photo.map((i) => <NavItem key={i.label} item={i} pathname={pathname} />)}
+          <p className="mb-sc-label">VIDEO</p>
+          {video.map((i) => <NavItem key={i.label} item={i} pathname={pathname} />)}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -123,7 +187,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
 
       <nav className="mb-tabs" aria-label="Main">
         <Link href="/dashboard" className="mb-tab"><span className="mb-tab-icon"><House size={21} /></span><span>Home</span></Link>
-        <Link href="/create" className={`mb-tab ${pathname === "/create" ? "is-active" : ""}`}><span className="mb-tab-icon"><PenLine size={21} /></span><span>Create</span></Link>
+        <CreateTab pathname={pathname} />
         <Link href="/assets" className={`mb-tab ${pathname === "/assets" ? "is-active" : ""}`}><span className="mb-tab-icon"><FolderOpen size={21} /></span><span>Assets</span></Link>
         <Link href="/settings" className={`mb-tab ${pathname === "/settings" ? "is-active" : ""}`}><span className="mb-tab-icon"><Settings size={21} /></span><span>Settings</span></Link>
       </nav>
