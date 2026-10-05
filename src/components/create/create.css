@@ -20,7 +20,7 @@
 .cr-error { margin: 18px 0 0; text-align: center; color: var(--a-danger); font-size: 14px; }
 .cr-preview { margin-top: 88px; padding-bottom: 24px; text-align: center; }
 .cr-preview h2 { margin: 0 0 20px; color: var(--a-muted); font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
-.cr-stage { display: grid; place-items: center; width: 100%; margin: 0 auto; overflow: hidden; border: 1px dashed var(--a-line3); border-radius: 28px; background: var(--a-card); transition: max-width .25s; }
+.cr-stage { display: grid; place-items: center; width: 100%; margin: 0 auto; overflow: hidden; border: 1px dashed var(--a-line3); border-radius: 28px; background: var(--a-card); box-shadow: 0 20px 70px var(--a-shadow); transition: max-width .25s; }
 .cr-stage a { display: block; width: 100%; height: 100%; }
 .cr-stage img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cr-stage:has(img) { border-style: solid; border-color: var(--a-line2); }
