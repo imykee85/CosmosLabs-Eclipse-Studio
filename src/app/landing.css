@@ -405,3 +405,10 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .plan-card li svg { flex: none; color: #ff5a5a; }
 .plan-card .pill-btn { justify-self: stretch; padding: 14px 20px; }
 @media (max-width: 800px) { .plan-grid { grid-template-columns: 1fr; margin-top: 44px; } }
+
+/* How it works sits on the same cream as the "one prompt, endless possibilities" section; "Have an idea?" stays black after it. */
+.process-section { background: var(--paper); color: var(--ink); border-top: 0; }
+.process-section .eyebrow { color: #6b665f; }
+.process-section .process-row { border-top-color: #c5c0b8; }
+.process-section .process-row p { color: #77716a; }
+.process-section .process-row > svg { color: #8d887f; }
