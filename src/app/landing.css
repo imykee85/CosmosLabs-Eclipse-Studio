@@ -386,7 +386,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .login-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 @media (max-height: 600px) { .login-shell { padding: 36px 16px; } .auth-logo svg { width: 28px; height: 28px; } .auth-card { padding-top: 12px; padding-bottom: 12px; } .auth-card h1 { font-size: 20px; } }
 
-/* Hero: "Eclipse Studio" is the heading, "AI Creative Studio" supports it */
+/* Hero: "Eclipse Studio" is the heading, "AI Creative Suite" supports it */
 .site-shell .hero .hero-sub { margin: -4px 0 22px; font-size: 20px; font-weight: 500; letter-spacing: -.01em; color: #d1cec9; }
 @media (min-width: 801px) { .site-shell .hero .hero-sub { font-size: 24px; } }
 

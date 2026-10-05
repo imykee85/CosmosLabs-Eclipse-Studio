@@ -78,7 +78,7 @@ export default function Landing() {
       <section id="top" className="hero section-pad">
         <div className="hero-copy">
           <h1>Eclipse Studio</h1>
-          <h2 className="hero-sub">AI Creative Studio</h2>
+          <h2 className="hero-sub">AI Creative Suite</h2>
           <p className="hero-deck">
             Turn any idea into premium content, <br className="desktop-only" />
             from a single prompt to finished work, all in one place.
