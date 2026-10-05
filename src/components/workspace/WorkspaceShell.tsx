@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Library, Menu, PanelLeft, PenLine, Settings, X,
+  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mountain, Package, PanelLeft, PenLine, Settings, User, Video, X,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
 import "@/components/app-theme.css";
-import { readCurrentProjectName } from "@/lib/projects";
+import { LIBRARY_KINDS } from "@/lib/library";
+import { listProjects, readCurrentProject, readCurrentProjectName, setCurrentProject, timeAgo, type Project } from "@/lib/projects";
 import { tutorialHref } from "@/lib/tutorial";
 import "./workspace.css";
 
@@ -51,41 +52,30 @@ function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onP
   );
 }
 
-function Section({ title, items, pathname }: { title: string; items: Item[]; pathname: string }) {
+function Section({ title, items, pathname, onPick }: { title: string; items: Item[]; pathname: string; onPick?: (item: Item) => void }) {
   const [open, setOpen] = useState(true);
   return (
     <div className="ws-section">
       <button className="ws-section-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <ChevronDown size={13} className={open ? "" : "is-closed"} /> {title}
       </button>
-      {open && items.map((i) => <NavItem key={i.label} item={i} pathname={pathname} />)}
+      {open && items.map((i) => <NavItem key={i.label} item={i} pathname={pathname} onPick={onPick} />)}
     </div>
   );
 }
 
-// Bottom "Create" tab: one tap opens Create; a quick second tap pops up the sidebar shortcuts above the tab bar.
-const SLOT_KEY = "eclipse-create-slot";
-// Shortcuts that can take over the tab.
-const SLOT_ITEMS: Item[] = [photo[0], ingredients, agentsItem, photo[1], photo[2]];
-
-function CreateTab({ pathname }: { pathname: string }) {
-  const [slot, setSlot] = useState<Item>(photo[0]);
+// Bottom tabs Home, Create and Library: one tap opens the page, a quick second tap pops up shortcuts above the tab bar.
+// `leaveTo`: for a tab whose page is outside the Studio (Home), the first tap waits briefly so a double tap can still reach the menu.
+function useTabMenu(pathname: string, leaveTo?: string) {
+  const router = useRouter();
+  const wait = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState(false);
-  const [bottom, setBottom] = useState(76);
+  const [pos, setPos] = useState({ bottom: 76, left: 12 });
   const lastTap = useRef(0);
+  const openedAt = useRef(0);
   const tabRef = useRef<HTMLAnchorElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    try { const s = SLOT_ITEMS.find((i) => i.label === localStorage.getItem(SLOT_KEY)); if (s) setSlot(s); } catch {}
-  }, []);
-  function pick(item: Item) {
-    if (!SLOT_ITEMS.includes(item)) return;
-    setSlot(item);
-    try { localStorage.setItem(SLOT_KEY, item.label); } catch {}
-  }
-
-  const openedAt = useRef(0);
   // The first tap of a double tap is still navigating when the menu opens, so ignore a route change that lands right after.
   useEffect(() => { if (Date.now() - openedAt.current > 1500) setOpen(false); }, [pathname]);
   useEffect(() => {
@@ -102,41 +92,156 @@ function CreateTab({ pathname }: { pathname: string }) {
   }, [open]);
 
   function show() {
-    const r = tabRef.current?.closest(".mb-tabs")?.getBoundingClientRect();
-    if (r) setBottom(window.innerHeight - r.top + 10);
+    const tab = tabRef.current?.getBoundingClientRect();
+    const bar = tabRef.current?.closest(".mb-tabs")?.getBoundingClientRect();
+    if (tab && bar) {
+      const w = Math.min(310, window.innerWidth - 24);
+      setPos({ bottom: window.innerHeight - bar.top + 10, left: Math.max(12, Math.min(tab.left + tab.width / 2 - w / 2, window.innerWidth - w - 12)) });
+    }
     openedAt.current = Date.now();
     setOpen(true);
   }
 
   function onClick(e: React.MouseEvent) {
+    if (leaveTo) {
+      e.preventDefault();
+      if (wait.current) { // second tap while waiting: menu instead of leaving
+        clearTimeout(wait.current);
+        wait.current = null;
+        if (open) setOpen(false); else show();
+        return;
+      }
+      setOpen(false);
+      wait.current = setTimeout(() => { wait.current = null; router.push(leaveTo); }, 320);
+      return;
+    }
     const now = Date.now();
     if (now - lastTap.current < 400) {
-      e.preventDefault(); // second tap: show shortcuts instead of opening Create again
+      e.preventDefault(); // second tap: show shortcuts instead of opening the page again
       lastTap.current = 0;
-      open ? setOpen(false) : show();
+      if (open) setOpen(false); else show();
       return;
     }
     lastTap.current = now;
     setOpen(false);
   }
 
+  const onKeyDown = (e: React.KeyboardEvent) => { if (e.key === "ArrowUp") { e.preventDefault(); show(); } };
+  return { open, setOpen, pos, tabRef, menuRef, onClick, onKeyDown };
+}
+
+type TabMenu = ReturnType<typeof useTabMenu>;
+
+function TabMenuBox({ m, label, children }: { m: TabMenu; label: string; children: React.ReactNode }) {
+  if (!m.open) return null;
+  return (
+    <div ref={m.menuRef} className="mb-shortcuts" role="menu" aria-label={label} style={{ bottom: m.pos.bottom, left: m.pos.left }}
+      onClick={(e) => { if ((e.target as HTMLElement).closest('a, [role="menuitem"]')) m.setOpen(false); }}>
+      {children}
+    </div>
+  );
+}
+
+const tabIcon = (icon: React.ReactNode) => (isValidElement(icon) ? cloneElement(icon as ReactElement<{ size?: number }>, { size: 21 }) : null);
+
+const SLOT_KEY = "eclipse-create-slot";
+// Shortcuts that can take over the Create tab.
+const SLOT_ITEMS: Item[] = [photo[0], ingredients, agentsItem, photo[1], photo[2]];
+
+function CreateTab({ pathname }: { pathname: string }) {
+  const m = useTabMenu(pathname);
+  const [slot, setSlot] = useState<Item>(photo[0]);
+
+  useEffect(() => {
+    try { const s = SLOT_ITEMS.find((i) => i.label === localStorage.getItem(SLOT_KEY)); if (s) setSlot(s); } catch {}
+  }, []);
+  function pick(item: Item) {
+    if (!SLOT_ITEMS.includes(item)) return;
+    setSlot(item);
+    try { localStorage.setItem(SLOT_KEY, item.label); } catch {}
+  }
+
   return (
     <>
-      <Link ref={tabRef} href={slot.href ?? "/create"} className={`mb-tab ${pathname === slot.href ? "is-active" : ""} ${open ? "is-open" : ""}`}
-        aria-haspopup="menu" aria-expanded={open} title="Double-tap for shortcuts" onClick={onClick}
-        onKeyDown={(e) => { if (e.key === "ArrowUp") { e.preventDefault(); show(); } }}>
-        <span className="mb-tab-icon">{isValidElement(slot.icon) ? cloneElement(slot.icon as ReactElement<{ size?: number }>, { size: 21 }) : null}</span><span>{slot.label}</span>
+      <Link ref={m.tabRef} href={slot.href ?? "/create"} className={`mb-tab ${pathname === slot.href ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
+        aria-haspopup="menu" aria-expanded={m.open} title="Double-tap for shortcuts" onClick={m.onClick} onKeyDown={m.onKeyDown}>
+        <span className="mb-tab-icon">{tabIcon(slot.icon)}</span><span>{slot.label}</span>
       </Link>
-      {open && (
-        <div ref={menuRef} className="mb-shortcuts" role="menu" aria-label="Shortcuts" style={{ bottom }} onClick={() => setOpen(false)}>
-          <NavItem item={ingredients} pathname={pathname} onPick={pick} />
-          <NavItem item={agentsItem} pathname={pathname} onPick={pick} />
-          <p className="mb-sc-label">PHOTO</p>
-          {photo.map((i) => <NavItem key={i.label} item={i} pathname={pathname} onPick={pick} />)}
-          <p className="mb-sc-label">VIDEO</p>
-          {video.map((i) => <NavItem key={i.label} item={i} pathname={pathname} />)}
-        </div>
-      )}
+      <TabMenuBox m={m} label="Shortcuts">
+        <NavItem item={ingredients} pathname={pathname} onPick={pick} />
+        <NavItem item={agentsItem} pathname={pathname} onPick={pick} />
+        <Section title="PHOTO" items={photo} pathname={pathname} onPick={pick} />
+        <Section title="VIDEO" items={video} pathname={pathname} />
+      </TabMenuBox>
+    </>
+  );
+}
+
+// Home: double tap lists your projects so you can jump straight into one.
+function HomeTab({ pathname }: { pathname: string }) {
+  const m = useTabMenu(pathname, "/dashboard");
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[] | null>(null);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!m.open) return;
+    setCurrentId(readCurrentProject()?.id ?? null);
+    listProjects().then((l) => setProjects(l.filter((p) => !p.deletedAt))).catch(() => setProjects([]));
+  }, [m.open]);
+
+  function openProject(p: Project) {
+    setCurrentProject(p);
+    router.push("/project");
+  }
+
+  return (
+    <>
+      <Link ref={m.tabRef} href="/dashboard" className={`mb-tab ${m.open ? "is-open" : ""}`}
+        aria-haspopup="menu" aria-expanded={m.open} title="Double-tap for your projects" onClick={m.onClick} onKeyDown={m.onKeyDown}>
+        <span className="mb-tab-icon"><House size={21} /></span><span>Home</span>
+      </Link>
+      <TabMenuBox m={m} label="Your projects">
+        <NavItem item={{ label: "All projects", hint: "Back to your dashboard", href: "/dashboard", icon: <LayoutDashboard size={17} /> }} pathname={pathname} />
+        <p className="mb-sc-label">PROJECTS</p>
+        {projects === null ? <p className="mb-sc-empty">Loading...</p>
+          : projects.length === 0 ? <p className="mb-sc-empty">No projects yet.</p>
+          : projects.map((p) => (
+            <button key={p.id} type="button" role="menuitem" className={`ws-item ${p.id === currentId ? "is-active" : ""}`} aria-current={p.id === currentId ? "true" : undefined} onClick={() => openProject(p)}>
+              <span className="ws-icon"><FolderOpen size={17} /></span>
+              <span className="ws-item-text"><b>{p.name}</b><small>{timeAgo(p.updatedAt)}</small></span>
+            </button>
+          ))}
+      </TabMenuBox>
+    </>
+  );
+}
+
+const KIND_ICONS: Record<string, React.ReactNode> = {
+  All: <Library size={17} />, Characters: <User size={17} />, Products: <Package size={17} />,
+  Scenes: <Mountain size={17} />, Images: <ImageIcon size={17} />, Videos: <Video size={17} />,
+};
+
+// Library: double tap jumps to one kind of saved item.
+function LibraryTab({ pathname }: { pathname: string }) {
+  const m = useTabMenu(pathname);
+  const current = m.open && typeof window !== "undefined" && pathname === "/library" ? new URLSearchParams(window.location.search).get("kind") ?? "All" : null;
+
+  return (
+    <>
+      <Link ref={m.tabRef} href="/library" className={`mb-tab ${pathname === "/library" ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
+        aria-haspopup="menu" aria-expanded={m.open} title="Double-tap for library shortcuts" onClick={m.onClick} onKeyDown={m.onKeyDown}>
+        <span className="mb-tab-icon"><Library size={21} /></span><span>Library</span>
+      </Link>
+      <TabMenuBox m={m} label="Library shortcuts">
+        {LIBRARY_KINDS.map((k) => {
+          const href = k === "All" ? "/library" : `/library?kind=${k}`;
+          return (
+            <NavItem key={k} pathname={current === k ? href : ""}
+              item={{ label: k, hint: k === "All" ? "Everything you saved" : `Saved ${k.toLowerCase()}`, href, icon: KIND_ICONS[k] }} />
+          );
+        })}
+      </TabMenuBox>
     </>
   );
 }
@@ -151,7 +256,12 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
   const [project, setProject] = useState("");
   const [drawer, setDrawer] = useState(false);
 
-  useEffect(() => setProject(readCurrentProjectName()), [pathname]);
+  useEffect(() => {
+    const sync = () => setProject(readCurrentProjectName());
+    sync();
+    window.addEventListener("eclipse-project-change", sync);
+    return () => window.removeEventListener("eclipse-project-change", sync);
+  }, [pathname]);
 
   // Phone menu: closes after navigating, and the page behind it does not scroll while it is open.
   useEffect(() => setDrawer(false), [pathname]);
@@ -201,9 +311,9 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
       </div>
 
       <nav className="mb-tabs" aria-label="Main">
-        <Link href="/dashboard" className="mb-tab"><span className="mb-tab-icon"><House size={21} /></span><span>Home</span></Link>
+        <HomeTab pathname={pathname} />
         <CreateTab pathname={pathname} />
-        <Link href="/library" className={`mb-tab ${pathname === "/library" ? "is-active" : ""}`}><span className="mb-tab-icon"><Library size={21} /></span><span>Library</span></Link>
+        <LibraryTab pathname={pathname} />
         <Link href="/settings" className={`mb-tab ${pathname === "/settings" ? "is-active" : ""}`}><span className="mb-tab-icon"><Settings size={21} /></span><span>Settings</span></Link>
       </nav>
 

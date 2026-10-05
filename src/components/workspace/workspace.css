@@ -148,3 +148,8 @@ a.ws-account:hover, a.ws-account.is-active { background: var(--a-hover); }
   .ws-assets .ws-kinds { margin-top: 20px; }
   .ws-assets .ws-kind { min-height: calc(100dvh - 300px); }
 }
+
+/* Tab-bar shortcut menus: project rows are buttons; empty/loading lines. */
+.mb-shortcuts button.ws-item { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.mb-shortcuts button.ws-item:hover, .mb-shortcuts button.ws-item.is-active { background: var(--a-hover); }
+.mb-sc-empty { margin: 4px 12px 8px; color: var(--a-muted2); font-size: 14px; }

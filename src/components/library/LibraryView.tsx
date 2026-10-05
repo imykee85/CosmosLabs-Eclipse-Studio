@@ -1,14 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FolderOpen, Search } from "lucide-react";
+import { LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
 import "./library.css";
 
-const KINDS = ["All", "Characters", "Products", "Scenes", "Images"];
-
 // Everything saved from any project, kept in one place so it can be reused in other projects.
-export default function LibraryView() {
-  const [kind, setKind] = useState("All");
+export default function LibraryView({ kind }: { kind: LibraryKind }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
 
   return (
@@ -17,8 +17,8 @@ export default function LibraryView() {
       <p>Everything you save from your projects lives here, ready to reuse in the next one.</p>
 
       <div className="lib-tabs" role="tablist" aria-label="Filter by type">
-        {KINDS.map((k) => (
-          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => setKind(k)}>{k}</button>
+        {LIBRARY_KINDS.map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}</button>
         ))}
       </div>
 

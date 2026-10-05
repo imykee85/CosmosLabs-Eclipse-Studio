@@ -50,6 +50,7 @@ export async function deleteProjectForever(id: string) {
 // The project the user is working in right now (shown in the workspace top bar).
 export function setCurrentProject(p: Pick<Project, "id" | "name">) {
   try { localStorage.setItem(CURRENT_KEY, JSON.stringify(p)); } catch {}
+  window.dispatchEvent(new Event("eclipse-project-change"));
 }
 export function readCurrentProject(): { id: string; name: string } | null {
   try { const p = JSON.parse(localStorage.getItem(CURRENT_KEY) ?? "null"); return p?.id ? { id: p.id, name: p.name ?? "" } : null; } catch { return null; }
