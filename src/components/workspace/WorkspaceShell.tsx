@@ -183,8 +183,8 @@ function CreateTab({ pathname }: { pathname: string }) {
         <NavItem item={ingredients} pathname={pathname} />
         <NavItem item={agentsItem} pathname={pathname} />
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
-        <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
         <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
+        <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
       </TabMenuBox>
     </>
   );
@@ -296,8 +296,8 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <NavItem item={ingredients} pathname={pathname} />
           <NavItem item={agentsItem} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
-          <Section title="VIDEO" items={video} pathname={pathname} />
           <Section title="AUDIO" items={audio} pathname={pathname} />
+          <Section title="VIDEO" items={video} pathname={pathname} />
         </nav>
         <UserMenu variant="sidebar" />
       </aside>
@@ -348,8 +348,8 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             <NavItem item={ingredients} pathname={pathname} />
             <NavItem item={agentsItem} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />
-            <Section title="VIDEO" items={video} pathname={pathname} />
             <Section title="AUDIO" items={audio} pathname={pathname} />
+            <Section title="VIDEO" items={video} pathname={pathname} />
           </nav>
           <div className="mb-foot">
             <Link href="/dashboard" className="mb-foot-link"><LayoutDashboard size={19} /> Dashboard</Link>
