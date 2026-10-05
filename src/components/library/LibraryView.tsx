@@ -3,13 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FolderOpen, Search } from "lucide-react";
-import { LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
+import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
 import "./library.css";
 
 // Everything saved from any project, kept in one place so it can be reused in other projects.
 export default function LibraryView({ kind }: { kind: LibraryKind }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [role, setRole] = useState<(typeof INGREDIENT_ROLES)[number]>("All");
 
   return (
     <div className="ws-ing lib">
@@ -21,6 +22,14 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
           <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}</button>
         ))}
       </div>
+
+      {kind === "Ingredients" && (
+        <div className="lib-roles" role="group" aria-label="Ingredient type">
+          {INGREDIENT_ROLES.map((r) => (
+            <button key={r} type="button" aria-pressed={role === r} className={role === r ? "is-active" : ""} onClick={() => setRole(r)}>{r === "All" ? "All ingredients" : `${r}s`}</button>
+          ))}
+        </div>
+      )}
 
       <label className="lib-search">
         <Search size={16} aria-hidden="true" />

@@ -231,8 +231,7 @@ function HomeTab({ pathname }: { pathname: string }) {
 }
 
 const KIND_ICONS: Record<string, React.ReactNode> = {
-  All: <Library size={17} />, Characters: <User size={17} />, Products: <Package size={17} />,
-  Scenes: <Mountain size={17} />, Images: <ImageIcon size={17} />, Videos: <Video size={17} />, Audio: <Music size={17} />,
+  All: <Library size={17} />, Ingredients: <Layers size={17} />, Images: <ImageIcon size={17} />, Videos: <Video size={17} />, Audio: <Music size={17} />,
 };
 
 // Library: double tap jumps to one kind of saved item.
@@ -251,7 +250,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
           const href = k === "All" ? "/library" : `/library?kind=${k}`;
           return (
             <NavItem key={k} pathname={current === k ? href : ""}
-              item={{ label: k, hint: k === "All" ? "Everything you saved" : `Saved ${k.toLowerCase()}`, href, icon: KIND_ICONS[k] }} />
+              item={{ label: k, hint: k === "All" ? "Everything you saved" : k === "Ingredients" ? "Characters, products, scenes" : `Saved ${k.toLowerCase()}`, href, icon: KIND_ICONS[k] }} />
           );
         })}
       </TabMenuBox>

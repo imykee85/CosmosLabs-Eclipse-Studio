@@ -10,4 +10,9 @@
 .lib-empty { display: grid; justify-items: center; gap: 10px; margin-top: 22px; padding: 72px 24px; border: 1px solid var(--a-line2); border-radius: 32px; background: var(--a-card); color: var(--a-muted2); text-align: center; }
 .lib-empty h2 { margin: 10px 0 0; color: var(--a-fg); font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
 .lib-empty p { max-width: 420px; margin: 0 0 6px; color: var(--a-muted); font-size: 15px; line-height: 1.5; }
-@media (max-width: 800px) { .lib-empty { padding: 56px 20px; border-radius: 28px; } .lib-tabs button { padding: 10px 16px; } }
+@media (max-width: 800px) { .lib-empty { padding: 56px 20px; border-radius: 28px; } .lib-tabs button { padding: 10px 8px; font-size: 14px; } }
+
+.lib-roles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.lib-roles button { height: 36px; padding: 0 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .18s, color .18s; }
+.lib-roles button:hover:not(.is-active) { border-color: var(--a-line4); color: var(--a-fg); }
+.lib-roles button.is-active { border-color: #c00707; background: var(--a-sel); color: var(--a-fg); }
