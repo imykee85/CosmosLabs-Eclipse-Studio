@@ -1,7 +1,8 @@
 /* Orbit: chat home and connect-apps pages. Prefix or- . */
 .or-wrap { max-width: 760px; margin: 0 auto; color: var(--a-fg); }
-.or-hero { display: grid; justify-items: center; gap: 14px; padding: 8vh 0 0; text-align: center; }
-.or-mark { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 22px; background: #c00707; color: #fff; box-shadow: 0 10px 30px rgba(192,7,7,.35); }
+.or-hero { display: grid; justify-items: center; gap: 14px; padding: 9vh 0 0; text-align: center; }
+.or-dests { display: flex; gap: 10px; margin-bottom: 10px; }
+.or-dests span { display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg2); }
 .or-hero h1 { margin: 8px 0 0; font-size: clamp(30px, 5vw, 44px); font-weight: 700; letter-spacing: -.03em; line-height: 1.05; }
 .or-hero p { margin: 0; max-width: 420px; color: var(--a-muted); font-size: 16px; line-height: 1.5; }
 .or-dock { margin-top: 12vh; }
@@ -17,9 +18,6 @@
 .or-tools { display: flex; align-items: center; gap: 8px; }
 .or-round { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg2); }
 .or-round:disabled { opacity: .5; cursor: default; }
-.or-agent { display: inline-flex; align-items: center; height: 40px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); }
-.or-agent select { border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
-.or-agent select option { background: var(--a-card); color: var(--a-fg); }
 .or-send { margin-left: auto; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #c00707; color: #fff; }
 .or-send:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
 
@@ -61,3 +59,28 @@
   .or-flows { grid-template-columns: 1fr; }
   .or-flow { min-height: 110px; }
 }
+
+/* Model chip and its sheet */
+.or-model { position: relative; }
+.or-agent { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .18s; }
+.or-agent:hover { border-color: var(--a-line4); }
+.or-agent svg { color: var(--a-muted); transition: transform .2s; } .or-agent svg.is-up { transform: rotate(180deg); }
+.or-sheet-scrim { display: none; }
+.or-sheet { position: absolute; left: 0; bottom: calc(100% + 10px); z-index: 30; display: grid; gap: 2px; width: min(380px, 80vw); max-height: 60vh; overflow-y: auto; padding: 8px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-card); box-shadow: 0 18px 40px var(--a-shadow); }
+.or-grab { display: none; }
+.or-opt { display: flex; align-items: center; gap: 14px; width: 100%; padding: 10px; border: 0; border-radius: 16px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.or-opt:hover, .or-opt.is-on { background: var(--a-hover); }
+.or-opt-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--a-input); color: var(--a-fg2); }
+.or-opt-text { display: grid; flex: 1; min-width: 0; line-height: 1.35; }
+.or-opt-text b { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+.or-opt-text em { padding: 1px 8px; border-radius: 999px; background: var(--a-sel); color: var(--a-redtext); font-size: 11px; font-style: normal; font-weight: 500; }
+.or-opt-text small { color: var(--a-muted); font-size: 13px; }
+.or-opt-check { flex: none; color: var(--a-redtext); }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .or-sheet-scrim { display: block; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.55); }
+  .or-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; width: auto; max-height: 72dvh; padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; border-width: 1px 0 0; }
+  .or-grab { display: block; width: 44px; height: 4px; margin: 4px auto 10px; border-radius: 4px; background: var(--a-line3); }
+  .or-dests span { width: 44px; height: 44px; }
+}
+/* While the model sheet is open the pinned box rises above the tab bar so the sheet is not clipped. */
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .or-dock:has(.or-sheet) { z-index: 60; } }

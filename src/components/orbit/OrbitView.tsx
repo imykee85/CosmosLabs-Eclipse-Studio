@@ -1,34 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { ArrowUp, Plug, Plus, Wrench } from "lucide-react";
-import OrbitIcon from "@/components/OrbitIcon";
+import { useState } from "react";
+import { ArrowUp, Cloud, Hash, Music2, Plug, Plus, Send, Share2, Wrench } from "lucide-react";
+import ModelPicker from "./ModelPicker";
 import "./orbit.css";
 
-const AGENTS = ["Agent 1", "Agent 2", "Agent 3"];
-const AGENT_KEY = "eclipse-agent"; // same key as the Agents page
-
-// Orbit: chat home for your agents, with shortcuts to their tools and to connected apps.
+// Orbit: where finished content goes next. Chat with your agents, use their tools, connect the apps you publish to.
 export default function OrbitView() {
-  const [agent, setAgent] = useState(AGENTS[1]);
   const [text, setText] = useState("");
-
-  useEffect(() => {
-    try { const a = localStorage.getItem(AGENT_KEY); if (a && AGENTS.includes(a)) setAgent(a); } catch {}
-  }, []);
-
-  function pick(a: string) {
-    setAgent(a);
-    try { localStorage.setItem(AGENT_KEY, a); } catch {}
-  }
 
   return (
     <div className="or-wrap">
       <div className="or-hero">
-        <span className="or-mark"><OrbitIcon size={42} strokeWidth={1.4} /></span>
-        <h1>What are we creating today?</h1>
-        <p>Ask your agent, use its tools, or connect the apps you work in.</p>
+        <div className="or-dests" aria-hidden="true">
+          <span><Music2 size={20} /></span><span><Share2 size={20} /></span><span><Send size={20} /></span><span><Hash size={20} /></span><span><Cloud size={20} /></span>
+        </div>
+        <h1>Where should it go next?</h1>
+        <p>Publish, schedule and send your finished content from one place.</p>
       </div>
 
       <div className="or-dock">
@@ -38,16 +27,11 @@ export default function OrbitView() {
         </div>
 
         <form className="or-box" onSubmit={(e) => e.preventDefault()}>
-          <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Message your agent"
-            placeholder="Chatting with your agents is coming soon..." />
+          <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Message Orbit"
+            placeholder="Ask Orbit to publish or share your content (coming soon)..." />
           <div className="or-tools">
             <button type="button" className="or-round" disabled aria-label="Attach" title="Attaching is coming soon"><Plus size={18} /></button>
-            <label className="or-agent">
-              <span className="sr-only">Agent</span>
-              <select value={agent} onChange={(e) => pick(e.target.value)} aria-label="Agent">
-                {AGENTS.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
-            </label>
+            <ModelPicker />
             <button type="submit" className="or-send" disabled aria-label="Send" title="Chat is coming soon"><ArrowUp size={18} /></button>
           </div>
         </form>
