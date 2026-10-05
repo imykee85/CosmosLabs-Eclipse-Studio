@@ -13,7 +13,7 @@ Branch: develop only on `claude/new-session-1h84ct` (draft PR #1 into `main`). V
 - App-wide light/dark appearance: `localStorage['eclipse-theme']`, `html[data-app-theme="light"]`, `--a-*` vars in `src/components/app-theme.css`. Marketing site stays dark. Login light mode is linked to onboarding.
 - Landing carousel must not stretch at any zoom: `%` widths, `aspect-ratio: 9/16`, no JS or viewport-unit sizing.
 - Login and onboarding pages are vertically centered and never scroll (100dvh, compact height media queries).
-- Phone UI: bottom Create tab: one tap opens Create, a quick double tap pops up the sidebar shortcuts above the tab bar (`CreateTab` in `WorkspaceShell`). Separate app-style chrome in `WorkspaceShell` (top bar, bottom tabs Home/Create/Assets/Settings, drawer), switched by media query `(max-width:800px), (pointer: coarse) and (max-width:1000px)`.
+- Phone UI: bottom Create tab: one tap opens Create, a quick double tap pops up the sidebar shortcuts above the tab bar (`CreateTab` in `WorkspaceShell`). Picking Create/Gallery/Ingredients/Agents from it swaps the tab icon+label to that item (saved in `localStorage["eclipse-create-slot"]`); Assets keeps its own tab. Separate app-style chrome in `WorkspaceShell` (top bar, bottom tabs Home/Create/Assets/Settings, drawer), switched by media query `(max-width:800px), (pointer: coarse) and (max-width:1000px)`.
 
 ## What's built
 - Landing page, login/sign-up, onboarding (multi-select last step; finish plays `public/onboarding/welcome.mp4`, a test clip, then goes to dashboard).

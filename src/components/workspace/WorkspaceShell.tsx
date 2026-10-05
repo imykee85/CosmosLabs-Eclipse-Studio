@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
+import type { ReactElement } from "react";
 import {
   ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Menu, PanelLeft, PenLine, Settings, X,
 } from "lucide-react";
@@ -31,7 +32,7 @@ const video: Item[] = [
   { label: "Export", hint: "Deliver and share", step: 4 },
 ];
 
-function NavItem({ item, pathname }: { item: Item; pathname: string }) {
+function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onPick?: (item: Item) => void }) {
   const body = (
     <>
       {item.step ? <span className="ws-step">{item.step}</span> : <span className="ws-icon">{item.icon}</span>}
@@ -44,7 +45,7 @@ function NavItem({ item, pathname }: { item: Item; pathname: string }) {
   );
   if (!item.href) return <div className="ws-item is-soon" aria-disabled="true">{body}</div>;
   return (
-    <Link href={item.href} className={`ws-item ${pathname === item.href ? "is-active" : ""}`} aria-current={pathname === item.href ? "page" : undefined}>
+    <Link href={item.href} className={`ws-item ${pathname === item.href ? "is-active" : ""}`} aria-current={pathname === item.href ? "page" : undefined} onClick={onPick ? () => onPick(item) : undefined}>
       {body}
     </Link>
   );
@@ -63,12 +64,26 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
 }
 
 // Bottom "Create" tab: one tap opens Create; a quick second tap pops up the sidebar shortcuts above the tab bar.
+const SLOT_KEY = "eclipse-create-slot";
+// Shortcuts that can take over the tab (Assets already has its own tab).
+const SLOT_ITEMS: Item[] = [photo[0], ingredients, agentsItem, photo[1]];
+
 function CreateTab({ pathname }: { pathname: string }) {
+  const [slot, setSlot] = useState<Item>(photo[0]);
   const [open, setOpen] = useState(false);
   const [bottom, setBottom] = useState(76);
   const lastTap = useRef(0);
   const tabRef = useRef<HTMLAnchorElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try { const s = SLOT_ITEMS.find((i) => i.label === localStorage.getItem(SLOT_KEY)); if (s) setSlot(s); } catch {}
+  }, []);
+  function pick(item: Item) {
+    if (!SLOT_ITEMS.includes(item)) return;
+    setSlot(item);
+    try { localStorage.setItem(SLOT_KEY, item.label); } catch {}
+  }
 
   const openedAt = useRef(0);
   // The first tap of a double tap is still navigating when the menu opens, so ignore a route change that lands right after.
@@ -107,17 +122,17 @@ function CreateTab({ pathname }: { pathname: string }) {
 
   return (
     <>
-      <Link ref={tabRef} href="/create" className={`mb-tab ${pathname === "/create" ? "is-active" : ""} ${open ? "is-open" : ""}`}
+      <Link ref={tabRef} href={slot.href ?? "/create"} className={`mb-tab ${pathname === slot.href ? "is-active" : ""} ${open ? "is-open" : ""}`}
         aria-haspopup="menu" aria-expanded={open} title="Double-tap for shortcuts" onClick={onClick}
         onKeyDown={(e) => { if (e.key === "ArrowUp") { e.preventDefault(); show(); } }}>
-        <span className="mb-tab-icon"><PenLine size={21} /></span><span>Create</span>
+        <span className="mb-tab-icon">{isValidElement(slot.icon) ? cloneElement(slot.icon as ReactElement<{ size?: number }>, { size: 21 }) : null}</span><span>{slot.label}</span>
       </Link>
       {open && (
         <div ref={menuRef} className="mb-shortcuts" role="menu" aria-label="Shortcuts" style={{ bottom }} onClick={() => setOpen(false)}>
-          <NavItem item={ingredients} pathname={pathname} />
-          <NavItem item={agentsItem} pathname={pathname} />
+          <NavItem item={ingredients} pathname={pathname} onPick={pick} />
+          <NavItem item={agentsItem} pathname={pathname} onPick={pick} />
           <p className="mb-sc-label">PHOTO</p>
-          {photo.map((i) => <NavItem key={i.label} item={i} pathname={pathname} />)}
+          {photo.map((i) => <NavItem key={i.label} item={i} pathname={pathname} onPick={pick} />)}
           <p className="mb-sc-label">VIDEO</p>
           {video.map((i) => <NavItem key={i.label} item={i} pathname={pathname} />)}
         </div>
