@@ -35,6 +35,7 @@ Browser ──► Next.js route handlers (Vercel) ──► Postgres (Neon, pool
    │                └─────────► Anthropic API (Treatment chat)
    └── presigned PUT ─────────► R2 (uploads go straight to storage, not through our functions)
 
+Tavus (live agent, trial) ◄──WebRTC── Browser PIP;  Tavus ──webhook──► /api/webhooks/tavus
 Stripe ──webhook──► /api/webhooks/stripe        Clerk ──webhook──► /api/webhooks/clerk
 Higgsfield ─webhook─► /api/webhooks/higgsfield  Vercel Cron ─► /api/cron/sweep, /api/cron/purge
 ```
@@ -197,6 +198,50 @@ The Agents page (Agent 1, 2, 3) maps to three configurations of the same chat en
 - **Agent 3, screening agent.** Takes generation outputs (images, video frames, audio transcript), returns a structured verdict `{ score, issues[], remakeRecommended, remakeNotes, audienceReception }`, stored on the generation (`Review` table: `generationId`, `agentId`, `verdict Json`). The UI can show a badge per render and a "remake" action that pre-fills a new generation.
 - Agent usage costs credits (or a daily cap, see decision 4); `generate` calls inside Agent 2 charge normally through the ledger.
 
+### 7b. Live agent video (Tavus), trial scope
+
+Idea: a floating picture-in-picture video window in the Studio where an agent talks with the user in real time. Scope for the trial is **Agent 1 only** (brainstorming is spoken); Agent 3 can follow; Agent 2 stays text because its output is prompts the user reads and edits. Voice-only is the built-in fallback when video or bandwidth is poor. Nothing about Tavus's pricing, limits or tool-call support is verified yet; the checklist at the end of this section comes first.
+
+**Flow**
+```
+Browser: user taps "Talk" on the agent (explicit consent shown once, stored)
+ 1. POST /api/live-sessions { projectId, agentId, mode: "video" | "voice" }
+ 2. server: requireContext(); check credit balance covers the first block (e.g. 5 min); reserve it (ledger CHARGE tied to the session)
+ 3. server -> provider.startConversation(persona for that agent, context, webhook urls)
+        context = project name, treatment concept, ingredient names, brand memory summary (text only, size-capped)
+ 4. return { sessionId, conversationUrl } ; the PIP component embeds it (WebRTC), mic/camera requested only now
+ 5. heartbeat every 30-60 s: POST /api/live-sessions/:id/heartbeat -> extends the reservation one block at a time while the balance allows
+ 6. end: user closes PIP (POST /:id/end) or provider webhook `conversation ended` -> reconcile seconds used, refund unused reserve,
+        save transcript as AgentMessage rows in the agent's thread for that project
+```
+
+**Spoken actions.** The agent can act while talking ("write that as three scenes", "generate a first draft"). The provider calls our signed webhook `POST /api/live-sessions/:id/tools/:name`. Rules: only an allowlist of tools; the tool runs through the same internal functions as the text agents, so generations are priced, charged and idempotent exactly like a button click; any call that would spend more than a threshold must be confirmed by the user in the UI first (the agent says it, a confirm button appears in the PIP).
+
+**Data**
+- **LiveSession**: `workspaceId`, `projectId`, `agentId`, `createdById`, `provider`, `providerConversationId`, `mode`, `status` (STARTING | ACTIVE | ENDED | FAILED), `consentAt`, `startedAt`, `endedAt`, `secondsUsed`, `creditsCharged`, `endReason` (USER | CAP | NO_CREDITS | TIMEOUT | PROVIDER).
+- **CreditLedger** gains `liveSessionId?` (a session's charges are traceable like a generation's).
+- Transcript goes into `AgentMessage` (with `source: LIVE`), so spoken and typed history are one thread.
+
+**Cost control (the main risk)**
+- Billed per minute at a credit rate set above the provider's per-minute cost.
+- Hard cap per session (e.g. 20 min) and per workspace per day by plan; the PIP shows time left.
+- No heartbeat for 2 minutes -> the sweeper ends the provider conversation and settles the session; ends are idempotent.
+- Insufficient credits ends the session gracefully (agent is told to wrap up) instead of cutting off.
+
+**Provider boundary.** `LiveAgentProvider { startConversation(), endConversation(), parseWebhook() }` in `lib/live/`, Tavus the first implementation, so pricing or API changes do not touch routes or UI. Env: `TAVUS_API_KEY`, `TAVUS_WEBHOOK_SECRET`, one persona id per agent.
+
+**Privacy.** Camera and microphone only after the user taps Talk; the user's camera is off by default (agent sees no video unless they turn it on); consent timestamp stored; no recording kept by us, transcript retention configurable (default 30 days) and deleted with the project; the UI says plainly what is stored and what the provider sees.
+
+**Verify with Tavus before building**
+1. Price per minute, minimum billing increment, concurrency limits, free minutes.
+2. Can it call back to our server with tool calls mid-conversation, and with what signature scheme?
+3. How context is injected (size limit, can it be updated during the session).
+4. Webhook events available (started, ended, transcript, duration) and their retry behaviour.
+5. Latency in our regions, mobile browser support (iOS Safari), and voice-only mode.
+6. Persona customisation: can each agent have its own face, voice and instructions.
+
+**Trial success measures**: share of agent users who tap Talk, average minutes per session, projects finished by people who used Talk vs not, credits per session against provider cost. If minutes are high but projects finished are not, drop it.
+
 ## 8. Video and Export
 
 - Video generation uses the same pipeline with `kind: VIDEO` and longer expected times; webhooks and the sweeper already cover it. Per-scene generations are linked by `sceneId`; the user picks one output per scene (`chosenOutputId`).
@@ -219,6 +264,7 @@ Internal routes (session auth via Clerk; everything workspace-scoped). Errors ar
 | Ingredients | `GET/POST /api/ingredients`, `PATCH/DELETE /:id`, `POST /:id/assets` |
 | Library | `GET /api/library?kind=&role=&q=&cursor=` |
 | Agents | `GET /api/agents`, `POST /api/agent-threads/:id/messages` (SSE), `POST /api/generations/:id/review` (Agent 3) |
+| Live agent | `POST /api/live-sessions`, `POST /:id/heartbeat`, `POST /:id/end`, `POST /:id/tools/:name` (provider webhook), `/api/webhooks/tavus` |
 | Treatment | `GET/PUT /api/projects/:id/treatment`, `POST /api/treatments/:id/messages` (SSE), `GET/PUT /api/treatments/:id/scenes` |
 | Export | `POST /api/projects/:id/exports`, `GET /api/exports/:id` |
 | Billing | `POST /api/billing/checkout`, `POST /api/billing/portal`, `GET /api/billing/ledger` |
@@ -254,6 +300,7 @@ Each phase ships something visible and is safe to stop after.
 | 2. Billing | Stripe checkout and portal, plan grants on `invoice.paid`, top-ups, ledger endpoint | Billing & credits panel, Upgrade buttons, Credit history |
 | 3. Library and uploads | Upload flow, Assets, Ingredients, Library query, Ingredients picker in Create | Assets page, Library tabs, Ingredients chip on Create |
 | 4. Treatment and agents | Anthropic streaming, brief extraction, `concept` JSON, scenes; Agent 1 and Agent 2 chat, Agent 3 review | Treatment chat, Brief/Concept/Guide, Continue to prompts, Agents page |
+| 4b. Live agent trial | Verify Tavus, `LiveSession`, metered start/heartbeat/end, tool webhook, transcript to thread (Agent 1 only) | Talk button and PIP video window on the Agent 1 / Treatment page |
 | 5. Video and audio | Video + audio models, scene generations, export renderer | Prompts, Generate, Export steps; Voiceover, Music, Sound effects |
 | 6. Platform | API keys + MCP, Clerk Organizations for Team, Portfolio publish | API/MCP panel, Team & seats, Portfolio Publish and Copy link |
 | Later | Avatars, Certificates, translation | Their "Soon" pages |
@@ -264,6 +311,7 @@ Each phase ships something visible and is safe to stop after.
 1. **Higgsfield API shape is unverified** (endpoint, auth header, `aspect_ratio`, webhook support, video parameters, pricing). Phase 1 starts by confirming these against the real API; the design assumes asynchronous jobs with a status URL and ideally webhooks. If webhooks are not offered, the sweeper plus lazy refresh carries all completion handling and nothing else changes.
 2. **Provider cost vs credit price.** Plan credit amounts in `plans.ts` are placeholders; margins cannot be set until real per-model costs are known.
 3. **Video export infrastructure** is the only piece that needs something other than serverless functions.
+4. **Live agent cost and quality.** Per-minute video is far costlier than text and the face quality is out of our control; the trial in 7b exists to find out before committing.
 
 **Decisions I need from you** (my recommendation first)
 1. File storage: Cloudflare R2 (alternative: Vercel Blob).
