@@ -37,6 +37,9 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 - Projects persist only per browser and per web address in demo mode. Interim fix is the stable branch preview address above; projects made on older per-deployment addresses are not carried over. Permanent fix is server persistence, already coded, switching on when Clerk keys and `DATABASE_URL` are set (then run `npx prisma db push` once). Not yet configured.
 - Library is cross-project saved items; Gallery in the sidebar is per-project renders.
 
+## Remove before production
+- Landing strip "Trusted by teams at" shows other companies' logos as a DESIGN MOCKUP (user's private look-and-feel test; they are not Eclipse customers). They show only locally and on preview builds (`NEXT_PUBLIC_MOCK_LOGOS` in `next.config.mjs`, off when `VERCEL_ENV=production`). Before launch delete `src/components/landing/mockLogos.ts`, `public/logos/mock/`, the mock branch in `IndustryStrip.tsx` and that env line. Real customer logos go in `customerLogos.ts` (only with their agreement).
+
 ## Next
 - Backend plan: `docs/backend-design.md` (workspaces, async generation pipeline, credits ledger, storage, Treatment AI, phased build order). Proposal only; nothing built yet.
 - Connect Clerk keys and Postgres on Vercel so projects persist per account (new accounts start empty).

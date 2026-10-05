@@ -3,4 +3,4 @@
 //   { name: "Company name", src: "/logos/company.svg" }
 // While this list is empty the strip shows the kinds of content Eclipse is made for instead, and the
 // "Trusted by teams at" heading stays hidden.
-export const customerLogos: { name: string; src: string }[] = [];
+export const customerLogos: { name: string; src: string; h?: number }[] = [];
