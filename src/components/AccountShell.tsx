@@ -21,7 +21,8 @@ export default function AccountShell({ children }: { children: React.ReactNode }
       <header className="db-header">
         <Link href="/dashboard" aria-label="Back to dashboard" className="db-logo"><LogoMark size={48} /></Link>
         <div className="db-header-right">
-          <Link href={tutorialHref(pathname)} className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
+          <Link href="/dashboard" className="db-pill"><ArrowLeft size={15} /> Dashboard</Link>
+          <Link href={tutorialHref(pathname)} className="db-pill acct-tutorial" aria-label="Tutorial"><GraduationCap size={15} /> <span>Tutorial</span></Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
           <SignOutButton className="db-icon" />
@@ -29,7 +30,6 @@ export default function AccountShell({ children }: { children: React.ReactNode }
         </div>
       </header>
       <main className="acct-main">
-        <Link href="/dashboard" className="ws-back acct-back"><ArrowLeft size={15} /> Dashboard</Link>
         {children}
       </main>
     </div>
