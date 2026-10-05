@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowRight, FileText, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Sparkles, Upload, User, X } from "lucide-react";
+import { ArrowRight, FileText, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
 import "./story.css";
 
 type Mode = "brief" | "concept" | "guide";
@@ -15,7 +15,7 @@ const MODES: { id: Mode; label: string; title: string; hint: string; start: stri
     greeting: "Paste or upload your brief. I'll pick out the goals, audience and requirements, then suggest concepts to build on.", media: false,
   },
   {
-    id: "concept", label: "Concept", title: "Describe your idea", icon: <Sparkles size={18} />, tabIcon: <Sparkles size={17} />,
+    id: "concept", label: "Concept", title: "Describe your idea", icon: <Lightbulb size={18} />, tabIcon: <Lightbulb size={17} />,
     hint: "Tell us what you have in mind and shape it into a concept together.",
     start: "Describe your idea and shape it into a concept in chat.",
     greeting: "What's the idea? Tell me what you picture, even roughly, and we'll shape it into a concept together.", media: true,
@@ -52,8 +52,8 @@ export default function StoryView() {
           <p>{mode ? active.start : "Answer a few questions and Eclipse shapes your video concept. Optional."}</p>
         </div>
         <div className="st-actions">
-          <span className="st-pill st-pill-quiet st-pill-wide"><Sparkles size={13} /> No concept yet</span>
-          <span className="st-pill st-pill-quiet st-pill-short" aria-label="No concept yet"><Sparkles size={14} /></span>
+          <span className="st-pill st-pill-quiet st-pill-wide"><Lightbulb size={13} /> No concept yet</span>
+          <span className="st-pill st-pill-quiet st-pill-short" aria-label="No concept yet"><Lightbulb size={14} /></span>
           <button type="button" className="st-pill st-pill-go" disabled title="Prompts are coming soon">
             <span className="st-wide">Continue to prompts</span><span className="st-short">Prompts</span> <ArrowRight size={15} />
           </button>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results, steps, wowTiles } from "./data";
 import HomeMediaCarousel from "./HomeMediaCarousel";
 import Logo from "@/components/Logo";
@@ -143,7 +143,7 @@ export default function Landing() {
           <h2>have an idea?<br /><em>try it.</em></h2>
           <div className="idea-box">
             <textarea value={idea} onChange={(e) => setIdea(e.target.value)} placeholder={"What do you want to create?\n\nDescribe your idea…"} />
-            <button className="create-btn" onClick={tryIt}><Sparkles size={17} /> Create my idea</button>
+            <button className="create-btn" onClick={tryIt}><Lightbulb size={17} /> Create my idea</button>
           </div>
           <p className="try-caption">No prompt engineering. No blank canvas. Just start with what you’re imagining.</p>
         </div>
