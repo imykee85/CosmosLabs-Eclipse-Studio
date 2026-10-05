@@ -18,14 +18,20 @@
 .cr-go:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
 .cr-hint { margin: 12px 0 0; text-align: center; color: var(--a-ph); font-size: 12px; }
 .cr-error { margin: 18px 0 0; text-align: center; color: var(--a-danger); font-size: 14px; }
-.cr-results { display: grid; gap: 28px; margin-top: 48px; }
-.cr-card { display: grid; gap: 12px; }
-.cr-card p { margin: 0; color: var(--a-muted); font-size: 14px; line-height: 1.5; }
-.cr-img { display: grid; place-items: center; width: 100%; max-width: 480px; overflow: hidden; border: 1px solid var(--a-line); border-radius: 20px; background: var(--a-card); }
-.cr-img img { width: 100%; height: 100%; object-fit: cover; }
-.cr-img.is-loading { color: var(--a-muted2); }
+.cr-preview { margin-top: 88px; padding-bottom: 24px; text-align: center; }
+.cr-preview h2 { margin: 0 0 20px; color: var(--a-muted); font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
+.cr-stage { display: grid; place-items: center; width: 100%; margin: 0 auto; overflow: hidden; border: 1px dashed var(--a-line3); border-radius: 28px; background: var(--a-card); transition: max-width .25s; }
+.cr-stage a { display: block; width: 100%; height: 100%; }
+.cr-stage img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cr-stage:has(img) { border-style: solid; border-color: var(--a-line2); }
+.cr-empty { display: grid; justify-items: center; gap: 12px; padding: 24px; color: var(--a-muted2); }
+.cr-empty p { margin: 0; font-size: 15px; }
+.cr-caption { max-width: 480px; margin: 16px auto 0; color: var(--a-muted); font-size: 14px; line-height: 1.5; }
+.cr-earlier { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 28px; }
+.cr-earlier a { display: block; width: 72px; height: 72px; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 14px; }
+.cr-earlier img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cr-spin { animation: cr-spin 1s linear infinite; }
 @keyframes cr-spin { to { transform: rotate(360deg); } }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
-@media (max-width: 800px) { .cr-intro h1 { font-size: 28px; } .cr-box { margin-top: 36px; border-radius: 22px; } }
+@media (max-width: 800px) { .cr-intro h1 { font-size: 28px; } .cr-box { margin-top: 36px; border-radius: 22px; } .cr-preview { margin-top: 64px; } .cr-stage { border-radius: 22px; } }
 @media (prefers-reduced-motion: reduce) { .cr-spin { animation-duration: 3s; } }

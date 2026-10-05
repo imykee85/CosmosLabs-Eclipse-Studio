@@ -2,10 +2,12 @@
 
 import { useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Layers, Loader2 } from "lucide-react";
+import { ArrowUp, ImageIcon, Layers, Loader2 } from "lucide-react";
 import "./create.css";
 
 const RATIOS = ["1:1", "4:5", "9:16", "16:9"];
+// Widest the preview gets for each shape, so tall ones do not run off the screen.
+const PREVIEW_WIDTH: Record<string, number> = { "1:1": 480, "4:5": 420, "9:16": 300, "16:9": 680 };
 
 type Result = { id: string; prompt: string; imageUrl: string; ratio: string };
 
@@ -60,7 +62,7 @@ export default function CreateStudio() {
     <div className="cr-wrap">
       <header className="cr-intro">
         <h1>Start creating</h1>
-        <p>Describe the shot you imagine. Your render appears right below the box.</p>
+        <p>Describe the shot you imagine. Your preview appears in the panel below.</p>
       </header>
 
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); generate(); }}>
@@ -93,27 +95,38 @@ export default function CreateStudio() {
       <p className="cr-hint">Press Ctrl or Cmd + Enter to generate.</p>
       {error && <p className="cr-error" role="alert">{error}</p>}
 
-      {(busy || results.length > 0) && (
-        <section className="cr-results" aria-live="polite" aria-label="Your renders">
-          {busy && (
-            <article className="cr-card">
-              <div className="cr-img is-loading" style={{ aspectRatio: busy.ratio.replace(":", " / ") }}>
-                <Loader2 size={26} className="cr-spin" />
-              </div>
-              <p>{busy.prompt}</p>
-            </article>
-          )}
-          {results.map((r) => (
-            <article key={r.id} className="cr-card">
-              <a href={r.imageUrl} target="_blank" rel="noreferrer" className="cr-img" style={{ aspectRatio: r.ratio.replace(":", " / ") }}>
+      <section className="cr-preview" aria-label="Preview">
+        <h2>Preview</h2>
+        {(() => {
+          const shown = busy ? null : results[0];
+          const r = busy?.ratio ?? shown?.ratio ?? ratio;
+          return (
+            <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: PREVIEW_WIDTH[r] }} aria-live="polite">
+              {busy ? (
+                <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Creating your image…</p></div>
+              ) : shown ? (
+                <a href={shown.imageUrl} target="_blank" rel="noreferrer" title="Open full size">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={shown.imageUrl} alt={shown.prompt} />
+                </a>
+              ) : (
+                <div className="cr-empty"><ImageIcon size={34} strokeWidth={1.4} /><p>Your preview appears here</p></div>
+              )}
+            </div>
+          );
+        })()}
+        {!busy && results[0] && <p className="cr-caption">{results[0].prompt}</p>}
+        {results.length > 1 && (
+          <div className="cr-earlier" aria-label="Earlier renders">
+            {results.slice(1).map((r) => (
+              <a key={r.id} href={r.imageUrl} target="_blank" rel="noreferrer" title={r.prompt}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={r.imageUrl} alt={r.prompt} />
               </a>
-              <p>{r.prompt}</p>
-            </article>
-          ))}
-        </section>
-      )}
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
