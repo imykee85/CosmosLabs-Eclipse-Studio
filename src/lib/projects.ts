@@ -51,6 +51,12 @@ export async function deleteProjectForever(id: string) {
 export function setCurrentProject(p: Pick<Project, "id" | "name">) {
   try { localStorage.setItem(CURRENT_KEY, JSON.stringify(p)); } catch {}
 }
+export function readCurrentProject(): { id: string; name: string } | null {
+  try { const p = JSON.parse(localStorage.getItem(CURRENT_KEY) ?? "null"); return p?.id ? { id: p.id, name: p.name ?? "" } : null; } catch { return null; }
+}
+export function clearCurrentProject() {
+  try { localStorage.removeItem(CURRENT_KEY); } catch {}
+}
 export function readCurrentProjectName(): string {
   try { return JSON.parse(localStorage.getItem(CURRENT_KEY) ?? "null")?.name ?? ""; } catch { return ""; }
 }

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import ProjectGate from "@/components/workspace/ProjectGate";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
@@ -13,5 +14,5 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       if (!done) redirect("/onboarding");
     }
   }
-  return <WorkspaceShell>{children}</WorkspaceShell>;
+  return <ProjectGate><WorkspaceShell>{children}</WorkspaceShell></ProjectGate>;
 }
