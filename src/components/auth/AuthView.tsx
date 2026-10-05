@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 
 export type Mode = "signin" | "signup";
 export type Step = "credentials" | "verify" | "forgot" | "reset";
@@ -111,6 +112,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
 
   return (
     <section className="login-card auth-card" aria-labelledby="auth-title">
+      <Link href="/" className="auth-logo" aria-label="Eclipse home"><LogoMark size={56} /></Link>
       <h1 id="auth-title">{title}</h1>
       <p className="login-intro">{intro}</p>
 

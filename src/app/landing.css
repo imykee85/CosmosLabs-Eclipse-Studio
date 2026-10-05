@@ -270,11 +270,11 @@
 /* Sign-in / sign-up: form centred in the visible screen on every device, no page scroll.
    dvh follows the real visible height on phones (browser bars); margin:auto keeps the card
    reachable if a very short screen ever needs to scroll inside the page. */
-.login-shell { display: flex; height: 100vh; height: 100dvh; min-height: 0; padding: 84px 16px; overflow-x: hidden; overflow-y: auto; }
+.login-shell { display: flex; height: 100vh; height: 100dvh; min-height: 0; padding: 66px 16px; overflow-x: hidden; overflow-y: auto; }
 .auth-slot { position: relative; z-index: 1; margin: auto; width: 100%; display: flex; justify-content: center; }
 .login-brand { top: 12px; }
-@media (max-height: 780px) {
-  .login-shell { padding: 54px 16px; }
+@media (max-height: 900px) {
+  .login-shell { padding: 56px 16px; }
   .login-brand svg { width: 48px; height: 48px; }
   .login-back { top: 22px; }
   .auth-card { padding: 22px 26px 18px; }
@@ -290,8 +290,8 @@
   .auth-demo { margin-bottom: 12px; padding: 8px 10px; }
   .auth-demo p { font-size: 12px; line-height: 1.35; }
 }
-@media (max-height: 640px) {
-  .login-shell { padding: 42px 16px; }
+@media (max-height: 700px) {
+  .login-shell { padding: 46px 16px; }
   .login-brand { top: 6px; }
   .auth-demo { margin-bottom: 8px; padding: 6px 8px; }
   .auth-demo p { font-size: 11px; }
@@ -363,3 +363,25 @@ html[data-app-theme="light"] .auth-demo button:hover { border-color: #141414; }
 
 /* Back on the login page is just a < arrow; the padding keeps a comfortable tap area. */
 .login-back { padding: 8px; margin: -8px 0 0 -8px; }
+
+/* Login: logo sits on the form above the heading; the faint background shapes are icons (agent, camera, palette). */
+.auth-logo { display: inline-flex; margin: 0 auto 6px; line-height: 0; }
+.auth-logo svg { width: 56px; height: 56px; }
+html[data-app-theme="light"] .auth-logo svg { color: #141414; }
+.auth-card h1 { margin-top: 8px; }
+.login-icon { position: absolute; z-index: 0; display: block; line-height: 0; color: #232323; pointer-events: none; }
+.login-icon svg { width: 100%; height: 100%; }
+.login-icon-top { width: 190px; height: 190px; top: 40px; left: 28%; transform: rotate(-10deg); }
+.login-icon-left { width: 250px; height: 250px; left: -80px; top: 46%; transform: rotate(-8deg); }
+.login-icon-right { width: 210px; height: 210px; right: -50px; top: 12%; transform: rotate(12deg); }
+html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
+@media (max-width: 600px) {
+  .login-icon-top { width: 120px; height: 120px; left: 52%; top: 28px; }
+  .login-icon-left { width: 160px; height: 160px; left: -60px; top: 58%; }
+  .login-icon-right { width: 130px; height: 130px; right: -40px; top: 18%; }
+}
+@media (max-height: 900px) { .auth-logo svg { width: 44px; height: 44px; } .auth-logo { margin-bottom: 2px; } }
+@media (max-height: 700px) { .auth-logo svg { width: 34px; height: 34px; } .auth-logo { margin-bottom: 0; } }
+
+.login-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+@media (max-height: 600px) { .login-shell { padding: 36px 16px; } .auth-logo svg { width: 28px; height: 28px; } .auth-card { padding-top: 12px; padding-bottom: 12px; } .auth-card h1 { font-size: 20px; } }
