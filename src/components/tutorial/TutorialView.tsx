@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  Award, Bot, Clapperboard, Coins, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, PenLine, Play, Settings, User, X,
+  Award, Clapperboard, Coins, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, PenLine, Play, Settings, User, X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import AgentIcon from "@/components/AgentIcon";
 import { SignOutButton } from "@/components/account";
 import UserMenu from "@/components/UserMenu";
 import { LogoMark } from "@/components/Logo";
@@ -16,9 +17,9 @@ import "@/components/dashboard/dashboard.css";
 import "./tutorial.css";
 
 // The back button wears the icon of the page it returns to (Dashboard uses the same icon as the menu).
-const ORIGIN_ICONS: Record<string, LucideIcon> = {
+const ORIGIN_ICONS: Record<string, LucideIcon | typeof AgentIcon> = {
   "/dashboard": LayoutDashboard, "/project": Clapperboard, "/create": PenLine, "/gallery": Images, "/library": Library,
-  "/ingredients": Layers, "/agents": Bot, "/assets": FolderOpen, "/avatars": User, "/portfolio": LayoutGrid,
+  "/ingredients": Layers, "/agents": AgentIcon, "/assets": FolderOpen, "/avatars": User, "/portfolio": LayoutGrid,
   "/certificates": Award, "/settings": Settings,
 };
 

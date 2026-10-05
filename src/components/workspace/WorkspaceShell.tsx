@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mountain, Package, PanelLeft, PenLine, Settings, User, Video, X,
+  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mountain, Package, PanelLeft, PenLine, Settings, User, Video, X,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
+import AgentIcon from "@/components/AgentIcon";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -25,7 +26,7 @@ const photo: Item[] = [
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
   { label: "Assets", hint: "Reference photos", href: "/assets", soon: true, icon: <FolderOpen size={17} /> },
 ];
-const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <Bot size={17} /> };
+const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} /> };
 const video: Item[] = [
   { label: "Story", hint: "Plan the scenes", step: 1 },
   { label: "Prompts", hint: "Scene by scene", step: 2 },
