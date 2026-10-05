@@ -13,6 +13,7 @@ import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
 import "@/components/app-theme.css";
+import { rememberPage } from "@/lib/last-page";
 import { LIBRARY_KINDS } from "@/lib/library";
 import { listProjects, readCurrentProject, readCurrentProjectName, setCurrentProject, timeAgo, type Project } from "@/lib/projects";
 import { tutorialHref } from "@/lib/tutorial";
@@ -262,6 +263,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
   const [project, setProject] = useState("");
   const [drawer, setDrawer] = useState(false);
 
+  useEffect(() => { rememberPage(pathname); }, [pathname]);
   useEffect(() => {
     const sync = () => setProject(readCurrentProjectName());
     sync();

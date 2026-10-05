@@ -11,3 +11,6 @@
   .db-page .db-header .db-logo svg { width: 34px; height: 34px; }
 }
 @media (max-width: 380px) { .db-page .db-header-right .db-pill-solid svg { display: none; } }
+
+/* Back on these pages is just a < arrow with a comfortable tap area. */
+.acct-back { padding: 8px; margin: 0 0 0 -4px; }

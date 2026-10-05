@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock, Coins, FolderOpen, GraduationCap, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
+import { rememberPage } from "@/lib/last-page";
 import { tutorialHref } from "@/lib/tutorial";
 import { SignOutButton } from "@/components/account";
 import UserMenu from "@/components/UserMenu";
@@ -35,6 +36,7 @@ export default function DashboardView() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { rememberPage("/dashboard"); }, []);
 
   async function act(fn: () => Promise<unknown>) {
     try { await fn(); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong."); }

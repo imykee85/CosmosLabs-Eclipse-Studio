@@ -360,3 +360,6 @@ html[data-app-theme="light"] .auth-demo button:hover { border-color: #141414; }
 
 /* Text boxes get no outline of their own; the field around them shows focus. */
 .auth-card :is(input:not([type="checkbox"]):not([type="radio"]), textarea):focus-visible { outline: 0; }
+
+/* Back on the login page is just a < arrow; the padding keeps a comfortable tap area. */
+.login-back { padding: 8px; margin: -8px 0 0 -8px; }
