@@ -19,9 +19,11 @@ export default function AccountShell({ children }: { children: React.ReactNode }
   return (
     <div className="db-page">
       <header className="db-header">
-        <Link href="/dashboard" aria-label="Back to dashboard" className="db-logo"><LogoMark size={48} /></Link>
+        <div className="acct-left">
+          <Link href="/dashboard" aria-label="Eclipse home" className="db-logo"><LogoMark size={48} /></Link>
+          <Link href="/dashboard" className="ws-back"><ArrowLeft size={15} /> Dashboard</Link>
+        </div>
         <div className="db-header-right">
-          <Link href="/dashboard" className="db-pill"><ArrowLeft size={15} /> Dashboard</Link>
           <Link href={tutorialHref(pathname)} className="db-pill acct-tutorial" aria-label="Tutorial"><GraduationCap size={15} /> <span>Tutorial</span></Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />

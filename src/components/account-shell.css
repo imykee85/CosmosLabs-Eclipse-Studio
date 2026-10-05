@@ -1,3 +1,4 @@
+.acct-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
 .acct-main { max-width: 1120px; margin: 0 auto; padding: 56px clamp(16px, 4%, 48px) 80px; }
 /* Phones: the Tutorial button shows only its icon so the Dashboard button fits in the header. */
 @media (max-width: 520px) { .acct-tutorial span { display: none; } .acct-tutorial { padding: 8px 10px; } }
