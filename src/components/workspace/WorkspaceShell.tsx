@@ -232,7 +232,7 @@ function HomeTab({ pathname }: { pathname: string }) {
 
 const KIND_ICONS: Record<string, React.ReactNode> = {
   All: <Library size={17} />, Characters: <User size={17} />, Products: <Package size={17} />,
-  Scenes: <Mountain size={17} />, Images: <ImageIcon size={17} />, Videos: <Video size={17} />,
+  Scenes: <Mountain size={17} />, Images: <ImageIcon size={17} />, Videos: <Video size={17} />, Audio: <Music size={17} />,
 };
 
 // Library: double tap jumps to one kind of saved item.
