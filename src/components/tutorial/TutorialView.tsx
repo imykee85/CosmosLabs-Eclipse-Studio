@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Coins, Play, X } from "lucide-react";
+import {
+  Award, Bot, Clapperboard, Coins, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, PenLine, Play, Settings, User, X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SignOutButton } from "@/components/account";
 import UserMenu from "@/components/UserMenu";
 import { LogoMark } from "@/components/Logo";
@@ -11,6 +14,13 @@ import { lessons, type Lesson } from "@/lib/tutorial";
 import "@/components/app-theme.css";
 import "@/components/dashboard/dashboard.css";
 import "./tutorial.css";
+
+// The back button wears the icon of the page it returns to (Dashboard uses the same icon as the menu).
+const ORIGIN_ICONS: Record<string, LucideIcon> = {
+  "/dashboard": LayoutDashboard, "/project": Clapperboard, "/create": PenLine, "/gallery": Images, "/library": Library,
+  "/ingredients": Layers, "/agents": Bot, "/assets": FolderOpen, "/avatars": User, "/portfolio": LayoutGrid,
+  "/certificates": Award, "/settings": Settings,
+};
 
 function Player({ lesson, onClose }: { lesson: Lesson; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -35,6 +45,7 @@ function Player({ lesson, onClose }: { lesson: Lesson; onClose: () => void }) {
 }
 
 export default function TutorialView({ back }: { back: { path: string; label: string } }) {
+  const BackIcon = ORIGIN_ICONS[back.path] ?? LayoutDashboard;
   const [playing, setPlaying] = useState<Lesson | null>(null);
 
   return (
@@ -42,7 +53,7 @@ export default function TutorialView({ back }: { back: { path: string; label: st
       <header className="db-header">
         <Link href="/" aria-label="Eclipse home" className="db-logo"><LogoMark size={48} /></Link>
         <div className="db-header-right">
-          <Link href={back.path} className="db-pill"><ArrowLeft size={15} /> {back.label}</Link>
+          <Link href={back.path} className="db-pill"><BackIcon size={15} /> {back.label}</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
           <SignOutButton className="db-icon" />
