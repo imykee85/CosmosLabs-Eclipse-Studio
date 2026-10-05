@@ -1,2 +1,4 @@
-.acct-main { max-width: 1120px; margin: 0 auto; padding: 56px clamp(16px, 4%, 48px) 80px; }
-@media (max-width: 800px) { .acct-main { padding: 28px 18px 48px; } }
+.acct-main { max-width: 1120px; margin: 0 auto; padding: 28px clamp(16px, 4%, 48px) 80px; }
+.acct-back { margin-bottom: 28px; }
+.acct-main > .ws-ing { padding-top: 0; }
+@media (max-width: 800px) { .acct-main { padding: 20px 18px 48px; } .acct-back { margin-bottom: 20px; } }

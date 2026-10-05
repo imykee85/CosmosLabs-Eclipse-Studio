@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins, GraduationCap } from "lucide-react";
+import { ArrowLeft, Coins, GraduationCap } from "lucide-react";
 import { SignOutButton } from "@/components/account";
 import { LogoMark } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -28,7 +28,10 @@ export default function AccountShell({ children }: { children: React.ReactNode }
           <UserMenu />
         </div>
       </header>
-      <main className="acct-main">{children}</main>
+      <main className="acct-main">
+        <Link href="/dashboard" className="ws-back acct-back"><ArrowLeft size={15} /> Dashboard</Link>
+        {children}
+      </main>
     </div>
   );
 }
