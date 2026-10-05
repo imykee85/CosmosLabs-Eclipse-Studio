@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Menu, PanelLeft, PenLine, Settings, X,
+  ArrowLeft, Bot, ChevronDown, Coins, FolderOpen, GraduationCap, House, Images, Layers, LayoutDashboard, Library, Menu, PanelLeft, PenLine, Settings, X,
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import Avatar from "@/components/Avatar";
@@ -65,8 +65,8 @@ function Section({ title, items, pathname }: { title: string; items: Item[]; pat
 
 // Bottom "Create" tab: one tap opens Create; a quick second tap pops up the sidebar shortcuts above the tab bar.
 const SLOT_KEY = "eclipse-create-slot";
-// Shortcuts that can take over the tab (Assets already has its own tab).
-const SLOT_ITEMS: Item[] = [photo[0], ingredients, agentsItem, photo[1]];
+// Shortcuts that can take over the tab.
+const SLOT_ITEMS: Item[] = [photo[0], ingredients, agentsItem, photo[1], photo[2]];
 
 function CreateTab({ pathname }: { pathname: string }) {
   const [slot, setSlot] = useState<Item>(photo[0]);
@@ -203,7 +203,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
       <nav className="mb-tabs" aria-label="Main">
         <Link href="/dashboard" className="mb-tab"><span className="mb-tab-icon"><House size={21} /></span><span>Home</span></Link>
         <CreateTab pathname={pathname} />
-        <Link href="/assets" className={`mb-tab ${pathname === "/assets" ? "is-active" : ""}`}><span className="mb-tab-icon"><FolderOpen size={21} /></span><span>Assets</span></Link>
+        <Link href="/library" className={`mb-tab ${pathname === "/library" ? "is-active" : ""}`}><span className="mb-tab-icon"><Library size={21} /></span><span>Library</span></Link>
         <Link href="/settings" className={`mb-tab ${pathname === "/settings" ? "is-active" : ""}`}><span className="mb-tab-icon"><Settings size={21} /></span><span>Settings</span></Link>
       </nav>
 
