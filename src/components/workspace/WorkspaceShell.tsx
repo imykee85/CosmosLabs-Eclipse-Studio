@@ -53,8 +53,10 @@ function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onP
   );
 }
 
-function Section({ title, items, pathname, onPick }: { title: string; items: Item[]; pathname: string; onPick?: (item: Item) => void }) {
-  const [open, setOpen] = useState(true);
+function Section({ title, items, pathname, onPick, defaultOpen = true }: { title: string; items: Item[]; pathname: string; onPick?: (item: Item) => void; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  // If the page changes while it is showing (a double tap lands before the first tap finishes navigating), unfold the group that now holds the page.
+  useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen]);
   return (
     <div className="ws-section">
       <button className="ws-section-head" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -174,8 +176,8 @@ function CreateTab({ pathname }: { pathname: string }) {
       <TabMenuBox m={m} label="Shortcuts">
         <NavItem item={ingredients} pathname={pathname} />
         <NavItem item={agentsItem} pathname={pathname} />
-        <Section title="PHOTO" items={photo} pathname={pathname} />
-        <Section title="VIDEO" items={video} pathname={pathname} />
+        <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
+        <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
       </TabMenuBox>
     </>
   );
