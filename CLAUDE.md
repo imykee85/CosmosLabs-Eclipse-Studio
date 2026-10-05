@@ -31,6 +31,7 @@ Branch: develop only on `claude/new-session-1h84ct` (draft PR #1 into `main`). V
 - Library is cross-project saved items; Gallery in the sidebar is per-project renders.
 
 ## Next
+- Backend plan: `docs/backend-design.md` (workspaces, async generation pipeline, credits ledger, storage, Treatment AI, phased build order). Proposal only; nothing built yet.
 - Connect Clerk keys and Postgres on Vercel so projects persist per account (new accounts start empty).
 - Real onboarding video, tutorial videos, real pricing plans.
 - Build the "Soon" features: Assets, audio, video steps, Ingredients saving, Agents, Library saving, Avatars, Certificates, Billing/Upgrade, Team, API/MCP keys, language translation.
