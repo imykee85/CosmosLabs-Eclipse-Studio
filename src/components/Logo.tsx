@@ -9,10 +9,11 @@ export function LogoMark({ size = 52 }: { size?: number }) {
   );
 }
 
-export default function Logo({ size = 52, className = "" }: { size?: number; className?: string }) {
+export default function Logo({ size = 52, className = "", name = false }: { size?: number; className?: string; name?: boolean }) {
   return (
     <Link href="/" className={className} aria-label="Eclipse home">
       <LogoMark size={size} />
+      {name && <span className="logo-name">Eclipse Studio</span>}
     </Link>
   );
 }

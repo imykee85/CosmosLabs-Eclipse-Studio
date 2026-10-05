@@ -30,8 +30,8 @@ function Cta({ dark = false, glint = false, children = "Start Creating" }: { dar
   );
 }
 
-function Wordmark() {
-  return <Logo className="wordmark" size={60} />;
+function Wordmark({ name = false }: { name?: boolean }) {
+  return <Logo className="wordmark" size={60} name={name} />;
 }
 
 export default function Landing() {
@@ -47,7 +47,7 @@ export default function Landing() {
   return (
     <main className="site-shell">
       <header className="nav-wrap">
-        <Wordmark />
+        <Wordmark name />
         <nav className={mobileOpen ? "nav-links mobile-visible" : "nav-links"}>
           <a href="#examples" onClick={close}>Examples</a>
           <a href="#how-it-works" onClick={close}>How it Works</a>

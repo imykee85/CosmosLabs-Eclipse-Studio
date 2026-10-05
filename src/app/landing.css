@@ -351,3 +351,9 @@ html[data-app-theme="light"] .auth-demo p { color: #3b3833; }
 html[data-app-theme="light"] .auth-demo strong { color: #141414; }
 html[data-app-theme="light"] .auth-demo button { color: #141414; border-color: rgba(0,0,0,.3); }
 html[data-app-theme="light"] .auth-demo button:hover { border-color: #141414; }
+
+/* App name beside the header logo */
+.wordmark { align-items: center; }
+.logo-name { margin-left: 2px; color: #fff; font-family: var(--font-sans), Inter, system-ui, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
+@media (min-width: 801px) { .logo-name { margin-left: 4px; font-size: 20px; } }
+@media (max-width: 380px) { .logo-name { font-size: 14px; margin-left: 0; } .nav-wrap { padding-left: 14px; padding-right: 14px; } }
