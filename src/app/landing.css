@@ -380,7 +380,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
   .login-icon-top { width: 120px; height: 120px; left: 52%; top: 28px; }
   .login-icon-left { width: 160px; height: 160px; left: -60px; top: 58%; }
   .login-icon-right { width: 130px; height: 130px; right: -40px; top: 18%; }
-  .login-icon-bottom { width: 80px; height: 80px; margin-left: -40px; bottom: 8px; }
+  .login-icon-bottom { width: 140px; height: 140px; margin-left: -70px; bottom: -50px; }
 }
 @media (max-height: 900px) { .auth-logo svg { width: 44px; height: 44px; } .auth-logo { margin-bottom: 2px; } }
 @media (max-height: 700px) { .auth-logo svg { width: 34px; height: 34px; } .auth-logo { margin-bottom: 0; } }
