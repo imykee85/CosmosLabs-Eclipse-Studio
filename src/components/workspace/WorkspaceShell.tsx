@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Settings, User, Video, Volume2, X,
+  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Settings, User, Video, Volume2, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -25,6 +25,7 @@ type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode
 
 const connectItem: Item = { label: "Connect", hint: "Share and link your apps", href: "/connect", soon: true, icon: <ConnectIcon size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
+const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
 const photo: Item[] = [
   { label: "Create", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
@@ -158,7 +159,7 @@ const tabIcon = (icon: React.ReactNode) => (isValidElement(icon) ? cloneElement(
 
 const SLOT_KEY = "eclipse-create-slot";
 // Shortcuts that can take over the Create tab.
-const SLOT_ITEMS: Item[] = [photo[0], ingredients, agentsItem, photo[1], photo[2]];
+const SLOT_ITEMS: Item[] = [photo[0], ingredients, canvasItem, agentsItem, photo[1], photo[2]];
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
@@ -184,6 +185,7 @@ function CreateTab({ pathname }: { pathname: string }) {
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
         <NavItem item={ingredients} pathname={pathname} />
+        <NavItem item={canvasItem} pathname={pathname} />
         <NavItem item={agentsItem} pathname={pathname} />
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
         <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
@@ -262,7 +264,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/treatment": "Treatment", "/connect": "Connect", "/connect/apps": "Connect apps", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/connect": "Connect", "/connect/apps": "Connect apps", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -296,6 +298,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         </div>
         <nav className="ws-nav">
           <NavItem item={ingredients} pathname={pathname} />
+          <NavItem item={canvasItem} pathname={pathname} />
           <NavItem item={agentsItem} pathname={pathname} />
           <NavItem item={connectItem} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
@@ -349,6 +352,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           </AccountName>
           <nav className="mb-nav">
             <NavItem item={ingredients} pathname={pathname} />
+            <NavItem item={canvasItem} pathname={pathname} />
             <NavItem item={agentsItem} pathname={pathname} />
             <NavItem item={connectItem} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />

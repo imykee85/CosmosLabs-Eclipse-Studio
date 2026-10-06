@@ -1,0 +1,71 @@
+/* Canvas: a plain, flat node graph on a dotted grid. Prefix cv- . Colours come from the app theme (--a-*), so it follows light and dark. */
+.cv-wrap { position: relative; height: calc(100dvh - 130px); min-height: 420px; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-bg); isolation: isolate; color: var(--a-fg); }
+.cv-wrap .react-flow { --xy-background-color: var(--a-bg); --xy-background-pattern-color: var(--a-line3); --xy-edge-stroke: var(--a-muted2); --xy-edge-stroke-selected: #c00707; --xy-edge-stroke-width: 1.6;
+  --xy-handle-background-color: var(--a-card); --xy-handle-border-color: var(--a-muted); --xy-minimap-background-color: var(--a-card); --xy-minimap-mask-background-color: rgba(128,128,128,.16);
+  --xy-controls-button-background-color: var(--a-card); --xy-controls-button-background-color-hover: var(--a-active); --xy-controls-button-color: var(--a-fg); --xy-controls-button-border-color: var(--a-line2); }
+
+/* nodes: flat cards */
+.cv-node { position: relative; width: 250px; padding: 12px 14px 14px; border: 1px solid var(--a-line3); border-radius: 16px; background: var(--a-card); box-shadow: 0 6px 20px var(--a-shadow); transition: border-color .15s, box-shadow .15s; }
+.cv-node.cv-wide { width: 300px; } .cv-node.cv-gen { width: 300px; }
+.cv-node.is-selected { border-color: #c00707; box-shadow: 0 0 0 1px #c00707, 0 6px 20px var(--a-shadow); }
+.cv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.cv-title { display: inline-flex; align-items: center; gap: 8px; color: var(--a-fg2); font-size: 13px; font-weight: 600; }
+.cv-head-btns { display: inline-flex; gap: 4px; }
+.cv-head-btns button { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: var(--a-muted); cursor: pointer; }
+.cv-head-btns button:hover { background: var(--a-active); color: var(--a-fg); }
+.cv-body { display: grid; gap: 8px; }
+.cv-slot { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 12px; border-radius: 12px; background: var(--a-input); border: 1px dashed var(--a-line3); color: var(--a-muted); font-size: 13px; line-height: 1.35; }
+.cv-slot svg { flex: none; }
+.cv-input { width: 100%; min-width: 0; padding: 9px 12px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 13px; }
+.cv-input::placeholder { color: var(--a-ph); }
+.cv-input:focus { border-color: var(--a-line4); outline: 0; }
+.cv-input option { background: var(--a-card); color: var(--a-fg); }
+.cv-area { resize: none; line-height: 1.45; }
+.cv-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--a-line2); border-radius: 10px; background: transparent; color: var(--a-muted); font: inherit; font-size: 12px; }
+.cv-btn:disabled { opacity: .7; cursor: default; }
+.cv-btn em { padding: 1px 7px; border: 1px solid var(--a-line3); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
+.cv-stage { display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: var(--a-input); border: 1px dashed var(--a-line3); color: var(--a-muted2); }
+.cv-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cv-empty { display: grid; justify-items: center; gap: 8px; font-size: 12px; text-align: center; padding: 8px; }
+.cv-row { display: flex; gap: 8px; }
+.cv-row .cv-input { width: 84px; flex: none; }
+.cv-go { flex: 1; padding: 9px 12px; border: 0; border-radius: 10px; background: #c00707; color: #fff; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .18s; }
+.cv-go:hover:not(:disabled) { background: #d90b0b; } .cv-go:disabled { background: var(--a-disabled); color: var(--a-muted); cursor: default; }
+.cv-error { margin: 0; color: var(--a-danger); font-size: 12px; line-height: 1.4; }
+.cv-spin { animation: cv-rot 1s linear infinite; } @keyframes cv-rot { to { transform: rotate(360deg); } }
+
+/* ports */
+.cv-handle { width: 12px; height: 12px; border: 2px solid var(--a-muted); background: var(--a-card); }
+.cv-handle:hover { border-color: #c00707; background: #c00707; }
+
+/* controls and map */
+.cv-wrap .react-flow__controls { overflow: hidden; border: 1px solid var(--a-line2); border-radius: 12px; box-shadow: none; }
+.cv-wrap .react-flow__controls-button { width: 30px; height: 30px; border-bottom: 1px solid var(--a-line); fill: currentColor; }
+.cv-wrap .react-flow__controls-button:last-child { border-bottom: 0; }
+.cv-wrap .react-flow__controls-button svg { fill: currentColor; max-width: 13px; max-height: 13px; }
+.cv-minimap.react-flow__minimap { width: 120px; height: 84px; margin: 0 12px 24px 0; border: 1px solid var(--a-line2); border-radius: 12px; overflow: hidden; }
+.cv-wrap .react-flow__attribution { background: transparent; color: var(--a-ph); font-size: 9px; }
+.cv-wrap .react-flow__attribution a { color: var(--a-ph); }
+
+/* panels */
+.cv-panel { display: grid; gap: 8px; justify-items: start; }
+.cv-add, .cv-fit { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .18s; }
+.cv-fit { width: 36px; padding: 0; justify-content: center; }
+.cv-add:hover, .cv-fit:hover { border-color: var(--a-line4); }
+.cv-menu { display: grid; gap: 2px; width: 270px; padding: 6px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-card); box-shadow: 0 12px 32px var(--a-shadow); }
+.cv-menu button { display: flex; align-items: center; gap: 12px; padding: 9px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cv-menu button:hover { background: var(--a-hover); }
+.cv-menu-ico { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 8px; background: var(--a-input); color: var(--a-fg2); }
+.cv-menu b { display: block; font-size: 14px; font-weight: 600; } .cv-menu small { display: block; color: var(--a-muted); font-size: 12px; }
+.cv-hint { padding: 6px 12px; border-radius: 999px; background: var(--a-card); border: 1px solid var(--a-line2); color: var(--a-muted); font-size: 12px; pointer-events: none; }
+
+/* the Canvas page uses the whole width */
+.ws-main:has(.cv-wrap, .cv-loading) { max-width: none; padding-top: 20px; padding-bottom: 24px; }
+.cv-loading { display: grid; place-items: center; height: calc(100dvh - 130px); min-height: 420px; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-bg); color: var(--a-muted); font-size: 14px; }
+
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .ws-main:has(.cv-wrap, .cv-loading) { padding: 12px 12px calc(92px + env(safe-area-inset-bottom, 0px)); }
+  .cv-wrap, .cv-loading { height: calc(100dvh - 58px - 82px - 24px - env(safe-area-inset-bottom, 0px)); min-height: 360px; border-radius: 16px; }
+  .cv-minimap.react-flow__minimap { display: none; }
+  .cv-handle { width: 20px; height: 20px; }
+}

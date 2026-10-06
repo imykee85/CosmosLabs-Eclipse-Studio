@@ -7,6 +7,7 @@ const ORIGINS: Record<string, string> = {
   "/gallery": "Gallery",
   "/library": "Library",
   "/ingredients": "Ingredients",
+  "/canvas": "Canvas",
   "/agents": "Agents",
   "/assets": "Assets",
   "/treatment": "Treatment",

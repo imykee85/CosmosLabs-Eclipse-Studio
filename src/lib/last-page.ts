@@ -1,6 +1,6 @@
 // The last Studio or dashboard page you were on, so pages outside them (Settings, Portfolio, ...) can send you back to it.
 const KEY = "eclipse-last-page";
-const OK = ["/dashboard", "/project", "/create", "/gallery", "/library", "/ingredients", "/agents", "/assets", "/treatment", "/connect"];
+const OK = ["/dashboard", "/project", "/create", "/gallery", "/library", "/ingredients", "/canvas", "/agents", "/assets", "/treatment", "/connect"];
 
 export function rememberPage(path: string) {
   if (!OK.includes(path.split("?")[0])) return;

@@ -1,8 +1,10 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, ImageIcon, Layers, Loader2 } from "lucide-react";
+import { ArrowUp, ImageIcon, Layers, Loader2, Workflow } from "lucide-react";
+import { seedFromPrompt } from "@/lib/canvas";
+import { readCurrentProject } from "@/lib/projects";
 import "./create.css";
 
 const RATIOS = ["1:1", "4:5", "9:16", "16:9"];
@@ -12,6 +14,7 @@ const PREVIEW_WIDTH: Record<string, number> = { "1:1": 480, "4:5": 420, "9:16": 
 type Result = { id: string; prompt: string; imageUrl: string; ratio: string };
 
 export default function CreateStudio() {
+  const router = useRouter();
   const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
   const [ratio, setRatio] = useState("1:1");
   const [busy, setBusy] = useState<{ prompt: string; ratio: string } | null>(null);
@@ -80,6 +83,10 @@ export default function CreateStudio() {
         <div className="cr-tools">
           <button type="button" className="cr-chip" disabled title="Coming soon">
             <Layers size={14} /> Ingredients <em>Soon</em>
+          </button>
+          <button type="button" className="cr-chip" title="Move this prompt to the Canvas"
+            onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
+            <Workflow size={14} /> Open in canvas
           </button>
           <label className="cr-chip cr-select">
             <span className="sr-only">Aspect ratio</span>

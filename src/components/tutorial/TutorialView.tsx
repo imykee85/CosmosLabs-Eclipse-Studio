@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  Award, Clapperboard, Coins, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, PenLine, Play, Settings, User, X,
+  Award, Clapperboard, Coins, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, PenLine, Play, Settings, User, Workflow, X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
@@ -19,7 +19,7 @@ import "./tutorial.css";
 // The back button wears the icon of the page it returns to (Dashboard uses the same icon as the menu).
 const ORIGIN_ICONS: Record<string, LucideIcon | typeof AgentIcon> = {
   "/dashboard": LayoutDashboard, "/project": Clapperboard, "/create": PenLine, "/gallery": Images, "/library": Library,
-  "/ingredients": Layers, "/agents": AgentIcon, "/assets": FolderOpen, "/avatars": User, "/portfolio": LayoutGrid,
+  "/ingredients": Layers, "/canvas": Workflow, "/agents": AgentIcon, "/assets": FolderOpen, "/avatars": User, "/portfolio": LayoutGrid,
   "/certificates": Award, "/settings": Settings,
 };
 
