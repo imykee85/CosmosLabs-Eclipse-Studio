@@ -442,3 +442,6 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 
 /* Start button sits right under the hero text */
 .hero-copy .hero-deck { margin-bottom: 28px; }
+
+/* Login satellite: on desktop it sits lower, cropped by the bottom edge, clear of the card */
+@media (min-width: 601px) { .login-icon-bottom { bottom: -28px; } }
