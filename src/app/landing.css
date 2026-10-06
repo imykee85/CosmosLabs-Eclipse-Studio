@@ -374,11 +374,13 @@ html[data-app-theme="light"] .auth-logo svg { color: #141414; }
 .login-icon-top { width: 190px; height: 190px; top: 40px; left: 28%; transform: rotate(-10deg); }
 .login-icon-left { width: 250px; height: 250px; left: -80px; top: 46%; transform: rotate(-8deg); }
 .login-icon-right { width: 210px; height: 210px; right: -50px; top: 12%; transform: rotate(12deg); }
+.login-icon-bottom { width: 112px; height: 112px; left: 53%; bottom: 10px; margin-left: -56px; transform: rotate(-8deg); }
 html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (max-width: 600px) {
   .login-icon-top { width: 120px; height: 120px; left: 52%; top: 28px; }
   .login-icon-left { width: 160px; height: 160px; left: -60px; top: 58%; }
   .login-icon-right { width: 130px; height: 130px; right: -40px; top: 18%; }
+  .login-icon-bottom { width: 80px; height: 80px; margin-left: -40px; bottom: 8px; }
 }
 @media (max-height: 900px) { .auth-logo svg { width: 44px; height: 44px; } .auth-logo { margin-bottom: 2px; } }
 @media (max-height: 700px) { .auth-logo svg { width: 34px; height: 34px; } .auth-logo { margin-bottom: 0; } }
