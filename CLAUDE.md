@@ -27,6 +27,30 @@ Branch: develop only on `claude/new-session-1h84ct` (draft PR #1 into `main`). V
 - **Backend:** `/api/generate` (Higgsfield, `src/lib/higgsfield.ts`, unverified against the live API), onboarding and projects API routes, Prisma models Generation/Onboarding/Project.
 - **Demo mode** (no Clerk keys): middleware passes through; login `demo@eclipse.test` / `demo1234`; sign-up accepts any email + 8+ char password. Projects and profile live in browser `localStorage`.
 
+## Status snapshot (2026-10-06)
+- The screens look about 70% done; the working product is about 10-15%. Almost every Studio feature is a finished UI shell marked "Soon"; only sign-in (demo mode), projects (browser storage), the Bin, theme and the page structure really work.
+- Not working yet: real image generation (never tested against the live Higgsfield API), credits, billing, uploads, Library/Ingredients saving, Treatment AI, agents, Connect chat and connections, video, audio, export, API/MCP keys, Teams, Portfolio publishing, notifications.
+- Needs the user (accounts and keys, put in Vercel env vars, never pasted in chat): `HIGGSFIELD_API_KEY` (with a spending cap), `DATABASE_URL` (Neon, pooled) plus `DIRECT_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`, and for storage `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (Cloudflare R2 bucket `eclipse-media`). Later: Stripe keys, `ANTHROPIC_API_KEY`.
+
+## Roadmap and timeframes
+Estimates assume steady work like the sessions so far and that the user sets up accounts and answers decisions quickly; double them for a part-time pace. Plan details live in `docs/backend-design.md` (section 11 phases).
+
+| Milestone | What it means | Rough time |
+| --- | --- | --- |
+| 1. Closed beta | Real accounts, projects that persist, working image generation saved to Gallery, credits granted by hand (backend phases 0 and 1) | 1 to 2 weeks |
+| 2. Public launch (photo) | Milestone 1 plus Stripe payments, Library and uploads, final pricing, terms and privacy pages, moderation, security check, mock logos removed, own domain (phases 2 and 3) | 4 to 6 weeks in total |
+| 3. Full vision | Treatment and the three agents working, video and audio, export, Connect publishing, API and MCP, Teams, Portfolio publishing (phases 4 to 6) | another 3 to 5 months |
+| Later | Tavus live agent (phase 4b, Agent 1 only), Avatars, Certificates, translation | after milestone 3 |
+
+- Recommendation: ship milestone 2 first (a working, paid photo studio) and release video, agents and Connect as updates still marked "Soon".
+- What can stretch the timeline: Higgsfield request shape is unverified (a mismatch can cost days); Clerk, Neon, Stripe business details and a domain all need the user; credit prices depend on Higgsfield's per-image cost, which is unknown; onboarding and tutorial videos, real example images and legal text still have to be made; real-device testing on phone Safari/Chrome (only Chromium has been used), budget about a week.
+- Next concrete step to reach milestone 1: user sets up Clerk, a Neon database and the Higgsfield key (with a spending cap); then build backend phases 0 (migrations, workspaces, auth helper) and 1 (provider interface, R2 storage, async generation, credits ledger, Gallery from the database).
+
+## Decisions made and open
+- Made: sidebar step 1 of Video is "Treatment" (was Story); the chat/publish tab is "Connect" (was Orbit) with a custom satellite icon; "AI Creative Suite" is the hero supporting heading; Library tabs are All / Ingredients (Character, Product, Scene chips) / Images / Videos / Audio; section titles on the landing page are first letter capital, the rest lowercase; Log out lives only in the avatar menu (below Settings); header logos on the dashboard and Tutorial are not links; the header sign-out icon became a notifications bell; the selected-item red edge marker was removed from the sidebar and tabs; the landing carousel has hard edges (a fade was tried and rejected); the logo strip fades at both ends.
+- Open, with the recommendation first: file storage Cloudflare R2 (alternative Vercel Blob); billing Stripe subscriptions plus credit top-ups; Treatment chat free within a daily cap (alternative: small credit cost per message); video export hosted renderer first (alternative own ffmpeg worker); database Neon (pooled); teams via Clerk Organizations; real plan prices (placeholders in `src/lib/plans.ts` are shown on the public Pricing section).
+- Never claim real companies as customers: the mock logo strip is preview-only (see "Remove before production").
+
 ## Product vision: Agents (user-specified, keep wording faithful)
 Agents are skilled creative partners the user picks on the Agents page (currently placeholder cards "Agent 1/2/3"; names and artwork not final).
 - **Agent 1, the brainstorming partner.** Understands all of the user's ideas and concepts, offers perspective, and challenges ideas. Fits the Treatment (Brief/Concept/Guide) stage.
@@ -42,9 +66,8 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 - Landing strip "Trusted by teams at" shows other companies' logos as a DESIGN MOCKUP (user's private look-and-feel test; they are not Eclipse customers). They show only locally and on preview builds (`NEXT_PUBLIC_MOCK_LOGOS` in `next.config.mjs`, off when `VERCEL_ENV=production`). Before launch delete `src/components/landing/mockLogos.ts`, `public/logos/mock/`, the mock branch in `IndustryStrip.tsx` and that env line. Real customer logos go in `customerLogos.ts` (only with their agreement).
 
 ## Next
-- Backend plan: `docs/backend-design.md` (workspaces, async generation pipeline, credits ledger, storage, Treatment AI, phased build order). Proposal only; nothing built yet.
-- Connect Clerk keys and Postgres on Vercel so projects persist per account (new accounts start empty).
-- Real onboarding video, tutorial videos, real pricing plans.
-- Build the "Soon" features: Assets, audio, video steps, Ingredients saving, Agents, Library saving, Avatars, Certificates, Billing/Upgrade, Team, API/MCP keys, language translation.
-- Verify the Higgsfield request shape (`aspect_ratio`) against the live API.
-- Open questions: Library has no desktop link now (only the phone tab).
+- Follow the milestone table above: milestone 1 first. Accounts and keys from the user, then backend phases 0 and 1 (`docs/backend-design.md`).
+- Verify the Higgsfield request shape (`aspect_ratio`) against the live API as the very first backend task.
+- Real onboarding video, tutorial videos, real pricing plans, terms and privacy pages.
+- Build the "Soon" features in the order of the backend phases: Assets and Library saving, Treatment and agents, video and audio, Connect publishing, API/MCP keys, Team, Portfolio publish, Avatars, Certificates, translation.
+- Open question: Library has no desktop link now (only the phone tab).

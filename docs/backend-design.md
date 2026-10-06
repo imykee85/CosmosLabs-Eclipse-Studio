@@ -305,6 +305,19 @@ Each phase ships something visible and is safe to stop after.
 | 6. Platform | API keys + MCP, Clerk Organizations for Team, Portfolio publish | API/MCP panel, Team & seats, Portfolio Publish and Copy link |
 | Later | Avatars, Certificates, translation | Their "Soon" pages |
 
+### Timeframes
+
+Estimates assume steady work and that accounts and keys are set up promptly; double for a part-time pace.
+
+| Milestone | Phases | Rough time |
+| --- | --- | --- |
+| 1. Closed beta (real accounts, working image generation, hand-granted credits) | 0 and 1 | 1 to 2 weeks |
+| 2. Public launch, photo (payments, Library and uploads, pricing, legal pages, moderation, security check) | 2 and 3 | 4 to 6 weeks in total |
+| 3. Full vision (Treatment and agents, video and audio, export, Connect, API and MCP, Teams, Portfolio) | 4 to 6 | another 3 to 5 months |
+| Later (Tavus live agent, Avatars, Certificates) | 4b and later | after milestone 3 |
+
+The project status snapshot and the same chart are kept in `CLAUDE.md`.
+
 ## 12. Risks and open decisions
 
 **Risks**
