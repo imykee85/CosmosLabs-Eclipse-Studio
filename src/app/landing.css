@@ -175,15 +175,15 @@
 
 .nav-actions .pill-btn { padding: 10px 18px; }
 
-/* Silver glint travelling around the hero button */
-@property --glint-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-.glint-btn { position: relative; }
-.glint-btn::before { content: ''; position: absolute; inset: -3px; border-radius: 999px; padding: 2px; pointer-events: none;
-  background: conic-gradient(from var(--glint-angle), transparent 0deg 220deg, rgba(210,214,222,.25) 280deg, #d9dce3 330deg, #fff 350deg, transparent 360deg);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
-  filter: drop-shadow(0 0 5px rgba(255,255,255,.55)); animation: glint-spin 2.8s linear infinite; }
-@keyframes glint-spin { to { --glint-angle: 360deg; } }
-@media (prefers-reduced-motion: reduce) { .glint-btn::before { animation: none; } }
+/* Metallic glint on the hero button: a diagonal band of silver light sweeps back and forth along the border only. */
+.glint-btn { position: relative; isolation: isolate; }
+.glint-btn::before { content: ''; position: absolute; inset: -3px; border-radius: 999px; padding: 2px; pointer-events: none; z-index: -1;
+  background: linear-gradient(105deg, transparent 31%, rgba(255,255,255,.10) 42%, rgba(255,255,255,.98) 50%, rgba(214,218,226,.40) 58%, transparent 69%);
+  background-size: 260% 100%; animation: metallic-sweep 4s ease-in-out infinite alternate;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+  filter: drop-shadow(0 0 5px rgba(255,255,255,.5)); }
+@keyframes metallic-sweep { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+@media (prefers-reduced-motion: reduce) { .glint-btn::before { animation: none; background-position: 50% 0; } }
 
 /* Type and logo sizes (mobile / desktop, breakpoint 800px) */
 .nav-wrap .wordmark svg { width: 80px; height: 80px; }
