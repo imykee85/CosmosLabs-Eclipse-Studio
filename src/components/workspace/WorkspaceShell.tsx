@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import AgentIcon from "@/components/AgentIcon";
-import OrbitIcon from "@/components/OrbitIcon";
+import ConnectIcon from "@/components/ConnectIcon";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -22,7 +22,7 @@ import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
 
-const orbitItem: Item = { label: "Orbit", hint: "Chat and connect apps", href: "/orbit", soon: true, icon: <OrbitIcon size={17} /> };
+const connectItem: Item = { label: "Connect", hint: "Share and link your apps", href: "/connect", soon: true, icon: <ConnectIcon size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const photo: Item[] = [
   { label: "Create", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
@@ -261,7 +261,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/treatment": "Treatment", "/orbit": "Orbit", "/orbit/connect": "Connect apps", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/agents": "Agents", "/treatment": "Treatment", "/connect": "Connect", "/connect/apps": "Connect apps", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -296,7 +296,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         <nav className="ws-nav">
           <NavItem item={ingredients} pathname={pathname} />
           <NavItem item={agentsItem} pathname={pathname} />
-          <NavItem item={orbitItem} pathname={pathname} />
+          <NavItem item={connectItem} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="AUDIO" items={audio} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
@@ -331,7 +331,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         <HomeTab pathname={pathname} />
         <CreateTab pathname={pathname} />
         <LibraryTab pathname={pathname} />
-        <Link href="/orbit" className={`mb-tab ${pathname.startsWith("/orbit") ? "is-active" : ""}`}><span className="mb-tab-icon"><OrbitIcon size={21} /></span><span>Orbit</span></Link>
+        <Link href="/connect" className={`mb-tab ${pathname.startsWith("/connect") ? "is-active" : ""}`}><span className="mb-tab-icon"><ConnectIcon size={21} /></span><span>Connect</span></Link>
       </nav>
 
       <div className={`mb-drawer ${drawer ? "is-open" : ""}`} aria-hidden={!drawer}>
@@ -349,7 +349,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <nav className="mb-nav">
             <NavItem item={ingredients} pathname={pathname} />
             <NavItem item={agentsItem} pathname={pathname} />
-            <NavItem item={orbitItem} pathname={pathname} />
+            <NavItem item={connectItem} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />
             <Section title="AUDIO" items={audio} pathname={pathname} />
             <Section title="VIDEO" items={video} pathname={pathname} />

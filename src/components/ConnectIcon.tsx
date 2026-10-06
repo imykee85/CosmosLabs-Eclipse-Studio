@@ -1,6 +1,6 @@
-// The Orbit icon: a satellite with two solar-panel wings and a dish, drawn from a single horizontal layout turned 45 degrees.
+// The Connect icon: a satellite with two solar-panel wings and a dish, drawn from a single horizontal layout turned 45 degrees.
 // Outline style with currentColor so it matches the other tab icons in both themes.
-export default function OrbitIcon({ size = 20, className, strokeWidth = 1.5, ...rest }: { size?: number; className?: string; strokeWidth?: number } & React.SVGProps<SVGSVGElement>) {
+export default function ConnectIcon({ size = 20, className, strokeWidth = 1.5, ...rest }: { size?: number; className?: string; strokeWidth?: number } & React.SVGProps<SVGSVGElement>) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true" {...rest}>
       <g transform="rotate(45 12 12)">

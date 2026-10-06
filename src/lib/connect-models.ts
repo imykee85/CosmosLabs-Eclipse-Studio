@@ -1,9 +1,9 @@
-// Models shown in Orbit's model picker. The non-Claude names come from the user's reference screenshots and have NOT been
+// Models shown in the Connect page model picker. The non-Claude names come from the user's reference screenshots and have NOT been
 // verified or connected: before any of them is selectable for real, the backend needs a route to that provider (see
 // docs/backend-design.md section 7). The Claude entries use the current model ids. Descriptions are Eclipse's own wording.
-export type OrbitModel = { id: string; name: string; blurb?: string; vendor: string; tag?: string; featured?: boolean };
+export type ConnectModel = { id: string; name: string; blurb?: string; vendor: string; tag?: string; featured?: boolean };
 
-export const orbitModels: OrbitModel[] = [
+export const connectModels: ConnectModel[] = [
   { id: "auto", name: "Auto", blurb: "Picks the right model for each request", vendor: "Eclipse", tag: "Recommended", featured: true },
   { id: "deepseek-v4-1-flash", name: "DeepSeek V4.1 Flash", blurb: "Fast reasoning for quick iterations", vendor: "DeepSeek", tag: "New", featured: true },
   { id: "gemini-3-8-flash", name: "Gemini 3.8 Flash", blurb: "Fast and capable for long, multi-step work", vendor: "Google", tag: "New", featured: true },
@@ -26,4 +26,4 @@ export const orbitModels: OrbitModel[] = [
   { id: "gpt-5-2", name: "GPT 5.2", vendor: "OpenAI" },
 ];
 
-export const MODEL_KEY = "eclipse-orbit-model";
+export const MODEL_KEY = "eclipse-connect-model";

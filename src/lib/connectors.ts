@@ -1,12 +1,12 @@
-// Apps Orbit will connect to. Everything here is "Soon": real connections need sign-in with each service and a backend.
-// Descriptions are Eclipse's own wording. Add or remove entries freely; `icon` is mapped in components/orbit/ConnectView.tsx.
+// Apps Connect will link to. Everything here is "Soon": real connections need sign-in with each service and a backend.
+// Descriptions are Eclipse's own wording. Add or remove entries freely; `icon` is mapped in components/connect/AppsView.tsx.
 export type Connector = { name: string; blurb: string; icon: string };
 
 export const connectorGroups: { title: string; icon: string; items: Connector[] }[] = [
   {
     title: "Publish", icon: "megaphone",
     items: [
-      { name: "TikTok", blurb: "Post finished renders to your account straight from Orbit.", icon: "music" },
+      { name: "TikTok", blurb: "Post finished renders to your account straight from Connect.", icon: "music" },
       { name: "Instagram", blurb: "Share images and reels without leaving your project.", icon: "share" },
       { name: "YouTube", blurb: "Publish videos and Shorts when they are ready.", icon: "share" },
     ],
@@ -31,7 +31,7 @@ export const connectorGroups: { title: string; icon: string; items: Connector[] 
   {
     title: "Messaging", icon: "message",
     items: [
-      { name: "Telegram", blurb: "Talk to Orbit from your phone and get renders back in chat.", icon: "send" },
+      { name: "Telegram", blurb: "Talk to your agents from your phone and get renders back in chat.", icon: "send" },
       { name: "WhatsApp Business", blurb: "Send finished content to clients and teammates.", icon: "message" },
       { name: "Slack", blurb: "Get renders and reviews delivered to your channels.", icon: "hash" },
       { name: "Discord", blurb: "Share work with your community or team server.", icon: "game" },
