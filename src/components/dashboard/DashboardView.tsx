@@ -62,7 +62,7 @@ export default function DashboardView() {
   return (
     <div className="db-page">
       <header className="db-header">
-        <Link href="/" aria-label="Eclipse home" className="db-logo"><LogoMark size={48} /></Link>
+        <span className="db-logo"><LogoMark size={48} /></span>
         <div className="db-header-right">
           <Link href={tutorialHref("/dashboard")} className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>

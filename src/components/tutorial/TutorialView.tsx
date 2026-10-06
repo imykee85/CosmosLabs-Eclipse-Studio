@@ -52,7 +52,7 @@ export default function TutorialView({ back }: { back: { path: string; label: st
   return (
     <div className="db-page">
       <header className="db-header">
-        <Link href="/" aria-label="Eclipse home" className="db-logo"><LogoMark size={48} /></Link>
+        <span className="db-logo"><LogoMark size={48} /></span>
         <div className="db-header-right">
           <Link href={back.path} className="db-pill"><BackIcon size={15} /> {back.label}</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
