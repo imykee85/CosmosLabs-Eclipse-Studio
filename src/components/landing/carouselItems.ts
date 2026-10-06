@@ -1,6 +1,7 @@
 export type CarouselItem = {
   type: "image" | "video";
   src: string;
+  poster?: string; // still frame shown instantly while a video loads
 };
 
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663334929625/8NmtnY8reYpdTbSELMfqF6";
@@ -9,9 +10,9 @@ const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663334929625/8NmtnY8reY
 // public/carousel/ (copy them over from the old project using the same filenames).
 export const carouselItems: CarouselItem[] = [
   { type: "image", src: `${CDN}/combined_fashion_scene_9_16_79e28af5.png` },
-  { type: "video", src: "/carousel/hf_20260526_185240_5d2b7c1e-cd1b-4d16-a628-5742bf6443e4_ff829960.mp4" },
+  { type: "video", src: "/carousel/card-2.mp4", poster: "/carousel/card-2-poster.jpg" },
   { type: "image", src: `${CDN}/serum_bottle_exact_skintone_944b93f0.png` },
-  { type: "video", src: "/carousel/carousel_item_4_94b6ba9c.mp4" },
+  { type: "video", src: "/carousel/card-4.mp4", poster: "/carousel/card-4-poster.jpg" },
   { type: "image", src: "/carousel/composite_fashion_image_v3(1)_0425b044.jpg" },
   { type: "video", src: "/carousel/video-output-19108891-converted_b71468ac.mp4" },
   { type: "image", src: `${CDN}/fixed_portrait_ba325a03.png` },

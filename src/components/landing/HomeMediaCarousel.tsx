@@ -26,6 +26,7 @@ function Slide({ item, index }: { item: CarouselItem; index: number }) {
             loop
             playsInline
             preload="auto"
+            poster={item.poster}
             className="absolute inset-0 h-full w-full object-cover"
             onLoadedMetadata={(e) => tryPlay(e.currentTarget)}
             onCanPlay={(e) => tryPlay(e.currentTarget)}
