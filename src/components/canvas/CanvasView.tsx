@@ -119,7 +119,7 @@ function Inner({ projectId }: { projectId: string }) {
           onNodeClick={onNodeClick} onPaneClick={onPaneClick} onMoveEnd={persist}
           defaultViewport={saved?.viewport ?? undefined} fitView={!saved?.viewport} fitViewOptions={{ padding: 0.25 }}
           minZoom={0.15} maxZoom={2.5} zoomOnDoubleClick={false} deleteKeyCode={["Backspace", "Delete"]}
-          colorMode={dark ? "dark" : "light"} attributionPosition="bottom-right"
+          colorMode={dark ? "dark" : "light"} proOptions={{ hideAttribution: true }}
         >
           <Panel position="top-left" className="cv-panel">
             <button type="button" className="cv-add" aria-expanded={menu} aria-haspopup="menu" onClick={() => setMenu((m) => !m)}><Plus size={16} /> Add node</button>
