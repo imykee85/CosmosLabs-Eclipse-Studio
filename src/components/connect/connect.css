@@ -26,9 +26,10 @@
 .cn-head p { margin: 8px 0 0; color: var(--a-muted); font-size: 15px; line-height: 1.5; }
 .cn-back { flex: none; display: grid; place-items: center; width: 40px; height: 40px; margin: -2px 0 0 -10px; border-radius: 50%; color: var(--a-fg); }
 .cn-back:hover { background: var(--a-hover); }
-.cn-tabs { display: flex; gap: 22px; margin: 26px 0 18px; border-bottom: 1px solid var(--a-line); }
-.cn-tabs button { padding: 10px 2px 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--a-muted); font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; }
-.cn-tabs button.is-on { border-bottom-color: #c00707; color: var(--a-fg); }
+.cn-tabs { display: flex; gap: 6px; margin: 26px 0 18px; }
+.cn-tabs button { padding: 9px 18px; border: 0; border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .18s, color .18s; }
+.cn-tabs button:hover:not(.is-on) { color: var(--a-fg); }
+.cn-tabs button.is-on { background: var(--a-active); color: var(--a-fg); }
 .cn-search { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 18px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); color: var(--a-muted2); }
 .cn-search:focus-within { border-color: #c00707; box-shadow: 0 0 0 3px rgba(192,7,7,.25); }
 .cn-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; }

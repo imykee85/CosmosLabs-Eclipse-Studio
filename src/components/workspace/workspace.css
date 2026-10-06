@@ -8,7 +8,7 @@
 .ws-section-head svg { transition: transform .2s; } .ws-section-head svg.is-closed { transform: rotate(-90deg); }
 .ws-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; color: var(--a-fg2); transition: background .18s; }
 a.ws-item:hover { background: var(--a-hover); }
-.ws-item.is-active { background: var(--a-active); color: var(--a-fg); box-shadow: inset 2px 0 0 #c00707; }
+.ws-item.is-active { background: var(--a-active); color: var(--a-fg); }
 .ws-item.is-soon { opacity: .5; cursor: default; }
 .ws-icon, .ws-step { flex: none; display: grid; place-items: center; width: 28px; color: var(--a-muted); font-size: 14px; }
 .ws-item-text { display: grid; min-width: 0; flex: 1; line-height: 1.3; }
