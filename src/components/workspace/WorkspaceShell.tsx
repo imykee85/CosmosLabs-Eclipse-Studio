@@ -7,7 +7,8 @@ import type { ReactElement } from "react";
 import {
   ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Settings, User, Video, Volume2, X,
 } from "lucide-react";
-import { AccountName, SignOutButton } from "@/components/account";
+import { AccountName } from "@/components/account";
+import NotificationsButton from "@/components/Notifications";
 import AgentIcon from "@/components/AgentIcon";
 import ConnectIcon from "@/components/ConnectIcon";
 import Avatar from "@/components/Avatar";
@@ -313,7 +314,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             <Link href={tutorialHref(pathname)} className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
             <span className="ws-pill ws-pill-solid" title="Credits"><Coins size={14} /> 0</span>
             <ThemeToggle className="ws-icon-btn" />
-            <SignOutButton className="ws-icon-btn" />
+            <NotificationsButton className="ws-icon-btn" />
           </div>
         </header>
         <header className="mb-top">
@@ -361,7 +362,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             <div className="mb-foot-row">
               <span className="mb-credits"><Coins size={15} /> 0 credits</span>
               <ThemeToggle className="ws-icon-btn" />
-              <SignOutButton className="ws-icon-btn" />
+              <NotificationsButton className="ws-icon-btn" up />
             </div>
           </div>
         </aside>

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
-import { SignOutButton } from "@/components/account";
+import NotificationsButton from "@/components/Notifications";
 import UserMenu from "@/components/UserMenu";
 import { LogoMark } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -57,7 +57,7 @@ export default function TutorialView({ back }: { back: { path: string; label: st
           <Link href={back.path} className="db-pill"><BackIcon size={15} /> {back.label}</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
-          <SignOutButton className="db-icon" />
+          <NotificationsButton className="db-icon" />
           <UserMenu />
         </div>
       </header>

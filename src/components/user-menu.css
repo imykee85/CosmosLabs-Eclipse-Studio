@@ -7,6 +7,8 @@
 .um-btn:hover .um-avatar, .um-btn[aria-expanded="true"] .um-avatar { border-color: var(--a-line4); }
 .um-menu { position: absolute; top: calc(100% + 10px); right: 0; z-index: 60; display: grid; min-width: 210px; padding: 8px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-card); box-shadow: 0 18px 40px var(--a-shadow); }
 .um-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; color: var(--a-muted); font-size: 15px; font-weight: 500; transition: background .15s, color .15s; }
+.um-sep { height: 1px; margin: 6px 10px; background: var(--a-line); }
+.um-out { width: 100%; border: 0; background: transparent; font: inherit; font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; }
 .um-item:hover, .um-item:focus-visible { background: var(--a-hover); color: var(--a-fg); }
 @media (max-width: 700px) { .um-text { display: none; } }
 

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Award, LayoutGrid, Settings, User } from "lucide-react";
-import { AccountName } from "@/components/account";
+import { Award, LayoutGrid, LogOut, Settings, User } from "lucide-react";
+import { AccountName, SignOutButton } from "@/components/account";
 import Avatar from "@/components/Avatar";
 import "./user-menu.css";
 
@@ -46,6 +46,8 @@ export default function UserMenu({ variant = "header" }: { variant?: "header" | 
               <Icon size={17} /> {label}
             </Link>
           ))}
+          <span className="um-sep" role="separator" />
+          <SignOutButton className="um-item um-out"><LogOut size={17} /> Log out</SignOutButton>
         </div>
       )}
     </div>

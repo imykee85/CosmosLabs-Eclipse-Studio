@@ -38,24 +38,24 @@ export function AccountName({ children }: { children: Render }) {
   return clerkEnabled ? <ClerkName>{children}</ClerkName> : <DemoName>{children}</DemoName>;
 }
 
-function ClerkSignOut({ className }: { className?: string }) {
+function ClerkSignOut({ className, children }: { className?: string; children?: ReactNode }) {
   const { signOut } = useClerk();
   return (
     <button className={className} aria-label="Sign out" onClick={() => signOut({ redirectUrl: "/" })}>
-      <LogOut size={16} />
+      {children ?? <LogOut size={16} />}
     </button>
   );
 }
 
-function DemoSignOut({ className }: { className?: string }) {
+function DemoSignOut({ className, children }: { className?: string; children?: ReactNode }) {
   const router = useRouter();
   return (
     <button className={className} aria-label="Sign out" onClick={() => router.push("/")}>
-      <LogOut size={16} />
+      {children ?? <LogOut size={16} />}
     </button>
   );
 }
 
-export function SignOutButton({ className }: { className?: string }) {
-  return clerkEnabled ? <ClerkSignOut className={className} /> : <DemoSignOut className={className} />;
+export function SignOutButton({ className, children }: { className?: string; children?: ReactNode }) {
+  return clerkEnabled ? <ClerkSignOut className={className}>{children}</ClerkSignOut> : <DemoSignOut className={className}>{children}</DemoSignOut>;
 }

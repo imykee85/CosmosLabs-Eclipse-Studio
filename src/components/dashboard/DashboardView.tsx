@@ -7,7 +7,7 @@ import { Clock, Coins, FolderOpen, GraduationCap, Plus, RotateCcw, Search, Trash
 import { LogoMark } from "@/components/Logo";
 import { rememberPage } from "@/lib/last-page";
 import { tutorialHref } from "@/lib/tutorial";
-import { SignOutButton } from "@/components/account";
+import NotificationsButton from "@/components/Notifications";
 import UserMenu from "@/components/UserMenu";
 import {
   deleteProjectForever, listProjects, restoreProject, setCurrentProject, timeAgo, trashProject, type Project,
@@ -67,7 +67,7 @@ export default function DashboardView() {
           <Link href={tutorialHref("/dashboard")} className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
-          <SignOutButton className="db-icon" />
+          <NotificationsButton className="db-icon" />
           <UserMenu />
         </div>
       </header>

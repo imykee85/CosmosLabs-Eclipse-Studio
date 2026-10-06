@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Coins, GraduationCap } from "lucide-react";
-import { SignOutButton } from "@/components/account";
+import NotificationsButton from "@/components/Notifications";
 import { LogoMark } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
@@ -31,7 +31,7 @@ export default function AccountShell({ children }: { children: React.ReactNode }
           <Link href={tutorialHref(pathname)} className="db-pill acct-tutorial" aria-label="Tutorial"><GraduationCap size={15} /> <span>Tutorial</span></Link>
           <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
           <ThemeToggle className="db-icon" />
-          <SignOutButton className="db-icon" />
+          <NotificationsButton className="db-icon" />
           <UserMenu />
         </div>
       </header>
