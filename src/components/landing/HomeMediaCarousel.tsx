@@ -41,7 +41,7 @@ function Slide({ item, index }: { item: CarouselItem; index: number }) {
             src={item.src}
             alt={`Example creation ${(index % carouselItems.length) + 1}`}
             className="absolute inset-0 h-full w-full object-cover"
-            loading={index < 3 ? "eager" : "lazy"}
+            loading={index < 6 ? "eager" : "lazy"}
             decoding="async"
             onError={() => setFailed(true)}
           />
