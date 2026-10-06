@@ -92,8 +92,6 @@ export default function HomeMediaCarousel() {
         /* No viewport units and no JS measuring: width comes from the container (%), height from
            aspect-ratio, so a card is always exactly 9:16 at any browser zoom level. */
         .carousel-root { width: 100%; max-width: 1152px; }
-        /* Soft fade at both ends, like the logo strip below it. A mask only: it never affects sizing. */
-        .carousel-root { -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
         .carousel-card { aspect-ratio: 9 / 16; height: auto; border-radius: 10% / 5.6%; }
         .carousel-track { align-items: flex-start; }
         .carousel-slide { padding: 0 0.52%; }
