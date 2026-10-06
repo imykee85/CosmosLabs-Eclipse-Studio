@@ -107,16 +107,16 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   return (
     <Shell id={id} kind={kind} selected={selected} className="cv-gen">
       <div className="cv-body">
-        <div className="cv-stage nodrag" style={{ aspectRatio: ratio.replace(":", " / ") }}>
+        <div className="cv-stage" style={{ aspectRatio: ratio.replace(":", " / ") }}>
           {data.busy ? <div className="cv-empty"><Loader2 size={26} className="cv-spin" /><span>Creating your image...</span></div>
             : data.imageUrl ? <ResultImg src={data.imageUrl} />
             : <div className="cv-empty"><ImageIcon size={28} strokeWidth={1.4} /><span>{kind === "fullbody" ? "Full-body look appears here" : "Ready to generate"}</span></div>}
         </div>
-        <div className="cv-row nodrag">
-          <select className="cv-input" value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
+        <div className="cv-row">
+          <select className="cv-input nodrag" value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
             {RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
-          <button type="button" className="cv-go" disabled={data.busy} onClick={run}>{data.busy ? "Generating" : "Generate"}</button>
+          <button type="button" className="cv-go nodrag" disabled={data.busy} onClick={run}>{data.busy ? "Generating" : "Generate"}</button>
         </div>
         {data.error && <p className="cv-error" role="alert">{data.error}</p>}
       </div>
