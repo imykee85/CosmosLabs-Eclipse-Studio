@@ -6,14 +6,16 @@ import {
   addEdge, Background, BackgroundVariant, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow,
   type Connection, type Edge, type NodeMouseHandler,
 } from "@xyflow/react";
-import { Mountain, Package, Palette, PersonStanding, Plus, Type, User, Image as ImageIcon, Maximize2 } from "lucide-react";
-import { defaultGraph, loadCanvas, newNode, NODE_CATALOG, saveCanvas, type CNode, type NodeKind } from "@/lib/canvas";
+import { Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
+import { deleteTemplate, instantiate, loadCanvas, loadTemplates, newNode, NODE_GROUPS, saveCanvas, saveTemplate, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
 import { CanvasCtx } from "./CanvasContext";
 import { nodeTypes } from "./nodes";
 import "./canvas.css";
 
-const ICONS: Record<NodeKind, React.ReactNode> = {
-  text: <Type size={16} />, character: <User size={16} />, product: <Package size={16} />, scene: <Mountain size={16} />, style: <Palette size={16} />, fullbody: <PersonStanding size={16} />, generator: <ImageIcon size={16} />,
+const ICONS: Record<string, React.ReactNode> = {
+  text: <Type size={20} />, character: <User size={20} />, product: <Package size={20} />, scene: <Mountain size={20} />, style: <Palette size={20} />,
+  fullbody: <PersonStanding size={20} />, generator: <ImageIcon size={20} />, note: <StickyNote size={20} />,
+  video: <Clapperboard size={20} />, sheet: <Shirt size={20} />, image: <ImageIcon size={20} />, clip: <Film size={20} />,
 };
 const DOUBLE_TAP_MS = 320;
 
@@ -32,10 +34,13 @@ function useAppDark() {
 
 function Inner({ projectId }: { projectId: string }) {
   const saved = useMemo(() => loadCanvas(projectId), [projectId]);
-  const initial = useMemo(() => saved ?? defaultGraph(), [saved]);
+  const initial = useMemo(() => saved ?? { nodes: [] as CNode[], edges: [] as Edge[] }, [saved]);
   const [nodes, setNodes, onNodesChange] = useNodesState<CNode>(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initial.edges);
-  const [menu, setMenu] = useState(false);
+  const [panel, setPanel] = useState<null | "nodes" | "templates">(null);
+  const [query, setQuery] = useState("");
+  const [templates, setTemplates] = useState<CanvasTemplate[]>([]);
+  const [tplName, setTplName] = useState("");
   const [hint, setHint] = useState(true);
   const [focused, setFocused] = useState<string | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -87,7 +92,7 @@ function Inner({ projectId }: { projectId: string }) {
   }, [focused, focus, overview]);
 
   const onPaneClick = useCallback(() => {
-    setMenu(false);
+    setPanel(null);
     const now = Date.now();
     if (lastTap.current.id === "pane" && now - lastTap.current.t < DOUBLE_TAP_MS) { lastTap.current = { id: "", t: 0 }; overview(); }
     else lastTap.current = { id: "pane", t: now };
@@ -98,7 +103,7 @@ function Inner({ projectId }: { projectId: string }) {
   const isValidConnection = useCallback((c: Connection | Edge) => {
     const s = getNode(c.source), t = getNode(c.target);
     const into = t?.type === "generator" || t?.type === "fullbody";
-    return !!s && !!t && s.id !== t.id && into && s.type !== "generator" && !(s.type === "fullbody" && t.type === "fullbody");
+    return !!s && !!t && s.id !== t.id && into && s.type !== "generator" && s.type !== "note" && !(s.type === "fullbody" && t.type === "fullbody");
   }, [getNode]);
 
   function addNode(kind: NodeKind) {
@@ -107,8 +112,37 @@ function Inner({ projectId }: { projectId: string }) {
     const jitter = () => (Math.random() - 0.5) * 80;
     const n = newNode(kind, { x: centre.x - 130 + jitter(), y: centre.y - 90 + jitter() });
     setNodes((ns) => [...ns.map((x) => ({ ...x, selected: false })), { ...n, selected: true }]);
-    setMenu(false);
+    setPanel(null);
   }
+
+  function openPanel(which: "nodes" | "templates") {
+    if (panel === which) { setPanel(null); return; }
+    if (which === "templates") setTemplates(loadTemplates());
+    setQuery("");
+    setPanel(which);
+  }
+
+  // Use a template: add a copy to the right of whatever is already on the canvas, then fly to it.
+  function applyTemplate(t: CanvasTemplate) {
+    const existing = getNodes();
+    const at = existing.length
+      ? { x: Math.max(...existing.map((n) => n.position.x + (n.measured?.width ?? 300))) + 120, y: Math.min(...existing.map((n) => n.position.y)) }
+      : { x: 0, y: 0 };
+    const g = instantiate(t, at);
+    setNodes((ns) => [...ns.map((x) => ({ ...x, selected: false })), ...g.nodes]);
+    setEdges((es) => [...es, ...g.edges]);
+    setPanel(null); setHint(false);
+    setTimeout(() => flyTo(g.nodes.map((n) => n.id), 0.2, 1), 120);
+  }
+
+  function saveAsTemplate() {
+    if (!nodes.length) return;
+    setTemplates(saveTemplate(tplName || "My template", nodes, edges));
+    setTplName("");
+  }
+
+  const q = query.trim().toLowerCase();
+  const groups = NODE_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !q || i.label.toLowerCase().includes(q)) })).filter((g) => g.items.length);
 
   return (
     <CanvasCtx.Provider value={{ focus }}>
@@ -122,15 +156,59 @@ function Inner({ projectId }: { projectId: string }) {
           colorMode={dark ? "dark" : "light"} proOptions={{ hideAttribution: true }}
         >
           <Panel position="top-left" className="cv-panel">
-            <button type="button" className="cv-add" aria-expanded={menu} aria-haspopup="menu" onClick={() => setMenu((m) => !m)}><Plus size={16} /> Add node</button>
-            {menu && (
-              <div className="cv-menu" role="menu">
-                {NODE_CATALOG.map((c) => (
-                  <button key={c.kind} type="button" role="menuitem" onClick={() => addNode(c.kind)}>
-                    <span className="cv-menu-ico">{ICONS[c.kind]}</span>
-                    <span><b>{c.label}</b><small>{c.blurb}</small></span>
-                  </button>
-                ))}
+            <div className="cv-btns">
+              <button type="button" className="cv-add" aria-expanded={panel === "nodes"} aria-haspopup="dialog" onClick={() => openPanel("nodes")}><Plus size={16} /> Add node</button>
+              <button type="button" className="cv-add" aria-expanded={panel === "templates"} aria-haspopup="dialog" onClick={() => openPanel("templates")}><LayoutTemplate size={16} /> Templates</button>
+            </div>
+            {panel === "nodes" && (
+              <div className="cv-pop" role="dialog" aria-label="Nodes">
+                <header><b>Nodes</b><button type="button" aria-label="Close" onClick={() => setPanel(null)}><X size={16} /></button></header>
+                <label className="cv-search"><Search size={15} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search nodes..." aria-label="Search nodes" /></label>
+                <div className="cv-pop-body">
+                  {groups.map((g) => (
+                    <section key={g.title}>
+                      <h3>{g.title}</h3>
+                      <div className="cv-grid">
+                        {g.items.map((i) => (
+                          <button key={i.id} type="button" className="cv-tile" disabled={!i.kind} title={i.kind ? i.blurb : "Coming soon"} onClick={() => i.kind && addNode(i.kind)}>
+                            {ICONS[i.id]}<span>{i.label}</span>{!i.kind && <em>Soon</em>}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                  {!groups.length && <p className="cv-none">No nodes match.</p>}
+                </div>
+              </div>
+            )}
+            {panel === "templates" && (
+              <div className="cv-pop" role="dialog" aria-label="Templates">
+                <header><b>Templates</b><button type="button" aria-label="Close" onClick={() => setPanel(null)}><X size={16} /></button></header>
+                <div className="cv-pop-body">
+                  <section>
+                    <h3>Save this canvas</h3>
+                    <div className="cv-save">
+                      <input value={tplName} maxLength={40} onChange={(e) => setTplName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveAsTemplate(); }}
+                        placeholder="Template name" aria-label="Template name" disabled={!nodes.length} />
+                      <button type="button" disabled={!nodes.length} onClick={saveAsTemplate}>Save</button>
+                    </div>
+                    {!nodes.length && <p className="cv-none">Add some nodes first.</p>}
+                  </section>
+                  <section>
+                    <h3>Use a template</h3>
+                    <div className="cv-tpls">
+                      {templates.map((t) => (
+                        <div key={t.id} className="cv-tpl">
+                          <button type="button" className="cv-tpl-use" onClick={() => applyTemplate(t)}>
+                            <LayoutTemplate size={18} />
+                            <span><b>{t.name}</b><small>{t.nodes.length} nodes{t.builtIn ? " · built in" : ""}</small></span>
+                          </button>
+                          {!t.builtIn && <button type="button" className="cv-tpl-del" aria-label={`Delete ${t.name}`} title="Delete template" onClick={() => setTemplates(deleteTemplate(t.id))}><Trash2 size={15} /></button>}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </div>
               </div>
             )}
           </Panel>
@@ -139,8 +217,20 @@ function Inner({ projectId }: { projectId: string }) {
           </Panel>
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} />
           <Controls showInteractive={false} position="bottom-left" />
-          <MiniMap pannable zoomable position="bottom-right" className="cv-minimap" nodeColor="#8a857e" nodeStrokeWidth={0} />
-          {hint && <Panel position="bottom-center" className="cv-hint">Double-tap a node to zoom in on it</Panel>}
+          {nodes.length > 0 && <MiniMap pannable zoomable position="bottom-right" className="cv-minimap" nodeColor="#8a857e" nodeStrokeWidth={0} />}
+          {hint && nodes.length > 0 && <Panel position="bottom-center" className="cv-hint">Double-tap a node to zoom in on it</Panel>}
+          {nodes.length === 0 && !panel && (
+            <Panel position="top-left" className="cv-empty-wrap">
+              <div className="cv-blank">
+                <b>A blank canvas</b>
+                <p>Add nodes, wire them into a generator, then press Generate. Or start from a template.</p>
+                <div>
+                  <button type="button" className="cv-go" onClick={() => openPanel("nodes")}>Add a node</button>
+                  <button type="button" className="cv-ghost" onClick={() => openPanel("templates")}>Use a template</button>
+                </div>
+              </div>
+            </Panel>
+          )}
         </ReactFlow>
       </div>
     </CanvasCtx.Provider>

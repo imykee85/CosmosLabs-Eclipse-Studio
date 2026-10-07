@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
-import { Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, Type, User, X } from "lucide-react";
+import { Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
 import { buildPrompt, RATIOS, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
 import { useCanvas } from "./CanvasContext";
 
@@ -11,6 +11,7 @@ const META: Record<NodeKind, { title: string; icon: React.ReactNode }> = {
   scene: { title: "Scene", icon: <Mountain size={15} /> },
   text: { title: "Text prompt", icon: <Type size={15} /> },
   style: { title: "Style", icon: <Palette size={15} /> },
+  note: { title: "Note", icon: <StickyNote size={15} /> },
   fullbody: { title: "Full-body generator", icon: <PersonStanding size={15} /> },
   generator: { title: "Image generator", icon: <ImageIcon size={15} /> },
 };
@@ -30,7 +31,7 @@ function Shell({ id, kind, selected, className = "", children }: { id: string; k
         </span>
       </header>
       {children}
-      <Handle type="source" position={Position.Right} className="cv-handle" />
+      {kind !== "note" && <Handle type="source" position={Position.Right} className="cv-handle" />}
     </div>
   );
 }
@@ -62,6 +63,18 @@ export function TextNode({ id, data, selected }: NodeProps<CNode>) {
         <textarea className="cv-input cv-area nodrag nowheel" rows={4} value={data.text ?? ""} maxLength={2000} placeholder="Describe the shot you imagine..." aria-label="Prompt"
           onChange={(e) => updateNodeData(id, { text: e.target.value })} />
         <button type="button" className="cv-btn" disabled title="Polishing prompts is coming soon"><Lightbulb size={14} /> Polish prompt <em>Soon</em></button>
+      </div>
+    </Shell>
+  );
+}
+
+export function NoteNode({ id, data, selected }: NodeProps<CNode>) {
+  const { updateNodeData } = useReactFlow();
+  return (
+    <Shell id={id} kind="note" selected={selected} className="cv-wide">
+      <div className="cv-body">
+        <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.text ?? ""} maxLength={1000} placeholder="Write a note for yourself..." aria-label="Note"
+          onChange={(e) => updateNodeData(id, { text: e.target.value })} />
       </div>
     </Shell>
   );
@@ -127,4 +140,4 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
 export const GeneratorNode = (p: NodeProps<CNode>) => <Generator {...p} kind="generator" />;
 export const FullBodyNode = (p: NodeProps<CNode>) => <Generator {...p} kind="fullbody" />;
 
-export const nodeTypes = { character: CharacterNode, product: ProductNode, scene: SceneNode, text: TextNode, style: StyleNode, fullbody: FullBodyNode, generator: GeneratorNode };
+export const nodeTypes = { character: CharacterNode, product: ProductNode, scene: SceneNode, text: TextNode, style: StyleNode, note: NoteNode, fullbody: FullBodyNode, generator: GeneratorNode };
