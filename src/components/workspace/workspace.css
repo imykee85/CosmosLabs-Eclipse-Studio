@@ -108,10 +108,11 @@ a.ws-card .ws-card-cta { color: var(--a-redtext); }
   .mb-tab.is-active .mb-tab-icon { background: var(--a-active); }
   .mb-tab.is-active:after { content: ''; position: absolute; bottom: 0; width: 20px; height: 3px; border-radius: 3px; background: var(--a-fg); }
 
-  .mb-drawer { display: block; position: fixed; inset: 0; z-index: 40; pointer-events: none; }
-  .mb-drawer.is-open { pointer-events: auto; }
-  .mb-scrim { position: absolute; inset: 0; border: 0; background: rgba(0,0,0,.55); opacity: 0; transition: opacity .25s ease; }
-  .mb-drawer.is-open .mb-scrim { opacity: 1; }
+  .mb-drawer { display: block; position: fixed; inset: 0; z-index: 40; pointer-events: none; visibility: hidden; transition: visibility 0s .3s; }
+  .mb-drawer.is-open { pointer-events: auto; visibility: visible; transition-delay: 0s; }
+  /* Closed, the drawer is invisible and its scrim has no colour: phone browsers that tint their bars from full-screen fixed layers must not see a dark one. */
+  .mb-scrim { position: absolute; inset: 0; border: 0; background: rgba(0,0,0,0); transition: background-color .25s ease; }
+  .mb-drawer.is-open .mb-scrim { background: rgba(0,0,0,.55); }
   .mb-panel { position: absolute; top: 0; bottom: 0; left: 0; border-right: 1px solid var(--a-line2); display: flex; flex-direction: column; width: min(86vw, 360px); background: var(--a-bg); border-radius: 0 28px 28px 0; box-shadow: 0 0 60px var(--a-shadow); transform: translateX(-102%); transition: transform .3s cubic-bezier(.23,1,.32,1); padding-top: env(safe-area-inset-top, 0px); }
   .mb-drawer.is-open .mb-panel { transform: none; }
   .mb-profile { display: flex; align-items: center; gap: 12px; padding: 18px 14px 16px 18px; border-bottom: 1px solid var(--a-line); }
