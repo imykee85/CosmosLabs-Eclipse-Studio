@@ -12,6 +12,7 @@ const ORIGINS: Record<string, string> = {
   "/assets": "Assets",
   "/treatment": "Treatment",
   "/connect": "Connect",
+  "/memory": "Memory",
   "/avatars": "Avatars",
   "/portfolio": "Portfolio",
   "/certificates": "Certificates",

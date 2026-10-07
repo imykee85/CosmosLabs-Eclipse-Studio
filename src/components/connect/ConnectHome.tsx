@@ -25,7 +25,7 @@ export default function ConnectHome() {
         <div className="cn-chips">
           <button type="button" className="cn-chip" disabled title="Skills are coming soon"><Puzzle size={15} /> Skills <em>Soon</em></button>
           <button type="button" className="cn-chip" disabled title="Tools are coming soon"><Wrench size={15} /> Tools <em>Soon</em></button>
-          <button type="button" className="cn-chip" disabled title="Memory is coming soon"><Brain size={15} /> Memory <em>Soon</em></button>
+          <Link href="/memory" className="cn-chip"><Brain size={15} /> Memory <em>Soon</em></Link>
           <Link href="/connect/apps" className="cn-chip">
             <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connect apps
           </Link>
