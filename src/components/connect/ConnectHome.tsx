@@ -23,7 +23,7 @@ export default function ConnectHome() {
 
       <div className="cn-dock">
         <div className="cn-chips">
-          <button type="button" className="cn-chip" disabled title="Skills are coming soon"><Puzzle size={15} /> Skills <em>Soon</em></button>
+          <Link href="/skills" className="cn-chip"><Puzzle size={15} /> Skills <em>Soon</em></Link>
           <button type="button" className="cn-chip" disabled title="Tools are coming soon"><Wrench size={15} /> Tools <em>Soon</em></button>
           <Link href="/memory" className="cn-chip"><Brain size={15} /> Memory <em>Soon</em></Link>
           <Link href="/connect/apps" className="cn-chip">
