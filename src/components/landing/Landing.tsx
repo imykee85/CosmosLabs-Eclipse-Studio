@@ -91,7 +91,7 @@ export default function Landing() {
       </section>
 
       <section id="examples" className="wow-section section-pad">
-        <div className="section-kicker">ONE CANVAS. <em>ENDLESS</em> POSSIBILITIES.</div>
+        <div className="section-kicker kicker-center"><span>One canvas</span><span><em>Endless</em> possibilities</span></div>
         <div className="wow-grid">
           {wowTiles.map(([title, sub], i) => (
             <article className={`wow-card wow-${i + 1}`} key={title}>
