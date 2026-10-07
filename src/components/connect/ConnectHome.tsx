@@ -27,7 +27,7 @@ export default function ConnectHome() {
           <Link href="/tools" className="cn-chip"><Wrench size={15} /> Tools <em>Soon</em></Link>
           <Link href="/memory" className="cn-chip"><Brain size={15} /> Memory <em>Soon</em></Link>
           <Link href="/connect/apps" className="cn-chip">
-            <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connect apps
+            <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connectors
           </Link>
         </div>
 

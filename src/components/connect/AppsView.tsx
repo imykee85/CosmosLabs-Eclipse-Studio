@@ -61,21 +61,21 @@ export default function AppsView() {
       <header className="cn-head">
         <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
         <div>
-          <h1>Connect apps</h1>
-          <p>Link the places you publish, store files and chat. Connections open soon.</p>
+          <h1>Connectors</h1>
+          <p>Link the apps where you publish, store files and chat. Connections open soon.</p>
         </div>
       </header>
 
       <div className="cn-bar">
         <div className="cn-utabs" role="tablist" aria-label="Connected apps">
           <button type="button" role="tab" aria-selected={tab === "explore"} className={tab === "explore" ? "is-on" : ""} onClick={() => setTab("explore")}>Explore</button>
-          <button type="button" role="tab" aria-selected={tab === "mine"} className={tab === "mine" ? "is-on" : ""} onClick={() => setTab("mine")}>My apps</button>
+          <button type="button" role="tab" aria-selected={tab === "mine"} className={tab === "mine" ? "is-on" : ""} onClick={() => setTab("mine")}>My connectors</button>
         </div>
         {tab === "explore" && (
           <div className="cn-find">
             <label className="cn-search">
               <Search size={16} aria-hidden="true" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search apps" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search connectors" />
             </label>
             <button type="button" className="cn-view" onClick={flip} aria-label={view === "list" ? "Show as grid" : "Show as list"} title={view === "list" ? "Grid view" : "List view"}>
               {view === "list" ? <LayoutGrid size={18} /> : <List size={18} />}
@@ -87,8 +87,8 @@ export default function AppsView() {
       {tab === "mine" ? (
         <div className="cn-empty">
           <Inbox size={44} strokeWidth={1.4} aria-hidden="true" />
-          <h2>No apps connected yet</h2>
-          <p>Apps you connect will appear here.</p>
+          <h2>Nothing connected yet</h2>
+          <p>Connectors you add will appear here.</p>
           <em className="ws-soon">Connections are coming soon</em>
         </div>
       ) : (
@@ -121,7 +121,7 @@ export default function AppsView() {
               </ul>
             </section>
           ))}
-          {groups.length === 0 && <p className="cn-none">No apps match “{query}”.</p>}
+          {groups.length === 0 && <p className="cn-none">No connectors match “{query}”.</p>}
         </>
       )}
     </div>

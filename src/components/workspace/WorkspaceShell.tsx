@@ -264,7 +264,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/connect": "Connect", "/connect/apps": "Connect apps", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/connect": "Connect", "/connect/apps": "Connectors", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {

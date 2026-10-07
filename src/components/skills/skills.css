@@ -1,4 +1,4 @@
-/* Skills page: cards with a big preview. Prefix sk- ; the tabs, search and headings reuse the cn- styles from Connect apps. */
+/* Skills page: cards with a big preview. Prefix sk- ; the tabs, search and headings reuse the cn- styles from Connectors. */
 .sk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; margin: 0; padding: 0; list-style: none; }
 .sk-card { display: grid; gap: 12px; min-width: 0; }
 .sk-art { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-input); }

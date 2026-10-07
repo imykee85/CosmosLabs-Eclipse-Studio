@@ -67,7 +67,7 @@
 .cn-opt-text em.is-new { background: rgba(120, 200, 80, .14); color: #8ad65a; }
 html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background: rgba(63,138,31,.12); }
 
-/* Connect apps: Explore / My apps */
+/* Connectors page: Explore / My connectors */
 .cn-apps { max-width: 880px; }
 .cn-bar { position: sticky; top: 0; z-index: 12; margin: 22px -4px 0; padding: 0 4px 12px; background: var(--a-bg); }
 .cn-utabs { display: flex; gap: 6px; border-bottom: 1px solid var(--a-line); }
@@ -132,7 +132,7 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
   .cn-row { gap: 14px; padding: 12px 14px; }
 }
 
-/* overlapping app logos inside the Connect apps chip */
+/* overlapping app logos inside the Connectors chip */
 .cn-stack { display: inline-flex; }
 .cn-stack .cn-logo { margin-left: -6px; box-shadow: 0 0 0 2px var(--a-card); }
 .cn-stack .cn-logo:first-child { margin-left: 0; }
