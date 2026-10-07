@@ -35,7 +35,7 @@ const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/a
 const video: Item[] = [
   { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment" },
   { label: "Prompts", hint: "Scene by scene", step: 2 },
-  { label: "Generate", hint: "Render the clips", step: 3 },
+  { label: "Generate", hint: "Render the clips", step: 3, href: "/generate" },
   { label: "Export", hint: "Deliver and share", step: 4 },
 ];
 const audio: Item[] = [
@@ -264,7 +264,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/connect": "Connect", "/connect/apps": "Connectors", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/generate": "Generate", "/connect": "Connect", "/connect/apps": "Connectors", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
