@@ -77,8 +77,8 @@ export default function TutorialView({ back }: { back: { path: string; label: st
               <div className={`tu-thumb tone-${i}`} aria-hidden="true">
                 <span><Play size={22} fill="currentColor" /></span>
               </div>
-              <button type="button" className="tu-watch" disabled={!l.video} onClick={() => setPlaying(l)}>
-                {l.video ? "Watch" : "Coming soon"}
+              <button type="button" className="tu-watch" onClick={() => l.video && setPlaying(l)}>
+                Watch
               </button>
             </li>
           ))}

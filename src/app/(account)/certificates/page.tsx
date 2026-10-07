@@ -10,7 +10,6 @@ export default function CertificatesPage() {
         <Award size={42} strokeWidth={1.4} aria-hidden="true" />
         <h2>No certificates yet</h2>
         <p>Open a finished project and choose “Get certificate” to create one.</p>
-        <em className="ws-soon">Certificates are coming soon</em>
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ import { listProjects, readCurrentProject, readCurrentProjectName, setCurrentPro
 import { tutorialHref } from "@/lib/tutorial";
 import "./workspace.css";
 
-type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
+type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number };
 
 const connectItem: Item = { label: "Connect", hint: "Share and link your apps", href: "/connect", icon: <ConnectIcon size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
@@ -29,11 +29,11 @@ const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/ca
 const photo: Item[] = [
   { label: "Create", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
-  { label: "Assets", hint: "Reference photos", href: "/assets", soon: true, icon: <FolderOpen size={17} /> },
+  { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> },
 ];
 const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} /> };
 const video: Item[] = [
-  { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment", soon: true },
+  { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment" },
   { label: "Prompts", hint: "Scene by scene", step: 2 },
   { label: "Generate", hint: "Render the clips", step: 3 },
   { label: "Export", hint: "Deliver and share", step: 4 },
@@ -52,10 +52,10 @@ function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onP
         <b>{item.label}</b>
         <small>{item.hint}</small>
       </span>
-      {(!item.href || item.soon) && <em className="ws-soon">Soon</em>}
     </>
   );
-  if (!item.href) return <div className="ws-item is-soon" aria-disabled="true">{body}</div>;
+  // Rows with no page yet still respond to a tap; they just do not go anywhere.
+  if (!item.href) return <button type="button" className="ws-item ws-item-btn">{body}</button>;
   return (
     <Link href={item.href} className={`ws-item ${pathname === item.href ? "is-active" : ""}`} aria-current={pathname === item.href ? "page" : undefined} onClick={onPick ? () => onPick(item) : undefined}>
       {body}

@@ -60,7 +60,9 @@ export default function PortfolioView() {
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => { setD((p) => ({ ...p, [k]: v })); setNote(""); };
   const slug = d.slug || slugify(d.headline) || "your-name";
-  const host = typeof window === "undefined" ? "" : window.location.host;
+  // Read after mount: the server has no address, and reading it during render made the page mismatch on load.
+  const [host, setHost] = useState("");
+  useEffect(() => setHost(window.location.host), []);
 
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(d)); setNote("Draft saved on this device."); }
@@ -90,11 +92,11 @@ export default function PortfolioView() {
               {d.slug.length > 1 && <Check size={16} className="pf-ok" aria-hidden="true" />}
             </div>
             <div className="pf-actions">
-              <button type="button" className="pf-ghost" disabled title="Available once published"><Copy size={15} /> Copy link</button>
+              <button type="button" className="pf-ghost"><Copy size={15} /> Copy link</button>
               <button type="button" className="pf-outline" onClick={save}>Save draft</button>
-              <button type="button" className="pf-primary" disabled title="Publishing is coming soon">Publish</button>
+              <button type="button" className="pf-primary">Publish</button>
             </div>
-            <small>{note || "Publishing is coming soon. For now your draft is saved on this device."}</small>
+            <small>{note || "Your draft is saved on this device."}</small>
           </section>
 
           <section className="pf-card">

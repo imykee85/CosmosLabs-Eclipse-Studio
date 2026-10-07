@@ -54,10 +54,10 @@ export default function TreatmentView() {
         <div className="tr-actions">
           <span className="tr-pill tr-pill-quiet tr-pill-wide"><Lightbulb size={13} /> No concept yet</span>
           <span className="tr-pill tr-pill-quiet tr-pill-short" aria-label="No concept yet"><Lightbulb size={14} /></span>
-          <button type="button" className="tr-pill tr-pill-go" disabled title="Prompts are coming soon">
+          <button type="button" className="tr-pill tr-pill-go">
             <span className="tr-wide">Continue to prompts</span><span className="tr-short">Prompts</span> <ArrowRight size={15} />
           </button>
-          <button type="button" className="tr-more" aria-label="More options" disabled><MoreHorizontal size={17} /></button>
+          <button type="button" className="tr-more" aria-label="More options"><MoreHorizontal size={17} /></button>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export default function TreatmentView() {
             {active.media && (
               <div className="tr-media">
                 <span>Add media:</span>
-                {MEDIA.map((x) => <button key={x.label} type="button" className="tr-chip" disabled>{x.icon}{x.label}</button>)}
+                {MEDIA.map((x) => <button key={x.label} type="button" className="tr-chip">{x.icon}{x.label}</button>)}
               </div>
             )}
           </div>
@@ -124,9 +124,9 @@ export default function TreatmentView() {
           <div className="tr-tools">
             <input ref={picker} type="file" multiple hidden accept=".pdf,.doc,.docx,.txt,.md,.rtf" onChange={(e) => addFiles(e.target.files)} />
             <button type="button" className="tr-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
-            <button type="button" className="tr-tool" aria-label="Add a link" title="Links are coming soon" disabled><Link2 size={16} /></button>
-            <button type="button" className="tr-tool" aria-label="Voice input" title="Voice is coming soon" disabled><Mic size={16} /></button>
-            <button type="submit" className="tr-send" aria-label="Send" title="Sending is coming soon" disabled><Send size={16} /></button>
+            <button type="button" className="tr-tool" aria-label="Add a link"><Link2 size={16} /></button>
+            <button type="button" className="tr-tool" aria-label="Voice input"><Mic size={16} /></button>
+            <button type="submit" className="tr-send" aria-label="Send"><Send size={16} /></button>
           </div>
         </form>
       </section>

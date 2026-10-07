@@ -32,14 +32,14 @@ export default function ApiPanel() {
 
   return (
     <section className="st-section" aria-labelledby="st-api">
-      <h2 id="st-api">API keys · MCP <span className="st-pill st-inline">Coming soon</span></h2>
+      <h2 id="st-api">API keys · MCP</h2>
       <p className="st-sub">
         Connect Eclipse to Claude, Cursor or any MCP client and generate premium images straight from your AI chat.
         Renders spend your regular credits.
       </p>
 
       <p className="st-meta st-keys">No active keys yet.</p>
-      <button type="button" className="st-ghost" disabled title="Coming soon"><Plus size={15} /> Create key</button>
+      <button type="button" className="st-ghost"><Plus size={15} /> Create key</button>
 
       <h3 className="st-h3 st-gap">Connect to Claude</h3>
       <div className="st-code">

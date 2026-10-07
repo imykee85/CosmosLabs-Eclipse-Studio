@@ -6,11 +6,10 @@ export default function AssetsPage() {
       <h1>Assets</h1>
       <p>Reference photos for your projects. Upload them once and reuse them in every generation.</p>
       <div className="ws-kinds">
-        <div className="ws-kind is-soon" aria-disabled="true">
+        <div className="ws-kind">
           <span className="ws-card-icon"><FolderOpen size={20} /></span>
           <h2>No assets yet</h2>
-          <p>Uploading product shots, faces and other references is coming soon.</p>
-          <em className="ws-soon">Soon</em>
+          <p>Product shots, faces and other references you upload will appear here.</p>
         </div>
       </div>
     </div>

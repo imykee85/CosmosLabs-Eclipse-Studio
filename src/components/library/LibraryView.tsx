@@ -40,7 +40,6 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
         <FolderOpen size={46} strokeWidth={1.4} aria-hidden="true" />
         <h2>Nothing saved yet</h2>
         <p>Items you save inside a project appear here, so you can reuse them across all your projects.</p>
-        <em className="ws-soon">Saving items is coming soon</em>
       </div>
     </div>
   );

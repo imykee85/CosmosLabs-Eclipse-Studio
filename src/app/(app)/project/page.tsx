@@ -13,12 +13,12 @@ export default function ProjectHome() {
           <p>Premium stills from a single prompt. Write it, generate it, keep it in your gallery.</p>
           <span className="ws-card-cta">Start <ArrowRight size={15} /></span>
         </Link>
-        <div className="ws-card is-soon" aria-disabled="true">
+        <button type="button" className="ws-card ws-card-btn">
           <span className="ws-card-icon"><Clapperboard size={20} /></span>
           <h2>Video</h2>
           <p>Plan scenes, write prompts, generate clips and export a finished video.</p>
-          <span className="ws-card-cta">Coming soon</span>
-        </div>
+          <span className="ws-card-cta">Start <ArrowRight size={15} /></span>
+        </button>
       </div>
     </div>
   );

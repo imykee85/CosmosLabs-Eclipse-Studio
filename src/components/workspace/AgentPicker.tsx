@@ -35,7 +35,7 @@ export default function AgentPicker() {
           <button key={name} type="button" className={`ws-kind ws-pick ${on ? "is-selected" : ""}`} aria-pressed={on} onClick={() => choose(name)}>
             <span className="ws-card-icon"><AgentIcon size={20} /></span>
             <h2>{name}</h2>
-            <p>Details coming soon.</p>
+            <p>A creative partner for your project.</p>
             <span className="ws-pick-state">{on ? <><Check size={15} /> Selected</> : "Select"}</span>
           </button>
         );

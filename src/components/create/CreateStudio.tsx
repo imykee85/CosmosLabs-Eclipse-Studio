@@ -81,8 +81,8 @@ export default function CreateStudio() {
           onKeyDown={onKeyDown}
         />
         <div className="cr-tools">
-          <button type="button" className="cr-chip" disabled title="Coming soon">
-            <Layers size={14} /> Ingredients <em>Soon</em>
+          <button type="button" className="cr-chip">
+            <Layers size={14} /> Ingredients
           </button>
           <button type="button" className="cr-chip" title="Move this prompt to the Canvas"
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>

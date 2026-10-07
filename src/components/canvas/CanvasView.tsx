@@ -181,8 +181,8 @@ function Inner({ projectId }: { projectId: string }) {
                       <h3>{g.title}</h3>
                       <div className="cv-grid">
                         {g.items.map((i) => (
-                          <button key={i.id} type="button" className="cv-tile" disabled={!i.kind} title={i.kind ? i.blurb : "Coming soon"} onClick={() => i.kind && addNode(i.kind)}>
-                            {ICONS[i.id]}<span>{i.label}</span>{!i.kind && <em>Soon</em>}
+                          <button key={i.id} type="button" className="cv-tile" title={i.blurb} onClick={() => i.kind && addNode(i.kind)}>
+                            {ICONS[i.id]}<span>{i.label}</span>
                           </button>
                         ))}
                       </div>

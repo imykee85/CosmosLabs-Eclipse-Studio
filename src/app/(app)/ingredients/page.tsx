@@ -16,11 +16,10 @@ export default function IngredientsPage() {
 
       <div className="ws-kinds">
         {kinds.map(({ icon: Icon, title, copy }) => (
-          <div key={title} className="ws-kind is-soon" aria-disabled="true">
+          <div key={title} className="ws-kind">
             <span className="ws-card-icon"><Icon size={20} /></span>
             <h2>{title}</h2>
             <p>{copy}</p>
-            <em className="ws-soon">Soon</em>
           </div>
         ))}
       </div>
@@ -28,8 +27,7 @@ export default function IngredientsPage() {
       <section className="ws-ing-empty">
         <h2>No ingredients in this project yet</h2>
         <p>Link ingredients from your library, or create new ones above.</p>
-        <button type="button" className="ws-add" disabled><Plus size={16} /> Add ingredient</button>
-        <small>Saving ingredients is coming soon.</small>
+        <button type="button" className="ws-add"><Plus size={16} /> Add ingredient</button>
       </section>
     </div>
   );

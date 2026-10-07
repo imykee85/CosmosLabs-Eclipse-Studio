@@ -45,7 +45,7 @@ function Ingredient({ id, data, selected, kind }: NodeProps<CNode> & { kind: "ch
         <div className="cv-slot">{META[kind].icon}<span>{data.desc?.trim() ? data.desc : `No ${label} selected`}</span></div>
         <input className="cv-input nodrag" value={data.desc ?? ""} maxLength={200} placeholder={`Describe the ${label}...`} aria-label={`${META[kind].title} description`}
           onChange={(e) => updateNodeData(id, { desc: e.target.value })} />
-        <button type="button" className="cv-btn" disabled title="Picking from your Library is coming soon">Choose from Library <em>Soon</em></button>
+        <button type="button" className="cv-btn">Choose from Library</button>
       </div>
     </Shell>
   );
@@ -62,7 +62,7 @@ export function TextNode({ id, data, selected }: NodeProps<CNode>) {
       <div className="cv-body">
         <textarea className="cv-input cv-area nodrag nowheel" rows={4} value={data.text ?? ""} maxLength={2000} placeholder="Describe the shot you imagine..." aria-label="Prompt"
           onChange={(e) => updateNodeData(id, { text: e.target.value })} />
-        <button type="button" className="cv-btn" disabled title="Polishing prompts is coming soon"><Lightbulb size={14} /> Polish prompt <em>Soon</em></button>
+        <button type="button" className="cv-btn"><Lightbulb size={14} /> Polish prompt</button>
       </div>
     </Shell>
   );
