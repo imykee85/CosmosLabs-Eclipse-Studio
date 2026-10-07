@@ -19,8 +19,8 @@ export const carouselItems: CarouselItem[] = [
   { type: "video", src: "/carousel/card-9.mp4", poster: "/carousel/card-9-poster.jpg" },
   { type: "image", src: "/carousel/card-8.jpg" },
   { type: "video", src: "/carousel/carousel_video_2_370204a0.mp4" },
-  { type: "image", src: "/carousel/IMG_9019_3d9a93fb.jpg" },
-  { type: "image", src: "/carousel/composite_fashion_image_v3_67d23662.png" },
-  { type: "image", src: "/carousel/handbag_collection_stacked_grey_9a4d2593.png" },
-  { type: "image", src: "/carousel/mediterranean_woman_new_shadow_9d6bec31.jpg" },
+  { type: "image", src: "/carousel/card-11.jpg" },
+  { type: "image", src: "/carousel/card-12.jpg" },
+  { type: "image", src: "/carousel/card-13.jpg" },
+  { type: "image", src: "/carousel/card-14.jpg" },
 ];
