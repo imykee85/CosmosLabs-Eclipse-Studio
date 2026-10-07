@@ -24,5 +24,7 @@ export default function ProjectGate({ children }: { children: React.ReactNode })
     return () => { live = false; };
   }, [router]);
 
-  return ok ? <>{children}</> : null;
+  // While the project is being checked, paint an empty themed screen rather than nothing: phone browsers tint their bars from the first
+  // paint, and with nothing there they picked up the black page behind it, even in light mode.
+  return ok ? <>{children}</> : <div className="ws-root" style={{ minHeight: "100dvh", background: "var(--a-bg)" }} aria-busy="true" />;
 }
