@@ -6,7 +6,7 @@ import {
   addEdge, Background, BackgroundVariant, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow,
   type Connection, type Edge, type NodeMouseHandler,
 } from "@xyflow/react";
-import { Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
+import { Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
 import { deleteTemplate, instantiate, loadCanvas, loadTemplates, newNode, NODE_GROUPS, saveCanvas, saveTemplate, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
 import { CanvasCtx } from "./CanvasContext";
 import { nodeTypes } from "./nodes";
@@ -41,6 +41,7 @@ function Inner({ projectId }: { projectId: string }) {
   const [query, setQuery] = useState("");
   const [templates, setTemplates] = useState<CanvasTemplate[]>([]);
   const [tplName, setTplName] = useState("");
+  const [full, setFull] = useState(false);
   const [hint, setHint] = useState(true);
   const [focused, setFocused] = useState<string | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -141,12 +142,22 @@ function Inner({ projectId }: { projectId: string }) {
     setTplName("");
   }
 
+  // Full screen covers the rest of the app (a fixed layer rather than the browser's Fullscreen API, which phones do not offer).
+  useEffect(() => {
+    if (!full) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setFull(false); };
+    window.addEventListener("keydown", esc);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", esc); };
+  }, [full]);
+
   const q = query.trim().toLowerCase();
   const groups = NODE_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !q || i.label.toLowerCase().includes(q)) })).filter((g) => g.items.length);
 
   return (
     <CanvasCtx.Provider value={{ focus }}>
-      <div className="cv-wrap" ref={wrap} onWheelCapture={() => { flight.current++; }} onPointerDownCapture={() => { flight.current++; }}>
+      <div className={`cv-wrap ${full ? "is-full" : ""}`} ref={wrap} onWheelCapture={() => { flight.current++; }} onPointerDownCapture={() => { flight.current++; }}>
         <ReactFlow
           nodes={nodes} edges={edges} nodeTypes={nodeTypes}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection}
@@ -213,7 +224,9 @@ function Inner({ projectId }: { projectId: string }) {
             )}
           </Panel>
           <Panel position="top-right" className="cv-panel">
-            <button type="button" className="cv-fit" onClick={overview} aria-label="Show everything" title="Show everything"><Maximize2 size={15} /></button>
+            <button type="button" className="cv-fit" onClick={() => setFull((f) => !f)} aria-pressed={full} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen (Esc)" : "Full screen"}>
+              {full ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            </button>
           </Panel>
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} />
           <Controls showInteractive={false} position="bottom-left" />

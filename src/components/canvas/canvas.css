@@ -117,3 +117,7 @@
   .cv-pop { width: min(340px, calc(100vw - 48px)); max-height: calc(100dvh - 58px - 82px - 130px); }
   .cv-btns { gap: 6px; } .cv-add { padding: 0 10px; font-size: 13px; }
 }
+
+/* full screen: the canvas covers the whole app */
+.cv-wrap.is-full { position: fixed; inset: 0; z-index: 1000; height: 100dvh; min-height: 0; border: 0; border-radius: 0; }
+.cv-wrap.is-full .cv-pop { max-height: calc(100dvh - 120px); }
