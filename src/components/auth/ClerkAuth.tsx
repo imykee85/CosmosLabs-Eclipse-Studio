@@ -70,6 +70,16 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
       }
     },
 
+    async resend() {
+      try {
+        if (!upLoaded) return loading;
+        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+        return { notice: "We sent you a new code." };
+      } catch (err) {
+        return { error: message(err) };
+      }
+    },
+
     async forgot(email) {
       try {
         if (!inLoaded) return loading;

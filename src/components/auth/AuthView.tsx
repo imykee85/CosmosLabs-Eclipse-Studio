@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, MailCheck, Send } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 
 export type Mode = "signin" | "signup";
 export type Step = "credentials" | "verify" | "forgot" | "reset";
 
 // Each handler resolves to an error message, a next step, or nothing (success / redirect).
-export type Result = { error?: string; next?: Step } | void;
+export type Result = { error?: string; next?: Step; notice?: string } | void;
 export type Handlers = {
   credentials: (email: string, password: string) => Promise<Result>;
   google: () => Promise<Result>;
   verify: (code: string) => Promise<Result>;
+  resend: () => Promise<Result>;
   forgot: (email: string) => Promise<Result>;
   reset: (code: string, password: string) => Promise<Result>;
 };
@@ -42,13 +43,16 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   async function run(fn: () => Promise<Result>) {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const res = await fn();
       if (res?.error) setError(res.error);
+      if (res?.notice) setNotice(res.notice);
       if (res?.next) {
         setStep(res.next);
         setCode("");
@@ -69,9 +73,9 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
   }
 
   const c = copy[mode];
-  const title = step === "verify" ? "check your email" : step === "forgot" ? "reset password" : step === "reset" ? "new password" : c.title;
+  const title = step === "verify" ? "check your inbox" : step === "forgot" ? "reset password" : step === "reset" ? "new password" : c.title;
   const intro =
-    step === "verify" ? `We sent a code to ${email}. Enter it below.`
+    step === "verify" ? `We sent a confirmation code to ${email}.`
     : step === "forgot" ? "Enter your email and we will send you a code."
     : step === "reset" ? `Enter the code we sent to ${email} and choose a new password.`
     : c.intro;
@@ -111,7 +115,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
   );
 
   return (
-    <section className="login-card auth-card" aria-labelledby="auth-title">
+    <section className={`login-card auth-card ${step === "verify" ? "is-verify" : ""}`} aria-labelledby="auth-title">
       <Link href="/" className="auth-logo" aria-label="Eclipse home"><LogoMark size={56} /></Link>
       <h1 id="auth-title">{title}</h1>
       <p className="login-intro">{intro}</p>
@@ -137,6 +141,14 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
           </button>
           <div className="auth-divider"><span>or continue with email</span></div>
         </>
+      )}
+
+      {step === "verify" && (
+        <ol className="auth-steps">
+          <li><span>1</span> Open the email from Eclipse.</li>
+          <li><span>2</span> Copy your confirmation code.</li>
+          <li><span>3</span> Enter it below and you land on your welcome steps.</li>
+        </ol>
       )}
 
       <form onSubmit={onSubmit} className="auth-form" noValidate={false}>
@@ -183,10 +195,26 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
 
         {error && <p className="auth-error" role="alert">{error}</p>}
 
+        {notice && <p className="auth-notice" role="status">{notice}</p>}
+
         <button className="auth-submit" type="submit" disabled={busy}>
           {busy ? "Please wait…" : step === "credentials" ? c.submit : step === "verify" ? "Verify email" : step === "forgot" ? "Send code" : "Reset password"}
         </button>
       </form>
+
+      {step === "verify" && (
+        <div className="auth-sent">
+          <span className="auth-sent-ico"><MailCheck size={18} /></span>
+          <div>
+            <b>Verify your email to start creating</b>
+            <p>The code is on its way to {email}. It can take a minute.</p>
+            <div className="auth-sent-row">
+              <button type="button" className="auth-resend" disabled={busy} onClick={() => run(handlers.resend)}><Send size={14} /> Send the code again</button>
+              <small>Check the spam folder too.</small>
+            </div>
+          </div>
+        </div>
+      )}
 
       {step === "credentials" ? (
         <p className="auth-switch">
@@ -198,9 +226,13 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
         </p>
       ) : (
         <p className="auth-switch">
-          <button type="button" className="auth-link auth-link-strong" onClick={() => { setError(""); setStep("credentials"); }}>
-            Back to {mode === "signin" ? "sign in" : "sign up"}
-          </button>
+          {step === "verify" ? (
+            <>Wrong address? <button type="button" className="auth-link auth-link-strong" onClick={() => { setError(""); setNotice(""); setStep("credentials"); }}>Sign up again</button></>
+          ) : (
+            <button type="button" className="auth-link auth-link-strong" onClick={() => { setError(""); setStep("credentials"); }}>
+              Back to {mode === "signin" ? "sign in" : "sign up"}
+            </button>
+          )}
         </p>
       )}
     </section>

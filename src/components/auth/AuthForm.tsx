@@ -17,8 +17,7 @@ function DemoAuth({ mode }: { mode: Mode }) {
     async credentials(email, password) {
       if (mode === "signup") {
         if (password.length < 8) return { error: "Use a password of at least 8 characters." };
-        router.push("/onboarding");
-        return;
+        return { next: "verify" }; // demo mode shows the inbox step too; any 6-digit code gets you in
       }
       if (email.trim().toLowerCase() === DEMO_LOGIN.email && password === DEMO_LOGIN.password) {
         router.push("/dashboard");
@@ -27,7 +26,11 @@ function DemoAuth({ mode }: { mode: Mode }) {
       return { error: `Demo mode: sign in with ${DEMO_LOGIN.email} / ${DEMO_LOGIN.password}, or create an account.` };
     },
     google: async () => ({ error: "Google sign-in is not available in demo mode." }),
-    verify: unavailable,
+    verify: async (code) => {
+      if (!/^\d{6}$/.test(code.trim())) return { error: "Demo mode: enter any 6-digit code, for example 123456." };
+      router.push("/onboarding");
+    },
+    resend: async () => ({ notice: "Demo mode: no email is sent. Use any 6-digit code." }),
     forgot: unavailable,
     reset: unavailable,
   };
