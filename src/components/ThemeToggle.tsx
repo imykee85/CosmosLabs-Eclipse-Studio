@@ -33,6 +33,9 @@ export default function ThemeToggle({ className }: { className?: string }) {
     if (next) document.documentElement.setAttribute("data-app-theme", "light");
     else document.documentElement.removeAttribute("data-app-theme");
     setBarColor(next);
+    // iPhone Safari re-reads the colour of its bars only when the page loads (the tag above is ignored by newer versions), so on iOS the
+    // choice is saved and the page reloads; everywhere else the switch is instant.
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) setTimeout(() => window.location.reload(), 120);
     try { localStorage.setItem(KEY, next ? "light" : "dark"); } catch {}
   }
 
