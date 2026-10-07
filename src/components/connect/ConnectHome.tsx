@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowUp, Cloud, Hash, Music2, Plug, Plus, Send, Share2, Wrench } from "lucide-react";
+import { ArrowUp, Brain, Plus, Puzzle, Wrench } from "lucide-react";
+import BrandLogo from "./brands";
 import ModelPicker from "./ModelPicker";
 import "./connect.css";
 
@@ -14,7 +15,7 @@ export default function ConnectHome() {
     <div className="cn-wrap">
       <div className="cn-hero">
         <div className="cn-dests" aria-hidden="true">
-          <span><Music2 size={20} /></span><span><Share2 size={20} /></span><span><Send size={20} /></span><span><Hash size={20} /></span><span><Cloud size={20} /></span>
+          {["tiktok", "instagram", "telegram", "slack", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={48} />)}
         </div>
         <h1>Where should it go next?</h1>
         <p>Publish, schedule and send your finished content from one place.</p>
@@ -22,8 +23,12 @@ export default function ConnectHome() {
 
       <div className="cn-dock">
         <div className="cn-chips">
+          <button type="button" className="cn-chip" disabled title="Skills are coming soon"><Puzzle size={15} /> Skills <em>Soon</em></button>
           <button type="button" className="cn-chip" disabled title="Tools are coming soon"><Wrench size={15} /> Tools <em>Soon</em></button>
-          <Link href="/connect/apps" className="cn-chip"><Plug size={15} /> Connect apps</Link>
+          <button type="button" className="cn-chip" disabled title="Memory is coming soon"><Brain size={15} /> Memory <em>Soon</em></button>
+          <Link href="/connect/apps" className="cn-chip">
+            <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connect apps
+          </Link>
         </div>
 
         <form className="cn-box" onSubmit={(e) => e.preventDefault()}>
