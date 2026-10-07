@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownAZ, BadgeCheck, ChevronLeft, Clock, Film, Image as ImageIcon, Inbox, LayoutGrid, List, Search, Timer, Zap } from "lucide-react";
+import { ArrowDownAZ, BadgeCheck, ChevronLeft, Clock, Inbox, LayoutGrid, List, Puzzle, Search, Timer } from "lucide-react";
 import { skills } from "@/lib/skills";
 import "@/components/connect/connect.css";
 import "./skills.css";
@@ -35,7 +35,7 @@ export default function SkillsView() {
         <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
         <div>
           <h1>Skills</h1>
-          <p>Ready-made recipes your agents can run for you. Skills open soon.</p>
+          <p>Ready-made recipes your agents can run for you.</p>
         </div>
       </header>
 
@@ -66,7 +66,6 @@ export default function SkillsView() {
           <Inbox size={44} strokeWidth={1.4} aria-hidden="true" />
           <h2>No skills of your own yet</h2>
           <p>Skills you save or create will appear here.</p>
-          <em className="ws-soon">Coming soon</em>
         </div>
       ) : (
         <section aria-labelledby="sk-by">
@@ -77,12 +76,11 @@ export default function SkillsView() {
                 <div className="sk-art">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={s.image} alt="" loading="lazy" decoding="async" />
-                  <em className="ws-soon">Soon</em>
                 </div>
                 <div className="sk-meta">
-                  <span className="sk-ico">{s.kind === "video" ? <Film size={18} /> : <ImageIcon size={18} />}</span>
+                  <span className="sk-ico"><Puzzle size={18} /></span>
                   <span className="sk-name"><b>{s.name}</b><small>{s.blurb}</small></span>
-                  <span className="sk-tags"><span><Clock size={15} /> {s.minutes} min</span><span><Zap size={15} /> Skill</span></span>
+                  <span className="sk-tags"><span><Clock size={15} /> {s.minutes} min</span><span><Puzzle size={15} /> Skill</span></span>
                 </div>
               </li>
             ))}

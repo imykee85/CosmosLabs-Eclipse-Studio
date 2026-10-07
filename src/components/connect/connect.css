@@ -141,3 +141,10 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
   .cn-chips { flex-wrap: nowrap; overflow-x: auto; margin-right: -18px; padding-right: 18px; scrollbar-width: none; }
   .cn-chips::-webkit-scrollbar { display: none; }
 }
+
+/* everything responds to hover and press, even where it does not navigate yet */
+.cn-plus, .cn-round, .cn-send, .cn-chip, .cn-view { cursor: pointer; transition: background .18s, border-color .18s, transform .12s; }
+.cn-plus:hover { background: var(--a-line3); } .cn-round:hover { border-color: var(--a-line4); } .cn-send:hover { background: #d90b0b; }
+.cn-plus:active, .cn-round:active, .cn-send:active, .cn-view:active { transform: scale(.94); } .cn-chip:active { transform: scale(.97); }
+.cn-row { transition: border-color .18s, background .18s; } .cn-row:hover { border-color: var(--a-line3); }
+.cn-flow { cursor: pointer; transition: border-color .18s, transform .18s; } .cn-flow:hover { border-color: var(--a-line4); transform: translateY(-2px); }

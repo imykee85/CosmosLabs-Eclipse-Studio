@@ -1,5 +1,5 @@
 // Tools: small single-purpose creative tools (a character sheet, a thumbnail maker...) that agents and you can open from Connect.
-// Everything is "Soon": each one needs the generation backend. Wording is Eclipse's own; previews are Eclipse's sample content.
+// Nothing opens yet: each one needs the generation backend. Wording is Eclipse's own; previews are Eclipse's sample content.
 export type Tool = { id: string; name: string; blurb: string; kind: "Photo" | "Video"; image: string; headline: string };
 
 export const tools: Tool[] = [

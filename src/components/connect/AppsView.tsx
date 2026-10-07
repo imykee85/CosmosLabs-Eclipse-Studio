@@ -62,7 +62,7 @@ export default function AppsView() {
         <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
         <div>
           <h1>Connectors</h1>
-          <p>Link the apps where you publish, store files and chat. Connections open soon.</p>
+          <p>Link the apps where you publish, store files and chat.</p>
         </div>
       </header>
 
@@ -89,7 +89,6 @@ export default function AppsView() {
           <Inbox size={44} strokeWidth={1.4} aria-hidden="true" />
           <h2>Nothing connected yet</h2>
           <p>Connectors you add will appear here.</p>
-          <em className="ws-soon">Connections are coming soon</em>
         </div>
       ) : (
         <>
@@ -115,7 +114,7 @@ export default function AppsView() {
                   <li key={c.name} className="cn-row">
                     <BrandLogo brand={c.brand} size={58} />
                     <span className="cn-text"><b>{c.name}</b><small>{c.blurb}</small></span>
-                    <button type="button" className="cn-plus" disabled aria-label={`Connect ${c.name} (coming soon)`} title="Coming soon"><Plus size={20} /></button>
+                    <button type="button" className="cn-plus" aria-label={`Connect ${c.name}`}><Plus size={20} /></button>
                   </li>
                 ))}
               </ul>

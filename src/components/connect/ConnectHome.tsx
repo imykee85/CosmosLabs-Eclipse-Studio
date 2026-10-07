@@ -23,9 +23,9 @@ export default function ConnectHome() {
 
       <div className="cn-dock">
         <div className="cn-chips">
-          <Link href="/skills" className="cn-chip"><Puzzle size={15} /> Skills <em>Soon</em></Link>
-          <Link href="/tools" className="cn-chip"><Wrench size={15} /> Tools <em>Soon</em></Link>
-          <Link href="/memory" className="cn-chip"><Brain size={15} /> Memory <em>Soon</em></Link>
+          <Link href="/skills" className="cn-chip"><Puzzle size={15} /> Skills</Link>
+          <Link href="/tools" className="cn-chip"><Wrench size={15} /> Tools</Link>
+          <Link href="/memory" className="cn-chip"><Brain size={15} /> Memory</Link>
           <Link href="/connect/apps" className="cn-chip">
             <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connectors
           </Link>
@@ -33,11 +33,11 @@ export default function ConnectHome() {
 
         <form className="cn-box" onSubmit={(e) => e.preventDefault()}>
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Message box"
-            placeholder="Ask to publish or share your content (coming soon)..." />
+            placeholder="Ask to publish or share your content..." />
           <div className="cn-tools">
-            <button type="button" className="cn-round" disabled aria-label="Attach" title="Attaching is coming soon"><Plus size={18} /></button>
+            <button type="button" className="cn-round" aria-label="Attach"><Plus size={18} /></button>
             <ModelPicker />
-            <button type="submit" className="cn-send" disabled aria-label="Send" title="Chat is coming soon"><ArrowUp size={18} /></button>
+            <button type="submit" className="cn-send" aria-label="Send"><ArrowUp size={18} /></button>
           </div>
         </form>
       </div>

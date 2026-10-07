@@ -37,23 +37,22 @@ export default function ToolsView() {
         <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
         <div>
           <h1>Tools</h1>
-          <p>Small tools for one job each. Tools open soon.</p>
+          <p>Small tools for one job each.</p>
         </div>
       </header>
 
       <section className="tl-hero" aria-label="Describe a tool">
         <h2><span className="tl-mark"><Wrench size={22} /></span> What do you want to build?</h2>
         <form className="tl-box" onSubmit={(e) => e.preventDefault()}>
-          <textarea rows={2} disabled placeholder="Describe a tool, for example: turn my product photo into a lookbook" aria-label="Describe a tool" />
+          <textarea rows={2} placeholder="Describe a tool, for example: turn my product photo into a lookbook" aria-label="Describe a tool" />
           <div className="tl-row">
-            <button type="button" className="tl-plus" disabled aria-label="Attach" title="Coming soon"><Plus size={18} /></button>
+            <button type="button" className="tl-plus" aria-label="Attach"><Plus size={18} /></button>
             <span className="tl-opt"><Shapes size={15} /> Auto</span>
             <span className="tl-opt"><Type size={15} /> Type</span>
             <span className="tl-opt tl-hide"><Film size={15} /> Style</span>
-            <button type="submit" className="tl-send" disabled aria-label="Create" title="Coming soon"><ArrowUp size={18} /></button>
+            <button type="submit" className="tl-send" aria-label="Create"><ArrowUp size={18} /></button>
           </div>
         </form>
-        <p className="tl-note"><em className="ws-soon">Soon</em> Describing your own tool opens when generation is connected.</p>
       </section>
 
       <div className="cn-bar">
@@ -84,12 +83,11 @@ export default function ToolsView() {
           <Inbox size={44} strokeWidth={1.4} aria-hidden="true" />
           <h2>No tools of your own yet</h2>
           <p>Tools you build or save will appear here.</p>
-          <em className="ws-soon">Coming soon</em>
         </div>
       ) : (
         <section aria-labelledby="tl-h">
           <div className="tl-headrow">
-            <h2 id="tl-h" className="cn-h2"><LayoutGrid size={22} className="cn-badge" /> {tab === "explore" && !query ? "Hot tools" : "All tools"}</h2>
+            <h2 id="tl-h" className="cn-h2"><LayoutGrid size={22} className="cn-badge" /> {tab === "explore" && !query ? "Featured" : "All tools"}</h2>
             {tab === "explore" && !query && <button type="button" className="tl-all" onClick={() => setTab("eclipse")}>See all <ChevronRight size={18} /></button>}
           </div>
           <ul className={`sk-list ${view === "list" ? "is-list" : ""}`}>
@@ -99,12 +97,11 @@ export default function ToolsView() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={t.image} alt="" loading="lazy" decoding="async" />
                   <b className="tl-headline">{t.headline}</b>
-                  <span className="tl-avail">Available soon in Eclipse</span>
                 </div>
                 <div className="sk-meta">
                   <span className="sk-ico">{t.kind === "Video" ? <Film size={18} /> : <ImageIcon size={18} />}</span>
                   <span className="sk-name"><b>{t.name}</b><small>{t.blurb}</small></span>
-                  <button type="button" className="tl-open" disabled title="Coming soon">Open</button>
+                  <button type="button" className="tl-open">Open</button>
                 </div>
               </li>
             ))}

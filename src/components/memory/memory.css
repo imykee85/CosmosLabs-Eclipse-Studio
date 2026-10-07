@@ -3,10 +3,13 @@
 .mm-wrap { position: relative; height: calc(100dvh - 63px); min-height: 520px; overflow: hidden; color: var(--a-fg);
   background: radial-gradient(circle at 50% 52%, rgba(192, 7, 7, .08), transparent 55%), radial-gradient(var(--a-line) 1px, transparent 1px) 0 0 / 22px 22px, var(--a-bg); }
 .mm-top { position: absolute; z-index: 3; top: 16px; left: 18px; right: 18px; display: flex; align-items: center; justify-content: space-between; }
+.mm-left { display: flex; align-items: center; gap: 6px; }
+.mm-back { display: grid; place-items: center; width: 40px; height: 40px; margin-left: -8px; border-radius: 50%; color: var(--a-fg); }
+.mm-back:hover { background: var(--a-hover); }
 .mm-title { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); font-size: 15px; font-weight: 500; }
 .mm-import { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 14px; font-weight: 500; }
-.mm-import:disabled { opacity: .55; }
-.mm-import em { padding: 1px 7px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
+.mm-import { cursor: pointer; transition: background .18s, transform .12s; }
+.mm-import:hover { background: #d90b0b; } .mm-import:active, .mm-send:active, .mm-plus:active { transform: scale(.94); }
 
 .mm-stage { position: absolute; inset: 0 max(0px, calc(50% - 460px)); }
 .mm-stage > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -27,14 +30,13 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 .mm-plus, .mm-send { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; }
 .mm-plus { background: var(--a-active); color: var(--a-fg); }
 .mm-send { background: #c00707; color: #fff; }
-.mm-plus:disabled, .mm-send:disabled { opacity: .55; cursor: default; }
+.mm-plus, .mm-send { cursor: pointer; transition: background .18s, transform .12s; } .mm-send:hover { background: #d90b0b; } .mm-plus:hover { background: var(--a-line2); }
 
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .ws-main:has(.mm-wrap) { padding: 0; }
   .mm-wrap { height: calc(100dvh - 58px - 74px - env(safe-area-inset-bottom, 0px)); min-height: 440px; }
   .mm-stage { inset: 0; }
   .mm-title { display: none; }
-  .mm-top { justify-content: flex-end; }
   .mm-node { width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 16px; }
   .mm-orb { width: 96px; height: 96px; margin: -48px 0 0 -48px; }
   .mm-add { bottom: 14px; }

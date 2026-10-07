@@ -1,4 +1,4 @@
-// Apps Connect will link to. Everything here is "Soon": real connections need sign-in with each service and a backend.
+// Apps Connect will link to. Nothing here connects yet: real connections need sign-in with each service and a backend.
 // Descriptions are Eclipse's own wording. Add or remove entries freely; `brand` is mapped to a logo in components/connect/brands.tsx.
 export type Connector = { name: string; blurb: string; brand: string };
 
