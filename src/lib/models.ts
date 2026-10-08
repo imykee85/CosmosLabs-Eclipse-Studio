@@ -49,7 +49,7 @@ export const MODELS: ImageModel[] = [
   m({ id: "recraft_v4_1", label: "Recraft V4.1", blurb: "Illustration and design, 1K.", endpoint: "recraft/v4.1/text-to-image", ratios: ["1:1", "2:1", "1:2", "3:2", "2:3", "4:3", "3:4", "5:4", "4:5", "6:10", "14:10", "10:14", "16:9", "9:16"], resolutions: ["1k"], defaultResolution: "1k" }),
   // recraft_v4_1_pro: request page read (2k only, same 14 shapes as V4.1, unknown fields rejected); not yet test-rendered.
   m({ id: "recraft_v4_1_pro", label: "Recraft V4.1 Pro", blurb: "Recraft V4.1 at 2K.", endpoint: "recraft/v4.1/pro/text-to-image", ratios: ["1:1", "2:1", "1:2", "3:2", "2:3", "4:3", "3:4", "5:4", "4:5", "6:10", "14:10", "10:14", "16:9", "9:16"], resolutions: ["2k"], defaultResolution: "2k" }),
-  // recraft_v4_1_utility: page NOT read; fields inferred from its three sibling Recraft pages (1k only, the same 14 shapes). Verify before relying on it.
+  // recraft_v4_1_utility: request page read (1k only, the same 14 shapes); not yet test-rendered.
   m({ id: "recraft_v4_1_utility", label: "Recraft V4.1 Utility", blurb: "Clean product shots and mockups.", endpoint: "recraft/v4.1/utility/text-to-image", ratios: ["1:1", "2:1", "1:2", "3:2", "2:3", "4:3", "3:4", "5:4", "4:5", "6:10", "14:10", "10:14", "16:9", "9:16"], resolutions: ["1k"], defaultResolution: "1k" }),
   // recraft_v4_1_utility_pro: request page read (2k only, the same 14 shapes); not yet test-rendered.
   m({ id: "recraft_v4_1_utility_pro", label: "Recraft V4.1 Utility Pro", blurb: "Utility variant at 2K.", endpoint: "recraft/v4.1/utility/pro/text-to-image", ratios: ["1:1", "2:1", "1:2", "3:2", "2:3", "4:3", "3:4", "5:4", "4:5", "6:10", "14:10", "10:14", "16:9", "9:16"], resolutions: ["2k"], defaultResolution: "2k" }),
