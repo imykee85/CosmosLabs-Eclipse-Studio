@@ -46,7 +46,8 @@ export const MODELS: ImageModel[] = [
   m({ id: "recraft_v4_1_pro", label: "Recraft V4.1 Pro", blurb: "Recraft V4.1 at 2K.", endpoint: "recraft/v4.1/pro/text-to-image", ratios: ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"] }),
   m({ id: "recraft_v4_1_utility", label: "Recraft V4.1 Utility", blurb: "Clean product shots and mockups.", endpoint: "recraft/v4.1/utility/text-to-image", ratios: ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"] }),
   m({ id: "recraft_v4_1_utility_pro", label: "Recraft V4.1 Utility Pro", blurb: "Utility variant at 2K.", endpoint: "recraft/v4.1/utility/pro/text-to-image", ratios: ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"] }),
-  m({ id: "qwen_image_3", label: "Qwen Image 3", blurb: "Detailed text-to-image.", endpoint: "alibaba/qwen-image-3/text-to-image", ratios: WIDE }),
+  // qwen_image_3: request page read (1k/2k PNG, the 10 shapes below, no batch field, unknown fields are rejected); not yet test-rendered.
+  m({ id: "qwen_image_3", label: "Qwen Image 3", blurb: "Detailed text-to-image.", endpoint: "alibaba/qwen-image-3/text-to-image", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k" }),
   m({ id: "qwen_image_3_edit", label: "Qwen Image 3 Edit", blurb: "Edits an existing image (needs a reference image).", endpoint: "alibaba/qwen-image-3/edit", ratios: WIDE, maxReferences: 1 }),
   m({ id: "ideogram_4", label: "Ideogram 4.0", blurb: "Strong typography in images.", endpoint: "ideogram/v4.0", ratios: ["1:1", "4:5", "5:4", "2:3", "3:2", "9:16", "16:9", "3:4", "4:3"] }),
   m({ id: "z_image_turbo", label: "Z-Image Turbo", blurb: "Very fast drafts.", endpoint: "z-image/turbo", ratios: WIDE }),
