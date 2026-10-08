@@ -22,3 +22,4 @@ Higgsfield endpoint/model/auth live in `src/lib/higgsfield.ts` (overridable via 
 ## Deploy
 Import the repo in Vercel, set the same env vars, and run `prisma db push` against the production database.
 
+
