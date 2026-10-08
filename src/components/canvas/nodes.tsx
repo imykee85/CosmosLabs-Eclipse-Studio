@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
-import { Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
+import { Coins, Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
 import { buildPrompt, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
 import { readCurrentProject } from "@/lib/projects";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
@@ -168,7 +168,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
           <select className="cv-input nodrag" value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
             {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
-          <button type="button" className="cv-go nodrag" disabled={busy || !model} onClick={run}>{busy ? "Generating" : "Generate"}</button>
+          <button type="button" className="cv-go nodrag" disabled={busy || !model} onClick={run}>{busy ? "Generating" : model?.credits != null ? <>Generate <span className="cv-cost"><Coins size={12} />{model.credits}</span></> : "Generate"}</button>
         </div>
         {data.error && <p className="cv-error" role="alert">{data.error}</p>}
       </div>

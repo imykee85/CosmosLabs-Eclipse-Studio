@@ -121,3 +121,5 @@
 /* full screen: the canvas covers the whole app */
 .cv-wrap.is-full { position: fixed; inset: 0; z-index: 1000; height: 100dvh; min-height: 0; border: 0; border-radius: 0; }
 .cv-wrap.is-full .cv-pop { max-height: calc(100dvh - 120px); }
+
+.cv-cost { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding-left: 7px; border-left: 1px solid rgba(255,255,255,.4); font-weight: 600; }

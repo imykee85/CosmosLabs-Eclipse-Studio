@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, ImageIcon, Layers, Loader2, Workflow } from "lucide-react";
+import { ArrowUp, Coins, ImageIcon, Layers, Loader2, Workflow } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
@@ -127,7 +127,7 @@ export default function CreateStudio() {
             </select>
           </label>
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : <>Generate <ArrowUp size={16} /></>}
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null ? <>Generate <span className="cr-cost" title={`${model.credits} credits`}><Coins size={14} />{model.credits}</span></> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>
