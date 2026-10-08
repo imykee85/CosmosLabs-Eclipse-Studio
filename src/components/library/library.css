@@ -16,3 +16,11 @@
 .lib-roles button { height: 36px; padding: 0 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .18s, color .18s; }
 .lib-roles button:hover:not(.is-active) { border-color: var(--a-line4); color: var(--a-fg); }
 .lib-roles button.is-active { border-color: #c00707; background: var(--a-sel); color: var(--a-fg); }
+
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 22px; }
+.lib-tile { display: grid; gap: 8px; color: var(--a-muted); font-size: 13px; text-decoration: none; }
+.lib-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--a-line2); border-radius: 20px; background: var(--a-card); transition: border-color .18s, transform .18s; }
+.lib-tile:hover img { border-color: var(--a-line4); }
+.lib-tile:active img { transform: scale(.98); }
+.lib-tile span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 800px) { .lib-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
