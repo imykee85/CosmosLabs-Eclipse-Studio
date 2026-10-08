@@ -73,9 +73,9 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
   }
 
   const c = copy[mode];
-  const title = step === "verify" ? "check your inbox" : step === "forgot" ? "reset password" : step === "reset" ? "new password" : c.title;
+  const title = step === "verify" ? (mode === "signup" ? "check your inbox" : "one more step") : step === "forgot" ? "reset password" : step === "reset" ? "new password" : c.title;
   const intro =
-    step === "verify" ? `We sent a confirmation code to ${email}.`
+    step === "verify" ? (mode === "signup" ? `We sent a confirmation code to ${email}.` : "Enter the verification code to finish signing in.")
     : step === "forgot" ? "Enter your email and we will send you a code."
     : step === "reset" ? `Enter the code we sent to ${email} and choose a new password.`
     : c.intro;
@@ -115,7 +115,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
   );
 
   return (
-    <section className={`login-card auth-card ${step === "verify" ? "is-verify" : ""}`} aria-labelledby="auth-title">
+    <section className={`login-card auth-card ${step === "verify" && mode === "signup" ? "is-verify" : ""}`} aria-labelledby="auth-title">
       <Link href="/" className="auth-logo" aria-label="Eclipse home"><LogoMark size={56} /></Link>
       <h1 id="auth-title">{title}</h1>
       <p className="login-intro">{intro}</p>
@@ -143,7 +143,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
         </>
       )}
 
-      {step === "verify" && (
+      {step === "verify" && mode === "signup" && (
         <ol className="auth-steps">
           <li><span>1</span> Open the email from Eclipse.</li>
           <li><span>2</span> Copy your confirmation code.</li>
@@ -196,13 +196,16 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
         {error && <p className="auth-error" role="alert">{error}</p>}
 
         {notice && <p className="auth-notice" role="status">{notice}</p>}
+        {step === "verify" && mode === "signin" && (
+          <button type="button" className="auth-link" disabled={busy} onClick={() => run(handlers.resend)}>Send the code again</button>
+        )}
 
         <button className="auth-submit" type="submit" disabled={busy}>
-          {busy ? "Please wait…" : step === "credentials" ? c.submit : step === "verify" ? "Verify email" : step === "forgot" ? "Send code" : "Reset password"}
+          {busy ? "Please wait…" : step === "credentials" ? c.submit : step === "verify" ? (mode === "signup" ? "Verify email" : "Continue") : step === "forgot" ? "Send code" : "Reset password"}
         </button>
       </form>
 
-      {step === "verify" && (
+      {step === "verify" && mode === "signup" && (
         <div className="auth-sent">
           <span className="auth-sent-ico"><MailCheck size={18} /></span>
           <div>
@@ -226,7 +229,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
         </p>
       ) : (
         <p className="auth-switch">
-          {step === "verify" ? (
+          {step === "verify" && mode === "signup" ? (
             <>Wrong address? <button type="button" className="auth-link auth-link-strong" onClick={() => { setError(""); setNotice(""); setStep("credentials"); }}>Sign up again</button></>
           ) : (
             <button type="button" className="auth-link auth-link-strong" onClick={() => { setError(""); setStep("credentials"); }}>
