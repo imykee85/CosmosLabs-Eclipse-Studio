@@ -4,13 +4,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp, ImageIcon, Layers, Loader2, Workflow } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
-import { DEFAULT_MODEL_ID, IMAGE_MODELS, MODEL_STORAGE_KEY, getModel } from "@/lib/image-models";
+import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
 import "./create.css";
 
-const RATIOS = ["1:1", "4:5", "9:16", "16:9"];
 // Widest the preview gets for each shape, so tall ones do not run off the screen.
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 480, "4:5": 420, "9:16": 300, "16:9": 680 };
+const previewWidth = (r: string) => PREVIEW_WIDTH[r] ?? 480;
 
 type Result = { id: string; prompt: string; imageUrl: string; ratio: string };
 
@@ -18,18 +18,25 @@ export default function CreateStudio() {
   const router = useRouter();
   const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
   const [ratio, setRatio] = useState("1:1");
-  const [model, setModel] = useState(DEFAULT_MODEL_ID);
+  const models = useModels();
+  const [modelId, setModelId] = useState("");
+  const model = models?.find((m) => m.id === modelId) ?? null;
   const [busy, setBusy] = useState<{ prompt: string; ratio: string } | null>(null);
   const [error, setError] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const box = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    try { setModel(getModel(localStorage.getItem(MODEL_STORAGE_KEY)).id); } catch {}
-  }, []);
+    if (models?.length) setModelId(rememberedModel(models)?.id ?? "");
+  }, [models]);
+
+  // Keep the chosen shape one the chosen model supports.
+  useEffect(() => {
+    if (model && !model.ratios.includes(ratio)) setRatio(model.ratios[0]);
+  }, [model, ratio]);
 
   function pickModel(id: string) {
-    setModel(id);
+    setModelId(id);
     try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {}
   }
 
@@ -43,14 +50,14 @@ export default function CreateStudio() {
 
   async function generate() {
     const text = prompt.trim();
-    if (!text || busy) return;
+    if (!text || busy || !model) return;
     setError("");
     setBusy({ prompt: text, ratio });
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model }),
+        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -99,19 +106,19 @@ export default function CreateStudio() {
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
           </button>
-          <label className="cr-chip cr-select" title={getModel(model).blurb}>
+          <label className="cr-chip cr-select" title={model?.blurb}>
             <span className="sr-only">Image model</span>
-            <select value={model} onChange={(e) => pickModel(e.target.value)} aria-label="Image model">
-              {IMAGE_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            <select value={modelId} onChange={(e) => pickModel(e.target.value)} aria-label="Image model">
+              {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label>
           <label className="cr-chip cr-select">
             <span className="sr-only">Aspect ratio</span>
             <select value={ratio} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio">
-              {RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
+              {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
-          <button type="submit" className="cr-go" disabled={!prompt.trim() || !!busy}>
+          <button type="submit" className="cr-go" disabled={!prompt.trim() || !!busy || !model}>
             {busy ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
@@ -125,7 +132,7 @@ export default function CreateStudio() {
           const shown = busy ? null : results[0];
           const r = busy?.ratio ?? shown?.ratio ?? ratio;
           return (
-            <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: PREVIEW_WIDTH[r] }} aria-live="polite">
+            <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: previewWidth(r) }} aria-live="polite">
               {busy ? (
                 <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Creating your image…</p></div>
               ) : shown ? (

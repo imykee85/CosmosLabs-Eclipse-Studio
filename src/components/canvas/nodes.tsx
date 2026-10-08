@@ -2,8 +2,8 @@
 
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 import { Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
-import { buildPrompt, RATIOS, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
-import { DEFAULT_MODEL_ID, IMAGE_MODELS, MODEL_STORAGE_KEY, getModel } from "@/lib/image-models";
+import { buildPrompt, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
+import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { useCanvas } from "./CanvasContext";
 
 const META: Record<NodeKind, { title: string; icon: React.ReactNode }> = {
@@ -102,19 +102,23 @@ function ResultImg({ src }: { src: string }) {
 
 function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "generator" | "fullbody" }) {
   const { updateNodeData, getNodes, getEdges } = useReactFlow();
-  const ratio = data.ratio ?? (kind === "fullbody" ? "9:16" : "4:5");
-  const model = data.model ?? DEFAULT_MODEL_ID;
+  const models = useModels();
+  const model = models ? (models.find((m) => m.id === data.model) ?? rememberedModel(models) ?? null) : null;
+  const wanted = data.ratio ?? (kind === "fullbody" ? "9:16" : "4:5");
+  // A shape the chosen model cannot make is replaced in the picker (never silently at send time).
+  const ratio = model && !model.ratios.includes(wanted) ? model.ratios[0] : wanted;
   function pickModel(m: string) {
     updateNodeData(id, { model: m });
     try { localStorage.setItem(MODEL_STORAGE_KEY, m); } catch {}
   }
 
   async function run() {
+    if (!model) return;
     const prompt = buildPrompt(getNodes() as CNode[], getEdges(), id);
     if (!prompt) { updateNodeData(id, { error: "Wire in a text prompt, or describe an ingredient, first." }); return; }
     updateNodeData(id, { busy: true, error: undefined });
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspectRatio: ratio, model }) });
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspectRatio: ratio, model: model?.id }) });
       const out = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(res.status === 503 ? "Generating is switched off in preview mode." : out.error ?? "Something went wrong. Please try again.");
       updateNodeData(id, { busy: false, imageUrl: out.imageUrl });
@@ -131,14 +135,14 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
             : data.imageUrl ? <ResultImg src={data.imageUrl} />
             : <div className="cv-empty"><ImageIcon size={28} strokeWidth={1.4} /><span>{kind === "fullbody" ? "Full-body look appears here" : "Ready to generate"}</span></div>}
         </div>
-        <select className="cv-input nodrag" value={getModel(model).id} aria-label="Image model" onChange={(e) => pickModel(e.target.value)}>
-          {IMAGE_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        <select className="cv-input nodrag" value={model?.id ?? ""} aria-label="Image model" onChange={(e) => pickModel(e.target.value)}>
+          {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
         </select>
         <div className="cv-row">
           <select className="cv-input nodrag" value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
-            {RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
+            {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
-          <button type="button" className="cv-go nodrag" disabled={data.busy} onClick={run}>{data.busy ? "Generating" : "Generate"}</button>
+          <button type="button" className="cv-go nodrag" disabled={data.busy || !model} onClick={run}>{data.busy ? "Generating" : "Generate"}</button>
         </div>
         {data.error && <p className="cv-error" role="alert">{data.error}</p>}
       </div>
