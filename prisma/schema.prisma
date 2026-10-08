@@ -53,6 +53,17 @@ model Project {
   @@map("projects")
 }
 
+// One saved canvas per project and user (the graph as JSON), so a canvas follows the account across devices.
+model CanvasState {
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  data      Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([userId, projectId])
+  @@map("canvas_states")
+}
+
 // Append-only credit ledger. A user's balance is the sum of delta; credits live here, never in the payment provider.
 // PURCHASE rows carry the provider's payment id, and the unique pair makes a repeated webhook delivery a no-op.
 model CreditLedger {

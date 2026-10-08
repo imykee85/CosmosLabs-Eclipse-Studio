@@ -1,6 +1,7 @@
+import { clerkEnabled } from "./clerk-enabled";
 import type { Edge, Node } from "@xyflow/react";
 
-// Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser.
+// Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
 export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator";
 
 export type CanvasNodeData = {
@@ -131,12 +132,35 @@ export function loadCanvas(projectId: string): SavedCanvas | null {
 }
 
 export function saveCanvas(projectId: string, nodes: CNode[], edges: Edge[], viewport?: SavedCanvas["viewport"]) {
+  const payload: SavedCanvas = {
+    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, busy: false } })),
+    edges: edges.map(({ id, source, target }) => ({ id, source, target })),
+    viewport: viewport ?? null,
+  };
+  try { localStorage.setItem(key(projectId), JSON.stringify(payload)); } catch {}
+  pushToServer(projectId, payload);
+}
+
+// With sign-in on, every save is also sent to the account so the canvas follows it across devices. This browser keeps
+// its own copy too; if a send fails the copy is marked unsynced so the next load keeps it instead of an older server copy.
+const dirtyKey = (projectId: string) => `eclipse-canvas-dirty-${projectId}`;
+
+function pushToServer(projectId: string, payload: SavedCanvas) {
+  if (!clerkEnabled) return;
+  fetch(`/api/canvas/${encodeURIComponent(projectId)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: payload }) })
+    .then((r) => { try { r.ok ? localStorage.removeItem(dirtyKey(projectId)) : localStorage.setItem(dirtyKey(projectId), "1"); } catch {} })
+    .catch(() => { try { localStorage.setItem(dirtyKey(projectId), "1"); } catch {} });
+}
+
+// Before the canvas opens: bring the account's saved copy into this browser, unless this browser has newer unsynced work.
+export async function hydrateCanvasFromServer(projectId: string): Promise<void> {
+  if (!clerkEnabled) return;
   try {
-    localStorage.setItem(key(projectId), JSON.stringify({
-      nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, busy: false } })),
-      edges: edges.map(({ id, source, target }) => ({ id, source, target })),
-      viewport: viewport ?? null,
-    }));
+    if (localStorage.getItem(dirtyKey(projectId))) return;
+    const res = await fetch(`/api/canvas/${encodeURIComponent(projectId)}`);
+    if (!res.ok) return;
+    const { data } = await res.json();
+    if (data && Array.isArray(data.nodes) && Array.isArray(data.edges)) localStorage.setItem(key(projectId), JSON.stringify(data));
   } catch {}
 }
 
