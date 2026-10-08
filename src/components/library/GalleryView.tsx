@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { Image as ImageIcon } from "lucide-react";
+import { readCurrentProject } from "@/lib/projects";
 import "./library.css";
 
 type Render = { id: string; prompt: string; imageUrl: string };
 
-// Your finished renders, newest first. Links are short-lived and signed, so the list is fetched fresh each visit.
+// This project's renders only, newest first (the Library shows renders from every project). Links are short-lived and signed, so the list is fetched fresh each visit.
 export default function GalleryView() {
   const [items, setItems] = useState<Render[] | null>(null);
 
   useEffect(() => {
     let live = true;
-    fetch("/api/generations?limit=100")
+    const projectId = readCurrentProject()?.id;
+    if (!projectId) { setItems([]); return; }
+    fetch(`/api/generations?limit=100&projectId=${encodeURIComponent(projectId)}`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((d) => { if (live) setItems(Array.isArray(d.items) ? d.items : []); })
       .catch(() => { if (live) setItems([]); });
@@ -22,7 +25,7 @@ export default function GalleryView() {
   return (
     <div className="ws-ing lib">
       <h1>Gallery</h1>
-      <p>Everything you have generated, newest first.</p>
+      <p>Everything you have generated in this project, newest first.</p>
       {items && items.length > 0 ? (
         <div className="lib-grid">
           {items.map((g) => (
@@ -34,7 +37,7 @@ export default function GalleryView() {
         <div className="lib-empty">
           <ImageIcon size={46} strokeWidth={1.4} aria-hidden="true" />
           <h2>Nothing here yet</h2>
-          <p>Images you generate while signed in appear here.</p>
+          <p>Images you generate in this project appear here. Renders from all projects are in the Library.</p>
         </div>
       ) : null}
     </div>

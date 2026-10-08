@@ -23,6 +23,8 @@ export async function POST(req: Request) {
   const model = findEnabledModel(body?.model);
   if (!model) return NextResponse.json({ error: "That model is not available." }, { status: 400 });
 
+  const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
+
   const aspectRatio = typeof body?.aspectRatio === "string" ? body.aspectRatio : undefined;
   if (aspectRatio && !model.ratios.includes(aspectRatio)) {
     return NextResponse.json({ error: `${model.label} does not support the ${aspectRatio} shape. Choose one of: ${model.ratios.join(", ")}.` }, { status: 400 });
@@ -55,7 +57,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const generation = await db.generation.create({ data: { userId, prompt, imageUrl, storageKey, model: model.id, requestId: requestId || null, costUsd: model.estimatedCostUsd } });
+    const generation = await db.generation.create({ data: { userId, projectId, prompt, imageUrl, storageKey, model: model.id, requestId: requestId || null, costUsd: model.estimatedCostUsd } });
     return NextResponse.json({ id: generation.id, prompt, model: model.id, createdAt: generation.createdAt, imageUrl: await displayUrl(generation) });
   } catch (err) {
     console.error("generation failed", model.id, err);

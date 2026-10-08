@@ -3,6 +3,7 @@
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 import { Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
 import { buildPrompt, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
+import { readCurrentProject } from "@/lib/projects";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { useCanvas } from "./CanvasContext";
 
@@ -118,7 +119,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     if (!prompt) { updateNodeData(id, { error: "Wire in a text prompt, or describe an ingredient, first." }); return; }
     updateNodeData(id, { busy: true, error: undefined });
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspectRatio: ratio, model: model?.id }) });
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspectRatio: ratio, model: model?.id, projectId: readCurrentProject()?.id }) });
       const out = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(res.status === 503 ? "Generating is switched off in preview mode." : out.error ?? "Something went wrong. Please try again.");
       updateNodeData(id, { busy: false, imageUrl: out.imageUrl });

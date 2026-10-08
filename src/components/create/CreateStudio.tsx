@@ -57,7 +57,7 @@ export default function CreateStudio() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id }),
+        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id, projectId: readCurrentProject()?.id }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
