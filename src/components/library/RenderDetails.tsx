@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Download, Share2 } from "lucide-react";
+import { Check, Copy, Download, Share2, Trash2 } from "lucide-react";
+import { trashRender } from "@/lib/render-actions";
 import type { Render } from "@/lib/use-renders";
 import "./library.css";
 
@@ -13,9 +14,14 @@ function fmtBytes(n: number): string {
 const FORMATS: Record<string, string> = { "image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WebP" };
 
 // The facts about one finished image, with the actions people reach for: copy the prompt, download the file, share it.
-export default function RenderDetails({ g }: { g: Render }) {
+export default function RenderDetails({ g, onDeleted }: { g: Render; onDeleted?: () => void }) {
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState("");
+
+  async function remove() {
+    setNote("");
+    try { await trashRender(g.id); onDeleted?.(); } catch (e) { setNote(e instanceof Error ? e.message : "Could not move this image to the bin."); }
+  }
 
   async function copyPrompt() {
     try { await navigator.clipboard.writeText(g.prompt); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { setNote("Could not copy. Select the text and copy it by hand."); }
@@ -65,6 +71,7 @@ export default function RenderDetails({ g }: { g: Render }) {
         <button type="button" className="rd-btn" onClick={copyPrompt}>{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy prompt"}</button>
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined}><Download size={15} />Download</a>
         <button type="button" className="rd-btn" onClick={share}><Share2 size={15} />Share</button>
+        <button type="button" className="rd-btn rd-danger" onClick={remove} title="Move to the bin"><Trash2 size={15} />Delete</button>
       </div>
       {note && <p className="rd-note" role="status">{note}</p>}
       <dl className="rd-list">

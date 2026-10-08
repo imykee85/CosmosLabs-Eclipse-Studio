@@ -12,7 +12,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const { userId } = auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const g = await db.generation.findFirst({ where: { id: params.id, userId, status: "completed" } });
+    const g = await db.generation.findFirst({ where: { id: params.id, userId, status: "completed", deletedAt: null } });
     if (!g) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const url = g.storageKey && storageEnabled ? await signedGetUrl(g.storageKey, SHARE_DAYS * 24 * 3600) : g.imageUrl;
     return NextResponse.json({ url, days: g.storageKey && storageEnabled ? SHARE_DAYS : null });

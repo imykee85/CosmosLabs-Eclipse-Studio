@@ -23,6 +23,7 @@ model Generation {
   sizeBytes  Int?     @map("size_bytes")
   width      Int?
   height     Int?
+  deletedAt  DateTime? @map("deleted_at") // set when moved to the Bin; the file is only removed when deleted forever
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   storageKey String?  @map("storage_key") // the file in the private R2 bucket; served only through short-lived signed links
   projectId  String?  @map("project_id") // the project it was made in; the Gallery shows only its own project, the Library shows all

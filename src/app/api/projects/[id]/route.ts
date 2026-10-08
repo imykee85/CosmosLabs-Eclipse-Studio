@@ -12,16 +12,18 @@ function userOr401() {
   return { userId };
 }
 
-// Move to the bin or restore from it.
+// Move to the bin, restore from it, or rename.
 export async function PATCH(req: Request, { params }: Ctx) {
   const u = userOr401();
   if (!u.userId) return u.res;
   const body = await req.json().catch(() => null);
-  if (body?.action !== "trash" && body?.action !== "restore") return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  if (body?.action !== "trash" && body?.action !== "restore" && body?.action !== "rename") return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  if (body.action === "rename" && (!name || name.length > 60)) return NextResponse.json({ error: "Enter a project name (up to 60 characters)." }, { status: 400 });
   try {
     const r = await db.project.updateMany({
       where: { id: params.id, userId: u.userId },
-      data: { deletedAt: body.action === "trash" ? new Date() : null },
+      data: body.action === "rename" ? { name } : { deletedAt: body.action === "trash" ? new Date() : null },
     });
     return r.count ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "Project not found" }, { status: 404 });
   } catch (err) {

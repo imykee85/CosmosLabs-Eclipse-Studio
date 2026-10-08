@@ -28,6 +28,7 @@ export type RenderItem = {
   error: string | null;
   imageUrl: string | null;
   createdAt: Date;
+  deletedAt: Date | null;
 };
 
 const REASONS: Record<string, string> = {
@@ -115,5 +116,6 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     error: g.status === "failed" ? g.error : null,
     imageUrl: done ? await displayUrl(g) : null,
     createdAt: g.createdAt,
+    deletedAt: g.deletedAt,
   };
 }

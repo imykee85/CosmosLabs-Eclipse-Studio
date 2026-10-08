@@ -7,7 +7,7 @@ import RenderDetails from "./RenderDetails";
 import "./library.css";
 
 // A finished image shown large with all of its details. Esc, the X, or a click outside closes it.
-export default function RenderDialog({ g, onClose }: { g: Render; onClose: () => void }) {
+export default function RenderDialog({ g, onClose, onChanged }: { g: Render; onClose: () => void; onChanged?: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -22,7 +22,7 @@ export default function RenderDialog({ g, onClose }: { g: Render; onClose: () =>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {g.imageUrl && <img src={g.imageUrl} alt={g.prompt} />}
         </div>
-        <RenderDetails g={g} />
+        <RenderDetails g={g} onDeleted={() => { onClose(); onChanged?.(); }} />
       </div>
     </div>
   );

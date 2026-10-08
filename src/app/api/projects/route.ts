@@ -15,7 +15,7 @@ export async function GET() {
   if (!u.userId) return u.res;
   try {
     const projects = await db.project.findMany({ where: { userId: u.userId }, orderBy: { updatedAt: "desc" } });
-    return NextResponse.json(projects.map(({ id, name, updatedAt, deletedAt }) => ({ id, name, updatedAt, deletedAt })));
+    return NextResponse.json(projects.map(({ id, name, createdAt, updatedAt, deletedAt }) => ({ id, name, createdAt, updatedAt, deletedAt })));
   } catch (err) {
     console.error("list projects failed", err);
     return NextResponse.json({ error: "Could not load your projects." }, { status: 500 });

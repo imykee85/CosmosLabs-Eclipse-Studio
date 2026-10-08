@@ -6,7 +6,7 @@ import type { Render } from "@/lib/use-renders";
 import RenderDialog from "./RenderDialog";
 
 // One render in the Gallery or Library: the picture, or a spinner while it is still being made, or why it failed.
-export default function RenderTile({ g }: { g: Render }) {
+export default function RenderTile({ g, onChanged }: { g: Render; onChanged?: () => void }) {
   const [open, setOpen] = useState(false);
   const ratio = (g.aspectRatio ?? "1:1").replace(":", " / ");
   if (g.status === "completed" && g.imageUrl) {
@@ -16,7 +16,7 @@ export default function RenderTile({ g }: { g: Render }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={g.imageUrl} alt={g.prompt} loading="lazy" /><span>{g.prompt}</span>
         </button>
-        {open && <RenderDialog g={g} onClose={() => setOpen(false)} />}
+        {open && <RenderDialog g={g} onClose={() => setOpen(false)} onChanged={onChanged} />}
       </>
     );
   }

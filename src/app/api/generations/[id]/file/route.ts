@@ -14,7 +14,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const { userId } = auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const g = await db.generation.findFirst({ where: { id: params.id, userId, status: "completed" } });
+    const g = await db.generation.findFirst({ where: { id: params.id, userId, status: "completed", deletedAt: null } });
     if (!g) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const upstream = await openImage(g);
     if (!upstream.ok || !upstream.body) return NextResponse.json({ error: "Could not read the image." }, { status: 502 });

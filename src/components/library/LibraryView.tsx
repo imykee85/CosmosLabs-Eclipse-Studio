@@ -11,7 +11,7 @@ import "./library.css";
 // Everything saved from any project, kept in one place so it can be reused in other projects.
 export default function LibraryView({ kind }: { kind: LibraryKind }) {
   const router = useRouter();
-  const { renders: all } = useRenders();
+  const { renders: all, reload } = useRenders();
   const renders = all ?? [];
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<(typeof INGREDIENT_ROLES)[number]>("All");
@@ -46,7 +46,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
       {(kind === "All" || kind === "Images") && shown.length > 0 ? (
         <div className="lib-grid">
           {shown.map((g) => (
-            <RenderTile key={g.id} g={g} />
+            <RenderTile key={g.id} g={g} onChanged={reload} />
           ))}
         </div>
       ) : (

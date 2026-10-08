@@ -1,6 +1,12 @@
 import { clerkEnabled } from "./clerk-enabled";
 
-export type Project = { id: string; name: string; updatedAt: string; deletedAt: string | null };
+export type Project = { id: string; name: string; createdAt?: string; updatedAt: string; deletedAt: string | null };
+
+export type ProjectDetails = {
+  id: string; name: string; createdAt?: string; updatedAt: string; deletedAt: string | null;
+  images: { count: number; bytes: number }; binned: { count: number; bytes: number }; unmeasured: number;
+  canvas: { nodes: number; bytes: number; updatedAt: string } | null; totalBytes: number;
+};
 
 // With Clerk + a database connected, projects live on the server per user.
 // Without keys (demo mode) they are kept in this browser so the flow can be tried.
@@ -30,6 +36,22 @@ export async function createProject(name: string): Promise<Project> {
   const p: Project = { id: crypto.randomUUID(), name, updatedAt: new Date().toISOString(), deletedAt: null };
   writeLocal([p, ...readLocal()]);
   return p;
+}
+
+export async function renameProject(id: string, name: string) {
+  const clean = name.trim();
+  if (!clean || clean.length > 60) throw new Error("Enter a project name (up to 60 characters).");
+  if (clerkEnabled) await api(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ action: "rename", name: clean }) });
+  else writeLocal(readLocal().map((p) => (p.id === id ? { ...p, name: clean, updatedAt: new Date().toISOString() } : p)));
+  // The workspace top bar shows the open project's name, so keep it in step.
+  if (readCurrentProject()?.id === id) setCurrentProject({ id, name: clean });
+}
+
+export async function getProjectDetails(id: string): Promise<ProjectDetails> {
+  if (clerkEnabled) return api<ProjectDetails>(`/api/projects/${id}/details`);
+  const p = readLocal().find((x) => x.id === id);
+  if (!p) throw new Error("Project not found");
+  return { ...p, images: { count: 0, bytes: 0 }, binned: { count: 0, bytes: 0 }, unmeasured: 0, canvas: null, totalBytes: 0 };
 }
 
 export async function trashProject(id: string) {

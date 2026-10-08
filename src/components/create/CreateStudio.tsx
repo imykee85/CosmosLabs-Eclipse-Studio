@@ -156,7 +156,7 @@ export default function CreateStudio() {
           );
         })()}
         {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && (
-          <div className="cr-details"><RenderDetails g={latestDone} /></div>
+          <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} /></div>
         )}
         {(() => {
           const earlier = list.filter((g) => g.status === "completed" && g.imageUrl && g.id !== (pending ? "" : latestDone?.id));

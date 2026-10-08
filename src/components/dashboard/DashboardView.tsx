@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Clock, Coins, FolderOpen, GraduationCap, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Clock, Coins, FolderOpen, GraduationCap, Info, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { rememberPage } from "@/lib/last-page";
 import { tutorialHref } from "@/lib/tutorial";
@@ -14,6 +14,9 @@ import {
 } from "@/lib/projects";
 import ThemeToggle from "@/components/ThemeToggle";
 import NewProjectModal from "./NewProjectModal";
+import BinImages from "./BinImages";
+import ProjectDetailsModal from "./ProjectDetailsModal";
+import RenameProjectModal from "./RenameProjectModal";
 import "@/components/app-theme.css";
 import "./dashboard.css";
 
@@ -24,6 +27,28 @@ export default function DashboardView() {
   const [creating, setCreating] = useState(false);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState("");
+  const [binSection, setBinSection] = useState<"projects" | "images">("projects");
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ project: Project; top: number; right: number } | null>(null);
+  const [renaming, setRenaming] = useState<Project | null>(null);
+  const [details, setDetails] = useState<Project | null>(null);
+
+  // A Gallery's "Recently deleted" link arrives as /dashboard?bin=images&project=<id>.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("bin")) { setTab("bin"); setBinSection(q.get("bin") === "images" ? "images" : "projects"); setProjectFilter(q.get("project")); }
+  }, []);
+
+  // Close the project menu on Escape, on a click elsewhere, or when the page moves under it.
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close); };
+  }, [menu]);
 
   const load = useCallback(async () => {
     try {
@@ -91,7 +116,16 @@ export default function DashboardView() {
 
         {error && <p className="db-error" role="alert">{error}</p>}
 
-        {projects === null ? (
+        {tab === "bin" && (
+          <div className="db-subtabs" role="tablist" aria-label="Bin sections">
+            <button role="tab" aria-selected={binSection === "projects"} className={binSection === "projects" ? "is-active" : ""} onClick={() => setBinSection("projects")}>Projects</button>
+            <button role="tab" aria-selected={binSection === "images"} className={binSection === "images" ? "is-active" : ""} onClick={() => setBinSection("images")}>Images</button>
+          </div>
+        )}
+
+        {tab === "bin" && binSection === "images" ? (
+          <BinImages projects={projects ?? []} projectFilter={projectFilter} query={query} onClearFilter={() => setProjectFilter(null)} />
+        ) : projects === null ? (
           <p className="db-loading" aria-live="polite">Loading your projects…</p>
         ) : shown.length > 0 ? (
           <ul className="db-grid">
@@ -109,8 +143,9 @@ export default function DashboardView() {
                       <h2><button type="button" className="db-open" onClick={() => open(p)}>{p.name}</button></h2>
                     )}
                     {tab === "projects" && (
-                      <button type="button" className="db-card-btn" aria-label={`Move ${p.name} to bin`} title="Move to bin" onClick={() => act(() => trashProject(p.id))}>
-                        <Trash2 size={16} />
+                      <button type="button" className="db-card-btn" aria-label={`More options for ${p.name}`} aria-haspopup="menu" aria-expanded={menu?.project.id === p.id} title="More"
+                        onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenu(menu?.project.id === p.id ? null : { project: p, top: r.bottom + 6, right: window.innerWidth - r.right }); }}>
+                        <MoreHorizontal size={18} />
                       </button>
                     )}
                   </div>
@@ -150,6 +185,18 @@ export default function DashboardView() {
           </section>
         )}
       </main>
+      {menu && (
+        <>
+          <div className="pm-scrim" onMouseDown={() => setMenu(null)} />
+          <div className="pm-menu" role="menu" style={{ top: menu.top, right: menu.right }}>
+            <button type="button" role="menuitem" onClick={() => { setRenaming(menu.project); setMenu(null); }}><Pencil size={15} /> Rename</button>
+            <button type="button" role="menuitem" onClick={() => { setDetails(menu.project); setMenu(null); }}><Info size={15} /> Project details</button>
+            <button type="button" role="menuitem" className="is-danger" onClick={() => { const p = menu.project; setMenu(null); act(() => trashProject(p.id)); }}><Trash2 size={15} /> Move to bin</button>
+          </div>
+        </>
+      )}
+      {renaming && <RenameProjectModal project={renaming} onClose={() => setRenaming(null)} onDone={load} />}
+      {details && <ProjectDetailsModal project={details} onClose={() => setDetails(null)} />}
       {creating && <NewProjectModal onClose={() => setCreating(false)} />}
     </div>
   );

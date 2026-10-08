@@ -62,3 +62,8 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
   .rd-dialog { grid-template-columns: 1fr; max-height: calc(100dvh - 20px); padding: 14px; border-radius: 24px; }
   .rd-list > div { grid-template-columns: 96px minmax(0, 1fr); }
 }
+
+.rd-danger { color: var(--a-danger); border-color: rgba(255,107,107,.4); }
+.rd-danger:hover { border-color: var(--a-danger); background: transparent; }
+.lib-binlink { display: inline-flex; align-items: center; gap: 6px; margin: -6px 0 14px; color: var(--a-muted); font-size: 14px; text-decoration: none; transition: color .15s; }
+.lib-binlink:hover { color: var(--a-fg); }

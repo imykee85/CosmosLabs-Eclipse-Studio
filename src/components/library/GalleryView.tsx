@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Image as ImageIcon } from "lucide-react";
+import Link from "next/link";
+import { Image as ImageIcon, Trash2 } from "lucide-react";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
 import RenderTile from "./RenderTile";
@@ -11,16 +12,17 @@ import "./library.css";
 export default function GalleryView() {
   const [projectId, setProjectId] = useState<string | null | undefined>(undefined);
   useEffect(() => { setProjectId(readCurrentProject()?.id ?? null); }, []);
-  const { renders } = useRenders(projectId === undefined ? null : projectId);
+  const { renders, reload } = useRenders(projectId === undefined ? null : projectId);
   const items = projectId === undefined ? null : renders;
 
   return (
     <div className="ws-ing lib">
       <h1>Gallery</h1>
       <p>Everything you have generated in this project, newest first.</p>
+      {projectId && <Link className="lib-binlink" href={`/dashboard?bin=images&project=${encodeURIComponent(projectId)}`}><Trash2 size={14} /> Recently deleted</Link>}
       {items && items.length > 0 ? (
         <div className="lib-grid">
-          {items.map((g) => <RenderTile key={g.id} g={g} />)}
+          {items.map((g) => <RenderTile key={g.id} g={g} onChanged={reload} />)}
         </div>
       ) : items ? (
         <div className="lib-empty">
