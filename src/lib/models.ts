@@ -33,7 +33,8 @@ function m(p: Partial<ImageModel> & Pick<ImageModel, "id" | "label" | "blurb" | 
 
 export const MODELS: ImageModel[] = [
   m({ id: "soul_v2", label: "Soul 2", blurb: "Realistic people and fashion.", endpoint: "higgsfield-ai/soul/v2/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4, maxReferences: 0, enabled: true, verified: true }),
-  m({ id: "soul", label: "Soul", blurb: "The first Soul model.", endpoint: "higgsfield-ai/soul/standard", ratios: SOUL_RATIOS }),
+  // soul: request page read (same fields as Soul 2: 720p/1080p, batch 1 or 4, the 7 shapes above); not yet test-rendered.
+  m({ id: "soul", label: "Soul", blurb: "The first Soul model.", endpoint: "higgsfield-ai/soul/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4 }),
   m({ id: "soul_cinema", label: "Soul Cinema", blurb: "Cinema-grade stills and concept art.", endpoint: "higgsfield-ai/soul/cinema", ratios: [...SOUL_RATIOS, "21:9"] }),
   m({ id: "marketing_studio_image", label: "Marketing Studio Image", blurb: "Product and campaign visuals.", endpoint: "marketing-studio/image", ratios: ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"], resolutions: ["1k", "2k", "4k"], defaultResolution: "1k" }),
   m({ id: "marketing_studio_image_flare", label: "Marketing Studio Flare", blurb: "Marketing Studio Image, Flare variant.", endpoint: "marketing-studio/image/flare", ratios: ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"], resolutions: ["1k", "2k", "4k"], defaultResolution: "1k" }),
