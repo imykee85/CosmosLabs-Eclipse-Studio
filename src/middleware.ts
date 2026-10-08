@@ -2,7 +2,8 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 
-const isPublic = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/sso-callback(.*)"]);
+// The payment webhook is called by the provider, which has no sign-in; it authenticates itself with a signature.
+const isPublic = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/sso-callback(.*)", "/api/payments/webhook"]);
 
 const withClerk = clerkMiddleware((auth, req) => {
   if (!isPublic(req)) auth().protect();

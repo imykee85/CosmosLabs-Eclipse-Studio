@@ -3,18 +3,19 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 // Users live in Clerk; userId is the Clerk user id.
 model Generation {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  prompt    String
-  imageUrl  String   @map("image_url")
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  prompt     String
+  imageUrl   String   @map("image_url") // where the provider produced it; only a fallback, never shown once the file is in our storage
+  storageKey String?  @map("storage_key") // the file in the private R2 bucket; served only through short-lived signed links
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("generations")
@@ -45,4 +46,20 @@ model Project {
 
   @@index([userId, deletedAt])
   @@map("projects")
+}
+
+// Append-only credit ledger. A user's balance is the sum of delta; credits live here, never in the payment provider.
+// PURCHASE rows carry the provider's payment id, and the unique pair makes a repeated webhook delivery a no-op.
+model CreditLedger {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  delta      Int
+  reason     String // GRANT | PURCHASE | CHARGE | REFUND | ADJUST
+  provider   String?
+  externalId String?  @map("external_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, externalId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("credit_ledger")
 }

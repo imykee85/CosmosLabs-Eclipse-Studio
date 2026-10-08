@@ -23,7 +23,7 @@ Keep: Clerk for identity, Postgres + Prisma, the `clerkEnabled` demo mode (clien
 3. **We own the files.** Provider output is copied into our own storage the moment it finishes. Provider URLs are never shown to users.
 4. **Credits are a ledger.** Balance changes only by appending a ledger row in the same transaction that changes the balance. Every charge is reversible and traceable to a generation or a payment.
 5. **Providers sit behind one interface.** Higgsfield today; swapping or adding a model never touches routes or UI.
-6. **Every external callback is idempotent** (Stripe, Clerk, Higgsfield, retried client requests).
+6. **Every external callback is idempotent** (the payment provider, Clerk, Higgsfield, retried client requests).
 
 ## 3. Architecture
 
@@ -36,7 +36,7 @@ Browser ──► Next.js route handlers (Vercel) ──► Postgres (Neon, pool
    └── presigned PUT ─────────► R2 (uploads go straight to storage, not through our functions)
 
 Tavus (live agent, trial) ◄──WebRTC── Browser PIP;  Tavus ──webhook──► /api/webhooks/tavus
-Stripe ──webhook──► /api/webhooks/stripe        Clerk ──webhook──► /api/webhooks/clerk
+Payments ─webhook──► /api/payments/webhook       Clerk ──webhook──► /api/webhooks/clerk
 Higgsfield ─webhook─► /api/webhooks/higgsfield  Vercel Cron ─► /api/cron/sweep, /api/cron/purge
 ```
 
@@ -46,13 +46,13 @@ Choices and why:
 
 - **Neon Postgres** with a pooled connection string for the app and a direct one for migrations (`url` + `directUrl` in the Prisma datasource). Prisma on serverless needs the pooler.
 - **Cloudflare R2** for files: no egress fees, which matters once video is served. S3-compatible, presigned uploads, custom CDN domain. Vercel Blob is the simpler alternative if egress stays small.
-- **Stripe** for subscriptions and top-ups. Credits are granted by webhook, never by the browser.
+- **Whop** (for now) for plan checkouts and top-ups, behind the small interface in `src/lib/payments/` so the provider can be swapped. Credits are granted by webhook, never by the browser, and live in our own ledger, never in the provider.
 - **zod** for every request body and for model parameter schemas.
 - **Clerk Organizations** for team membership and invites, so we do not build an invite system. Roles come from Clerk's `orgRole`.
 
 ## 4. Data model
 
-Names are Prisma-style; snake_case table mapping as today. All ids `cuid()`. Every table below except `onboarding`, `portfolio` and `stripe_events` carries `workspaceId` and is only ever queried with it.
+Names are Prisma-style; snake_case table mapping as today. All ids `cuid()`. Every table below except `onboarding` and `portfolio` carries `workspaceId` and is only ever queried with it.
 
 ```mermaid
 erDiagram
@@ -76,7 +76,7 @@ erDiagram
 
 ### Identity and tenancy
 
-- **Workspace**: `id`, `kind` (PERSONAL | TEAM), `clerkUserId?` (personal) or `clerkOrgId?` (team), `name`, `plan` (TRIAL | STARTER | GROWTH | SCALE), `creditBalance Int` (cached; the ledger is the truth), `stripeCustomerId?`, `stripeSubscriptionId?`, `planRenewsAt?`. A personal workspace is created lazily on a user's first API call (upsert on `clerkUserId`), so there is no ordering dependency on webhooks.
+- **Workspace**: `id`, `kind` (PERSONAL | TEAM), `clerkUserId?` (personal) or `clerkOrgId?` (team), `name`, `plan` (TRIAL | STARTER | GROWTH | SCALE), `creditBalance Int` (cached; the ledger is the truth), `providerCustomerId?`, `providerSubscriptionId?`, `planRenewsAt?` (provider-neutral). A personal workspace is created lazily on a user's first API call (upsert on `clerkUserId`), so there is no ordering dependency on webhooks.
 - **Onboarding** (exists): keep as is, keyed by `userId`.
 - **Portfolio**: `userId` unique, `slug` unique, `draft Json`, `published Json?`, `publishedAt?`. Backs the avatar-menu Portfolio builder; Publish and Copy link switch on once `/p/[slug]` exists.
 - Team membership is read from Clerk (`auth().orgId`, `orgRole`). No members table. Roles: admin can manage billing, keys and members; member can create and read.
@@ -120,9 +120,9 @@ Related: **GenerationOutput** (`generationId`, `assetId`, `index`) because one j
 
 ### Credits and billing
 
-- **CreditLedger**: `workspaceId`, `delta Int`, `balanceAfter Int`, `reason` (GRANT | PURCHASE | CHARGE | REFUND | ADJUST | EXPIRE), `generationId?`, `stripeEventId?`, `idempotencyKey` unique, `createdAt`. Append-only.
-- **StripeEvent**: `id` (Stripe's event id, primary key), `processedAt`. Inserting first and skipping on conflict makes webhook handling idempotent.
-- Plans stay in `src/lib/plans.ts` (still placeholder); each gains a `stripePriceId`. A `lib/pricing.ts` maps `(model, params)` to a credit cost with our margin over the provider's cost.
+- **CreditLedger**: `workspaceId`, `delta Int`, `balanceAfter Int`, `reason` (GRANT | PURCHASE | CHARGE | REFUND | ADJUST | EXPIRE), `generationId?`, `provider?`, `externalId?` (unique together, so a repeated payment webhook is a no-op), `createdAt`. Append-only. Built today per user (`userId`); it moves to the workspace with phase 0.
+- Webhook idempotency needs no separate table: the ledger's unique (`provider`, `externalId`) pair does it.
+- Plans stay in `src/lib/plans.ts` (still placeholder); each has an `id` and gets its provider plan id from an env var (`WHOP_PLAN_<ID>`). A `lib/pricing.ts` maps `(model, params)` to a credit cost with our margin over the provider's cost.
 
 ### Treatment (the Video step 1 page)
 
@@ -177,7 +177,7 @@ Details that matter:
 ## 6. Files and storage
 
 - **Upload**: `POST /api/assets/upload-url` (checks type, size cap, workspace quota) returns a presigned PUT; the browser uploads to R2 directly; `POST /api/assets` confirms, reads metadata (dimensions, duration) and creates the row. Brief documents (PDF, DOCX, TXT, MD) go through the same path with `kind: DOCUMENT`.
-- **Serving**: public CDN URL for renders and library items shown in the app via short-lived signed URLs, so a leaked link stops working. Keys are `workspaceId/assetId/...`, never guessable names.
+- **Serving**: public CDN URL for renders and library items shown in the app via short-lived signed URLs, so a leaked link stops working. Keys are `workspaceId/assetId/...`, never guessable names. Built today (before workspaces exist): `u/<userId>/<random uuid>.<ext>`, bucket private, 10-minute signed links.
 - **Link import** (the link icon in the Treatment box): server fetches the URL with SSRF protection (block private IP ranges, redirects capped, size and time limits), then stores it as an Asset.
 - **Quotas**: bytes per workspace by plan; enforced at `upload-url`.
 - **Deletion**: soft delete first (`deletedAt`), the purge cron removes the file and row. Deleting a project cascades to its generations and assets that are not in the Library.
@@ -270,7 +270,7 @@ Internal routes (session auth via Clerk; everything workspace-scoped). Errors ar
 | Billing | `POST /api/billing/checkout`, `POST /api/billing/portal`, `GET /api/billing/ledger` |
 | Keys | `GET/POST /api/keys`, `DELETE /api/keys/:id` |
 | Portfolio | `GET/PUT /api/portfolio`, `POST /api/portfolio/publish`; public page `/p/[slug]` |
-| Webhooks | `/api/webhooks/clerk`, `/api/webhooks/stripe`, `/api/webhooks/higgsfield` |
+| Webhooks | `/api/webhooks/clerk`, `/api/payments/webhook`, `/api/webhooks/higgsfield` |
 | Cron | `/api/cron/sweep` (every minute), `/api/cron/purge` (daily: Bin, orphan files) |
 | Public | `POST /api/mcp` (Streamable HTTP, `Authorization: Bearer <key>`), tools `generate_image`, `get_generation`, `list_generations`, `get_credits` as the Settings panel already promises |
 
@@ -281,8 +281,8 @@ Internal routes (session auth via Clerk; everything workspace-scoped). Errors ar
 - **Auth helper**: one `requireContext()` that returns `{ userId, workspaceId, role }` (Clerk session, or a hashed API key for `/api/mcp`). Routes never read `auth()` themselves, and no query is written without `workspaceId`. Optional defence in depth later: Postgres row-level security keyed on a per-request setting.
 - **Validation**: zod on every body and query string; reject unknown fields; prompt cap stays 2000.
 - **Rate limiting**: per user and per key on the expensive routes (generations, messages, upload-url). Start with a DB-backed counter; move to Upstash Redis if it shows up in load.
-- **Secrets and env**: validated at boot with zod (`HIGGSFIELD_API_KEY`, `HIGGSFIELD_WEBHOOK_SECRET`, `STRIPE_*`, `R2_*`, `ANTHROPIC_API_KEY`, `DATABASE_URL`, `DIRECT_URL`, `CLERK_*`); the app refuses to start half-configured in production.
-- **Webhook security**: Clerk (svix signature), Stripe (signature header), Higgsfield (shared secret or signature, whatever it supports; see risks).
+- **Secrets and env**: validated at boot with zod (`HIGGSFIELD_API_KEY`, `HIGGSFIELD_WEBHOOK_SECRET`, `WHOP_*`, `R2_*`, `ANTHROPIC_API_KEY`, `DATABASE_URL`, `DIRECT_URL`, `CLERK_*`); the app refuses to start half-configured in production.
+- **Webhook security**: Clerk (svix signature), the payment provider (Whop: Standard Webhooks signature, see the adapter's notes), Higgsfield (shared secret or signature, whatever it supports; see risks).
 - **API keys**: 32 random bytes, prefixed (`ecl_live_...`), only the SHA-256 stored, constant-time compare, per-key rate limit and revoke.
 - **Observability**: Sentry for errors, structured logs with a request id and `workspaceId`/`generationId`, and a daily report of provider cost vs credits charged so margins are visible.
 - **Privacy**: Clerk `user.deleted` webhook deletes the personal workspace and its files; Bin purge at 30 days; no prompts or files in logs.
@@ -297,7 +297,7 @@ Each phase ships something visible and is safe to stop after.
 | --- | --- | --- |
 | 0. Foundations | `prisma migrate`, workspace + `requireContext()`, backfill existing users/projects, zod, env check, error format, test setup | Nothing visible; everything after depends on it |
 | 1. Real generation | Provider interface + Higgsfield adapter (verified against the live API first), R2, `Generation/Asset/Output`, ledger with a manual grant, webhook + sweeper, `/api/generations`, Gallery from the DB | Create works end to end, renders survive, Gallery per project, credits pill shows a real number |
-| 2. Billing | Stripe checkout and portal, plan grants on `invoice.paid`, top-ups, ledger endpoint | Billing & credits panel, Upgrade buttons, Credit history |
+| 2. Billing | Whop checkout, plan grants on the payment-succeeded event, top-ups, ledger endpoint | Billing & credits panel, Upgrade buttons, Credit history |
 | 3. Library and uploads | Upload flow, Assets, Ingredients, Library query, Ingredients picker in Create | Assets page, Library tabs, Ingredients chip on Create |
 | 4. Treatment and agents | Anthropic streaming, brief extraction, `concept` JSON, scenes; Agent 1 and Agent 2 chat, Agent 3 review | Treatment chat, Brief/Concept/Guide, Continue to prompts, Agents page |
 | 4b. Live agent trial | Verify Tavus, `LiveSession`, metered start/heartbeat/end, tool webhook, transcript to thread (Agent 1 only) | Talk button and PIP video window on the Agent 1 / Treatment page |
@@ -328,7 +328,7 @@ The project status snapshot and the same chart are kept in `CLAUDE.md`.
 
 **Decisions I need from you** (my recommendation first)
 1. File storage: Cloudflare R2 (alternative: Vercel Blob).
-2. Billing: Stripe subscriptions with credit top-ups.
+2. Billing: Whop checkouts for plans and credit top-ups, behind the payment interface.
 3. Teams: Clerk Organizations, a TEAM workspace per org.
 4. Does Treatment chat cost credits? Recommendation: free within a daily cap, so planning never feels metered while generation does.
 5. Export renderer: hosted (Shotstack-style) first, own worker later.

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { generateImage } from "@/lib/higgsfield";
+import { displayUrl, saveImageFromUrl, storageEnabled } from "@/lib/storage";
 
 export const maxDuration = 60;
 
@@ -22,8 +23,19 @@ export async function POST(req: Request) {
 
   try {
     const imageUrl = await generateImage(prompt, aspectRatio);
-    const generation = await db.generation.create({ data: { userId, prompt, imageUrl } });
-    return NextResponse.json(generation);
+
+    // Keep our own copy in the private bucket. If the copy fails the render is not lost: it falls back to the provider's link.
+    let storageKey: string | null = null;
+    if (storageEnabled) {
+      try {
+        storageKey = await saveImageFromUrl(userId, imageUrl);
+      } catch (err) {
+        console.error("saving the render to storage failed", err);
+      }
+    }
+
+    const generation = await db.generation.create({ data: { userId, prompt, imageUrl, storageKey } });
+    return NextResponse.json({ id: generation.id, prompt, createdAt: generation.createdAt, imageUrl: await displayUrl(generation) });
   } catch (err) {
     console.error("generation failed", err);
     return NextResponse.json({ error: "Generation failed. Please try again." }, { status: 502 });
