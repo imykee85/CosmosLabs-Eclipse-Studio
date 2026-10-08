@@ -1,10 +1,10 @@
 // The one list of image models. Each entry maps to a real Higgsfield endpoint; nothing falls back to another model.
 // The Create page and the Canvas build their pickers from /api/models, which returns only enabled entries.
 //
-// `verified` means a real render passed through this app. Only soul_v2 has. The other endpoint ids come from the
-// Higgsfield image catalog; their request pages could not be read from the build sandbox, so their ratios, resolutions
-// and body fields are best guesses. They stay disabled until tested: set HIGGSFIELD_ENABLED_MODELS in Vercel
-// (comma-separated ids, e.g. soul_cinema,grok_image_2) to switch one on, try it in the picker, and keep it only if it passes.
+// `verified` means a real render passed through this app. Only soul_v2 has. Every model's fields come from its Higgsfield
+// request page, but the others have not been test-rendered; they are all switched on at the owner's request so they can be
+// tried from the picker. To hide one that fails, set `enabled: false` on its entry (HIGGSFIELD_ENABLED_MODELS can still
+// add disabled entries back without a code change). Models that need an input image are kept out of the picker.
 // HIGGSFIELD_ENDPOINT_<ID> (id upper-cased) overrides an endpoint without a code change.
 
 export type ImageModel = {
@@ -31,7 +31,7 @@ const SOUL_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"];
 const WIDE = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 
 function m(p: Partial<ImageModel> & Pick<ImageModel, "id" | "label" | "blurb" | "endpoint" | "ratios">): ImageModel {
-  return { type: "image", resolutions: [], maxPrompt: 2000, maxBatch: 1, maxReferences: 0, requiresReference: false, enabled: false, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
+  return { type: "image", resolutions: [], maxPrompt: 2000, maxBatch: 1, maxReferences: 0, requiresReference: false, enabled: true, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
 }
 
 export const MODELS: ImageModel[] = [
