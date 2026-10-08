@@ -80,7 +80,7 @@ export type GenerateResult = { imageUrl: string; requestId: string };
 export async function generateImage(input: GenerateInput, provider: ImageProvider = higgsfield): Promise<GenerateResult> {
   const { model, prompt, aspectRatio } = input;
   const resolution = input.resolution ?? model.defaultResolution;
-  const body = { prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) };
+  const body = { ...model.extraBody, prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) };
 
   return withSlot(async () => {
     const { requestId, statusUrl } = await provider.submit(endpointFor(model), body, crypto.randomUUID());

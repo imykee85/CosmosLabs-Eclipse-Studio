@@ -19,6 +19,7 @@ export type ImageModel = {
   maxBatch: number;
   maxReferences: number;       // reference images the model accepts (none are sent yet)
   requiresReference: boolean;  // needs an input image; kept out of the pickers until the app can send one
+  extraBody?: Record<string, unknown>;  // fixed fields sent with every request (e.g. the cheapest quality tier)
   enabled: boolean;
   verified: boolean;
   estimatedCostUsd: number | null;  // blank until measured from real generations
@@ -42,7 +43,8 @@ export const MODELS: ImageModel[] = [
   m({ id: "marketing_studio_image_flare", label: "Marketing Studio Flare", blurb: "Marketing Studio Image, Flare variant.", endpoint: "marketing-studio/image/flare", ratios: ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"], resolutions: ["1k", "2k", "4k"], defaultResolution: "1k" }),
   m({ id: "marketing_studio_image_sunburst", label: "Marketing Studio Sunburst", blurb: "Marketing Studio Image, Sunburst variant.", endpoint: "marketing-studio/image/sunburst", ratios: ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"], resolutions: ["1k", "2k", "4k"], defaultResolution: "1k" }),
   m({ id: "ads_studio", label: "Ads Studio", blurb: "Ad creatives.", endpoint: "higgsfield/ads-studio/v1.0", ratios: ["1:1", "4:5", "9:16", "16:9"] }),
-  m({ id: "grok_image_2", label: "Grok Image 2.0", blurb: "Fast, flexible image generation.", endpoint: "xai/grok-imagine-image-2.0", ratios: ["1:1", "3:4", "4:3", "9:16", "16:9", "2:3", "3:2", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k" }),
+  // grok_image_2: request page read (text-to-image when no image_urls are sent; 1k/2k; quality low or medium; one image per request). "auto" shape left out of the picker. Sent at quality "low", the cheapest tier. Not yet test-rendered.
+  m({ id: "grok_image_2", label: "Grok Image 2.0", blurb: "Fast, flexible image generation.", endpoint: "xai/grok-imagine-image-2.0", ratios: ["1:1", "1:2", "2:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16"], resolutions: ["1k", "2k"], defaultResolution: "1k", extraBody: { quality: "low" } }),
   m({ id: "recraft_v4_1", label: "Recraft V4.1", blurb: "Illustration and design, 1K.", endpoint: "recraft/v4.1/text-to-image", ratios: ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"] }),
   m({ id: "recraft_v4_1_pro", label: "Recraft V4.1 Pro", blurb: "Recraft V4.1 at 2K.", endpoint: "recraft/v4.1/pro/text-to-image", ratios: ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"] }),
   m({ id: "recraft_v4_1_utility", label: "Recraft V4.1 Utility", blurb: "Clean product shots and mockups.", endpoint: "recraft/v4.1/utility/text-to-image", ratios: ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"] }),
