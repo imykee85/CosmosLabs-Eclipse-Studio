@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp, ImageIcon, Layers, Loader2, Workflow } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
+import { DEFAULT_MODEL_ID, IMAGE_MODELS, MODEL_STORAGE_KEY, getModel } from "@/lib/image-models";
 import { readCurrentProject } from "@/lib/projects";
 import "./create.css";
 
@@ -17,10 +18,20 @@ export default function CreateStudio() {
   const router = useRouter();
   const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
   const [ratio, setRatio] = useState("1:1");
+  const [model, setModel] = useState(DEFAULT_MODEL_ID);
   const [busy, setBusy] = useState<{ prompt: string; ratio: string } | null>(null);
   const [error, setError] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const box = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    try { setModel(getModel(localStorage.getItem(MODEL_STORAGE_KEY)).id); } catch {}
+  }, []);
+
+  function pickModel(id: string) {
+    setModel(id);
+    try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {}
+  }
 
   // Grow the box with its content, up to a limit.
   useEffect(() => {
@@ -39,7 +50,7 @@ export default function CreateStudio() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, aspectRatio: ratio }),
+        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -88,6 +99,12 @@ export default function CreateStudio() {
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
           </button>
+          <label className="cr-chip cr-select" title={getModel(model).blurb}>
+            <span className="sr-only">Image model</span>
+            <select value={model} onChange={(e) => pickModel(e.target.value)} aria-label="Image model">
+              {IMAGE_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </label>
           <label className="cr-chip cr-select">
             <span className="sr-only">Aspect ratio</span>
             <select value={ratio} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio">

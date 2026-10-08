@@ -76,7 +76,7 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 
 ## Next
 - Follow the milestone table above: milestone 1 first. Accounts and keys from the user, then backend phases 0 and 1 (`docs/backend-design.md`).
-- Higgsfield: a 1:1 Soul 2 (`higgsfield-ai/soul/v2/standard`, 720p) render works live; still unverified: 4:5, 9:16, 16:9 and the per-image cost.
+- Higgsfield: a 1:1 Soul 2 (`higgsfield-ai/soul/v2/standard`, 720p) render works live. Image model picker (`src/lib/image-models.ts`, Create page and Canvas generator, choice in `localStorage["eclipse-image-model"]`): Soul 2, Nano Banana Pro, Seedream 5.0 Pro; the Nano Banana Pro and Seedream REST paths are GUESSES (docs unreachable; override with `HIGGSFIELD_PATH_<ID>`), their resolution values and the per-image costs are unverified, and the route shows Higgsfield's rejection text so a wrong path is cheap to fix.
 - Real onboarding video, tutorial videos, real pricing plans, terms and privacy pages.
 - Build the "Soon" features in the order of the backend phases: Assets and Library saving, Treatment and agents, video and audio, Connect publishing, API/MCP keys, Team, Portfolio publish, Avatars, Certificates, translation.
 - Open question: Library has no desktop link now (only the phone tab).

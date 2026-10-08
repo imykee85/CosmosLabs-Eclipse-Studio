@@ -8,6 +8,7 @@ export type CanvasNodeData = {
   desc?: string;      // ingredient nodes: a short description until the Library can supply real ones
   style?: string;     // style node
   ratio?: string;     // generator node
+  model?: string;     // generator node: image model id
   busy?: boolean;     // generator node, while a render is running
   error?: string;
   imageUrl?: string;  // generator node: latest result
