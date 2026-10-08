@@ -17,12 +17,13 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
   if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
-  if (prompt.length > 2000) return NextResponse.json({ error: "Prompt is too long" }, { status: 400 });
+  if (prompt.length > 10000) return NextResponse.json({ error: "Prompt is too long" }, { status: 400 });
 
   // The model must be named and available. There is no default and no fallback to a different model.
   const model = findEnabledModel(body?.model);
   if (!model) return NextResponse.json({ error: "That model is not available." }, { status: 400 });
 
+  if (prompt.length > model.maxPrompt) return NextResponse.json({ error: `${model.label} accepts prompts up to ${model.maxPrompt} characters (yours is ${prompt.length}).` }, { status: 400 });
   if (model.requiresReference) return NextResponse.json({ error: `${model.label} needs a reference image, which cannot be sent from here yet.` }, { status: 400 });
 
   const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
