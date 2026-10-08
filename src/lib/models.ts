@@ -82,6 +82,10 @@ export function findEnabledModel(id: unknown): ImageModel | undefined {
   return typeof id === "string" ? enabledModels().find((x) => x.id === id) : undefined;
 }
 
+export function getModelById(id: string | null | undefined): ImageModel | undefined {
+  return MODELS.find((x) => x.id === id);
+}
+
 export function endpointFor(model: ImageModel): string {
   return process.env[`HIGGSFIELD_ENDPOINT_${model.id.toUpperCase()}`] ?? model.endpoint;
 }

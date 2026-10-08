@@ -2,12 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
-import { displayUrl } from "@/lib/storage";
+import { finalizeGeneration, toItem } from "@/lib/generation-jobs";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 100;
 
 // The signed-in user's renders, newest first. With ?projectId= only that project's (the Gallery); without it all of them (the Library). Each imageUrl is a fresh short-lived signed link, so fetch the list again rather than keeping the links.
+export const maxDuration = 60;
+
 export async function GET(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { userId } = auth();
@@ -19,7 +21,8 @@ export async function GET(req: Request) {
   const projectId = new URL(req.url).searchParams.get("projectId");
   try {
     const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}) }, orderBy: { createdAt: "desc" }, take });
-    const items = await Promise.all(rows.map(async (g) => ({ id: g.id, prompt: g.prompt, createdAt: g.createdAt, imageUrl: await displayUrl(g) })));
+    // Renders still running are checked on here, so coming back later (or from another device) finds them finished.
+    const items = await Promise.all(rows.map(async (g) => toItem(await finalizeGeneration(g))));
     return NextResponse.json({ items });
   } catch (err) {
     console.error("listing generations failed", err);

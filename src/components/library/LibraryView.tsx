@@ -1,27 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FolderOpen, Search } from "lucide-react";
 import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
+import { useRenders } from "@/lib/use-renders";
+import RenderTile from "./RenderTile";
 import "./library.css";
 
 // Everything saved from any project, kept in one place so it can be reused in other projects.
-type Render = { id: string; prompt: string; imageUrl: string };
-
 export default function LibraryView({ kind }: { kind: LibraryKind }) {
   const router = useRouter();
-  const [renders, setRenders] = useState<Render[]>([]);
-
-  // Your finished renders come from the server with fresh short-lived links; in preview mode (no sign-in) the list stays empty.
-  useEffect(() => {
-    let live = true;
-    fetch("/api/generations?limit=100")
-      .then((r) => (r.ok ? r.json() : { items: [] }))
-      .then((d) => { if (live && Array.isArray(d.items)) setRenders(d.items); })
-      .catch(() => {});
-    return () => { live = false; };
-  }, []);
+  const { renders: all } = useRenders();
+  const renders = all ?? [];
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<(typeof INGREDIENT_ROLES)[number]>("All");
 
@@ -55,8 +46,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
       {(kind === "All" || kind === "Images") && shown.length > 0 ? (
         <div className="lib-grid">
           {shown.map((g) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <a key={g.id} className="lib-tile" href={g.imageUrl} target="_blank" rel="noreferrer"><img src={g.imageUrl} alt={g.prompt} loading="lazy" /><span>{g.prompt}</span></a>
+            <RenderTile key={g.id} g={g} />
           ))}
         </div>
       ) : (

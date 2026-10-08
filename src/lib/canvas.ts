@@ -10,7 +10,10 @@ export type CanvasNodeData = {
   style?: string;     // style node
   ratio?: string;     // generator node
   model?: string;     // generator node: image model id
-  busy?: boolean;     // generator node, while a render is running
+  busy?: boolean;     // (unused now: a running render is marked by pendingId)
+  pendingId?: string; // generator node: the render in progress, kept so it can be picked up after leaving the page
+  genId?: string;     // generator node: the finished render, used to fetch a fresh image link
+
   error?: string;
   imageUrl?: string;  // generator node: latest result
 };
@@ -91,7 +94,7 @@ function writeTemplates(list: CanvasTemplate[]) {
 export function saveTemplate(name: string, nodes: CNode[], edges: Edge[]): CanvasTemplate[] {
   const t: CanvasTemplate = {
     id: `t-${Date.now().toString(36)}`, name: name.trim().slice(0, 40) || "My template",
-    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, busy: false, error: undefined, imageUrl: undefined } })),
+    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, busy: false, error: undefined, imageUrl: undefined, pendingId: undefined, genId: undefined } })),
     edges: edges.map(({ id, source, target }) => ({ id, source, target })),
   };
   const list = [...loadTemplates(), t];

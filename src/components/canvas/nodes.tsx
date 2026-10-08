@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 import { Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
 import { buildPrompt, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
@@ -113,18 +114,42 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     try { localStorage.setItem(MODEL_STORAGE_KEY, m); } catch {}
   }
 
+  const busy = Boolean(data.pendingId);
+
+  // The render runs on the server, so it keeps going if you leave the canvas (or close the browser). Here we follow the
+  // running one until it finishes, and refresh a finished one's image link, which expires after ten minutes.
+  const followId = data.pendingId ?? data.genId;
+  useEffect(() => {
+    if (!followId) return;
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/generations/${followId}`);
+        const g = await res.json().catch(() => ({}));
+        if (!live) return;
+        if (res.status === 404) { updateNodeData(id, { pendingId: undefined, genId: undefined }); return; }
+        if (res.ok && g.status === "completed") { updateNodeData(id, { imageUrl: g.imageUrl, genId: followId, pendingId: undefined, error: undefined }); return; }
+        if (res.ok && g.status === "failed") { updateNodeData(id, { pendingId: undefined, error: g.error ?? "This image could not be made." }); return; }
+      } catch {}
+      if (live) timer = setTimeout(tick, 2500);
+    };
+    tick();
+    return () => { live = false; if (timer) clearTimeout(timer); };
+  }, [followId, id, updateNodeData]);
+
   async function run() {
     if (!model) return;
     const prompt = buildPrompt(getNodes() as CNode[], getEdges(), id);
     if (!prompt) { updateNodeData(id, { error: "Wire in a text prompt, or describe an ingredient, first." }); return; }
-    updateNodeData(id, { busy: true, error: undefined });
+    updateNodeData(id, { error: undefined });
     try {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspectRatio: ratio, model: model?.id, projectId: readCurrentProject()?.id }) });
       const out = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(res.status === 503 ? "Generating is switched off in preview mode." : out.error ?? "Something went wrong. Please try again.");
-      updateNodeData(id, { busy: false, imageUrl: out.imageUrl });
+      updateNodeData(id, { pendingId: out.id, genId: undefined });
     } catch (e) {
-      updateNodeData(id, { busy: false, error: e instanceof Error ? e.message : "Something went wrong. Please try again." });
+      updateNodeData(id, { error: e instanceof Error ? e.message : "Something went wrong. Please try again." });
     }
   }
 
@@ -132,7 +157,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     <Shell id={id} kind={kind} selected={selected} className="cv-gen">
       <div className="cv-body">
         <div className="cv-stage" style={{ aspectRatio: ratio.replace(":", " / ") }}>
-          {data.busy ? <div className="cv-empty"><Loader2 size={26} className="cv-spin" /><span>Creating your image...</span></div>
+          {busy ? <div className="cv-empty"><Loader2 size={26} className="cv-spin" /><span>Creating your image...</span></div>
             : data.imageUrl ? <ResultImg src={data.imageUrl} />
             : <div className="cv-empty"><ImageIcon size={28} strokeWidth={1.4} /><span>{kind === "fullbody" ? "Full-body look appears here" : "Ready to generate"}</span></div>}
         </div>
@@ -143,7 +168,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
           <select className="cv-input nodrag" value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
             {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
-          <button type="button" className="cv-go nodrag" disabled={data.busy || !model} onClick={run}>{data.busy ? "Generating" : "Generate"}</button>
+          <button type="button" className="cv-go nodrag" disabled={busy || !model} onClick={run}>{busy ? "Generating" : "Generate"}</button>
         </div>
         {data.error && <p className="cv-error" role="alert">{data.error}</p>}
       </div>

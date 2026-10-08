@@ -6,8 +6,6 @@ import { endpointFor, type ImageModel } from "./models";
 import type { ImageProvider, ProviderStatus, SubmitResult } from "./providers/types";
 
 const BASE_URL = process.env.HIGGSFIELD_BASE_URL ?? "https://platform.higgsfield.ai";
-const POLL_INTERVAL_MS = 2000;
-const TIMEOUT_MS = 55_000;
 const MAX_CONCURRENT = 20; // the key allows about 20 in flight; extra renders wait their turn instead of failing
 
 type JobResponse = {
@@ -32,7 +30,6 @@ function headers(extra: Record<string, string> = {}) {
 }
 
 const urlOf = (job: JobResponse) => job.images?.[0]?.url ?? job.image?.url;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Per-instance queue: serverless instances do not share it, so this only smooths bursts on one instance.
 let inFlight = 0;
@@ -74,26 +71,12 @@ export const higgsfield: ImageProvider = {
 };
 
 export type GenerateInput = { model: ImageModel; prompt: string; aspectRatio?: string; resolution?: string };
-export type GenerateResult = { imageUrl: string; requestId: string };
 
-// Submits to the model's own endpoint, waits for the result, and never substitutes another model.
-export async function generateImage(input: GenerateInput, provider: ImageProvider = higgsfield): Promise<GenerateResult> {
+// Starts a render on the model's own endpoint and returns at once; never substitutes another model. The render keeps
+// running at Higgsfield whether or not anyone is watching, and is picked up later with higgsfield.status(statusUrl).
+export async function startGeneration(input: GenerateInput, provider: ImageProvider = higgsfield): Promise<SubmitResult> {
   const { model, prompt, aspectRatio } = input;
   const resolution = input.resolution ?? model.defaultResolution;
   const body = { ...model.extraBody, prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) };
-
-  return withSlot(async () => {
-    const { requestId, statusUrl } = await provider.submit(endpointFor(model), body, crypto.randomUUID());
-    const deadline = Date.now() + TIMEOUT_MS;
-    for (;;) {
-      const s = await provider.status(statusUrl);
-      if (s.state === "completed") return { imageUrl: s.imageUrl, requestId };
-      if (s.state === "failed") throw new Error(`Higgsfield generation ${s.reason}`);
-      if (Date.now() > deadline) {
-        await provider.cancel(requestId).catch(() => {});
-        throw new Error("Higgsfield generation timed out");
-      }
-      await sleep(POLL_INTERVAL_MS);
-    }
-  });
+  return withSlot(() => provider.submit(endpointFor(model), body, crypto.randomUUID()));
 }

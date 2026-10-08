@@ -6,13 +6,12 @@ import { ArrowUp, ImageIcon, Layers, Loader2, Workflow } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
+import { useRenders } from "@/lib/use-renders";
 import "./create.css";
 
 // Widest the preview gets for each shape, so tall ones do not run off the screen.
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 480, "4:5": 420, "9:16": 300, "16:9": 680 };
 const previewWidth = (r: string) => PREVIEW_WIDTH[r] ?? 480;
-
-type Result = { id: string; prompt: string; imageUrl: string; ratio: string };
 
 export default function CreateStudio() {
   const router = useRouter();
@@ -21,10 +20,18 @@ export default function CreateStudio() {
   const models = useModels();
   const [modelId, setModelId] = useState("");
   const model = models?.find((m) => m.id === modelId) ?? null;
-  const [busy, setBusy] = useState<{ prompt: string; ratio: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [results, setResults] = useState<Result[]>([]);
   const box = useRef<HTMLTextAreaElement>(null);
+
+  // Renders live on the server, so they keep going if you leave this page, and are here when you come back.
+  const [projectId, setProjectId] = useState<string | null | undefined>(undefined);
+  useEffect(() => { setProjectId(readCurrentProject()?.id ?? null); }, []);
+  const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 12);
+  const list = renders ?? [];
+  const pending = list.find((g) => g.status === "pending") ?? null;
+  const latestDone = list.find((g) => g.status === "completed" && g.imageUrl) ?? null;
+  const lastFailed = list[0]?.status === "failed" ? list[0] : null;
 
   useEffect(() => {
     if (models?.length) setModelId(rememberedModel(models)?.id ?? "");
@@ -50,9 +57,9 @@ export default function CreateStudio() {
 
   async function generate() {
     const text = prompt.trim();
-    if (!text || busy || !model) return;
+    if (!text || submitting || !model) return;
     setError("");
-    setBusy({ prompt: text, ratio });
+    setSubmitting(true);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -63,12 +70,12 @@ export default function CreateStudio() {
       if (!res.ok) {
         throw new Error(res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again.");
       }
-      setResults((r) => [{ id: data.id, prompt: text, imageUrl: data.imageUrl, ratio }, ...r]);
       setPrompt("");
+      await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
-      setBusy(null);
+      setSubmitting(false);
     }
   }
 
@@ -118,24 +125,25 @@ export default function CreateStudio() {
               {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
-          <button type="submit" className="cr-go" disabled={!prompt.trim() || !!busy || !model}>
-            {busy ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate <ArrowUp size={16} /></>}
+          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model}>
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>
       <p className="cr-hint">Press Ctrl or Cmd + Enter to generate.</p>
-      {error && <p className="cr-error" role="alert">{error}</p>}
+      {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
+      {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
 
       <section className="cr-preview" aria-label="Preview">
         <h2>Preview</h2>
         {(() => {
-          const shown = busy ? null : results[0];
-          const r = busy?.ratio ?? shown?.ratio ?? ratio;
+          const shown = pending ? null : latestDone;
+          const r = pending?.aspectRatio ?? shown?.aspectRatio ?? ratio;
           return (
             <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: previewWidth(r) }} aria-live="polite">
-              {busy ? (
+              {pending ? (
                 <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Creating your image…</p></div>
-              ) : shown ? (
+              ) : shown?.imageUrl ? (
                 <a href={shown.imageUrl} target="_blank" rel="noreferrer" title="Open full size">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={shown.imageUrl} alt={shown.prompt} />
@@ -146,17 +154,20 @@ export default function CreateStudio() {
             </div>
           );
         })()}
-        {!busy && results[0] && <p className="cr-caption">{results[0].prompt}</p>}
-        {results.length > 1 && (
-          <div className="cr-earlier" aria-label="Earlier renders">
-            {results.slice(1).map((r) => (
-              <a key={r.id} href={r.imageUrl} target="_blank" rel="noreferrer" title={r.prompt}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.imageUrl} alt={r.prompt} />
-              </a>
-            ))}
-          </div>
-        )}
+        {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && <p className="cr-caption">{latestDone.prompt}</p>}
+        {(() => {
+          const earlier = list.filter((g) => g.status === "completed" && g.imageUrl && g.id !== (pending ? "" : latestDone?.id));
+          return earlier.length > 0 && (
+            <div className="cr-earlier" aria-label="Earlier renders">
+              {earlier.map((r) => (
+                <a key={r.id} href={r.imageUrl ?? undefined} target="_blank" rel="noreferrer" title={r.prompt}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.imageUrl ?? ""} alt={r.prompt} />
+                </a>
+              ))}
+            </div>
+          );
+        })()}
       </section>
     </div>
   );
