@@ -67,3 +67,5 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
 .rd-danger:hover { border-color: var(--a-danger); background: transparent; }
 .lib-binlink { display: inline-flex; align-items: center; gap: 6px; margin: -6px 0 14px; color: var(--a-muted); font-size: 14px; text-decoration: none; transition: color .15s; }
 .lib-binlink:hover { color: var(--a-fg); }
+
+.lib-tile .lib-sub { color: var(--a-muted2); font-size: 12px; }
