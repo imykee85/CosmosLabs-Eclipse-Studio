@@ -117,7 +117,7 @@ export default function CreateStudio() {
           <label className="cr-chip cr-select" title={model?.blurb}>
             <span className="sr-only">Image model</span>
             <select value={modelId} onChange={(e) => pickModel(e.target.value)} aria-label="Image model">
-              {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.credits != null ? `${m.label} · ${m.credits} credits` : m.label}</option>)}
             </select>
           </label>
           <label className="cr-chip cr-select">

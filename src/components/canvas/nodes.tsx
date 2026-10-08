@@ -162,7 +162,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
             : <div className="cv-empty"><ImageIcon size={28} strokeWidth={1.4} /><span>{kind === "fullbody" ? "Full-body look appears here" : "Ready to generate"}</span></div>}
         </div>
         <select className="cv-input nodrag" value={model?.id ?? ""} aria-label="Image model" onChange={(e) => pickModel(e.target.value)}>
-          {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+          {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.credits != null ? `${m.label} · ${m.credits} credits` : m.label}</option>)}
         </select>
         <div className="cv-row">
           <select className="cv-input nodrag" value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>

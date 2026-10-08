@@ -5,7 +5,7 @@ import type { Generation } from "@prisma/client";
 import { spendCredits } from "./credits";
 import { db } from "./db";
 import { higgsfield } from "./higgsfield";
-import { getModelById } from "./models";
+import { chargeFor, getModelById } from "./models";
 import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from "./storage";
 
 const GIVE_UP_AFTER_MS = 15 * 60 * 1000;
@@ -80,7 +80,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
     try { saved = await saveImageFromUrl(g.userId, s.imageUrl); } catch (err) { console.error("saving the render to storage failed", err); }
   }
   // Charge only once the render exists (a model with no credit price yet is free).
-  const cost = getModelById(g.model)?.creditCost;
+  const cost = chargeFor(getModelById(g.model));
   if (cost != null) {
     try { await spendCredits(g.userId, cost); } catch (err) { console.error("charging credits failed", g.id, err); }
   }

@@ -5,7 +5,7 @@ import { getBalance } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { toItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
-import { findEnabledModel } from "@/lib/models";
+import { chargeFor, findEnabledModel } from "@/lib/models";
 
 export const maxDuration = 30;
 
@@ -39,7 +39,8 @@ export async function POST(req: Request) {
   }
 
   // Credits are checked before Higgsfield is called and charged when the render finishes. A model with no credit price yet is free.
-  if (model.creditCost != null && (await getBalance(userId)) < model.creditCost) {
+  const cost = chargeFor(model);
+  if (cost != null && (await getBalance(userId)) < cost) {
     return NextResponse.json({ error: "You do not have enough credits for this render." }, { status: 402 });
   }
 
