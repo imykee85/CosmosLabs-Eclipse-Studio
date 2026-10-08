@@ -52,7 +52,8 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("starting generation failed", model.id, err);
     // Higgsfield's own rejection (bad setting, empty balance, unknown endpoint) is shown so it can be fixed fast.
-    const why = err instanceof HiggsfieldError && err.detail ? ` ${model.label} said ${err.detail}` : "";
+    const code = err instanceof Error ? ` (${(err as { code?: string }).code ?? err.name})` : "";
+    const why = err instanceof HiggsfieldError && err.detail ? ` ${model.label}: ${err.detail}` : ` Our side failed to record the render${code}.`;
     return NextResponse.json({ error: `Generation failed. Please try again.${why}` }, { status: 502 });
   }
 }

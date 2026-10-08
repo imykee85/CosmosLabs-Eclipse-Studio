@@ -44,14 +44,24 @@ export const higgsfield: ImageProvider = {
   async submit(endpoint, body, idempotencyKey): Promise<SubmitResult> {
     // The same key on a retry means Higgsfield never charges twice for one render.
     const send = () => fetch(`${BASE_URL}/${endpoint}`, { method: "POST", headers: headers({ "Idempotency-Key": idempotencyKey }), body: JSON.stringify(body) });
-    let res = await send().catch(() => null);
-    if (!res || res.status >= 500) res = await send();
+    const attempt = async () => {
+      try { return await send(); } catch (e) {
+        const why = e instanceof Error ? `${e.name}: ${e.message}` : "network error";
+        throw new HiggsfieldError(`Higgsfield could not be reached for ${endpoint}: ${why}`, `could not reach Higgsfield (${why.slice(0, 120)})`);
+      }
+    };
+    let res: Response;
+    try { res = await attempt(); } catch { res = await attempt(); }
+    if (res.status >= 500) res = await attempt();
     if (!res.ok) {
       const text = await res.text();
       throw new HiggsfieldError(`Higgsfield request failed (${res.status}) for ${endpoint}: ${text}`, `${res.status}: ${text.slice(0, 200)}`);
     }
-    const job = (await res.json()) as JobResponse;
-    if (!job.request_id && !job.status_url) throw new Error("Higgsfield returned no request id");
+    const text = await res.text();
+    let job: JobResponse | null = null;
+    try { job = JSON.parse(text) as JobResponse; } catch {}
+    if (!job) throw new HiggsfieldError(`Higgsfield sent an unreadable reply for ${endpoint}: ${text.slice(0, 300)}`, `the reply was not readable (${res.status}): ${text.slice(0, 160)}`);
+    if (!job.request_id && !job.status_url) throw new HiggsfieldError(`Higgsfield returned no request id for ${endpoint}: ${text.slice(0, 300)}`, `the reply had no request id: ${text.slice(0, 200)}`);
     return { requestId: job.request_id ?? "", statusUrl: job.status_url ?? `${BASE_URL}/requests/${job.request_id}/status` };
   },
 
@@ -61,7 +71,7 @@ export const higgsfield: ImageProvider = {
     const job = (await res.json()) as JobResponse;
     const imageUrl = urlOf(job);
     if (imageUrl) return { state: "completed", imageUrl };
-    if (["failed", "nsfw", "canceled", "cancelled"].includes(job.status ?? "")) return { state: "failed", reason: job.status ?? "failed" };
+    if (["failed", "nsfw", "canceled", "cancelled"].includes(job.status ?? "")) return { state: "failed", reason: job.status ?? "failed", detail: typeof job.error === "string" ? job.error : undefined };
     return { state: "pending" };
   },
 

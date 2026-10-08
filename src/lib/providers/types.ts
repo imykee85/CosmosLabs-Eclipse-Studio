@@ -3,7 +3,7 @@ export type SubmitResult = { requestId: string; statusUrl: string };
 export type ProviderStatus =
   | { state: "pending" }
   | { state: "completed"; imageUrl: string }
-  | { state: "failed"; reason: string };
+  | { state: "failed"; reason: string; detail?: string };
 
 export interface ImageProvider {
   submit(endpoint: string, body: Record<string, unknown>, idempotencyKey: string): Promise<SubmitResult>;

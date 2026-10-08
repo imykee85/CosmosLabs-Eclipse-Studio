@@ -66,7 +66,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
     }
     return g;
   }
-  if (s.state === "failed") return (await fail(g.id, reasonText(s.reason))) ?? g;
+  if (s.state === "failed") return (await fail(g.id, `${reasonText(s.reason)}${s.detail ? ` (${s.detail.slice(0, 160)})` : ""}`)) ?? g;
 
   const claim = await db.generation.updateMany({
     where: { id: g.id, OR: [{ status: "pending" }, { status: "saving", updatedAt: { lt: new Date(Date.now() - SAVING_STALE_MS) } }] },
