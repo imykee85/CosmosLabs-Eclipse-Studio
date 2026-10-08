@@ -7,6 +7,7 @@ import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
+import RenderDetails from "../library/RenderDetails";
 import "./create.css";
 
 // Widest the preview gets for each shape, so tall ones do not run off the screen.
@@ -154,7 +155,9 @@ export default function CreateStudio() {
             </div>
           );
         })()}
-        {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && <p className="cr-caption">{latestDone.prompt}</p>}
+        {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && (
+          <div className="cr-details"><RenderDetails g={latestDone} /></div>
+        )}
         {(() => {
           const earlier = list.filter((g) => g.status === "completed" && g.imageUrl && g.id !== (pending ? "" : latestDone?.id));
           return earlier.length > 0 && (

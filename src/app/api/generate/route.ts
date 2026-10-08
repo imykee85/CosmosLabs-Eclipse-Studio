@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   try {
     const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution });
     const generation = await db.generation.create({
-      data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, costUsd: model.estimatedCostUsd },
+      data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd },
     });
     return NextResponse.json(await toItem(generation));
   } catch (err) {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { readImageSize } from "./image-info";
 
 // Private file storage on Cloudflare R2 (S3-compatible). The bucket stays private: nothing is ever served from a public address.
 // Files are read back only through signed links that stop working after SIGNED_URL_TTL_SECONDS, so a leaked link expires on its own.
@@ -49,10 +50,12 @@ export function signedGetUrl(key: string, ttlSeconds = SIGNED_URL_TTL_SECONDS): 
 }
 
 /**
- * Copies a finished image from the provider into our bucket and returns its key.
+ * Copies a finished image from the provider into our bucket and returns its key plus the file's facts (type, size, dimensions).
  * The address comes from the provider's own response, but it is still treated as untrusted: https only (also after redirects), images only, size and time capped.
  */
-export async function saveImageFromUrl(userId: string, sourceUrl: string): Promise<string> {
+export type SavedImage = { key: string; contentType: string; sizeBytes: number; width: number | null; height: number | null };
+
+export async function saveImageFromUrl(userId: string, sourceUrl: string): Promise<SavedImage> {
   const url = new URL(sourceUrl);
   if (url.protocol !== "https:") throw new Error("Refusing to fetch a non-https image address");
 
@@ -71,10 +74,18 @@ export async function saveImageFromUrl(userId: string, sourceUrl: string): Promi
 
   const key = `u/${userId}/${randomUUID()}.${extension}`;
   await putObject(key, bytes, type);
-  return key;
+  const size = readImageSize(bytes);
+  return { key, contentType: type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null };
 }
 
 /** The address to show for a generation: a fresh signed link when the file is in our storage, else the provider's link. */
 export async function displayUrl(generation: { imageUrl: string; storageKey: string | null }): Promise<string> {
   return generation.storageKey && storageEnabled ? signedGetUrl(generation.storageKey) : generation.imageUrl;
+}
+
+/** The stored file itself (or the provider's copy when it never reached our storage), streamed back for download and sharing. */
+export async function openImage(generation: { imageUrl: string; storageKey: string | null }): Promise<Response> {
+  const url = generation.storageKey && storageEnabled ? await signedGetUrl(generation.storageKey, 60) : generation.imageUrl;
+  if (new URL(url).protocol !== "https:") throw new Error("Refusing a non-https image address");
+  return fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 }

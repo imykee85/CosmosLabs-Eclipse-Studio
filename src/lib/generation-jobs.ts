@@ -6,7 +6,7 @@ import { spendCredits } from "./credits";
 import { db } from "./db";
 import { higgsfield } from "./higgsfield";
 import { getModelById } from "./models";
-import { displayUrl, saveImageFromUrl, storageEnabled } from "./storage";
+import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from "./storage";
 
 const GIVE_UP_AFTER_MS = 15 * 60 * 1000;
 const SAVING_STALE_MS = 2 * 60 * 1000;
@@ -15,6 +15,13 @@ export type RenderItem = {
   id: string;
   prompt: string;
   model: string | null;
+  modelLabel: string | null;
+  fileName: string | null;
+  contentType: string | null;
+  sizeBytes: number | null;
+  width: number | null;
+  height: number | null;
+  resolution: string | null;
   projectId: string | null;
   aspectRatio: string | null;
   status: "pending" | "completed" | "failed";
@@ -67,16 +74,26 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
   if (claim.count === 0) return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
 
   // Keep our own copy in the private bucket. If the copy fails the render is not lost: it falls back to the provider's link.
-  let storageKey: string | null = null;
+  let saved: SavedImage | null = null;
   if (storageEnabled) {
-    try { storageKey = await saveImageFromUrl(g.userId, s.imageUrl); } catch (err) { console.error("saving the render to storage failed", err); }
+    try { saved = await saveImageFromUrl(g.userId, s.imageUrl); } catch (err) { console.error("saving the render to storage failed", err); }
   }
   // Charge only once the render exists (a model with no credit price yet is free).
   const cost = getModelById(g.model)?.creditCost;
   if (cost != null) {
     try { await spendCredits(g.userId, cost); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
-  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: s.imageUrl, storageKey, error: null } });
+  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: s.imageUrl, storageKey: saved?.key ?? null, contentType: saved?.contentType ?? null, sizeBytes: saved?.sizeBytes ?? null, width: saved?.width ?? null, height: saved?.height ?? null, error: null } });
+}
+
+const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+
+// A readable, unique file name such as soul-2-20261008-153012-a1b2c3.png
+export function fileNameFor(g: Generation): string {
+  const label = getModelById(g.model)?.label ?? g.model ?? "image";
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "image";
+  const t = g.createdAt.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
+  return `${slug}-${t}-${g.id.slice(-6)}.${EXT[g.contentType ?? ""] ?? "png"}`;
 }
 
 export async function toItem(g: Generation): Promise<RenderItem> {
@@ -85,6 +102,13 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     id: g.id,
     prompt: g.prompt,
     model: g.model,
+    modelLabel: getModelById(g.model)?.label ?? g.model,
+    fileName: done ? fileNameFor(g) : null,
+    contentType: g.contentType,
+    sizeBytes: g.sizeBytes,
+    width: g.width,
+    height: g.height,
+    resolution: g.resolution,
     projectId: g.projectId,
     aspectRatio: g.aspectRatio,
     status: g.status === "failed" ? "failed" : done ? "completed" : "pending",

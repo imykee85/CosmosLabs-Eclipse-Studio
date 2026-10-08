@@ -6,6 +6,13 @@ export type Render = {
   id: string;
   prompt: string;
   model: string | null;
+  modelLabel: string | null;
+  fileName: string | null;
+  contentType: string | null;
+  sizeBytes: number | null;
+  width: number | null;
+  height: number | null;
+  resolution: string | null;
   projectId: string | null;
   aspectRatio: string | null;
   status: "pending" | "completed" | "failed";
