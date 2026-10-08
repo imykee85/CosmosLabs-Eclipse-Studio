@@ -57,7 +57,8 @@ export const MODELS: ImageModel[] = [
   m({ id: "qwen_image_3", label: "Qwen Image 3", blurb: "Detailed text-to-image.", endpoint: "alibaba/qwen-image-3/text-to-image", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k" }),
   // qwen_image_3_edit: request page read (1 to 3 public image_urls REQUIRED, 1k/2k, same 10 shapes as text-to-image); not tested, and hidden from the pickers because the app cannot send a reference image yet.
   m({ id: "qwen_image_3_edit", label: "Qwen Image 3 Edit", blurb: "Edits existing images (needs a reference image).", endpoint: "alibaba/qwen-image-3/edit", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k", maxReferences: 3, requiresReference: true }),
-  m({ id: "ideogram_4", label: "Ideogram 4.0", blurb: "Strong typography in images.", endpoint: "ideogram/v4.0", ratios: ["1:1", "4:5", "5:4", "2:3", "3:2", "9:16", "16:9", "3:4", "4:3"] }),
+  // ideogram_4: request page read (no resolution field and unknown fields are rejected; 23 shapes; prompt 2 to 2048 characters; rendering_speed is case-sensitive). Sent at TURBO, the cheapest speed. Not yet test-rendered.
+  m({ id: "ideogram_4", label: "Ideogram 4.0", blurb: "Strong typography in images.", endpoint: "ideogram/v4.0", ratios: ["1:1", "1:2", "2:1", "2:3", "3:2", "4:5", "5:4", "9:16", "16:9", "5:8", "8:5", "3:4", "4:3", "9:22", "22:9", "9:23", "23:9", "3:8", "8:3", "5:12", "12:5", "1:3", "3:1"], extraBody: { rendering_speed: "TURBO" } }),
   m({ id: "z_image_turbo", label: "Z-Image Turbo", blurb: "Very fast drafts.", endpoint: "z-image/turbo", ratios: WIDE }),
 ];
 
