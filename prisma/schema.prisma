@@ -84,6 +84,7 @@ model CreditLedger {
   reason     String // GRANT | PURCHASE | CHARGE | REFUND | ADJUST
   provider   String?
   externalId String?  @map("external_id")
+  note       String?  // what it was for, in words (e.g. "Soul 2 image", "Added by the owner")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@unique([provider, externalId])

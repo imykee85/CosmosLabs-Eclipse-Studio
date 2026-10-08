@@ -40,8 +40,9 @@ export async function POST(req: Request) {
 
   // Credits are checked before Higgsfield is called and charged when the render finishes. A model with no credit price yet is free.
   const cost = chargeFor(model);
-  if (cost != null && (await getBalance(userId)) < cost) {
-    return NextResponse.json({ error: "You do not have enough credits for this render." }, { status: 402 });
+  if (cost != null) {
+    const have = await getBalance(userId);
+    if (have < cost) return NextResponse.json({ error: `${model.label} needs ${cost} credits and you have ${have}. Ask the owner to add more credits.` }, { status: 402 });
   }
 
   try {

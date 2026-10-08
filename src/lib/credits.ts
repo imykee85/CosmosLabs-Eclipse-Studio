@@ -24,11 +24,11 @@ export async function getBalance(userId: string): Promise<number> {
 export async function grantCredits(
   userId: string,
   amount: number,
-  entry: { reason: Extract<CreditReason, "GRANT" | "PURCHASE" | "REFUND" | "ADJUST">; provider?: string; externalId?: string },
+  entry: { reason: Extract<CreditReason, "GRANT" | "PURCHASE" | "REFUND" | "ADJUST">; provider?: string; externalId?: string; note?: string },
 ): Promise<boolean> {
   if (!Number.isInteger(amount) || amount <= 0) throw new Error("A grant must be a positive whole number of credits");
   try {
-    await db.creditLedger.create({ data: { userId, delta: amount, reason: entry.reason, provider: entry.provider ?? null, externalId: entry.externalId ?? null } });
+    await db.creditLedger.create({ data: { userId, delta: amount, reason: entry.reason, provider: entry.provider ?? null, externalId: entry.externalId ?? null, note: entry.note ?? null } });
     return true;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return false;
@@ -37,14 +37,14 @@ export async function grantCredits(
 }
 
 /** Takes credits for a render. Throws InsufficientCreditsError, and writes nothing, when the balance is too low. */
-export async function spendCredits(userId: string, amount: number): Promise<number> {
+export async function spendCredits(userId: string, amount: number, note?: string): Promise<number> {
   if (!Number.isInteger(amount) || amount <= 0) throw new Error("A charge must be a positive whole number of credits");
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
     const balance = sum._sum.delta ?? 0;
     if (balance < amount) throw new InsufficientCreditsError(balance, amount);
-    await tx.creditLedger.create({ data: { userId, delta: -amount, reason: "CHARGE" } });
+    await tx.creditLedger.create({ data: { userId, delta: -amount, reason: "CHARGE", note: note ?? null } });
     return balance - amount;
   });
 }

@@ -1,7 +1,8 @@
 import { CreditCard, Inbox, Zap } from "lucide-react";
 import { plans } from "@/lib/plans";
+import { CreditBalance, CreditHistory, CreditNotes } from "./BillingLive";
 
-// Billing is not connected yet: the plan is always "Trial", credits are 0 and upgrades are disabled.
+// Plans are not connected to payment yet (the plan is always "Trial"); the credit balance and history are real.
 export default function BillingPanel() {
   return (
     <>
@@ -16,9 +17,10 @@ export default function BillingPanel() {
           </div>
           <div>
             <p className="st-eyebrow"><Zap size={15} /> CREDITS</p>
-            <p className="st-big">0</p>
+            <CreditBalance />
           </div>
         </div>
+        <CreditNotes />
       </section>
 
       <section className="st-section" aria-labelledby="st-upgrade">
@@ -38,11 +40,7 @@ export default function BillingPanel() {
 
       <section className="st-section" aria-labelledby="st-history">
         <h3 id="st-history" className="st-h3">Credit history</h3>
-        <div className="st-empty">
-          <Inbox size={44} strokeWidth={1.4} />
-          <p className="st-empty-title">No transactions yet</p>
-          <p className="st-meta">Credit activity will appear here.</p>
-        </div>
+        <CreditHistory />
       </section>
     </>
   );

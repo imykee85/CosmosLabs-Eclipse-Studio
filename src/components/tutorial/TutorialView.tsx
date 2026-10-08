@@ -1,9 +1,10 @@
 "use client";
 
+import CreditsPill from "@/components/CreditsPill";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  Award, Brain, Clapperboard, Coins, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, PenLine, Play, Puzzle, Settings, User, Workflow, Wrench, X,
+  Award, Brain, Clapperboard, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, PenLine, Play, Puzzle, Settings, User, Workflow, Wrench, X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
@@ -55,7 +56,7 @@ export default function TutorialView({ back }: { back: { path: string; label: st
         <span className="db-logo"><LogoMark size={48} /></span>
         <div className="db-header-right">
           <Link href={back.path} className="db-pill"><BackIcon size={15} /> {back.label}</Link>
-          <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
+          <CreditsPill className="db-pill db-pill-solid" />
           <ThemeToggle className="db-icon" />
           <NotificationsButton className="db-icon" />
           <UserMenu />

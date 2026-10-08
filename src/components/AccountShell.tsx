@@ -1,9 +1,10 @@
 "use client";
 
+import CreditsPill from "@/components/CreditsPill";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronLeft, Coins, GraduationCap } from "lucide-react";
+import { ChevronLeft, GraduationCap } from "lucide-react";
 import NotificationsButton from "@/components/Notifications";
 import { LogoMark } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -29,7 +30,7 @@ export default function AccountShell({ children }: { children: React.ReactNode }
         </div>
         <div className="db-header-right">
           <Link href={tutorialHref(pathname)} className="db-pill acct-tutorial" aria-label="Tutorial"><GraduationCap size={15} /> <span>Tutorial</span></Link>
-          <span className="db-pill db-pill-solid" title="Credits"><Coins size={14} /> 0</span>
+          <CreditsPill className="db-pill db-pill-solid" />
           <ThemeToggle className="db-icon" />
           <NotificationsButton className="db-icon" />
           <UserMenu />

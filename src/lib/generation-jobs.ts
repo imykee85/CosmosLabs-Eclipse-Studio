@@ -80,9 +80,10 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
     try { saved = await saveImageFromUrl(g.userId, s.imageUrl); } catch (err) { console.error("saving the render to storage failed", err); }
   }
   // Charge only once the render exists (a model with no credit price yet is free).
-  const cost = chargeFor(getModelById(g.model));
+  const chargedModel = getModelById(g.model);
+  const cost = chargeFor(chargedModel);
   if (cost != null) {
-    try { await spendCredits(g.userId, cost); } catch (err) { console.error("charging credits failed", g.id, err); }
+    try { await spendCredits(g.userId, cost, `${chargedModel?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
   return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: s.imageUrl, storageKey: saved?.key ?? null, contentType: saved?.contentType ?? null, sizeBytes: saved?.sizeBytes ?? null, width: saved?.width ?? null, height: saved?.height ?? null, error: null } });
 }

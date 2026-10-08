@@ -1,11 +1,12 @@
 "use client";
 
+import CreditsPill from "@/components/CreditsPill";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, Coins, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Settings, User, Video, Volume2, Workflow, X,
+  ArrowLeft, ChevronDown, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, PenLine, Settings, User, Video, Volume2, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -315,7 +316,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           {project && <span className="ws-project" title="Current project">{project}</span>}
           <div className="ws-topbar-right">
             <Link href={tutorialHref(pathname)} className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
-            <span className="ws-pill ws-pill-solid" title="Credits"><Coins size={14} /> 0</span>
+            <CreditsPill className="ws-pill ws-pill-solid" />
             <ThemeToggle className="ws-icon-btn" />
             <NotificationsButton className="ws-icon-btn" />
           </div>
@@ -364,7 +365,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             <Link href="/settings" className="mb-foot-link"><Settings size={19} /> Settings</Link>
             <Link href={tutorialHref(pathname)} className="mb-foot-link"><GraduationCap size={19} /> Tutorial</Link>
             <div className="mb-foot-row">
-              <span className="mb-credits"><Coins size={15} /> 0 credits</span>
+              <CreditsPill className="mb-credits" text />
               <ThemeToggle className="ws-icon-btn" />
               <NotificationsButton className="ws-icon-btn" up />
             </div>
