@@ -18,6 +18,7 @@ export type ImageModel = {
   defaultResolution?: string;  // the cheapest tier, sent when the request names none
   maxBatch: number;
   maxReferences: number;       // reference images the model accepts (none are sent yet)
+  requiresReference: boolean;  // needs an input image; kept out of the pickers until the app can send one
   enabled: boolean;
   verified: boolean;
   estimatedCostUsd: number | null;  // blank until measured from real generations
@@ -28,7 +29,7 @@ const SOUL_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"];
 const WIDE = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 
 function m(p: Partial<ImageModel> & Pick<ImageModel, "id" | "label" | "blurb" | "endpoint" | "ratios">): ImageModel {
-  return { type: "image", resolutions: [], maxBatch: 1, maxReferences: 0, enabled: false, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
+  return { type: "image", resolutions: [], maxBatch: 1, maxReferences: 0, requiresReference: false, enabled: false, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
 }
 
 export const MODELS: ImageModel[] = [
@@ -48,7 +49,8 @@ export const MODELS: ImageModel[] = [
   m({ id: "recraft_v4_1_utility_pro", label: "Recraft V4.1 Utility Pro", blurb: "Utility variant at 2K.", endpoint: "recraft/v4.1/utility/pro/text-to-image", ratios: ["1:1", "3:4", "4:3", "4:5", "5:4", "3:2", "2:3", "16:9", "9:16"] }),
   // qwen_image_3: request page read (1k/2k PNG, the 10 shapes below, no batch field, unknown fields are rejected); not yet test-rendered.
   m({ id: "qwen_image_3", label: "Qwen Image 3", blurb: "Detailed text-to-image.", endpoint: "alibaba/qwen-image-3/text-to-image", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k" }),
-  m({ id: "qwen_image_3_edit", label: "Qwen Image 3 Edit", blurb: "Edits an existing image (needs a reference image).", endpoint: "alibaba/qwen-image-3/edit", ratios: WIDE, maxReferences: 1 }),
+  // qwen_image_3_edit: request page read (1 to 3 public image_urls REQUIRED, 1k/2k, same 10 shapes as text-to-image); not tested, and hidden from the pickers because the app cannot send a reference image yet.
+  m({ id: "qwen_image_3_edit", label: "Qwen Image 3 Edit", blurb: "Edits existing images (needs a reference image).", endpoint: "alibaba/qwen-image-3/edit", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k", maxReferences: 3, requiresReference: true }),
   m({ id: "ideogram_4", label: "Ideogram 4.0", blurb: "Strong typography in images.", endpoint: "ideogram/v4.0", ratios: ["1:1", "4:5", "5:4", "2:3", "3:2", "9:16", "16:9", "3:4", "4:3"] }),
   m({ id: "z_image_turbo", label: "Z-Image Turbo", blurb: "Very fast drafts.", endpoint: "z-image/turbo", ratios: WIDE }),
 ];

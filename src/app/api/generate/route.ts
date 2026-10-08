@@ -23,6 +23,8 @@ export async function POST(req: Request) {
   const model = findEnabledModel(body?.model);
   if (!model) return NextResponse.json({ error: "That model is not available." }, { status: 400 });
 
+  if (model.requiresReference) return NextResponse.json({ error: `${model.label} needs a reference image, which cannot be sent from here yet.` }, { status: 400 });
+
   const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
 
   const aspectRatio = typeof body?.aspectRatio === "string" ? body.aspectRatio : undefined;
