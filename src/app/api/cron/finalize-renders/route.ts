@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { finalizeGeneration } from "@/lib/generation-jobs";
+import { finalizeGeneration, purgeFailed } from "@/lib/generation-jobs";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -32,7 +32,8 @@ export async function GET(req: Request) {
     });
     const results = await Promise.allSettled(rows.map((g) => finalizeGeneration(g)));
     const done = results.filter((r) => r.status === "fulfilled" && r.value.status !== "pending" && r.value.status !== "saving").length;
-    return NextResponse.json({ checked: rows.length, finished: done, more: rows.length === BATCH });
+    const cleared = await purgeFailed().catch(() => 0);
+    return NextResponse.json({ checked: rows.length, finished: done, clearedFailed: cleared, more: rows.length === BATCH });
   } catch (err) {
     console.error("render finishing job failed", err);
     return NextResponse.json({ error: "The job failed." }, { status: 500 });

@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
-import { finalizeGeneration, toItem } from "@/lib/generation-jobs";
+import { finalizeGeneration, purgeFailed, toItem } from "@/lib/generation-jobs";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 100;
@@ -22,6 +22,7 @@ export async function GET(req: Request) {
   const projectId = params.get("projectId");
   const inBin = params.get("bin") === "1";
   try {
+    await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err));
     const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
     // Renders still running are checked on here, so coming back later (or from another device) finds them finished.
     const items = await Promise.all(rows.map(async (g) => toItem(await finalizeGeneration(g))));

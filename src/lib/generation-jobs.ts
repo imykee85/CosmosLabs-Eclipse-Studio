@@ -10,6 +10,8 @@ import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from ".
 
 const GIVE_UP_AFTER_MS = 15 * 60 * 1000;
 const SAVING_STALE_MS = 2 * 60 * 1000;
+// A failed render is not worth keeping. It stays this long after it failed so whoever is watching still reads why, then it is deleted.
+const FAILED_KEEP_MS = 2 * 60 * 1000;
 
 export type RenderItem = {
   id: string;
@@ -86,6 +88,13 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
     try { await spendCredits(g.userId, cost, `${chargedModel?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
   return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: s.imageUrl, storageKey: saved?.key ?? null, contentType: saved?.contentType ?? null, sizeBytes: saved?.sizeBytes ?? null, width: saved?.width ?? null, height: saved?.height ?? null, error: null } });
+}
+
+// Deletes failed renders (one user's, or everyone's when no user is given) once they have been shown for a moment. A render fails before
+// anything is stored, so there is no file to remove and no credit was charged.
+export async function purgeFailed(userId?: string): Promise<number> {
+  const r = await db.generation.deleteMany({ where: { status: "failed", updatedAt: { lt: new Date(Date.now() - FAILED_KEEP_MS) }, ...(userId ? { userId } : {}) } });
+  return r.count;
 }
 
 const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
