@@ -161,7 +161,7 @@ const tabIcon = (icon: React.ReactNode) => (isValidElement(icon) ? cloneElement(
 
 const SLOT_KEY = "eclipse-create-slot";
 // Shortcuts that can take over the Create tab.
-const SLOT_ITEMS: Item[] = [photo[0], ingredients, canvasItem, agentsItem, photo[1], photo[2]];
+const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo[1], photo[2]];
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
@@ -186,9 +186,9 @@ function CreateTab({ pathname }: { pathname: string }) {
         <span className="mb-tab-icon">{tabIcon(slot.icon)}</span><span>{slot.label}</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
-        <NavItem item={ingredients} pathname={pathname} />
-        <NavItem item={canvasItem} pathname={pathname} />
         <NavItem item={agentsItem} pathname={pathname} />
+        <NavItem item={canvasItem} pathname={pathname} />
+        <NavItem item={ingredients} pathname={pathname} />
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
         <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
         <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
@@ -299,10 +299,10 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="ws-icon-btn" aria-label="Collapse sidebar" onClick={() => setOpen(false)}><PanelLeft size={16} /></button>
         </div>
         <nav className="ws-nav">
-          <NavItem item={ingredients} pathname={pathname} />
-          <NavItem item={canvasItem} pathname={pathname} />
           <NavItem item={agentsItem} pathname={pathname} />
+          <NavItem item={canvasItem} pathname={pathname} />
           <NavItem item={connectItem} pathname={pathname} />
+          <NavItem item={ingredients} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="AUDIO" items={audio} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
@@ -354,10 +354,10 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             )}
           </AccountName>
           <nav className="mb-nav">
-            <NavItem item={ingredients} pathname={pathname} />
-            <NavItem item={canvasItem} pathname={pathname} />
             <NavItem item={agentsItem} pathname={pathname} />
+            <NavItem item={canvasItem} pathname={pathname} />
             <NavItem item={connectItem} pathname={pathname} />
+            <NavItem item={ingredients} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />
             <Section title="AUDIO" items={audio} pathname={pathname} />
             <Section title="VIDEO" items={video} pathname={pathname} />
