@@ -132,8 +132,5 @@
 .mp-soon .mp-name { color: var(--a-fg2); }
 .mp-new { padding: 2px 9px; border-radius: 999px; background: rgba(192,7,7,.16); color: #ff5a5a; font-size: 11px; font-style: normal; font-weight: 600; }
 html[data-app-theme="light"] .mp-new { color: #c00707; }
-.mp-ico { flex: none; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--a-active); color: var(--a-fg2); box-shadow: inset 0 0 0 1px rgba(128,128,128,.22); }
-.mp-ico-brand { background: #000; color: #fff; }
-html[data-app-theme="light"] .mp-ico-brand { background: #111; }
-.mp-ico-letter { font-size: 13px; font-weight: 700; color: var(--a-fg); }
+.mp-ico { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; color: var(--a-fg2); }
 .mp-gh .mp-ico { margin: -4px 0; }
