@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AlertCircle, Brain, Check, Folder, Image as ImageIcon, Loader2, Puzzle, Send, Wrench } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
@@ -71,9 +70,6 @@ export default function ChatThread({ lines, busy, grew }: { lines: Line[]; busy:
           {l.role === "assistant" && busy && i === lines.length - 1 && !l.error && <span className="cn-working"><Loader2 size={14} className="cn-spin" /> Working</span>}
         </div>
       ))}
-      {lines.length > 0 && !busy && (
-        <p className="cn-foot">Renders are saved to your <Link href="/gallery">Gallery</Link> and <Link href="/library">Library</Link>.</p>
-      )}
     </div>
   );
 }
