@@ -52,3 +52,5 @@
   .hf-col, .hf-series { flex-basis: calc(33.33% - 11px); }
   .hf-wide, .hf-looks, .hf-tool { flex-basis: calc(50% - 8px); }
 }
+.hf-wide-link { position: absolute; inset: 0; display: block; color: inherit; }
+.hf-wide-link:hover .hf-empty { border-color: rgba(192,7,7,.8); }

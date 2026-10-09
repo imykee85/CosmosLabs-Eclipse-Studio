@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, MoreVertical, Plus } from "lucide-react";
 import SoonTag from "@/components/SoonTag";
@@ -8,7 +9,7 @@ import "./home-feed.css";
 // The lower half of the dashboard, laid out as a long home page: collections, series, video, looks, tools, questions.
 // The cards are EMPTY placeholders on purpose (no pictures, no invented counts) until real content exists; every section
 // that has nothing behind it yet carries a Soon tag. "Generate an image" is the one working card: it opens Image Studio
-// inside the latest project through `onGo` (or asks for a new project first).
+// inside the latest project through `onGo` (or asks for a new project first). "Motion graphics" opens /motion.
 const FAQ: [string, string][] = [
   ["What can I create?", "Images today, with video and more creative tools on the roadmap. Anything tagged Soon is not ready yet."],
   ["Where do my creations go?", "Each image is saved to your private Library, and to the Gallery of the project you made it in."],
@@ -59,9 +60,10 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       <div className="hf-sec">
         <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" />
         <ul className="hf-row hf-row-2">
-          {["Video templates", "Motion graphics"].map((n) => (
-            <li key={n} className="hf-wide"><Empty className="hf-fill" /><span className="hf-label">{n}</span></li>
-          ))}
+          <li className="hf-wide"><Empty className="hf-fill" /><span className="hf-label">Video templates</span></li>
+          <li className="hf-wide">
+            <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><Empty className="hf-fill" /><span className="hf-label">Motion graphics</span></Link>
+          </li>
         </ul>
       </div>
 
