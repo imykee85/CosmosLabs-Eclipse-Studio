@@ -5,3 +5,6 @@
 .nt-empty { display: grid; justify-items: center; gap: 6px; padding: 14px 6px 4px; color: var(--a-muted2); text-align: center; }
 .nt-empty p { margin: 8px 0 0; color: var(--a-fg); font-size: 15px; font-weight: 600; }
 .nt-empty small { color: var(--a-muted); font-size: 13px; line-height: 1.45; }
+.nt.nt-row { display: block; }
+.nt-row > button { width: 100%; text-align: left; border: 0; background: transparent; font: inherit; cursor: pointer; }
+.nt-row .nt-pop { left: 10px; right: auto; }

@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 import "./notifications.css";
 
-// Bell in the headers. Opens a small panel; there is nothing to show until the backend produces notifications
+// Bell in the headers (or, with `label`, a plain text row such as "Notifications" in the phone side menu). Opens a small panel; there is nothing to show until the backend produces notifications
 // (finished renders, shared work, credits), so it explains what will appear here.
-export default function NotificationsButton({ className, up = false }: { className?: string; up?: boolean }) {
+export default function NotificationsButton({ className, up = false, label }: { className?: string; up?: boolean; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -21,9 +21,9 @@ export default function NotificationsButton({ className, up = false }: { classNa
   }, [open]);
 
   return (
-    <span className="nt" ref={ref}>
+    <span className={`nt ${label ? "nt-row" : ""}`} ref={ref}>
       <button type="button" className={className} aria-label="Notifications" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Bell size={16} />
+        {label ?? <Bell size={16} />}
       </button>
       {open && (
         <div className={`nt-pop ${up ? "is-up" : ""}`} role="dialog" aria-label="Notifications">

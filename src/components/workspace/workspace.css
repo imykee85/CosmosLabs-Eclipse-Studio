@@ -131,6 +131,7 @@ a.ws-card .ws-card-cta { color: var(--a-redtext); }
   .mb-foot { display: grid; gap: 2px; padding: 8px 12px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--a-line); }
   .mb-foot-link { display: flex; align-items: center; gap: 14px; padding: 13px 10px; border-radius: 12px; color: var(--a-fg2); font-size: 16px; }
   .mb-foot-link:active, .mb-foot-link:hover { background: var(--a-hover); }
+  .mb-foot-text { padding-left: 43px; } /* lines the text up with the labels of the rows that have icons */
   .mb-foot-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px 0; }
   .mb-credits { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; color: var(--a-muted); font-size: 14px; }
 }
