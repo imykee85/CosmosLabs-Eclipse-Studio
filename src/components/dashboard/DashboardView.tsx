@@ -16,6 +16,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import CreditsPill from "@/components/CreditsPill";
 import NewProjectModal from "./NewProjectModal";
 import BinImages from "./BinImages";
+import HomeFeed from "./HomeFeed";
 import ProjectDetailsModal from "./ProjectDetailsModal";
 import RenameProjectModal from "./RenameProjectModal";
 import "@/components/app-theme.css";
@@ -73,6 +74,14 @@ export default function DashboardView() {
     router.push("/project");
   }
 
+  // Home cards open a page inside the latest project, or ask for a new project when there is none yet.
+  function goTo(path: string) {
+    const latest = (projects ?? []).filter((p) => !p.deletedAt).sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt))[0];
+    if (!latest) { setCreating(true); return; }
+    setCurrentProject(latest);
+    router.push(path);
+  }
+
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (projects ?? [])
@@ -99,6 +108,7 @@ export default function DashboardView() {
       </header>
 
       <main className="db-main">
+        <div className="db-top">
         <div className="db-toolbar">
           <div className="db-tabs" role="tablist" aria-label="Project views">
             <button role="tab" aria-selected={tab === "projects"} className={tab === "projects" ? "is-active" : ""} onClick={() => setTab("projects")}>
@@ -185,6 +195,8 @@ export default function DashboardView() {
             )}
           </section>
         )}
+        </div>
+        {tab === "projects" && projects !== null && !query.trim() && <HomeFeed onGo={goTo} />}
       </main>
       {menu && (
         <>
