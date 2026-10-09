@@ -139,8 +139,8 @@ function ConnectChat() {
           <div className="cn-dests" aria-hidden="true">
             {["tiktok", "instagram", "telegram", "slack", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={48} />)}
           </div>
-          <h1>Where should it go next?</h1>
-          <p>Ask for an image, run a skill, or send finished content to your apps.</p>
+          <h1>Your creative computer</h1>
+          <p>Ask for anything, run skills and tools, keep a memory of your work, and send it to your apps.</p>
         </div>
       )}
 

@@ -25,7 +25,7 @@ import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number };
 
-const connectItem: Item = { label: "Connect", hint: "Share and link your apps", href: "/connect", icon: <ConnectMark size={20} /> };
+const connectItem: Item = { label: "Connect", hint: "Your creative computer", href: "/connect", icon: <ConnectMark size={20} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
 const photo: Item[] = [
