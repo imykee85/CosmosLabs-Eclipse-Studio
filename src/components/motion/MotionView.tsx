@@ -3,32 +3,24 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink } from "lucide-react";
-import { MOTION_TAGS, motionPrompts, orderedMotion, postUrl, tagCount, type MotionPrompt } from "@/lib/motion";
+import { MOTION_TAGS, motionPrompts, orderedMotion, tagCount, type MotionPrompt } from "@/lib/motion";
 import MotionMedia from "./MotionMedia";
 import "./motion.css";
 
 // Motion graphics: a filterable feed of motion prompts, adapted from the user's Prompt Motion project (their own Manus build).
 // Topic chips show how many videos each topic holds; filters live in the address (?tag=<topic>&sort=popular|newest|title) so a
-// view can be shared and the back button restores it. A card with a clip plays it and opens /motion/<id>; a card that only has
-// the creator's link opens the post on X. Shown in pages of PAGE so the feed stays light.
+// view can be shared and the back button restores it. Every card plays its clip (the 20 from the Manus project carry their own file; the
+// rest look theirs up from the post on X when they come near the screen) and opens /motion/<id>. Shown in pages of PAGE so the feed stays light.
 const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const PAGE = 24;
 
 function Card({ p, paused }: { p: MotionPrompt; paused: boolean }) {
-  const playable = !!(p.video || p.preview);
   return (
     <li className="mo-item">
-      {playable ? (
-        <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title ?? `@${p.handle}`}`}><MotionMedia item={p} paused={paused} /></Link>
-      ) : (
-        <a href={postUrl(p)} target="_blank" rel="noopener noreferrer" className="mo-media-link mo-link-only" aria-label={`Watch @${p.handle}'s video on X`}>
-          <span className="mo-tile mo-empty-tile" style={{ aspectRatio: p.ratio ?? "16 / 9" }}><span>Watch on X <ExternalLink size={12} /></span></span>
-        </a>
-      )}
+      <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title ?? `@${p.handle}`}`}><MotionMedia item={p} paused={paused} /></Link>
       <div className="mo-meta">
         <span><b>@{p.handle}</b></span>
-        {playable ? <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open the prompt for ${p.title ?? p.handle}`}>Prompt</Link> : <a className="mo-kind" href={postUrl(p)} target="_blank" rel="noopener noreferrer">X</a>}
+        <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open ${p.title ?? p.handle}`}>Open</Link>
       </div>
     </li>
   );
