@@ -170,3 +170,9 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .cr-switch.is-on i { transform: translateX(16px); }
 .cr-row-c .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
 .cr-row-c .cr-chip svg { width: 14px; height: 14px; }
+/* Line 2 is one line: Ingredients, Open in canvas, the agent with its switch and Fixed seed with its switch. On a phone it scrolls sideways (like the chips on Orbit). */
+.cr-row-top { overflow-x: auto; scrollbar-width: none; justify-content: flex-start; gap: 8px; }
+.cr-row-top::-webkit-scrollbar { display: none; }
+.cr-row-top > *, .cr-row-top .cr-grp { flex: none; }
+.cr-row-top .cr-grp .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
+.cr-row-top .cr-grp .cr-chip svg { width: 14px; height: 14px; }

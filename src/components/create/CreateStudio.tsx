@@ -288,8 +288,6 @@ export default function CreateStudio() {
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
           </button>
-          </div>
-          <div className="cr-row cr-row-c">
             <div className="cr-grp">
             <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
             <AgentIcon size={14} /> <span className="cr-mlabel">Agent:</span> <span className="cr-aname">{agent ?? "None"}</span>
