@@ -1,26 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ChevronRight, Plus } from "lucide-react";
+import { ArrowRight, MoreVertical, Plus } from "lucide-react";
 import SoonTag from "@/components/SoonTag";
-import { skills } from "@/lib/skills";
-import { tools } from "@/lib/tools";
 import "./home-feed.css";
 
-// The lower half of the dashboard: things to start from, so the page feels like a home and not only a project list.
-// Every card opens its page inside the latest project (or asks for a new project first), through `onGo`. Wording and
-// pictures are Eclipse's own; nothing here claims a feature that does not work (video is tagged Soon).
-type Start = { id: string; title: string; image: string; path?: string };
-const STARTS: Start[] = [
-  { id: "image", title: "Make an image", image: "/carousel/card-5.jpg", path: "/create" },
-  { id: "canvas", title: "Build on the canvas", image: "/carousel/card-8.jpg", path: "/canvas" },
-  { id: "orbit", title: "Ask Orbit", image: "/carousel/card-6-poster.jpg", path: "/connect" },
-  { id: "video", title: "Make a video", image: "/carousel/card-4-poster.jpg" },
-];
-
-const HERO = ["/carousel/card-5.jpg", "/carousel/card-9-poster.jpg", "/carousel/card-2-poster.jpg", "/carousel/card-6-poster.jpg"];
-const EXAMPLES = ["card-12", "card-8", "card-13", "card-5", "card-14", "card-11", "card-2-poster", "card-9-poster", "card-6-poster", "card-4-poster"].map((n) => `/carousel/${n}.jpg`);
-
+// The lower half of the dashboard, laid out as a long home page: collections, series, video, looks, tools, questions.
+// The cards are EMPTY placeholders on purpose (no pictures, no invented counts) until real content exists; every section
+// that has nothing behind it yet carries a Soon tag. "Generate an image" is the one working card: it opens Image Studio
+// inside the latest project through `onGo` (or asks for a new project first).
 const FAQ: [string, string][] = [
   ["What can I create?", "Images today, with video and more creative tools on the roadmap. Anything tagged Soon is not ready yet."],
   ["Where do my creations go?", "Each image is saved to your private Library, and to the Gallery of the project you made it in."],
@@ -28,80 +16,85 @@ const FAQ: [string, string][] = [
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
 ];
 
+const Empty = ({ className = "" }: { className?: string }) => <span className={`hf-empty ${className}`} />;
+
+function Head({ title, sub, button, soon = true }: { title: string; sub?: string; button?: string; soon?: boolean }) {
+  return (
+    <>
+      <h2>{title}{soon && !button && <SoonTag />}</h2>
+      {sub && <p className="hf-sub">{sub}</p>}
+      {button && <button type="button" className="hf-pill">{button}{soon && <SoonTag />}</button>}
+    </>
+  );
+}
+
 export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
   const [open, setOpen] = useState<number | null>(null);
   return (
-    <section className="hf" aria-label="Start something new">
+    <section className="hf" aria-label="Home">
       <div className="hf-sec">
-        <h2>Discover</h2>
-        <div className="hf-hero">
-          <div className="hf-hero-pics" aria-hidden="true">{HERO.map((src) => <span key={src} style={{ backgroundImage: `url(${src})` }} />)}</div>
-          <div className="hf-hero-copy">
-            <small>Image Studio</small>
-            <h3>Describe it, and see it</h3>
-            <p>Pick a model, add reference pictures if you like, and make your first image in a minute.</p>
-            <button type="button" onClick={() => onGo("/create")}>Open Image Studio</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="hf-sec">
-        <h2>Start something new</h2>
-        <ul className="hf-row hf-row-big">
-          {STARTS.map((s) => (
-            <li key={s.id} className="hf-big" style={{ backgroundImage: `url(${s.image})` }}>
-              <span className="hf-big-title">{s.title}{!s.path && <SoonTag />}</span>
-              <button type="button" className="hf-try" onClick={() => s.path ? onGo(s.path) : undefined} aria-label={`${s.title}${s.path ? "" : " (coming soon)"}`}>
-                Try it <ArrowRight size={15} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="hf-sec">
-        <div className="hf-head"><h2>Skills by Eclipse</h2><button type="button" className="hf-more" onClick={() => onGo("/skills")}>See all <ChevronRight size={15} /></button></div>
-        <p className="hf-sub">Ready-made recipes Orbit follows for a shoot, a lookbook or a campaign.</p>
+        <button type="button" className="hf-pill">Explore collections <SoonTag /></button>
         <ul className="hf-row">
-          {skills.map((s) => (
-            <li key={s.id} className="hf-card">
-              <button type="button" onClick={() => onGo(`/connect?start=${encodeURIComponent(`Use the skill "${s.name}" (id: ${s.id}). Ask me only what you need to begin.`)}`)}>
-                <span className="hf-pic" style={{ backgroundImage: `url(${s.image})` }} />
-                <b>{s.name}</b>
-                <small>{s.minutes} min · {s.kind === "video" ? "Video" : "Photo"}</small>
-              </button>
+          {["Product shots", "Portraits", "Interiors"].map((n) => (
+            <li key={n} className="hf-col">
+              <div className="hf-quad"><Empty /><Empty /><Empty /><Empty /></div>
+              <div className="hf-col-meta"><b>{n}</b><MoreVertical size={16} aria-hidden="true" /></div>
             </li>
           ))}
         </ul>
       </div>
 
       <div className="hf-sec">
-        <div className="hf-head"><h2>Tools for quick jobs</h2><button type="button" className="hf-more" onClick={() => onGo("/tools")}>See all <ChevronRight size={15} /></button></div>
-        <p className="hf-sub">Small single-purpose tools, each one opens a chat that does the job with you.</p>
+        <Head title="Keep every project consistent" sub="Find pictures from the same series and keep your work aligned." />
         <ul className="hf-row">
-          {tools.map((t) => (
-            <li key={t.id} className="hf-card">
-              <button type="button" onClick={() => onGo(`/connect?start=${encodeURIComponent(t.start)}`)}>
-                <span className="hf-pic" style={{ backgroundImage: `url(${t.image})` }} />
-                <b>{t.name}</b>
-                <small>{t.blurb}</small>
-              </button>
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="hf-series">
+              <Empty className="hf-series-main" />
+              <div className="hf-thumbs"><Empty /><Empty /><Empty /></div>
             </li>
           ))}
         </ul>
       </div>
 
       <div className="hf-sec">
-        <h2>Examples</h2>
-        <p className="hf-sub">A look at the kind of work Eclipse makes.</p>
-        <ul className="hf-masonry">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {EXAMPLES.map((src) => <li key={src}><img src={src} alt="" loading="lazy" /></li>)}
+        <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" />
+        <ul className="hf-row hf-row-2">
+          {["Video templates", "Motion graphics"].map((n) => (
+            <li key={n} className="hf-wide"><Empty className="hf-fill" /><span className="hf-label">{n}</span></li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="hf-sec">
+        <Head title="Looks for every style" sub="Browse photo, product and illustration looks for all your creative needs." button="Discover all looks" />
+        <ul className="hf-row hf-row-2">
+          {["Photography", "Illustration"].map((n) => (
+            <li key={n} className="hf-looks">
+              <b>{n}</b>
+              <div className="hf-dots">{Array.from({ length: 12 }, (_, i) => <Empty key={i} className="hf-dot" />)}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="hf-sec">
+        <Head title="Tools to skyrocket your creative freedom" button="Discover all tools" />
+        <ul className="hf-row hf-row-2">
+          <li className="hf-tool">
+            <Empty className="hf-fill" />
+            <span className="hf-tool-title">Generate an image</span>
+            <button type="button" className="hf-try" onClick={() => onGo("/create")}>Try it <ArrowRight size={15} /></button>
+          </li>
+          <li className="hf-tool">
+            <Empty className="hf-fill" />
+            <span className="hf-tool-title">Generate a video <SoonTag /></span>
+            <button type="button" className="hf-try">Try it <ArrowRight size={15} /></button>
+          </li>
         </ul>
       </div>
 
       <div className="hf-sec hf-faq">
-        <h2>Good to know</h2>
+        <h2>Frequently asked questions</h2>
         <ul>
           {FAQ.map(([q, a], i) => (
             <li key={q}>
