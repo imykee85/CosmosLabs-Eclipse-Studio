@@ -11,6 +11,7 @@ import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import ModelPicker, { AUTO } from "./ModelPicker";
+import AgentIcon from "../AgentIcon";
 import "./create.css";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
@@ -241,19 +242,7 @@ export default function CreateStudio() {
           </div>
         )}
         <div className="cr-tools">
-          <div className="cr-row cr-row-top">
-          <button type="button" className="cr-chip" onClick={() => { if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
-            <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
-          </button>
-          <button type="button" className="cr-chip" aria-label="Open in canvas" title="Move this prompt to the Canvas"
-            onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
-            <Workflow size={14} /> Open in canvas
-          </button>
-          <button type="button" className="cr-chip cr-modelbtn" aria-label="Image model" aria-haspopup="dialog" title={model?.blurb} onClick={() => setPickingModel(true)}>
-            <span className="cr-mlabel">Model:</span>{modelId === AUTO && <Wand2 size={14} />}<span className="cr-mname">{modelId === AUTO ? "Auto" : model?.label ?? "Model"}</span><ChevronDown size={14} />
-          </button>
-          </div>
-          <div className="cr-row">
+          <div className="cr-row cr-row-a">
           <label className="cr-chip cr-select">
             <span className="sr-only">Aspect ratio</span>
             <select value={ratio} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio">
@@ -271,6 +260,21 @@ export default function CreateStudio() {
               {TIERS.map((t) => <option key={t.id} value={t.id} disabled={!!model?.resolutions.length && !tierResolution(model.resolutions, t.id)}>{t.label}</option>)}
             </select>
           </label>
+          <button type="button" className="cr-chip cr-modelbtn" aria-label="Image model" aria-haspopup="dialog" title={model?.blurb} onClick={() => setPickingModel(true)}>
+            <span className="cr-mlabel">Model:</span>{modelId === AUTO && <Wand2 size={14} />}<span className="cr-mname">{modelId === AUTO ? "Auto" : model?.label ?? "Model"}</span><ChevronDown size={14} />
+          </button>
+          </div>
+          <div className="cr-row cr-row-top">
+          <button type="button" className="cr-chip" onClick={() => { if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
+            <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
+          </button>
+          <button type="button" className="cr-chip" aria-label="Open in canvas" title="Move this prompt to the Canvas"
+            onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
+            <Workflow size={14} /> Open in canvas
+          </button>
+          <button type="button" className="cr-chip" title="Choose your agent" onClick={() => router.push("/agents")}>
+            <AgentIcon size={14} /> Agents
+          </button>
           </div>
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
             {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}

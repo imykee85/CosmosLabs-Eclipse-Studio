@@ -140,3 +140,14 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .cr-chip svg, .cr-qty svg { width: 16px; height: 16px; }
 /* Like Orbit: the field is the box itself; the selectors are white (card colour). */
 .cr-box textarea { padding-left: 8px; }
+/* Line 1: ratio, count, quality and the model picker, evenly spaced, the model picker taking the rest of the width up to the right edge.
+   Line 2: Ingredients, Open in canvas and Agents, spread evenly. */
+.cr-row-a { flex-wrap: nowrap; gap: 6px; }
+.cr-row-a .cr-select select { padding: 0 8px; }
+.cr-row-a .cr-qty button { width: 30px; }
+.cr-row-a .cr-modelbtn { flex: 1 1 0; min-width: 0; justify-content: space-between; padding: 0 10px; white-space: nowrap; }
+.cr-row-a .cr-modelbtn .cr-mname { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+.cr-row-top { justify-content: space-between; }
+.cr-row-a .cr-chip svg, .cr-row-a .cr-qty svg { width: 14px; height: 14px; }
+.cr-tools { grid-template-columns: minmax(0, 1fr); }
+.cr-row-a .cr-modelbtn { overflow: hidden; }
