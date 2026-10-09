@@ -6,8 +6,8 @@ import { getObjectBytes, signedGetUrl, storageEnabled } from "./storage";
 // Assets) and their own finished renders. The browser only ever sends ids, never addresses, so nothing outside the
 // user's own files can be named. Each id is resolved here, checked against the owner, and turned into an https link the
 // provider can fetch. The links are signed and last REFERENCE_LINK_SECONDS, long enough for a queued render to start.
-export const REFERENCE_LINK_SECONDS = 60 * 60;
-export const MAX_REFERENCES = 16;
+const REFERENCE_LINK_SECONDS = 60 * 60;
+const MAX_REFERENCES = 16;
 
 export type ReferenceRef = { type: "upload" | "render"; id: string };
 // One picture ready to hand over: our signed link (always), plus the stored file's key and type when it lives in our bucket.

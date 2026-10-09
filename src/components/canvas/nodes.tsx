@@ -55,11 +55,11 @@ function Ingredient({ id, data, selected, kind }: NodeProps<CNode> & { kind: "ch
   );
 }
 
-export const CharacterNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="character" />;
-export const ProductNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="product" />;
-export const SceneNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="scene" />;
+const CharacterNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="character" />;
+const ProductNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="product" />;
+const SceneNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="scene" />;
 
-export function TextNode({ id, data, selected }: NodeProps<CNode>) {
+function TextNode({ id, data, selected }: NodeProps<CNode>) {
   const { updateNodeData } = useReactFlow();
   return (
     <Shell id={id} kind="text" selected={selected} className="cv-wide">
@@ -72,7 +72,7 @@ export function TextNode({ id, data, selected }: NodeProps<CNode>) {
   );
 }
 
-export function NoteNode({ id, data, selected }: NodeProps<CNode>) {
+function NoteNode({ id, data, selected }: NodeProps<CNode>) {
   const { updateNodeData } = useReactFlow();
   return (
     <Shell id={id} kind="note" selected={selected} className="cv-wide">
@@ -84,7 +84,7 @@ export function NoteNode({ id, data, selected }: NodeProps<CNode>) {
   );
 }
 
-export function StyleNode({ id, data, selected }: NodeProps<CNode>) {
+function StyleNode({ id, data, selected }: NodeProps<CNode>) {
   const { updateNodeData } = useReactFlow();
   return (
     <Shell id={id} kind="style" selected={selected}>
@@ -177,7 +177,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   );
 }
 
-export const GeneratorNode = (p: NodeProps<CNode>) => <Generator {...p} kind="generator" />;
-export const FullBodyNode = (p: NodeProps<CNode>) => <Generator {...p} kind="fullbody" />;
+const GeneratorNode = (p: NodeProps<CNode>) => <Generator {...p} kind="generator" />;
+const FullBodyNode = (p: NodeProps<CNode>) => <Generator {...p} kind="fullbody" />;
 
 export const nodeTypes = { character: CharacterNode, product: ProductNode, scene: SceneNode, text: TextNode, style: StyleNode, note: NoteNode, fullbody: FullBodyNode, generator: GeneratorNode };

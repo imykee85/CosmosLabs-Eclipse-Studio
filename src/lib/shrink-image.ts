@@ -1,7 +1,7 @@
 // Phone photos are often 5 to 12 MB, but the host accepts about 4.5 MB per request. A larger picture is redrawn smaller
 // as a JPEG in the browser (longest side 3000 px, quality lowered until it fits) before it is uploaded. Smaller pictures
 // are sent untouched. Returns null when the browser cannot decode the file.
-export const UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
+const UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
 export const PICK_LIMIT_BYTES = 25 * 1024 * 1024;
 
 export async function shrinkToFit(file: File): Promise<File | null> {

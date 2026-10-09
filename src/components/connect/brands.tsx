@@ -10,7 +10,7 @@ import {
 type Brand = { icon: SimpleIcon | LucideIcon; bg: string; fg: string };
 const white = "#ffffff";
 
-export const BRANDS: Record<string, Brand> = {
+const BRANDS: Record<string, Brand> = {
   telegram: { icon: siTelegram, bg: "linear-gradient(180deg, #37aee2, #1e96c8)", fg: white },
   whatsapp: { icon: siWhatsapp, bg: "#25d366", fg: white },
   slack: { icon: siSlack, bg: white, fg: "#4a154b" },

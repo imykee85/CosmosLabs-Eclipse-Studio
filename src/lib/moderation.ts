@@ -7,7 +7,7 @@ const SEXUAL = /\b(nude|nudes|naked|nsfw|porn|porno|pornographic|sex|sexual|erot
 
 export type ModerationResult = { ok: true } | { ok: false; reason: string };
 
-export const REFUSAL = "Eclipse can't make this. Content that sexualises minors is never allowed. See the Terms of Use.";
+const REFUSAL = "Eclipse can't make this. Content that sexualises minors is never allowed. See the Terms of Use.";
 
 // Accents, capitals and stray symbols should not hide a word from the patterns.
 function normalise(text: string): string {

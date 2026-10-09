@@ -316,7 +316,7 @@ export default function CreateStudio() {
       </div>
       {agentOn && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={pickAgent} onClose={() => setAgentAnchor(null)} />}
-      {pickingModel && models && <ModelPicker models={models} value={modelId} autoModel={autoModel} onPick={pickModel} onClose={() => setPickingModel(false)} />}
+      {pickingModel && models && <ModelPicker models={models} value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
       {expanded && (
         <div className="cr-full" style={vvh ? { height: vvh, bottom: "auto" } : undefined} role="dialog" aria-label="Write your prompt">
           <button type="button" className="cr-full-x" aria-label="Back to the prompt box" title="Back" onClick={() => setExpanded(false)}><Minimize2 size={16} /></button>

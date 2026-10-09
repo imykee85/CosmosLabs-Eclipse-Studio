@@ -14,7 +14,7 @@ export type AgentEvent =
   | { t: "error"; message: string }
   | { t: "done" };
 
-export const MAX_CHAT_MESSAGES = 120; // stored rows per chat; past this a new chat is needed (history is never trimmed, the model needs it whole)
+const MAX_CHAT_MESSAGES = 120; // stored rows per chat; past this a new chat is needed (history is never trimmed, the model needs it whole)
 const MAX_STEPS = 8;
 const TIME_BUDGET_MS = 48_000; // the route may run 60 s
 const MAX_IMAGES = 3;

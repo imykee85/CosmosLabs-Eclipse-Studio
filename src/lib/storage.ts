@@ -7,7 +7,7 @@ import { readImageSize } from "./image-info";
 // Files are read back only through signed links that stop working after SIGNED_URL_TTL_SECONDS, so a leaked link expires on its own.
 // Keys are unguessable (a random id under the owner's user id), never the prompt or a counter.
 
-export const SIGNED_URL_TTL_SECONDS = 600;
+const SIGNED_URL_TTL_SECONDS = 600;
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 20_000;
 const EXTENSIONS: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };

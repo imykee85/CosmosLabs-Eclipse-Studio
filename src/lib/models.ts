@@ -12,7 +12,7 @@
 // NO pictures (it is never sent a guess that the provider might silently ignore). The environment can supply a field
 // without a deploy: HIGGSFIELD_REFERENCE_FIELD_<ID> (and _STYLE_<ID>: urls | url | objects).
 //   urls: "field": ["https://...", ...]   url: "field": "https://..." (first picture)   objects: "field": [{ type: "image_url", image_url }]
-export type RefSpec = { min: number; max: number; field?: string; style?: "urls" | "url" | "objects" };
+type RefSpec = { min: number; max: number; field?: string; style?: "urls" | "url" | "objects" };
 
 export type ImageModel = {
   id: string;
@@ -51,7 +51,7 @@ function m(p: Partial<ImageModel> & Pick<ImageModel, "id" | "label" | "blurb" | 
 // model; adjust the numbers here. Nothing is charged until CREDITS_ENABLED=1 is set (see chargeFor).
 const CREDITS = { soul: 2, light: 7, standard: 19, premium: 32 } as const;
 
-export const MODELS: ImageModel[] = [
+const MODELS: ImageModel[] = [
   m({ id: "soul_v2", creditCost: CREDITS.soul, label: "Soul 2", blurb: "Realistic people and fashion.", endpoint: "higgsfield-ai/soul/v2/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4, enabled: true, verified: true }),
   // soul: request page read (same fields as Soul 2: 720p/1080p, batch 1 or 4, the 7 shapes above); not yet test-rendered.
   m({ id: "soul", creditCost: CREDITS.light, label: "Soul", blurb: "The first Soul model.", endpoint: "higgsfield-ai/soul/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4 }),
@@ -86,7 +86,7 @@ export const MODELS: ImageModel[] = [
 ];
 
 // Disabled entries become available when listed in HIGGSFIELD_ENABLED_MODELS.
-export function isEnabled(model: ImageModel): boolean {
+function isEnabled(model: ImageModel): boolean {
   const extra = (process.env.HIGGSFIELD_ENABLED_MODELS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   return model.enabled || extra.includes(model.id);
 }
@@ -110,7 +110,7 @@ export function chargeFor(model: ImageModel | undefined): number | null {
 }
 
 // What a model really takes, after the environment's corrections. `supported` needs a confirmed request field.
-export function referenceSpec(model: ImageModel) {
+function referenceSpec(model: ImageModel) {
   const key = model.id.toUpperCase();
   const field = process.env[`HIGGSFIELD_REFERENCE_FIELD_${key}`] ?? model.references.field;
   const style = (process.env[`HIGGSFIELD_REFERENCE_STYLE_${key}`] ?? model.references.style ?? "urls") as "urls" | "url" | "objects";
@@ -120,7 +120,7 @@ export function referenceSpec(model: ImageModel) {
 export const maxRefs = (model: ImageModel) => referenceSpec(model).max;
 export const minRefs = (model: ImageModel) => referenceSpec(model).min;
 // An edit model whose picture field is not confirmed cannot run at all, so it stays out of every list.
-export const isRunnable = (model: ImageModel) => model.references.min === 0 || referenceSpec(model).supported;
+const isRunnable = (model: ImageModel) => model.references.min === 0 || referenceSpec(model).supported;
 
 // How reference pictures are added to a request body.
 export function referenceBody(model: ImageModel, urls: string[]): Record<string, unknown> {

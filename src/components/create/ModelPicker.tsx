@@ -68,8 +68,8 @@ const GROUPS: { name: string; total: number; match?: (id: string) => boolean }[]
   { name: "Microsoft", total: 1 },
 ];
 
-export default function ModelPicker({ models, value, autoModel, onPick, onClose }: {
-  models: PublicModel[]; value: string; autoModel: PublicModel | null; onPick: (id: string) => void; onClose: () => void;
+export default function ModelPicker({ models, value, onPick, onClose }: {
+  models: PublicModel[]; value: string; onPick: (id: string) => void; onClose: () => void;
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -106,7 +106,7 @@ export default function ModelPicker({ models, value, autoModel, onPick, onClose 
         <div className="mp-body">
           {term ? (
             <>
-              {showAuto && <AutoRow value={value} autoModel={autoModel} onPick={onPick} />}
+              {showAuto && <AutoRow value={value} onPick={onPick} />}
               {found.map((m) => row(m))}
               {foundSoon.map(soonRow)}
               {!found.length && !foundSoon.length && !showAuto && <p className="mp-none">No model matches &ldquo;{q}&rdquo;.</p>}
@@ -114,7 +114,7 @@ export default function ModelPicker({ models, value, autoModel, onPick, onClose 
           ) : (
             <>
               <h3>Popular</h3>
-              <AutoRow value={value} autoModel={autoModel} onPick={onPick} />
+              <AutoRow value={value} onPick={onPick} />
               {POPULAR.map(soonRow)}
               <h3>All models</h3>
               {groups.map((g) => (
@@ -140,7 +140,7 @@ export default function ModelPicker({ models, value, autoModel, onPick, onClose 
   );
 }
 
-function AutoRow({ value, autoModel, onPick }: { value: string; autoModel: PublicModel | null; onPick: (id: string) => void }) {
+function AutoRow({ value, onPick }: { value: string; onPick: (id: string) => void }) {
   return (
     <button type="button" className={`mp-row ${value === AUTO ? "is-on" : ""}`} onClick={() => onPick(AUTO)}>
       <ModelIcon name="Auto" />

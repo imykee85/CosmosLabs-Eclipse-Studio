@@ -2,9 +2,9 @@ import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
 import "./legal.css";
 
-export const LAST_UPDATED = "9 October 2026";
+const LAST_UPDATED = "9 October 2026";
 // Set NEXT_PUBLIC_CONTACT_EMAIL to show a contact address on the legal pages.
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "";
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "";
 
 export function Contact() {
   return CONTACT_EMAIL

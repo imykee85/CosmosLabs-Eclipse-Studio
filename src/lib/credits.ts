@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 
 export type CreditReason = "GRANT" | "PURCHASE" | "CHARGE" | "REFUND" | "ADJUST";
 
-export class InsufficientCreditsError extends Error {
+class InsufficientCreditsError extends Error {
   constructor(readonly balance: number, readonly needed: number) {
     super(`Not enough credits: ${balance} available, ${needed} needed`);
   }

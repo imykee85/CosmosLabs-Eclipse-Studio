@@ -62,7 +62,7 @@
 .cr-stage { border-radius: 20px; }
 .cr-empty { padding: 14px; gap: 8px; }
 .cr-empty p { font-size: 13px; }
-/* The prompt field: twice as tall, an inset field in the theme's input colour with its own border so it reads as a text field. */
+/* The prompt field: two lines tall, no box of its own (the prompt box is the field, like Orbit). */
 .cr-box textarea { height: 48px; min-height: 0; max-height: none; padding: 0 42px 0 14px; border: 0; border-radius: 0; background: transparent; color: var(--a-fg); overflow-y: auto; }
 .cr-box textarea::placeholder { color: var(--a-ph); }
 /* Earlier renders: one fifth of the old area. */
@@ -79,7 +79,7 @@
 .cr-full-x { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg2); cursor: pointer; }
 .cr-done { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; transition: background .2s, transform .18s; }
 .cr-done:hover { background: #d90b0b; }
-/* Three rows under the field: Ingredients, model and shape, then a full-width Generate. */
+/* Under the field: line 1 (shape, count, quality, model), line 2 (Ingredients, canvas, agent, seed), then a full-width Generate. */
 .cr-tools { display: grid; gap: 10px; }
 .cr-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .cr-go { width: 100%; justify-content: center; margin-left: 0; }
@@ -90,26 +90,17 @@
 .cr-qty button:disabled { opacity: .35; cursor: default; }
 .cr-qty span { min-width: 18px; text-align: center; color: var(--a-fg); }
 .cr-select select:disabled { cursor: default; opacity: .6; }
-/* Ingredients, Open in canvas and the model picker share one line, each at its natural width. */
-.cr-row-top { flex-wrap: nowrap; gap: 6px; }
+/* Line 2 (Ingredients, Open canvas, the agent and the seed): one line. */
+.cr-row-top { flex-wrap: nowrap; }
 .cr-row-top .cr-chip { padding: 0 11px; font-size: 14px; white-space: nowrap; }
-.cr-row-top .cr-select { padding: 0; }
-.cr-row-top .cr-select select { padding: 0 8px; }
-.cr-row-top .cr-select { min-width: 0; flex: 0 1 auto; }
-.cr-row-top .cr-select select { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .cr-box { padding: 12px 6px 10px; }
   .cr-dock { left: 8px; right: 8px; }
-  .cr-row-top { gap: 2px; }
   .cr-row-top .cr-chip { padding: 0 5px; font-size: 14px; gap: 2px; }
   .cr-row-top .cr-chip svg { width: 14px; height: 14px; }
-  .cr-row-top .cr-select select { padding: 0 6px; }
-  .cr-row-top .cr-select { overflow: hidden; }
 }
 /* Model picker chip and sheet. */
 .cr-modelbtn { cursor: pointer; }
-.cr-row-top .cr-modelbtn { flex: 0 1 auto; min-width: 0; }
-.cr-row-top .cr-modelbtn .cr-mname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-scrim { position: fixed; inset: 0; z-index: 300; display: grid; place-items: end center; background: rgba(0,0,0,.55); }
 .mp-sheet { display: flex; flex-direction: column; width: min(560px, 100%); max-height: 88dvh; border: 1px solid var(--a-line2); border-radius: 28px 28px 0 0; background: var(--a-card); color: var(--a-fg); box-shadow: 0 -20px 60px var(--a-shadow); }
 .mp-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 8px; }
@@ -147,7 +138,6 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .cr-row-a .cr-qty button { width: 30px; }
 .cr-row-a .cr-modelbtn { flex: 1 1 0; min-width: 0; justify-content: space-between; padding: 0 10px; white-space: nowrap; }
 .cr-row-a .cr-modelbtn .cr-mname { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; }
-.cr-row-top { justify-content: space-between; }
 .cr-row-a .cr-chip svg, .cr-row-a .cr-qty svg { width: 14px; height: 14px; }
 .cr-tools { grid-template-columns: minmax(0, 1fr); }
 .cr-row-a .cr-modelbtn { overflow: hidden; }
@@ -159,21 +149,17 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .am-item span:first-of-type { flex: 1; }
 .am-check { color: #c00707; }
 .cr-aname { white-space: nowrap; }
-/* Line 3: the agent with its on/off switch, and the fixed seed with its switch. */
-.cr-row-top { justify-content: flex-start; gap: 8px; }
-.cr-row-c { flex-wrap: nowrap; justify-content: space-between; gap: 8px; }
+/* The agent and the fixed seed, each with an on/off switch. */
 .cr-grp { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .cr-seed { padding: 0 12px; }
 .cr-switch { flex: none; position: relative; width: 38px; height: 22px; padding: 0; border: 0; border-radius: 999px; background: var(--a-line3); cursor: pointer; transition: background .18s; }
 .cr-switch i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .18s; }
 .cr-switch.is-on { background: #c00707; }
 .cr-switch.is-on i { transform: translateX(16px); }
-.cr-row-c .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
-.cr-row-c .cr-chip svg { width: 14px; height: 14px; }
-/* Line 2 is one line: Ingredients, Open in canvas, the agent with its switch and Fixed seed with its switch. On a phone it scrolls sideways (like the chips on Orbit). */
+/* On a phone line 2 scrolls sideways when it is wider than the box (like the chips on Orbit). */
 .cr-row-top { overflow-x: auto; scrollbar-width: none; justify-content: space-between; gap: 8px; }
 .cr-row-top::-webkit-scrollbar { display: none; }
-.cr-row-top > *, .cr-row-top .cr-grp { flex: none; }
+.cr-row-top > * { flex: none; }
 .cr-row-top .cr-grp .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
 .cr-row-top .cr-grp .cr-chip svg { width: 14px; height: 14px; }
 /* Floating agent widget: a round button you can drag anywhere on the screen. */

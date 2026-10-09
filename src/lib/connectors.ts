@@ -4,7 +4,7 @@
 // Descriptions are Eclipse's own wording. `brand` is mapped to a logo in components/connect/brands.tsx.
 export type Connector = { name: string; blurb: string; brand: string };
 
-export const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 export const connectorId = (c: Connector) => slug(c.name);
 
 // What the user pastes to connect, for the apps that connect directly.

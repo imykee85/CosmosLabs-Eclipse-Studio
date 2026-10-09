@@ -45,7 +45,6 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
 ];
 
 export const STYLES = ["None", "Editorial", "Cinematic", "Minimal studio", "Film grain", "Golden hour", "Luxury product"];
-export const RATIOS = ["1:1", "4:5", "9:16", "16:9"];
 
 const key = (projectId: string) => `eclipse-canvas-${projectId}`;
 const uid = () => `n-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -57,7 +56,7 @@ export function newNode(kind: NodeKind, position: { x: number; y: number }, data
 
 // A new canvas is blank. This is the ready-made flow offered as the "Starter flow" template: the character, text and style feed a
 // full-body generator, which feeds the image generator together with two products, a scene and the text.
-export function starterGraph(): { nodes: CNode[]; edges: Edge[] } {
+function starterGraph(): { nodes: CNode[]; edges: Edge[] } {
   const character = newNode("character", { x: 0, y: 0 });
   const productA = newNode("product", { x: 0, y: 300 });
   const productB = newNode("product", { x: 0, y: 600 });

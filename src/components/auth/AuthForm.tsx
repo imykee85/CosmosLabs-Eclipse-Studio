@@ -7,7 +7,7 @@ import ClerkAuth from "./ClerkAuth";
 
 // Demo mode exists ONLY when Clerk keys are missing (no real auth to bypass). With keys set,
 // this branch is never rendered and the real Clerk flow is used.
-export const DEMO_LOGIN = { email: "demo@eclipse.test", password: "demo1234" };
+const DEMO_LOGIN = { email: "demo@eclipse.test", password: "demo1234" };
 
 function DemoAuth({ mode }: { mode: Mode }) {
   const router = useRouter();

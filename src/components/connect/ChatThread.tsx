@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, Brain, Check, Folder, Image as ImageIcon, Loader2, Puzzle, Send, Wrench } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
 
-export type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string };
+type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string };
 export type Line = { role: "user" | "assistant"; parts: Part[]; error?: string };
 
 const TOOL_LABEL: Record<string, string> = {
