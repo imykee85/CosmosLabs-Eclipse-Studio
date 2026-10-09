@@ -3,7 +3,7 @@
 const ORIGINS: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/project": "Studio",
-  "/create": "Create",
+  "/create": "Image Studio",
   "/gallery": "Gallery",
   "/library": "Library",
   "/ingredients": "Ingredients",

@@ -94,7 +94,7 @@ export default function CreateStudio() {
   return (
     <div className="cr-wrap">
       <header className="cr-intro">
-        <h1>Start creating</h1>
+        <h1 className="pg-title">Image Studio</h1>
         <p>Describe the shot you imagine. Your preview appears in the panel below.</p>
       </header>
 

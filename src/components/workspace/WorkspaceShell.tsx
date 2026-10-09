@@ -28,7 +28,7 @@ const connectItem: Item = { label: "Connect", hint: "Share and link your apps", 
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
 const photo: Item[] = [
-  { label: "Create", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
+  { label: "Image Studio", hint: "Write a prompt", href: "/create", icon: <PenLine size={17} /> },
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
   { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> },
 ];
@@ -265,7 +265,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Create", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/generate": "Generate", "/connect": "Connect", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/generate": "Generate", "/connect": "Connect", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
