@@ -3,21 +3,42 @@
 import { useMemo, useState } from "react";
 import { Check, ChevronDown, Search, Wand2, X } from "lucide-react";
 import type { PublicModel } from "@/lib/models";
+import SoonTag from "../SoonTag";
 
 export const AUTO = "auto";
 
-// The models listed under Popular, in this order, when the server offers them.
-const POPULAR = ["soul_v2", "grok_image_2", "marketing_studio_image", "ideogram_4", "recraft_v4_1"];
+// Popular, as laid out for the product. Entries with no `id` have no working model behind them yet (they carry the Soon tag
+// and do nothing when tapped); add `id` (and `real`) as each one is connected.
+const POPULAR: { label: string; isNew?: boolean }[] = [
+  { label: "Cinematic" },
+  { label: "Magnific One", isNew: true },
+  { label: "Google Nano Banana 2.1", isNew: true },
+  { label: "GPT 2.5", isNew: true },
+  { label: "Seedream 5 Pro", isNew: true },
+];
 
-// Models are grouped by family for the All models list.
-const FAMILIES: { name: string; match: (id: string) => boolean }[] = [
-  { name: "Soul", match: (id) => id.startsWith("soul") },
-  { name: "Marketing Studio", match: (id) => id.startsWith("marketing_studio") || id === "ads_studio" },
-  { name: "Grok", match: (id) => id.startsWith("grok") },
-  { name: "Recraft", match: (id) => id.startsWith("recraft") },
-  { name: "Qwen", match: (id) => id.startsWith("qwen") },
-  { name: "Ideogram", match: (id) => id.startsWith("ideogram") },
-  { name: "Z-Image", match: (id) => id.startsWith("z_image") },
+// All models, grouped by maker, with the model counts the product lists. `match` finds the models Eclipse can really run in
+// each group; the rest of a group's count is shown as "more models" with the Soon tag. Eclipse's own groups (Soul, Marketing
+// Studio) are not in the list from the screenshot; they sit first because they are the models that work today.
+const GROUPS: { name: string; total: number; match?: (id: string) => boolean }[] = [
+  { name: "Soul", total: 0, match: (id) => id.startsWith("soul") },
+  { name: "Marketing Studio", total: 0, match: (id) => id.startsWith("marketing_studio") || id === "ads_studio" },
+  { name: "Magnific", total: 1 },
+  { name: "Google", total: 5 },
+  { name: "GPT", total: 6 },
+  { name: "Seedream", total: 6 },
+  { name: "Flux", total: 11 },
+  { name: "Mystic", total: 4 },
+  { name: "Ideogram", total: 4, match: (id) => id.startsWith("ideogram") },
+  { name: "Luma", total: 1 },
+  { name: "Runway", total: 1 },
+  { name: "Classic", total: 2 },
+  { name: "Z-Image", total: 1, match: (id) => id.startsWith("z_image") },
+  { name: "Qwen", total: 3, match: (id) => id.startsWith("qwen") },
+  { name: "Grok", total: 2, match: (id) => id.startsWith("grok") },
+  { name: "Recraft", total: 3, match: (id) => id.startsWith("recraft") },
+  { name: "Krea", total: 1 },
+  { name: "Microsoft", total: 1 },
 ];
 
 export default function ModelPicker({ models, value, autoModel, onPick, onClose }: {
@@ -25,22 +46,22 @@ export default function ModelPicker({ models, value, autoModel, onPick, onClose 
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
-  const popular = useMemo(() => POPULAR.map((id) => models.find((m) => m.id === id)).filter((m): m is PublicModel => !!m), [models]);
-  const groups = useMemo(() => {
-    const used = new Set<string>();
-    const out = FAMILIES.map((f) => {
-      const list = models.filter((m) => f.match(m.id));
-      list.forEach((m) => used.add(m.id));
-      return { name: f.name, list };
-    }).filter((g) => g.list.length);
-    const rest = models.filter((m) => !used.has(m.id));
-    if (rest.length) out.push({ name: "Other", list: rest });
-    return out;
-  }, [models]);
+  const groups = useMemo(() => GROUPS.map((g) => {
+    const list = g.match ? models.filter((m) => g.match!(m.id)) : [];
+    return { name: g.name, list, soon: Math.max(0, g.total - list.length), count: Math.max(g.total, list.length) };
+  }).filter((g) => g.count > 0), [models]);
   const term = q.trim().toLowerCase();
   const found = term ? models.filter((m) => `${m.label} ${m.blurb}`.toLowerCase().includes(term)) : [];
+  const foundSoon = term ? POPULAR.filter((m) => m.label.toLowerCase().includes(term)) : [];
   const showAuto = !term || "auto".includes(term);
 
+  const soonRow = (m: { label: string; isNew?: boolean }) => (
+    <button key={m.label} type="button" className="mp-row mp-soon">
+      <span className="mp-name">{m.label}</span>
+      {m.isNew && <i className="mp-new">New</i>}
+      <SoonTag className="mp-tag" />
+    </button>
+  );
   const row = (m: PublicModel) => (
     <button key={m.id} type="button" className={`mp-row ${value === m.id ? "is-on" : ""}`} onClick={() => onPick(m.id)}>
       <span className="mp-name">{m.label}{m.blurb && <small>{m.blurb}</small>}</span>
@@ -58,20 +79,28 @@ export default function ModelPicker({ models, value, autoModel, onPick, onClose 
             <>
               {showAuto && <AutoRow value={value} autoModel={autoModel} onPick={onPick} />}
               {found.map(row)}
-              {!found.length && !showAuto && <p className="mp-none">No model matches &ldquo;{q}&rdquo;.</p>}
+              {foundSoon.map(soonRow)}
+              {!found.length && !foundSoon.length && !showAuto && <p className="mp-none">No model matches &ldquo;{q}&rdquo;.</p>}
             </>
           ) : (
             <>
               <h3>Popular</h3>
               <AutoRow value={value} autoModel={autoModel} onPick={onPick} />
-              {popular.map(row)}
+              {POPULAR.map(soonRow)}
               <h3>All models</h3>
               {groups.map((g) => (
                 <div key={g.name} className="mp-group">
                   <button type="button" className="mp-gh" aria-expanded={open === g.name} onClick={() => setOpen(open === g.name ? null : g.name)}>
-                    <span>{g.name}</span><em>{g.list.length} {g.list.length === 1 ? "model" : "models"}</em><ChevronDown size={16} className={open === g.name ? "is-up" : ""} />
+                    <span>{g.name}</span><em>{g.count} {g.count === 1 ? "model" : "models"}</em><ChevronDown size={16} className={open === g.name ? "is-up" : ""} />
                   </button>
-                  {open === g.name && <div className="mp-list">{g.list.map(row)}</div>}
+                  {open === g.name && (
+                    <div className="mp-list">
+                      {g.list.map(row)}
+                      {g.soon > 0 && (
+                        <button type="button" className="mp-row mp-soon"><span className="mp-name">{g.list.length ? `${g.soon} more ${g.soon === 1 ? "model" : "models"}` : g.soon === 1 ? "1 model" : `${g.soon} models`}</span><SoonTag className="mp-tag" /></button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </>

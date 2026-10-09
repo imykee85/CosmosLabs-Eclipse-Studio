@@ -129,3 +129,6 @@
 .mp-list { padding: 0 0 6px 14px; }
 .mp-none { margin: 20px 12px; color: var(--a-muted); font-size: 14px; }
 @media (min-width: 801px) { .mp-scrim { place-items: center; } .mp-sheet { border-radius: 24px; max-height: 80dvh; } }
+.mp-soon .mp-name { color: var(--a-fg2); }
+.mp-new { padding: 2px 9px; border-radius: 999px; background: rgba(192,7,7,.16); color: #ff5a5a; font-size: 11px; font-style: normal; font-weight: 600; }
+html[data-app-theme="light"] .mp-new { color: #c00707; }
