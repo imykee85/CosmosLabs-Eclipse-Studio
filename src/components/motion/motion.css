@@ -49,7 +49,6 @@
 .mo-meta b { font-size: 13px; font-weight: 500; color: var(--a-muted); }
 .mo-kind { padding: 3px 12px; border: 1px solid var(--a-line3); border-radius: 999px; color: var(--a-muted); font-size: 12px; text-decoration: none; }
 .mo-kind:hover { color: var(--a-fg); border-color: var(--a-fg); }
-.mo-source { display: flex; width: fit-content; align-items: center; gap: 1px; margin: 6px 0 0; padding: 6px 0; color: var(--a-muted2); font-size: 2.6px; text-decoration: underline; }
 .mo-credit { margin: 6px 0 0; color: var(--a-muted2); font-size: 10px; }
 
 .mo-video { object-fit: cover; }
@@ -71,3 +70,5 @@
 .mo-empty-tile span { display: inline-flex; align-items: center; gap: 5px; }
 .mo-more { display: block; margin: 12px auto 0; height: 42px; padding: 0 22px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; cursor: pointer; }
 .mo-more:hover { border-color: var(--a-line4); }
+.mo-handle { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--a-muted); font-size: 13px; font-weight: 500; text-decoration: none; }
+.mo-handle:hover { color: var(--a-fg); text-decoration: underline; }

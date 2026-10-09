@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, ChevronLeft, Copy, ExternalLink } from "lucide-react";
+import { Check, ChevronLeft, Copy } from "lucide-react";
 import type { MotionPrompt } from "@/lib/motion";
 import { postUrl } from "@/lib/motion";
 import MotionMedia from "./MotionMedia";
@@ -30,14 +30,13 @@ export default function MotionDetail({ item }: { item: MotionPrompt }) {
             <div><dt>Model</dt><dd>{item.model}</dd></div>
             <div><dt>Tries</dt><dd>{item.tries}</dd></div>
             <div><dt>Topics</dt><dd>{item.tags.join(", ")}</dd></div>
-            <div><dt>By</dt><dd>{item.name} (@{item.handle})</dd></div>
+            <div><dt>By</dt><dd><a href={postUrl(item)} target="_blank" rel="noopener noreferrer" title="Open the original post on X">{item.name} (@{item.handle})</a></dd></div>
             <div><dt>Posted</dt><dd>{item.posted}</dd></div>
           </dl>
           {item.prompt && (
             <>
               <h3>Prompt</h3>
               <p className="mo-prompt">{item.prompt}</p>
-              <a className="mo-source" href={postUrl(item)} target="_blank" rel="noopener noreferrer">View original on X <ExternalLink size={2} /></a>
               <button type="button" className="mo-copy" onClick={copy}>{copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy prompt</>}</button>
             </>
           )}
