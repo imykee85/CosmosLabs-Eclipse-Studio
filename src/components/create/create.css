@@ -90,9 +90,17 @@
 .cr-qty button:disabled { opacity: .35; cursor: default; }
 .cr-qty span { min-width: 18px; text-align: center; color: var(--a-fg); }
 .cr-select select:disabled { cursor: default; opacity: .6; }
-/* Ingredients, Open in canvas and the model picker share one line, even on a phone; a long model name is clipped. */
+/* Ingredients, Open in canvas and the model picker share one line, each at its natural width. */
 .cr-row-top { flex-wrap: nowrap; gap: 6px; }
-.cr-row-top .cr-chip { padding: 0 10px; font-size: 12.5px; gap: 5px; white-space: nowrap; }
-.cr-row-top .cr-select { flex: 1 1 0; min-width: 0; padding: 0; }
-.cr-row-top .cr-select select { width: 100%; min-width: 0; padding: 0 8px; text-overflow: ellipsis; }
-@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cr-row-top .cr-lbl { display: none; } }
+.cr-row-top .cr-chip { padding: 0 11px; white-space: nowrap; }
+.cr-row-top .cr-select { padding: 0; }
+.cr-row-top .cr-select select { padding: 0 8px; }
+.cr-row-top .cr-select { min-width: 0; flex: 0 1 auto; }
+.cr-row-top .cr-select select { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cr-box { padding: 14px 14px 12px; }
+  .cr-row-top { gap: 5px; }
+  .cr-row-top .cr-chip { padding: 0 9px; font-size: 12px; gap: 5px; }
+  .cr-row-top .cr-select select { padding: 0 6px; }
+  .cr-row-top .cr-select { overflow: hidden; }
+}

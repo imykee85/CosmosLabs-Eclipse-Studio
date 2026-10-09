@@ -224,7 +224,7 @@ export default function CreateStudio() {
           </button>
           <button type="button" className="cr-chip" aria-label="Open in canvas" title="Move this prompt to the Canvas"
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
-            <Workflow size={14} /> <span className="cr-lbl">Open in canvas</span>
+            <Workflow size={14} /> Open in canvas
           </button>
           <label className="cr-chip cr-select" title={model?.blurb}>
             <span className="sr-only">Image model</span>
