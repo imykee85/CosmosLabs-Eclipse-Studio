@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { Pause, Play } from "lucide-react";
 import { MOTION_TAGS, motionPrompts, postUrl, tagCount, type MotionPrompt } from "@/lib/motion";
 import MotionMedia from "./MotionMedia";
 import "./motion.css";
@@ -68,7 +69,7 @@ export default function MotionView() {
             <option value="newest">Newest</option>
             <option value="title">Title</option>
           </select>
-          <button type="button" className="mo-sort" onClick={() => setPaused((v) => !v)}>{paused ? "Play previews" : "Pause previews"}</button>
+          <button type="button" className="mo-playpause" onClick={() => setPaused((v) => !v)} aria-label={paused ? "Play previews" : "Pause previews"} title={paused ? "Play previews" : "Pause previews"}>{paused ? <Play size={16} /> : <Pause size={16} />}</button>
         </div>
       </div>
       <div className="mo-tags" role="group" aria-label="Topics">
