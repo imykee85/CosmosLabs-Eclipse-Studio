@@ -28,7 +28,7 @@ export function useUploads(kind?: UploadKind | "ingredients") {
 
 export async function uploadPicture(file: File, kind: UploadKind, name: string, projectId: string | null): Promise<{ ok: true } | { ok: false; error: string }> {
   const form = new FormData();
-  form.set("file", file); form.set("kind", kind); form.set("name", name);
+  form.set("file", file); form.set("kind", kind); form.set("name", name); form.set("rights", "1"); // the caller has shown the "I have the right to use this picture" box
   if (projectId) form.set("projectId", projectId);
   try {
     const res = await fetch("/api/uploads", { method: "POST", body: form });

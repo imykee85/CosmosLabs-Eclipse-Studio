@@ -45,6 +45,7 @@ export async function POST(req: Request) {
   const kind = form?.get("kind");
   if (!(file instanceof File)) return NextResponse.json({ error: "Choose a picture to upload." }, { status: 400 });
   if (!isUploadKind(kind)) return NextResponse.json({ error: "Unknown kind." }, { status: 400 });
+  if (form?.get("rights") !== "1") return NextResponse.json({ error: "Confirm that you have the right to use this picture." }, { status: 400 });
   const rawName = typeof form?.get("name") === "string" ? (form!.get("name") as string) : "";
   const name = (rawName.trim() || file.name.replace(/\.[^.]+$/, "")).replace(/\s+/g, " ").slice(0, 80) || "Untitled";
   const rawProject = form?.get("projectId");

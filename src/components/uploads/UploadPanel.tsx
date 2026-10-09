@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import { readCurrentProject } from "@/lib/projects";
 import { deleteUpload, uploadPicture, useUploads, type UploadRow } from "@/lib/use-uploads";
+import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import type { UploadKind } from "@/lib/uploads";
 import "@/components/library/library.css";
 import "./uploads.css";
 
 const LABEL: Record<UploadKind, string> = { asset: "Asset", character: "Character", product: "Product", scene: "Scene" };
-const MAX_BYTES = 4 * 1024 * 1024;
 const size = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
 type Props = {
@@ -68,13 +68,14 @@ export default function UploadPanel({ show, addKinds, openWith, onOpened, addLab
   );
 }
 
-function AddDialog({ kinds, initial, onClose, onDone }: { kinds: UploadKind[]; initial: UploadKind; onClose: () => void; onDone: () => void }) {
+export function AddDialog({ kinds, initial, onClose, onDone }: { kinds: UploadKind[]; initial: UploadKind; onClose: () => void; onDone: () => void }) {
   const [kind, setKind] = useState<UploadKind>(initial);
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [rights, setRights] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -89,12 +90,14 @@ function AddDialog({ kinds, initial, onClose, onDone }: { kinds: UploadKind[]; i
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  function pick(f: File | undefined) {
+  async function pick(f: File | undefined) {
     setErr(null);
     if (!f) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setErr("Only PNG, JPEG and WebP pictures can be uploaded."); return; }
-    if (f.size > MAX_BYTES) { setErr("That picture is larger than 4 MB. Please use a smaller one."); return; }
-    setFile(f);
+    if (f.size > PICK_LIMIT_BYTES) { setErr("That picture is larger than 25 MB. Please use a smaller one."); return; }
+    const fitted = await shrinkToFit(f); // big phone photos are redrawn smaller so they fit the 4 MB upload limit
+    if (!fitted) { setErr("Could not make that picture small enough. Please try another."); return; }
+    setFile(fitted);
     if (!name.trim()) setName(f.name.replace(/\.[^.]+$/, "").slice(0, 80));
   }
 
@@ -120,15 +123,19 @@ function AddDialog({ kinds, initial, onClose, onDone }: { kinds: UploadKind[]; i
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="Chosen picture" />
-          ) : <span>Choose a picture<small>PNG, JPEG or WebP, up to 4 MB</small></span>}
+          ) : <span>Choose a picture<small>PNG, JPEG or WebP. Large photos are made smaller automatically.</small></span>}
         </button>
-        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
         <label className="up-field">
           <span>Name</span>
           <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder={`e.g. ${kind === "product" ? "Blue bottle" : kind === "character" ? "Maya" : kind === "scene" ? "Rooftop at dusk" : "Front view"}`} />
         </label>
+        <label className="up-rights">
+          <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />
+          <span>I have the right to use this picture, and it is not someone&apos;s likeness used to deceive.</span>
+        </label>
         {err && <p className="up-error" role="alert">{err}</p>}
-        <button type="button" className="ws-add" disabled={!file || busy} onClick={submit}>{busy ? "Uploading…" : "Upload"}</button>
+        <button type="button" className="ws-add" disabled={!file || !rights || busy} onClick={submit}>{busy ? "Uploading…" : "Upload"}</button>
       </div>
     </div>
   );

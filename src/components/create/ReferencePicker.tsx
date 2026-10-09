@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Upload, X } from "lucide-react";
+import { AddDialog } from "@/components/uploads/UploadPanel";
 import { useRenders } from "@/lib/use-renders";
 import { useUploads } from "@/lib/use-uploads";
 import "@/components/library/library.css";
@@ -16,6 +17,8 @@ const TABS: { id: Tab; label: string }[] = [{ id: "ingredients", label: "Ingredi
 // Dialog for choosing up to `max` pictures to send to the model along with the prompt.
 export default function ReferencePicker({ max, picked, onChange, onClose }: { max: number; picked: RefPick[]; onChange: (next: RefPick[]) => void; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("ingredients");
+  const [adding, setAdding] = useState(false);
+  const knownIds = useRef<Set<string> | null>(null); // ids present before an upload, to spot the new one
   const ingredients = useUploads("ingredients");
   const assets = useUploads("asset");
   const { renders } = useRenders(undefined, 60);
@@ -36,6 +39,15 @@ export default function ReferencePicker({ max, picked, onChange, onClose }: { ma
     tab === "images"
       ? (renders ?? []).filter((g) => g.status === "completed" && g.imageUrl).map((g) => ({ type: "render" as const, id: g.id, url: g.imageUrl ?? "", label: g.prompt, sub: g.modelLabel ?? "Image" }))
       : ((tab === "ingredients" ? ingredients.items : assets.items) ?? []).map((u) => ({ type: "upload" as const, id: u.id, url: u.imageUrl, label: u.name, sub: u.kind === "asset" ? "Asset" : u.kind[0].toUpperCase() + u.kind.slice(1) }));
+  // After a new upload, tick the new picture (the first one that was not in the list before) if there is room.
+  useEffect(() => {
+    const known = knownIds.current;
+    if (!known) return;
+    const fresh = [...(ingredients.items ?? []), ...(assets.items ?? [])].find((u) => !known.has(u.id));
+    if (!fresh) return;
+    knownIds.current = null;
+    if (picked.length < max) onChange([...picked, { type: "upload", id: fresh.id, url: fresh.imageUrl, label: fresh.name }]);
+  }, [ingredients.items, assets.items]); // eslint-disable-line react-hooks/exhaustive-deps
   const loading = tab === "images" ? renders === null : (tab === "ingredients" ? ingredients.items : assets.items) === null;
   const error = tab === "ingredients" ? ingredients.error : tab === "assets" ? assets.error : null;
 
@@ -66,7 +78,9 @@ export default function ReferencePicker({ max, picked, onChange, onClose }: { ma
             })}
           </div>
         )}
+        {tab !== "images" && <button type="button" className="rp-upload" onClick={() => setAdding(true)} disabled={picked.length >= max}><Upload size={15} /> Upload a new picture</button>}
         <button type="button" className="ws-add" onClick={onClose}>Done</button>
+        {adding && <AddDialog kinds={tab === "ingredients" ? ["character", "product", "scene"] : ["asset"]} initial={tab === "ingredients" ? "product" : "asset"} onClose={() => setAdding(false)} onDone={() => { setAdding(false); knownIds.current = new Set([...(ingredients.items ?? []), ...(assets.items ?? [])].map((u) => u.id)); void ingredients.reload(); void assets.reload(); }} />}
       </div>
     </div>
   );

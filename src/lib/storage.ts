@@ -44,6 +44,14 @@ export async function deleteObject(key: string): Promise<void> {
   await r2().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
 }
 
+/** The stored file's bytes (used to hand a reference picture to the provider's own upload). Pictures are capped well below this. */
+export async function getObjectBytes(key: string, maxBytes = 15 * 1024 * 1024): Promise<Uint8Array> {
+  const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+  const bytes = await res.Body?.transformToByteArray();
+  if (!bytes || bytes.byteLength === 0 || bytes.byteLength > maxBytes) throw new Error("Stored file is empty or too large");
+  return bytes;
+}
+
 /** A link to one stored file that works for SIGNED_URL_TTL_SECONDS and then stops. */
 export function signedGetUrl(key: string, ttlSeconds = SIGNED_URL_TTL_SECONDS): Promise<string> {
   return getSignedUrl(r2(), new GetObjectCommand({ Bucket: bucket(), Key: key }), { expiresIn: ttlSeconds });

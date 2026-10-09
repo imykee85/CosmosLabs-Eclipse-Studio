@@ -38,3 +38,7 @@
 .rp-item:disabled { opacity: .45; cursor: not-allowed; }
 .rp-name { overflow: hidden; color: var(--a-fg); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .rp-check { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #c00707; color: #fff; }
+.up-rights { display: flex; align-items: flex-start; gap: 10px; color: var(--a-muted); font-size: 13px; line-height: 1.4; cursor: pointer; }
+.up-rights input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: #c00707; }
+.rp-upload { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; border: 1px dashed var(--a-line3); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .18s; }
+.rp-upload:hover:not(:disabled) { border-color: var(--a-line4); } .rp-upload:disabled { opacity: .5; cursor: not-allowed; }

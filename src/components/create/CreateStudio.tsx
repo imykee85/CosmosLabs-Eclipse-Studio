@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Coins, ImageIcon, Layers, Loader2, Workflow, X } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, Coins, ImageIcon, Layers, Loader2, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
@@ -119,11 +119,18 @@ export default function CreateStudio() {
         />
         {refs.length > 0 && (
           <div className="cr-refs" aria-label="Reference pictures">
-            {refs.map((r) => (
-              <span key={`${r.type}-${r.id}`} className="cr-ref" title={r.label}>
+            {refs.map((r, i) => (
+              <span key={`${r.type}-${r.id}`} className="cr-ref" title={`Image ${i + 1}: ${r.label}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={r.url} alt={r.label} />
-                <button type="button" aria-label={`Remove ${r.label}`} onClick={() => setRefs((l) => l.filter((x) => !(x.type === r.type && x.id === r.id)))}><X size={12} /></button>
+                <i className="cr-ref-n">{i + 1}</i>
+                <button type="button" className="cr-ref-x" aria-label={`Remove ${r.label}`} onClick={() => setRefs((l) => l.filter((x) => !(x.type === r.type && x.id === r.id)))}><X size={12} /></button>
+                {refs.length > 1 && (
+                  <span className="cr-ref-move">
+                    <button type="button" aria-label={`Move ${r.label} earlier`} disabled={i === 0} onClick={() => setRefs((l) => { const n = [...l]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; })}><ChevronLeft size={12} /></button>
+                    <button type="button" aria-label={`Move ${r.label} later`} disabled={i === refs.length - 1} onClick={() => setRefs((l) => { const n = [...l]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; })}><ChevronRight size={12} /></button>
+                  </span>
+                )}
               </span>
             ))}
           </div>
@@ -156,6 +163,7 @@ export default function CreateStudio() {
         </div>
       </form>
       {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with References first.</p>}
+      {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
       {picking && model && <ReferencePicker max={model.maxReferences} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       <p className="cr-hint">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}

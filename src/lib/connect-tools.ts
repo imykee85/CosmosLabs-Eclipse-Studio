@@ -116,7 +116,7 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
   try {
     switch (name) {
       case "list_image_models":
-        return { text: JSON.stringify(enabledModels().filter((m) => !m.requiresReference).map((m) => ({ id: m.id, name: m.label, about: m.blurb, shapes: m.ratios, max_prompt_chars: m.maxPrompt }))) };
+        return { text: JSON.stringify(enabledModels().filter((m) => m.references.min === 0).map((m) => ({ id: m.id, name: m.label, about: m.blurb, shapes: m.ratios, max_prompt_chars: m.maxPrompt }))) };
 
       case "generate_image": {
         const target = str(args.project_id, 64);

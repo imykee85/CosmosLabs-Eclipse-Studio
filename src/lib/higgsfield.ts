@@ -90,3 +90,18 @@ export async function startGeneration(input: GenerateInput, provider: ImageProvi
   const body = { ...model.extraBody, prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}), ...referenceBody(model, input.references ?? []) };
   return withSlot(() => provider.submit(endpointFor(model), body, crypto.randomUUID()));
 }
+
+// Hands one picture to Higgsfield's own file storage and returns the public https address to use in a request.
+// Per Higgsfield's file-upload page: ask for an upload slot (we authenticate), then PUT the bytes to the slot's address with
+// exactly the headers it names. Our credentials are never sent to that storage address. The slot lasts an hour.
+// HIGGSFIELD_FILES_URL overrides the slot endpoint (default: <base>/files/generate-upload-url).
+export async function uploadFile(bytes: Uint8Array, contentType: string): Promise<string> {
+  const slotUrl = process.env.HIGGSFIELD_FILES_URL ?? `${BASE_URL}/files/generate-upload-url`;
+  const slotRes = await fetch(slotUrl, { method: "POST", headers: headers(), body: JSON.stringify({ content_type: contentType }), signal: AbortSignal.timeout(15_000) });
+  if (!slotRes.ok) throw new Error(`Higgsfield upload slot failed (${slotRes.status})`);
+  const slot = (await slotRes.json()) as { upload_url?: string; upload_headers?: Record<string, string>; public_url?: string };
+  if (!slot.upload_url || !slot.public_url || !slot.public_url.startsWith("https://")) throw new Error("Higgsfield returned an unreadable upload slot");
+  const put = await fetch(slot.upload_url, { method: "PUT", headers: { "Content-Type": contentType, ...(slot.upload_headers ?? {}) }, body: bytes as unknown as BodyInit, signal: AbortSignal.timeout(30_000) });
+  if (!put.ok) throw new Error(`Higgsfield file upload failed (${put.status})`);
+  return slot.public_url;
+}
