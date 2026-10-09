@@ -10,7 +10,7 @@ export const AUTO = "auto";
 
 // One-colour icon beside each name, like the product reference: the real marks for Google and OpenAI (Simple Icons set) and
 // plain one-colour drawings for the rest, drawn here as stand-ins until official artwork is added. All marks belong to their owners.
-const LUCIDE: Record<string, LucideIcon> = { Auto: Wand2, "Eclipse Studio V1": Video, Soul: ScanFace, "Marketing Studio": Megaphone, Luma: Box, Classic: Zap };
+const LUCIDE: Record<string, LucideIcon> = { Auto: Wand2, "Eclipse DOP V1": Video, Soul: ScanFace, "Marketing Studio": Megaphone, Luma: Box, Classic: Zap };
 const Stroke = ({ children }: { children: React.ReactNode }) => <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</g>;
 const Letter = ({ c, x = 12, y = 17.5, size = 15 }: { c: string; x?: number; y?: number; size?: number }) => <text x={x} y={y} textAnchor="middle" fontSize={size} fontWeight="800" fontFamily="Inter, system-ui, sans-serif" fill="currentColor">{c}</text>;
 const DRAWN: Record<string, React.ReactNode> = {
@@ -39,7 +39,7 @@ const popularTile = (label: string) => (label.startsWith("Google") ? "Google" : 
 // Popular, as laid out for the product. Entries with no `id` have no working model behind them yet (they carry the Soon tag
 // and do nothing when tapped); add `id` (and `real`) as each one is connected.
 const POPULAR: { label: string; isNew?: boolean }[] = [
-  { label: "Eclipse Studio V1", isNew: true },
+  { label: "Eclipse DOP V1", isNew: true },
   { label: "Google Nano Banana 2.1", isNew: true },
   { label: "GPT 2.5", isNew: true },
   { label: "Seedream 5 Pro", isNew: true },
