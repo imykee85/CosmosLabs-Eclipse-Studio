@@ -48,7 +48,7 @@ export default function TreatmentView() {
     <div className="tr-wrap">
       <div className="tr-head">
         <div className="tr-head-text">
-          <h1>Treatment</h1>
+          <h1 className="pg-title">Treatment</h1>
           <p>{mode ? active.start : "Answer a few questions and Eclipse shapes your video concept. Optional."}</p>
         </div>
         <div className="tr-actions">

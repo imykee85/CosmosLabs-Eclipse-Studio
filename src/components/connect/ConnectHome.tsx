@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Brain, Clock, Plus, Puzzle, SquarePen, Trash2, Wrench, X } from "lucide-react";
+import { ArrowUp, Brain, Clock, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
 import { MODEL_KEY } from "@/lib/connect-models";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
@@ -12,7 +12,6 @@ import ChatThread, { type Line } from "./ChatThread";
 import ModelPicker from "./ModelPicker";
 import "./connect.css";
 
-type ChatSummary = { id: string; title: string; updatedAt: string };
 
 // Connect: the assistant. Chat with it, let it use skills, tools, memory and your connected apps, and send finished content on.
 function ConnectChat() {
@@ -25,8 +24,6 @@ function ConnectChat() {
   const [notice, setNotice] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [history, setHistory] = useState<ChatSummary[] | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const started = useRef(false);
@@ -94,7 +91,6 @@ function ConnectChat() {
       patch((a) => ({ ...a, error: "The connection dropped. Reload this chat to see what was saved." }));
     } finally {
       setBusy(false);
-      setHistory(null);
     }
   }, [busy, chatId]);
 
@@ -116,25 +112,9 @@ function ConnectChat() {
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [text]);
 
-  async function showHistory() {
-    const next = !historyOpen;
-    setHistoryOpen(next);
-    setAttachOpen(false);
-    if (next && !history) {
-      const res = await fetch("/api/connect/chats", { cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      setHistory(res.ok ? data.chats : []);
-      if (!res.ok) setNotice(data.error ?? "Could not load your chats.");
-    }
-  }
   function fresh() {
-    setChatId(null); setLines([]); setNotice(""); setHistoryOpen(false); setPicked([]);
+    setChatId(null); setLines([]); setNotice(""); setPicked([]);
     window.history.replaceState(null, "", "/connect");
-  }
-  async function drop(id: string) {
-    await fetch(`/api/connect/chats/${id}`, { method: "DELETE" });
-    setHistory((h) => h?.filter((c) => c.id !== id) ?? null);
-    if (id === chatId) fresh();
   }
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey && !window.matchMedia("(pointer: coarse)").matches) { e.preventDefault(); send(text, picked); }
@@ -146,24 +126,8 @@ function ConnectChat() {
   return (
     <div className={`cn-wrap cn-chat ${chatting ? "is-chatting" : ""}`}>
       <div className="cn-corner">
-        <button type="button" className="cn-corner-btn" onClick={showHistory} aria-expanded={historyOpen} aria-label="History" title="History"><Clock size={18} /></button>
-        {chatting && <button type="button" className="cn-corner-btn" onClick={fresh} aria-label="New chat" title="New chat"><SquarePen size={18} /></button>}
-        {historyOpen && (
-        <div className="cn-pop cn-corner-pop" role="dialog" aria-label="Your chats">
-          {history === null ? <p className="cn-pop-note">Loading…</p> : history.length === 0 ? <p className="cn-pop-note">No chats yet.</p> : (
-            <ul>
-              {history.map((c) => (
-                <li key={c.id} className={c.id === chatId ? "is-on" : ""}>
-                  <button type="button" className="cn-pop-main" onClick={() => { setHistoryOpen(false); open(c.id); window.history.replaceState(null, "", `/connect?chat=${c.id}`); }}>
-                    <b>{c.title}</b><small>{new Date(c.updatedAt).toLocaleString()}</small>
-                  </button>
-                  <button type="button" className="cn-pop-del" aria-label={`Delete ${c.title}`} onClick={() => drop(c.id)}><Trash2 size={16} /></button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        )}
+        <Link href="/connect/history" className="cn-corner-btn" aria-label="History" title="History"><Clock size={18} /></Link>
+        <button type="button" className="cn-corner-btn" onClick={fresh} aria-label="New chat" title="New chat"><SquarePen size={18} /></button>
       </div>
 
       {chatting ? (
@@ -225,7 +189,7 @@ function ConnectChat() {
             placeholder={chatting ? "Reply…" : "Ask for an image, run a skill, or send something to an app..."} />
           {notice && <p className="cn-err" role="alert">{notice}</p>}
           <div className="cn-tools">
-            <button type="button" className="cn-round" aria-label="Attach pictures from your Library" aria-expanded={attachOpen} onClick={() => { setAttachOpen(!attachOpen); setHistoryOpen(false); }}><Plus size={18} /></button>
+            <button type="button" className="cn-round" aria-label="Attach pictures from your Library" aria-expanded={attachOpen} onClick={() => setAttachOpen(!attachOpen)}><Plus size={18} /></button>
             <ModelPicker />
             <button type="submit" className="cn-send" aria-label="Send" disabled={busy || !text.trim()}><ArrowUp size={18} /></button>
           </div>

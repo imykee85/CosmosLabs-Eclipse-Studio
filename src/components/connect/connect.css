@@ -211,8 +211,18 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 
 /* History and New chat: icon buttons at the top right of the screen, just below the header */
 .cn-corner { position: fixed; z-index: 14; top: 74px; right: 18px; display: flex; align-items: center; gap: 8px; }
-.cn-corner-btn { flex: none; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; transition: border-color .18s, background .18s, transform .12s; }
+.cn-corner-btn { flex: none; display: grid; color: var(--a-fg); place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; transition: border-color .18s, background .18s, transform .12s; }
 .cn-corner-btn:hover { border-color: var(--a-line4); } .cn-corner-btn:active { transform: scale(.94); }
-.cn-corner-btn[aria-expanded="true"] { border-color: #c00707; }
-.cn-corner-pop { position: absolute; top: 48px; right: 0; width: min(340px, calc(100vw - 36px)); margin: 0; max-height: min(60vh, 420px); }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cn-corner { top: 68px; right: 14px; } }
+
+/* History page */
+.cn-history .cn-head { display: flex; align-items: center; gap: 12px; }
+.cn-history .cn-head h1 { margin: 0; }
+.cn-head-new { margin-left: auto; text-decoration: none; }
+.cn-hist-list { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.cn-hist-list li { display: flex; align-items: center; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); transition: border-color .18s; }
+.cn-hist-list li:hover { border-color: var(--a-line4); }
+.cn-hist-main { flex: 1; min-width: 0; display: grid; gap: 2px; padding: 14px 16px; color: var(--a-fg); text-decoration: none; }
+.cn-hist-main b { overflow: hidden; font-size: 15px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.cn-hist-main small { color: var(--a-muted); font-size: 12px; }
+.cn-hist-list .cn-pop-del { margin-right: 8px; }

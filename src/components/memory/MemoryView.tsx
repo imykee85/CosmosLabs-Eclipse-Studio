@@ -118,7 +118,6 @@ export default function MemoryView() {
               <button type="button" aria-label="Forget this" onClick={() => remove(i.id)}><Trash2 size={15} /></button>
             </li>
           ))}
-          {items !== null && shown.length === 0 && <li className="mm-none">{items.length === 0 ? "Tell the assistant about your products, characters and style, or add notes below." : "Nothing under this topic."}</li>}
         </ul>
       </div>
 

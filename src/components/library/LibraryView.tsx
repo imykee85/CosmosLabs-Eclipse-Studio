@@ -22,7 +22,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
 
   return (
     <div className="ws-ing lib">
-      <h1>Library</h1>
+      <h1 className="pg-title">Library</h1>
       <p>Everything you save from your projects lives here, ready to reuse in the next one.</p>
 
       <div className="lib-tabs" role="tablist" aria-label="Filter by type">

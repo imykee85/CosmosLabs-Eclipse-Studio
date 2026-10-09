@@ -18,7 +18,7 @@ export default function IngredientsView() {
   const opened = useCallback(() => setOpenWith(null), []);
   return (
     <div className="ws-ing">
-      <h1>Ingredients</h1>
+      <h1 className="pg-title">Ingredients</h1>
       <p>The building blocks of your project. Set them once and reuse them in every generation so your content stays consistent.</p>
       <Link href="/create" className="ws-ghost">Continue to Create <ArrowRight size={15} /></Link>
 

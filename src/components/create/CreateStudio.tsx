@@ -31,7 +31,11 @@ export default function CreateStudio() {
   const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 12);
   const list = renders ?? [];
   const pending = list.find((g) => g.status === "pending") ?? null;
-  const latestDone = list.find((g) => g.status === "completed" && g.imageUrl) ?? null;
+  // The big preview is for what you are making right now: it shows the render started on this visit and then clears
+  // when you leave and come back. Earlier work stays in the row of small thumbnails (the five most recent).
+  const [watched, setWatched] = useState<string | null>(null);
+  useEffect(() => { if (pending) setWatched(pending.id); }, [pending]);
+  const latestDone = list.find((g) => g.id === watched && g.status === "completed" && g.imageUrl) ?? null;
   const lastFailed = list[0]?.status === "failed" ? list[0] : null;
 
   useEffect(() => {
@@ -159,9 +163,9 @@ export default function CreateStudio() {
           <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} /></div>
         )}
         {(() => {
-          const earlier = list.filter((g) => g.status === "completed" && g.imageUrl && g.id !== (pending ? "" : latestDone?.id));
+          const earlier = list.filter((g) => g.status === "completed" && g.imageUrl).slice(0, 5);
           return earlier.length > 0 && (
-            <div className="cr-earlier" aria-label="Earlier renders">
+            <div className="cr-earlier" aria-label="Your five most recent renders">
               {earlier.map((r) => (
                 <a key={r.id} href={r.imageUrl ?? undefined} target="_blank" rel="noreferrer" title={r.prompt}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}

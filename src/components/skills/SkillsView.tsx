@@ -63,7 +63,7 @@ export default function SkillsView() {
       <header className="cn-head">
         <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
         <div>
-          <h1>Skills</h1>
+          <h1 className="pg-title">Skills</h1>
           <p>Ready-made recipes your agents can run for you.</p>
         </div>
       </header>

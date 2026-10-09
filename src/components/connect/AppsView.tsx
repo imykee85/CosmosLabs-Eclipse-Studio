@@ -95,7 +95,7 @@ export default function AppsView() {
       <header className="cn-head">
         <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
         <div>
-          <h1>Connectors</h1>
+          <h1 className="pg-title">Connectors</h1>
           <p>Link the apps where you publish, store files and chat.</p>
         </div>
       </header>

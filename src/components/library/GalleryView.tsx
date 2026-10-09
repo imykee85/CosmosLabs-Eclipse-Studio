@@ -17,7 +17,7 @@ export default function GalleryView() {
 
   return (
     <div className="ws-ing lib">
-      <h1>Gallery</h1>
+      <h1 className="pg-title">Gallery</h1>
       <p>Everything you have generated in this project, newest first.</p>
       {projectId && <Link className="lib-binlink" href={`/dashboard?bin=images&project=${encodeURIComponent(projectId)}`}><Trash2 size={14} /> Recently deleted</Link>}
       {items && items.length > 0 ? (

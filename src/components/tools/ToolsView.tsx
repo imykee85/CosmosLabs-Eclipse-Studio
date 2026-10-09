@@ -48,7 +48,7 @@ export default function ToolsView() {
       <header className="cn-head">
         <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
         <div>
-          <h1>Tools</h1>
+          <h1 className="pg-title">Tools</h1>
           <p>Small tools for one job each.</p>
         </div>
       </header>
