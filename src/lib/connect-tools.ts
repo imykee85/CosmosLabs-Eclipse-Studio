@@ -7,13 +7,13 @@ import { enabledModels } from "@/lib/models";
 import { MEMORY_LIMIT, MEMORY_TEXT_MAX, MEMORY_TOPICS, isTopic } from "@/lib/memory";
 import { skills } from "@/lib/skills";
 import { startRender } from "@/lib/start-render";
-import { displayUrl } from "@/lib/storage";
+import { displayUrl, openImage } from "@/lib/storage";
 import { unseal } from "@/lib/secret-box";
 
 // The tools the Connect assistant can call. Each one runs as the signed-in user and goes through the same code as the buttons
 // in the app (renders are priced and recorded by startRender, memory and links belong to the user's account).
 export type ToolContext = { userId: string; projectId: string | null; onRender: (id: string) => void };
-export type ToolOutcome = { text: string; isError?: boolean };
+export type ToolOutcome = { text: string; isError?: boolean; image?: { mediaType: "image/png" | "image/jpeg" | "image/webp"; data: string } };
 
 export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
   {
@@ -30,9 +30,25 @@ export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
         prompt: { type: "string", description: "The full image prompt." },
         aspect_ratio: { type: "string", description: "For example 1:1, 4:5, 9:16 or 16:9. Must be supported by the model." },
         model: { type: "string", description: "Model id from list_image_models. Defaults to soul_v2." },
+        project_id: { type: "string", description: "Save into this project instead of the one the user has open." },
       },
       required: ["prompt"],
     },
+  },
+  {
+    name: "list_projects",
+    description: "The user's projects (not in the Bin) with how many finished renders each holds. Renders belong to a project; the Library holds all of them across projects.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "search_library",
+    description: "Search the user's Library of finished renders (everything they have made, across projects, newest first). Filter by words in the prompt and/or a project id. Use it to find pictures to reuse, send, or build on instead of rendering again.",
+    input_schema: { type: "object", properties: { query: { type: "string" }, project_id: { type: "string" }, limit: { type: "integer", description: "1 to 30, default 12." } } },
+  },
+  {
+    name: "view_render",
+    description: "Look at one finished render from the Library (you receive the picture). Use it to judge, describe or build on an existing image. Limit looking to what you need: each picture is large.",
+    input_schema: { type: "object", properties: { generation_id: { type: "string" } }, required: ["generation_id"] },
   },
   {
     name: "check_render",
@@ -103,10 +119,38 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
         return { text: JSON.stringify(enabledModels().filter((m) => !m.requiresReference).map((m) => ({ id: m.id, name: m.label, about: m.blurb, shapes: m.ratios, max_prompt_chars: m.maxPrompt }))) };
 
       case "generate_image": {
-        const r = await startRender({ userId: ctx.userId, prompt: args.prompt, model: str(args.model, 80) || "soul_v2", aspectRatio: args.aspect_ratio || undefined, projectId: ctx.projectId });
+        const target = str(args.project_id, 64);
+        if (target && !(await db.project.findFirst({ where: { id: target, userId: ctx.userId, deletedAt: null } }))) return { text: "No such project. Use list_projects.", isError: true };
+        const r = await startRender({ userId: ctx.userId, prompt: args.prompt, model: str(args.model, 80) || "soul_v2", aspectRatio: args.aspect_ratio || undefined, projectId: target || ctx.projectId });
         if (!r.ok) return { text: r.error, isError: true };
         ctx.onRender(r.item.id);
         return { text: JSON.stringify({ generation_id: r.item.id, status: "pending", note: "Rendering in the background. The user sees it appear in the chat when it finishes." }) };
+      }
+
+      case "list_projects": {
+        const ps = await db.project.findMany({ where: { userId: ctx.userId, deletedAt: null }, orderBy: { updatedAt: "desc" }, take: 50 });
+        const counts = await db.generation.groupBy({ by: ["projectId"], where: { userId: ctx.userId, deletedAt: null, status: "completed" }, _count: true });
+        const n = new Map(counts.map((c) => [c.projectId, c._count]));
+        return { text: JSON.stringify({ open_project: ctx.projectId, projects: ps.map((p) => ({ id: p.id, name: p.name, renders: n.get(p.id) ?? 0 })), renders_without_project: n.get(null) ?? 0 }) };
+      }
+
+      case "search_library": {
+        const q = str(args.query, 80).toLowerCase();
+        const take = Math.min(Math.max(Number(args.limit) || 12, 1), 30);
+        const pid = str(args.project_id, 64);
+        const rows = await db.generation.findMany({ where: { userId: ctx.userId, deletedAt: null, status: "completed", ...(pid ? { projectId: pid } : {}), ...(q ? { prompt: { contains: q, mode: "insensitive" as const } } : {}) }, orderBy: { createdAt: "desc" }, take });
+        const names = new Map((await db.project.findMany({ where: { userId: ctx.userId, id: { in: rows.map((r) => r.projectId).filter((x): x is string => !!x) } } })).map((p) => [p.id, p.name]));
+        return { text: JSON.stringify(rows.map((g) => ({ generation_id: g.id, prompt: g.prompt.slice(0, 240), model: g.model, shape: g.aspectRatio, project: g.projectId ? names.get(g.projectId) ?? g.projectId : null, made: g.createdAt.toISOString() }))) };
+      }
+
+      case "view_render": {
+        const g = await db.generation.findFirst({ where: { id: str(args.generation_id, 60), userId: ctx.userId, deletedAt: null, status: "completed" } });
+        if (!g) return { text: "No finished render with that id.", isError: true };
+        const res = await openImage(g);
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        const type = (g.contentType ?? res.headers.get("content-type") ?? "").split(";")[0];
+        if (!res.ok || bytes.length > 3_000_000 || !["image/png", "image/jpeg", "image/webp"].includes(type)) return { text: "That picture cannot be shown to you (too large or unreadable). Work from its prompt instead: " + g.prompt.slice(0, 300), isError: true };
+        return { text: `Render ${g.id}. Prompt: ${g.prompt.slice(0, 300)}`, image: { mediaType: type as "image/png", data: Buffer.from(bytes).toString("base64") } };
       }
 
       case "check_render": {

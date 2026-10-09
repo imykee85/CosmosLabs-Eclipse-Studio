@@ -23,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   for (const m of chat.messages) {
     const blocks = (Array.isArray(m.content) ? m.content : []) as Block[];
     if (m.role === "user") {
-      const text = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").replace(/^<memory>[\s\S]*?<\/memory>\n\n/, "");
+      const text = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").replace(/^<(?:memory|context)>[\s\S]*?<\/(?:memory|context)>\n\n/, "");
       const images = blocks.filter((b) => b.type === "image").length;
       lines.push({ role: "user", parts: [{ kind: "text", text: images ? `${text}\n(${images} picture${images > 1 ? "s" : ""} attached)` : text }] });
     } else if (m.role === "assistant") {

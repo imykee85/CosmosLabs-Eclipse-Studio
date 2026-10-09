@@ -22,13 +22,13 @@ const MAX_IMAGE_BYTES = 3_000_000;
 export const dailyLimit = () => Number(process.env.CONNECT_DAILY_MESSAGES) || 100;
 
 // Frozen on purpose: anything that changes per user or per day goes into the first message instead, so the prefix stays stable.
-const SYSTEM = `You are the assistant inside Eclipse, an AI studio for images, video and audio. Users bring you a creative job and you get it done with your tools: you start image renders, remember facts about their work, follow skills, and send finished content to the apps they connected.
+const SYSTEM = `You are the assistant inside Eclipse, an AI studio for images, video and audio. Users bring you a creative job and you get it done with your tools: you start image renders, work with their projects and Library (list projects, search and look at finished renders, reuse them), remember facts about their work, follow skills, and send finished content to the apps they connected.
 
 How to work:
 - Be direct and concrete. Ask at most one or two questions, only when you truly cannot proceed. Prefer making a sensible choice and saying what you chose.
 - Before rendering, write prompts that are specific (subject, setting, light, lens or medium, mood). Keep a subject described identically across related prompts.
 - Renders cost the user credits. Render only what was asked for or what a skill needs, and say how many you started.
-- Renders finish in the background and show up in the chat by themselves. You cannot see the pictures, so never describe a result you have not been told about.
+- Everything the user has generated lives in the Library and belongs to a project. Before rendering something new, check whether the Library already has what is needed (search_library); use view_render to look at a picture before you describe or build on it. The first message of a chat lists the open project and the latest renders.\n- Renders you just started finish in the background and show up in the chat by themselves. You cannot see a picture until you open it with view_render, so never describe a result you have not looked at.
 - Video and audio generation are not available yet. Say so plainly and offer stills, storyboards or scripts instead.
 - Only send to a connected app when the user asked or agreed. Use list_connected_apps first; if the app they want is not connected, tell them to connect it under Connectors.
 - Use remember for lasting facts the user states (a product, a character's look, a style rule, a taste), one fact per call. Do not save guesses.
@@ -40,10 +40,21 @@ function client() {
 }
 export const agentEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY);
 
-async function memoryDigest(userId: string): Promise<string> {
-  const rows = await db.memory.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 40 });
-  if (!rows.length) return "";
-  return `<memory>\n${rows.map((m) => `- (${m.topic}) ${m.text}`).join("\n")}\n</memory>\n\n`;
+// What the assistant should know at the start of a chat: the open project, what the Library holds, and what is remembered.
+async function contextDigest(userId: string, projectId: string | null): Promise<string> {
+  const [mem, project, total, recent] = await Promise.all([
+    db.memory.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 40 }),
+    projectId ? db.project.findFirst({ where: { id: projectId, userId, deletedAt: null } }) : null,
+    db.generation.count({ where: { userId, deletedAt: null, status: "completed" } }),
+    db.generation.findMany({ where: { userId, deletedAt: null, status: "completed" }, orderBy: { createdAt: "desc" }, take: 8 }),
+  ]);
+  const parts = [
+    project ? `Open project: "${project.name}" (id ${project.id}). Renders you start are saved there.` : "No project is open.",
+    `Library: ${total} finished render${total === 1 ? "" : "s"} across all projects. Most recent:`,
+    ...recent.map((g) => `- ${g.id}: ${g.prompt.replace(/\s+/g, " ").slice(0, 90)}`),
+  ];
+  if (mem.length) parts.push("Remembered:", ...mem.map((m) => `- (${m.topic}) ${m.text}`));
+  return `<context>\n${parts.join("\n")}\n</context>\n\n`;
 }
 
 async function imageBlocks(userId: string, ids: string[]): Promise<Block[]> {
@@ -98,7 +109,7 @@ export async function runTurn(opts: {
   }
 
   const content: Block[] = [...(await imageBlocks(userId, opts.imageIds))];
-  content.push({ type: "text", text: `${rows.length === 0 ? await memoryDigest(userId) : ""}${opts.text}` });
+  content.push({ type: "text", text: `${rows.length === 0 ? await contextDigest(userId, projectId) : ""}${opts.text}` });
   await store("user", content);
   messages.push({ role: "user", content });
 
@@ -131,7 +142,8 @@ export async function runTurn(opts: {
     for (const c of calls) emit({ t: "tool", name: c.name });
     const results = await Promise.all(calls.map(async (c) => {
       const o = await runTool(c.name, c.input, { userId, projectId, onRender: (id) => emit({ t: "render", id }) });
-      return { type: "tool_result" as const, tool_use_id: c.id, content: o.text, ...(o.isError ? { is_error: true } : {}) };
+      const content = o.image ? [{ type: "text" as const, text: o.text }, { type: "image" as const, source: { type: "base64" as const, media_type: o.image.mediaType, data: o.image.data } }] : o.text;
+      return { type: "tool_result" as const, tool_use_id: c.id, content, ...(o.isError ? { is_error: true } : {}) };
     }));
     await store("tool", results);
     messages.push({ role: "user", content: results });

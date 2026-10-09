@@ -2,19 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertCircle, Brain, Check, Image as ImageIcon, Loader2, Puzzle, Send, Wrench } from "lucide-react";
+import { AlertCircle, Brain, Check, Folder, Image as ImageIcon, Loader2, Puzzle, Send, Wrench } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
 
 export type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string };
 export type Line = { role: "user" | "assistant"; parts: Part[]; error?: string };
 
 const TOOL_LABEL: Record<string, string> = {
-  generate_image: "Started a render", check_render: "Checked a render", list_recent_renders: "Looked at recent renders", list_image_models: "Looked up image models",
+  generate_image: "Started a render", check_render: "Checked a render", list_recent_renders: "Looked at recent renders", list_projects: "Looked at your projects", search_library: "Searched your Library", view_render: "Looked at a render", list_image_models: "Looked up image models",
   remember: "Saved to memory", recall: "Read your memory", forget: "Removed from memory", list_skills: "Looked at skills", use_skill: "Followed a skill",
   list_connected_apps: "Checked connected apps", send_to_app: "Sent to an app",
 };
 const TOOL_ICON: Record<string, React.ReactNode> = {
-  generate_image: <ImageIcon size={14} />, check_render: <ImageIcon size={14} />, list_recent_renders: <ImageIcon size={14} />, list_image_models: <ImageIcon size={14} />,
+  generate_image: <ImageIcon size={14} />, check_render: <ImageIcon size={14} />, list_recent_renders: <ImageIcon size={14} />, list_projects: <Folder size={14} />, search_library: <ImageIcon size={14} />, view_render: <ImageIcon size={14} />, list_image_models: <ImageIcon size={14} />,
   remember: <Brain size={14} />, recall: <Brain size={14} />, forget: <Brain size={14} />, list_skills: <Puzzle size={14} />, use_skill: <Puzzle size={14} />,
   list_connected_apps: <Send size={14} />, send_to_app: <Send size={14} />,
 };
