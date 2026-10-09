@@ -1,6 +1,6 @@
-# Connect ("Your creative computer"): launch checklist
+# Orbit ("Your creative computer"): launch checklist
 
-Goal: Connect behaves like a computer. It chats like a strong AI assistant, runs skills, builds and runs mini apps, connects to external apps (TikTok, Instagram, X, Google Drive and more), and remembers everything. Everything below must be done, or its claim left out of the public copy, before launch.
+Goal: Orbit (the tab at /connect) behaves like a computer. It chats like a strong AI assistant, runs skills, builds and runs mini apps, connects to external apps (TikTok, Instagram, X, Google Drive and more), and remembers everything. Everything below must be done, or its claim left out of the public copy, before launch.
 
 Legend: **[You]** needs the owner (accounts, approvals, keys, decisions) · **[Me]** Claude Code builds it · **S / M / L** rough effort · "Config" = Vercel env var that is not secret · "Secret" = Vercel env var that must stay secret.
 

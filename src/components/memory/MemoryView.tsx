@@ -89,7 +89,7 @@ export default function MemoryView() {
     <div className="mm-wrap">
       <div className="mm-top">
         <div className="mm-left">
-          <Link href="/connect" className="mm-back" aria-label="Back to Connect"><ChevronLeft size={24} /></Link>
+          <Link href="/connect" className="mm-back" aria-label="Back to Orbit"><ChevronLeft size={24} /></Link>
           <span className="mm-title"><Brain size={18} /> Memory</span>
         </div>
         <button type="button" className="mm-import" onClick={() => setImporting(true)}><Upload size={15} /> Import</button>

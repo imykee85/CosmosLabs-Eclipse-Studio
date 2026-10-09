@@ -29,13 +29,13 @@ export default function HistoryView() {
   return (
     <div className="cn-wrap cn-history">
       <header className="cn-head">
-        <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
+        <Link href="/connect" className="cn-back" aria-label="Back to Orbit"><ChevronLeft size={22} /></Link>
         <h1 className="pg-title">History</h1>
         <Link href="/connect" className="cn-corner-btn cn-head-new" aria-label="New chat" title="New chat"><SquarePen size={18} /></Link>
       </header>
       {error && <p className="cn-err" role="alert">{error}</p>}
       {chats === null ? <p className="cn-pop-note">Loading…</p> : chats.length === 0 ? (
-        <div className="cn-empty"><MessageSquare size={30} strokeWidth={1.4} /><p>No chats yet. Start one from Connect and it will be saved here.</p></div>
+        <div className="cn-empty"><MessageSquare size={30} strokeWidth={1.4} /><p>No chats yet. Start one from Orbit and it will be saved here.</p></div>
       ) : (
         <ul className="cn-hist-list">
           {chats.map((c) => (

@@ -94,7 +94,7 @@ export default function AppsView() {
   return (
     <div className="cn-wrap cn-connect cn-apps">
       <header className="cn-head">
-        <Link href="/connect" className="cn-back" aria-label="Back to Connect"><ChevronLeft size={22} /></Link>
+        <Link href="/connect" className="cn-back" aria-label="Back to Orbit"><ChevronLeft size={22} /></Link>
         <div>
           <h1 className="pg-title">Connectors</h1>
           <p>Link the apps where you publish, store files and chat.</p>

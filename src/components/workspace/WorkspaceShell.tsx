@@ -26,7 +26,7 @@ import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
 
-const connectItem: Item = { label: "Connect", hint: "Your creative computer", href: "/connect", icon: <ConnectMark size={20} /> };
+const connectItem: Item = { label: "Orbit", hint: "Your creative computer", href: "/connect", icon: <ConnectMark size={20} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
 const photo: Item[] = [
@@ -268,7 +268,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/generate": "Generate", "/connect": "Connect", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/generate": "Generate", "/connect": "Orbit", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -340,7 +340,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         <HomeTab pathname={pathname} />
         <CreateTab pathname={pathname} />
         <LibraryTab pathname={pathname} />
-        <Link href="/connect" className={`mb-tab ${pathname.startsWith("/connect") ? "is-active" : ""}`}><span className="mb-tab-icon"><ConnectMark size={22} /></span><span>Connect</span></Link>
+        <Link href="/connect" className={`mb-tab ${pathname.startsWith("/connect") ? "is-active" : ""}`}><span className="mb-tab-icon"><ConnectMark size={22} /></span><span>Orbit</span></Link>
       </nav>
 
       <div className={`mb-drawer ${drawer ? "is-open" : ""}`} aria-hidden={!drawer}>

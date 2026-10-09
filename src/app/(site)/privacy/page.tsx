@@ -12,14 +12,14 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>Account details:</strong> your name, email address and sign-in information, handled by our sign-in provider.</li>
         <li><strong>Your answers at sign-up:</strong> the short onboarding questions (how you plan to use Eclipse and similar).</li>
-        <li><strong>Your work:</strong> projects, prompts, the images you generate or upload, canvases, notes and memories you save, and chats with the Connect assistant.</li>
+        <li><strong>Your work:</strong> projects, prompts, the images you generate or upload, canvases, notes and memories you save, and chats with the Orbit assistant.</li>
         <li><strong>Credits and payments:</strong> your credit balance and history. Card details go to our payment provider and are never stored by us.</li>
         <li><strong>Connected apps:</strong> if you connect an app such as Telegram or Slack, the credential you give us is stored encrypted and used only to send what you ask it to send.</li>
         <li><strong>Technical data:</strong> basic logs (such as errors and request times) that help us keep the service running and secure.</li>
       </ul>
 
       <h2>How we use it</h2>
-      <p>We use your data to run Eclipse for you: to sign you in, make and store your renders, keep your credits right, answer you in Connect, prevent abuse and fix problems. We do not sell your personal data, and we do not use your prompts or images to train our own models.</p>
+      <p>We use your data to run Eclipse for you: to sign you in, make and store your renders, keep your credits right, answer you in Orbit, prevent abuse and fix problems. We do not sell your personal data, and we do not use your prompts or images to train our own models.</p>
 
       <h2>Who processes it for us</h2>
       <p>To provide the service we send data to these kinds of providers, only what each one needs:</p>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         <li>database and hosting;</li>
         <li>private file storage for your images and uploads;</li>
         <li>AI image providers, which receive your prompt and any reference image to make a render;</li>
-        <li>an AI model provider, which receives your messages, and images you attach or ask the assistant to view, in Connect;</li>
+        <li>an AI model provider, which receives your messages, and images you attach or ask the assistant to view, in Orbit;</li>
         <li>a payment provider for purchases;</li>
         <li>apps you connect yourself, which receive only what you ask the assistant to send.</li>
       </ul>
