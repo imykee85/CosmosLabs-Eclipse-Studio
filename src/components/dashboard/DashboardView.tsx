@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Clock, FolderOpen, GraduationCap, Info, LayoutGrid, Rows3, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Clock, FolderOpen, Info, LayoutGrid, Rows3, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { rememberPage } from "@/lib/last-page";
-import { tutorialHref } from "@/lib/tutorial";
 import NotificationsButton from "@/components/Notifications";
 import UserMenu from "@/components/UserMenu";
 import {
@@ -103,7 +102,6 @@ export default function DashboardView() {
       <header className="db-header">
         <div className="db-left"><span className="db-logo"><LogoMark size={48} /></span><h1 className="db-title">Dashboard</h1></div>
         <div className="db-header-right">
-          <Link href={tutorialHref("/dashboard")} className="db-pill"><GraduationCap size={15} /> <span className="db-pill-text">Tutorial</span></Link>
           <CreditsPill className="db-pill db-pill-solid" />
           <ThemeToggle className="db-icon" />
           <NotificationsButton className="db-icon" />

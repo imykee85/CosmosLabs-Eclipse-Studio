@@ -1,23 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Award, LayoutGrid, LogOut, Settings, User } from "lucide-react";
+import { Award, GraduationCap, LayoutGrid, LogOut, Settings } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import Avatar from "@/components/Avatar";
 import SoonTag from "@/components/SoonTag";
+import { tutorialHref } from "@/lib/tutorial";
 import "./user-menu.css";
 
+// Tutorial opens with the page you are on as its "back" target (the href is filled in below).
 const ITEMS = [
-  { label: "Avatars", href: "/avatars", icon: User, soon: true },
-  { label: "Portfolio", href: "/portfolio", icon: LayoutGrid },
+  { label: "Tutorial", href: "", icon: GraduationCap, soon: false },
+  { label: "Portfolio", href: "/portfolio", icon: LayoutGrid, soon: false },
   { label: "Certificates", href: "/certificates", icon: Award, soon: true },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Settings", href: "/settings", icon: Settings, soon: false },
 ];
 
 // Account button for the header: avatar (+ name on wide screens) that opens a small menu of shortcuts.
 export default function UserMenu({ variant = "header" }: { variant?: "header" | "sidebar" | "avatar" }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,7 +47,7 @@ export default function UserMenu({ variant = "header" }: { variant?: "header" | 
       {open && (
         <div className="um-menu" role="menu">
           {ITEMS.map(({ label, href, icon: Icon, soon }) => (
-            <Link key={href} href={href} role="menuitem" className="um-item" onClick={() => setOpen(false)}>
+            <Link key={label} href={label === "Tutorial" ? tutorialHref(pathname) : href} role="menuitem" className="um-item" onClick={() => setOpen(false)}>
               <Icon size={17} /> {label}{soon && <SoonTag className="um-soon" />}
             </Link>
           ))}
