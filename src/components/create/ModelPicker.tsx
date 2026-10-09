@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Box, Check, ChevronDown, Megaphone, ScanFace, Search, Video, Wand2, X, Zap, type LucideIcon } from "lucide-react";
 import { siGoogle, siOpenai } from "simple-icons";
-import ConnectMark from "../ConnectMark";
 import type { PublicModel } from "@/lib/models";
 import SoonTag from "../SoonTag";
 
@@ -11,7 +10,7 @@ export const AUTO = "auto";
 
 // One-colour icon beside each name, like the product reference: the real marks for Google and OpenAI (Simple Icons set) and
 // plain one-colour drawings for the rest, drawn here as stand-ins until official artwork is added. All marks belong to their owners.
-const LUCIDE: Record<string, LucideIcon> = { Auto: Wand2, Cinematic: Video, Soul: ScanFace, "Marketing Studio": Megaphone, Luma: Box, Classic: Zap };
+const LUCIDE: Record<string, LucideIcon> = { Auto: Wand2, "Eclipse Studio V1": Video, Soul: ScanFace, "Marketing Studio": Megaphone, Luma: Box, Classic: Zap };
 const Stroke = ({ children }: { children: React.ReactNode }) => <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</g>;
 const Letter = ({ c, x = 12, y = 17.5, size = 15 }: { c: string; x?: number; y?: number; size?: number }) => <text x={x} y={y} textAnchor="middle" fontSize={size} fontWeight="800" fontFamily="Inter, system-ui, sans-serif" fill="currentColor">{c}</text>;
 const DRAWN: Record<string, React.ReactNode> = {
@@ -30,7 +29,6 @@ const DRAWN: Record<string, React.ReactNode> = {
   Microsoft: <g fill="currentColor"><rect x="3.5" y="3.5" width="8" height="8" rx="1" /><rect x="12.5" y="3.5" width="8" height="8" rx="1" /><rect x="3.5" y="12.5" width="8" height="8" rx="1" /><rect x="12.5" y="12.5" width="8" height="8" rx="1" /></g>,
 };
 function ModelIcon({ name }: { name: string }) {
-  if (name === "Eclipse Studio V1") return <span className="mp-ico"><ConnectMark size={20} /></span>;
   const L = LUCIDE[name];
   if (L) return <span className="mp-ico"><L size={20} strokeWidth={1.8} /></span>;
   return <span className="mp-ico"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">{DRAWN[name] ?? <Stroke><circle cx="12" cy="12" r="8" /></Stroke>}</svg></span>;
@@ -41,7 +39,6 @@ const popularTile = (label: string) => (label.startsWith("Google") ? "Google" : 
 // Popular, as laid out for the product. Entries with no `id` have no working model behind them yet (they carry the Soon tag
 // and do nothing when tapped); add `id` (and `real`) as each one is connected.
 const POPULAR: { label: string; isNew?: boolean }[] = [
-  { label: "Cinematic" },
   { label: "Eclipse Studio V1", isNew: true },
   { label: "Google Nano Banana 2.1", isNew: true },
   { label: "GPT 2.5", isNew: true },
