@@ -42,7 +42,7 @@ const POPULAR: { label: string; isNew?: boolean; id?: string }[] = [
   { label: "Eclipse DOP V1", isNew: true },
   { label: "Google Nano Banana 2.1", isNew: true, id: "nano_banana_2_1" },
   { label: "GPT 2.5", isNew: true, id: "gpt_image_2_5_sunburst" },
-  { label: "Seedream 5 Pro", isNew: true },
+  { label: "Seedream 5 Pro", isNew: true, id: "seedream_5_pro" },
 ];
 
 // All models, grouped by maker, with the model counts the product lists. `match` finds the models Eclipse can really run in
@@ -53,7 +53,7 @@ const GROUPS: { name: string; total: number; match?: (id: string) => boolean }[]
   { name: "Marketing Studio", total: 0, match: (id) => id.startsWith("marketing_studio") || id === "ads_studio" },
   { name: "Google", total: 5, match: (id) => id.startsWith("nano_banana") },
   { name: "GPT", total: 6, match: (id) => id.startsWith("gpt_image") },
-  { name: "Seedream", total: 6 },
+  { name: "Seedream", total: 5, match: (id) => id.startsWith("seedream") },
   { name: "Flux", total: 11 },
   { name: "Mystic", total: 4 },
   { name: "Ideogram", total: 4, match: (id) => id.startsWith("ideogram") },

@@ -7,6 +7,7 @@
 // add disabled entries back without a code change). Edit models (references.min > 0) are listed once their picture field is confirmed; Image Studio asks for a picture before it will run them.
 // HIGGSFIELD_ENDPOINT_<ID> (id upper-cased) overrides an endpoint without a code change.
 
+import type { SizeRule } from "@/lib/providers/types";
 import { PROVIDER_KEYS, type ProviderId } from "./providers";
 
 // min 1 means an edit model that cannot run without a picture. `field` is the request field the pictures go in; it is
@@ -29,6 +30,8 @@ export type ImageModel = {
   id: string;
   provider: ProviderId;         // who makes the picture: Higgsfield (a job to poll) or Google / OpenAI / BytePlus (the reply carries the picture)
   apiModel?: string;            // the provider's own model id, for the providers that name one (Google, OpenAI)
+  sizeRule?: SizeRule; // BytePlus: pixel target per tier and the allowed total pixel range
+  outputPng?: boolean;          // BytePlus: the model takes output_format
   sizing?: "custom16" | "fixed3"; // OpenAI: the model takes any WIDTHxHEIGHT, or one of three fixed sizes
   label: string;
   blurb: string;
@@ -51,6 +54,13 @@ export type ImageModel = {
 const SOUL_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"];
 const GEMINI_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]; // provisional: to be replaced by the list on Google's page
 const GPT_FREE_RATIOS = ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"];
+// BytePlus Seedream (brief of 2026-10-09). The model ids are NOT confirmed (a third party listed them; 5.0 flash has none): get the real ones from the
+// console's Model List and set ARK_MODEL_<ID> (Config value), e.g. ARK_MODEL_SEEDREAM_5_FLASH. Pixel ranges are from the official page; the size tables
+// other than the 5.0 pro example are computed (same area, multiples of 16) until the owner's page copy is read.
+const ARK_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"];
+const ARK_PRO: SizeRule = { px: { "1k": 1024 ** 2, "2k": 2048 ** 2 }, min: 921_600, max: 4_624_220, table: { "2k": { "1:1": "2048x2048", "4:3": "2368x1776", "3:4": "1776x2368", "16:9": "2816x1584", "9:16": "1584x2816", "3:2": "2496x1664", "2:3": "1664x2496", "21:9": "3136x1344" } } }; // the 2K row is the page's own table
+const ARK_BIG: SizeRule = { px: { "2k": 2048 ** 2, "4k": 4096 ** 2 }, min: 3_686_400, max: 16_777_216 };
+const ARK_40: SizeRule = { px: { "1k": 1024 ** 2, "2k": 2048 ** 2, "4k": 4096 ** 2 }, min: 921_600, max: 16_777_216 };
 const GPT_FIXED_RATIOS = ["1:1", "3:2", "2:3"];
 const WIDE = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 
@@ -119,6 +129,12 @@ const MODELS: ImageModel[] = [
   m({ id: "gpt_image_1_5", provider: "openai", apiModel: "gpt-image-1.5", sizing: "fixed3", label: "GPT Image 1.5", blurb: "Three fixed sizes.", endpoint: "", ratios: GPT_FIXED_RATIOS, maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
   m({ id: "gpt_image_1", provider: "openai", apiModel: "gpt-image-1", sizing: "fixed3", label: "GPT Image 1", blurb: "Three fixed sizes.", endpoint: "", ratios: GPT_FIXED_RATIOS, maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
   m({ id: "gpt_image_1_mini", provider: "openai", apiModel: "gpt-image-1-mini", sizing: "fixed3", label: "GPT Image 1 mini", blurb: "The cheapest GPT Image.", endpoint: "", ratios: GPT_FIXED_RATIOS, maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
+  // BytePlus Seedream: no seed, watermark off, references as base64 (10 for 5.0 pro/flash, 14 for the others).
+  m({ id: "seedream_5_pro", provider: "byteplus", apiModel: "seedream-5-0-pro-260628", sizeRule: ARK_PRO, outputPng: true, label: "Seedream 5.0 Pro", blurb: "ByteDance's top image model.", endpoint: "", ratios: ARK_RATIOS, resolutions: ["1k", "2k"], defaultResolution: "2k", maxPrompt: 3000, references: { min: 0, max: 10, field: "image" }, enabled: false }),
+  m({ id: "seedream_5_flash", provider: "byteplus", sizeRule: ARK_PRO, outputPng: true, label: "Seedream 5.0 Flash", blurb: "Faster Seedream 5.0.", endpoint: "", ratios: ARK_RATIOS, resolutions: ["1k", "2k"], defaultResolution: "2k", maxPrompt: 3000, references: { min: 0, max: 10, field: "image" }, enabled: false }),
+  m({ id: "seedream_5_lite", provider: "byteplus", apiModel: "doubao-seedream-5-0-260128", sizeRule: ARK_BIG, outputPng: true, label: "Seedream 5.0 Lite", blurb: "Lighter Seedream 5.0, 2K to 4K.", endpoint: "", ratios: ARK_RATIOS, resolutions: ["2k", "4k"], defaultResolution: "2k", maxPrompt: 3000, references: { min: 0, max: 14, field: "image" }, enabled: false }),
+  m({ id: "seedream_4_5", provider: "byteplus", apiModel: "doubao-seedream-4-5-251128", sizeRule: ARK_BIG, label: "Seedream 4.5", blurb: "Seedream 4.5, 2K to 4K.", endpoint: "", ratios: ARK_RATIOS, resolutions: ["2k", "4k"], defaultResolution: "2k", maxPrompt: 3000, references: { min: 0, max: 14, field: "image" }, enabled: false }),
+  m({ id: "seedream_4", provider: "byteplus", apiModel: "doubao-seedream-4-0-250828", sizeRule: ARK_40, label: "Seedream 4.0", blurb: "Seedream 4.0, 1K to 4K.", endpoint: "", ratios: ARK_RATIOS, resolutions: ["1k", "2k", "4k"], defaultResolution: "2k", maxPrompt: 3000, references: { min: 0, max: 14, field: "image" }, enabled: false }),
 ];
 
 // Disabled entries become available when listed in ENABLED_MODELS (HIGGSFIELD_ENABLED_MODELS still works): set it to enable a model after its first cheap live render passed.
@@ -126,6 +142,9 @@ function isEnabled(model: ImageModel): boolean {
   const extra = `${process.env.ENABLED_MODELS ?? ""},${process.env.HIGGSFIELD_ENABLED_MODELS ?? ""}`.split(",").map((s) => s.trim()).filter(Boolean);
   return model.enabled || extra.includes(model.id);
 }
+
+// The provider's model id, with ARK_MODEL_<ID> (and the same for the others) as a correction from the environment.
+export const apiModelOf = (model: ImageModel): string | undefined => process.env[`ARK_MODEL_${model.id.toUpperCase()}`] ?? model.apiModel;
 
 export function enabledModels(): ImageModel[] {
   return MODELS.filter((m) => isEnabled(m) && isRunnable(m));
@@ -157,7 +176,7 @@ export const maxRefs = (model: ImageModel) => referenceSpec(model).max;
 export const minRefs = (model: ImageModel) => referenceSpec(model).min;
 // An edit model whose picture field is not confirmed cannot run at all, so it stays out of every list.
 // A model is also hidden while its provider's key is missing on the server.
-const isRunnable = (model: ImageModel) => (model.references.min === 0 || referenceSpec(model).supported) && (!PROVIDER_KEYS[model.provider] || Boolean(process.env[PROVIDER_KEYS[model.provider]!]));
+const isRunnable = (model: ImageModel) => (model.provider === "higgsfield" || !!apiModelOf(model)) && (model.references.min === 0 || referenceSpec(model).supported) && (!PROVIDER_KEYS[model.provider] || Boolean(process.env[PROVIDER_KEYS[model.provider]!]));
 
 // How reference pictures are added to a request body.
 export function referenceBody(model: ImageModel, urls: string[]): Record<string, unknown> {

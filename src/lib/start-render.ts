@@ -2,7 +2,7 @@ import { getBalance } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { completeFromBytes, failRender, SYNC_MARK, toItem, type RenderItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
-import { chargeFor, findEnabledModel, maxRefs, minRefs } from "@/lib/models";
+import { apiModelOf, chargeFor, findEnabledModel, maxRefs, minRefs, type ImageModel } from "@/lib/models";
 import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, resolveReferences } from "@/lib/references";
 import { randomSeed, seedInRange } from "@/lib/seed";
@@ -12,7 +12,6 @@ import { syncProvider } from "@/lib/providers";
 import { ProviderError, type ReferenceImage } from "@/lib/providers/types";
 import { getObjectBytes, saveImageBytes, storageEnabled } from "@/lib/storage";
 import { sniffImageType } from "@/lib/uploads";
-import type { ImageModel } from "@/lib/models";
 import type { ReferenceItem } from "@/lib/references";
 
 export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown };
@@ -125,7 +124,7 @@ async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
 async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string }): Promise<StartRenderResult> {
   const { model, userId } = a;
   const provider = syncProvider(model.provider);
-  if (!provider || !model.apiModel) return { ok: false, status: 400, error: "That model is not available." };
+  if (!provider || !apiModelOf(model)) return { ok: false, status: 400, error: "That model is not available." };
   // The reply carries the picture itself, so there is no provider link to fall back on: it has to go into our storage.
   if (!storageEnabled) return { ok: false, status: 503, error: "Image storage is not set up yet, so this model cannot be used." };
   const jobId = randomUUID();
@@ -134,7 +133,7 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
   });
   try {
     const references = await Promise.all(a.items.map(loadReference));
-    const out = await provider.generate({ apiModel: model.apiModel, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+    const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
     const saved = await saveImageBytes(userId, out.bytes, out.contentType);
     return { ok: true, item: await toItem(await completeFromBytes(row, saved, out.usage)), seedNote: a.seedNote };
   } catch (err) {
