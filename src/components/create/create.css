@@ -159,3 +159,14 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .am-item span:first-of-type { flex: 1; }
 .am-check { color: #c00707; }
 .cr-aname { white-space: nowrap; }
+/* Line 3: the agent with its on/off switch, and the fixed seed with its switch. */
+.cr-row-top { justify-content: flex-start; gap: 8px; }
+.cr-row-c { flex-wrap: nowrap; justify-content: space-between; gap: 8px; }
+.cr-grp { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.cr-seed { padding: 0 12px; }
+.cr-switch { flex: none; position: relative; width: 38px; height: 22px; padding: 0; border: 0; border-radius: 999px; background: var(--a-line3); cursor: pointer; transition: background .18s; }
+.cr-switch i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .18s; }
+.cr-switch.is-on { background: #c00707; }
+.cr-switch.is-on i { transform: translateX(16px); }
+.cr-row-c .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
+.cr-row-c .cr-chip svg { width: 14px; height: 14px; }

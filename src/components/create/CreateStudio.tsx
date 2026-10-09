@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Wand2, Workflow, X } from "lucide-react";
+import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Sprout, Wand2, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import type { PublicModel } from "@/lib/models";
@@ -44,6 +44,12 @@ export default function CreateStudio() {
   // The agent helping with this work (None when no agent is chosen); the same choice the Agents page keeps.
   const [agent, setAgent] = useState<string | null>(null);
   useEffect(() => { try { const a = localStorage.getItem(AGENT_KEY); if (a && AGENTS.includes(a)) setAgent(a); } catch {} }, []);
+  // Switches for the agent's help and a fixed seed. Both are remembered in this browser and nothing reads them yet.
+  const [agentOn, setAgentOn] = useState(false);
+  const [seedOn, setSeedOn] = useState(false);
+  useEffect(() => { try { setAgentOn(localStorage.getItem("eclipse-agent-on") === "1"); setSeedOn(localStorage.getItem("eclipse-fixed-seed") === "1"); } catch {} }, []);
+  function flip(key: string, on: boolean, set: (v: boolean) => void) { set(on); try { localStorage.setItem(key, on ? "1" : "0"); } catch {} }
+  const agentChip = useRef<HTMLButtonElement>(null);
   function pickAgent(name: string | null) {
     setAgent(name);
     try { if (name) localStorage.setItem(AGENT_KEY, name); else localStorage.removeItem(AGENT_KEY); } catch {}
@@ -282,9 +288,19 @@ export default function CreateStudio() {
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
           </button>
-          <button type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
+          </div>
+          <div className="cr-row cr-row-c">
+            <div className="cr-grp">
+            <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
             <AgentIcon size={14} /> <span className="cr-mlabel">Agent:</span> <span className="cr-aname">{agent ?? "None"}</span>
           </button>
+              <button type="button" role="switch" aria-checked={agentOn && !!agent} aria-label="Let the agent help with this prompt" title={agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agentOn && agent ? "is-on" : ""}`}
+                onClick={() => { if (!agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } flip("eclipse-agent-on", !agentOn, setAgentOn); }}><i /></button>
+            </div>
+            <div className="cr-grp">
+              <span className="cr-chip cr-seed"><Sprout size={14} /> Fixed seed</span>
+              <button type="button" role="switch" aria-checked={seedOn} aria-label="Fixed seed" title="Fixed seed" className={`cr-switch ${seedOn ? "is-on" : ""}`} onClick={() => flip("eclipse-fixed-seed", !seedOn, setSeedOn)}><i /></button>
+            </div>
           </div>
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
             {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
