@@ -154,7 +154,7 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-spin { animation: cn-turn .9s linear infinite; }
 .cn-chat.is-chatting { display: flex; flex-direction: column; min-height: calc(100dvh - 120px); }
 .cn-chat.is-chatting .cn-dock { position: sticky; bottom: 12px; margin-top: auto; padding-top: 12px; background: linear-gradient(to top, var(--a-bg) 70%, transparent); }
-.cn-thread { display: grid; gap: 18px; padding: 8px 0 24px; }
+.cn-thread { display: grid; gap: 18px; padding: 60px 0 24px; } /* clears the History / New chat buttons fixed in the top right */
 .cn-msg { display: grid; gap: 10px; justify-items: start; max-width: 100%; }
 .cn-msg.is-user { justify-items: end; }
 .cn-msg.is-user .cn-text-part { padding: 10px 16px; border-radius: 20px 20px 6px 20px; background: var(--a-active); }
