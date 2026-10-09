@@ -18,7 +18,7 @@
 .cr-go:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
 .cr-hint { margin: 12px 0 0; text-align: center; color: var(--a-ph); font-size: 12px; }
 .cr-error { margin: 18px 0 0; text-align: center; color: var(--a-danger); font-size: 14px; }
-.cr-preview { margin-top: 40px; padding-bottom: 0; text-align: center; }
+.cr-preview { margin-top: 20px; padding-bottom: 0; text-align: center; }
 .cr-preview h2 { margin: 0 0 20px; color: var(--a-muted); font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
 .cr-stage { display: grid; place-items: center; width: 100%; margin: 0 auto; overflow: hidden; border: 1px dashed var(--a-line3); border-radius: 28px; background: var(--a-card); box-shadow: 0 20px 70px var(--a-shadow); transition: max-width .25s; }
 .cr-stage a { display: block; width: 100%; height: 100%; }
@@ -53,7 +53,7 @@
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .cr-wrap { padding-top: 0; padding-bottom: 300px; }
   .cr-intro p { margin-top: 0; }
-  .cr-preview { margin-top: 24px; }
+  .cr-preview { margin-top: 12px; }
   .cr-keys { display: none; }
   /* The prompt box sits just above the bottom tab bar, like Orbit's. */
   .cr-dock { display: block; position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; max-height: 55dvh; overflow-y: auto; background: var(--a-bg); }
@@ -62,9 +62,9 @@
 .cr-stage { border-radius: 20px; }
 .cr-empty { padding: 14px; gap: 8px; }
 .cr-empty p { font-size: 13px; }
-/* The prompt field: twice as tall, on its own white field so it stands out from the box. */
-.cr-box textarea { min-height: 112px; max-height: 320px; padding: 12px 14px; border: 1px solid #d4d4d4; border-radius: 16px; background: #fff; color: #111; box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
-.cr-box textarea::placeholder { color: #777; }
+/* The prompt field: twice as tall, an inset field in the theme's input colour with its own border so it reads as a text field. */
+.cr-box textarea { min-height: 112px; max-height: 320px; padding: 12px 14px; border: 1px solid var(--a-line3); border-radius: 16px; background: var(--a-input); color: var(--a-fg); }
+.cr-box textarea::placeholder { color: var(--a-ph); }
 /* Earlier renders: one fifth of the old area. */
 .cr-earlier { gap: 6px; margin-top: 18px; }
 .cr-earlier a { width: 32px; height: 32px; border-radius: 8px; }

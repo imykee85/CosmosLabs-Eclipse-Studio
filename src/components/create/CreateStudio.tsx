@@ -109,7 +109,6 @@ export default function CreateStudio() {
       </header>
 
       <section className="cr-preview" aria-label="Preview">
-        <h2>Preview</h2>
         {(() => {
           const shown = pending ? null : latestDone;
           const r = pending?.aspectRatio ?? shown?.aspectRatio ?? ratio;
