@@ -366,7 +366,6 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             <Link href="/settings" className="mb-foot-link"><Settings size={19} /> Settings</Link>
             <div className="mb-foot-row">
               <CreditsPill className="mb-credits" text />
-              <ThemeToggle className="ws-icon-btn" />
               <NotificationsButton className="ws-icon-btn" up />
             </div>
           </div>
