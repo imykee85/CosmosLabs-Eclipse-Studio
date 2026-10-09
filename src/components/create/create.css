@@ -177,7 +177,7 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .cr-row-top .cr-grp .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
 .cr-row-top .cr-grp .cr-chip svg { width: 14px; height: 14px; }
 /* Floating agent widget: a round button you can drag anywhere on the screen. */
-.aw-btn { --lx: 0; --ly: 0; position: fixed; z-index: 250; display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.aw-btn { --lx: .4; --ly: -.1; position: fixed; z-index: 250; display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .aw-btn:active { cursor: grabbing; }
 .aw-3d { position: relative; width: 64px; height: 64px; perspective: 360px; }
 .aw-float, .aw-spin, .aw-sphere { position: absolute; inset: 0; transform-style: preserve-3d; }

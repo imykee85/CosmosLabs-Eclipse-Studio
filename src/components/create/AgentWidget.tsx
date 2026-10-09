@@ -42,7 +42,8 @@ export default function AgentWidget({ name }: { name: string }) {
   useEffect(() => {
     let p: { x: number; y: number } | null = null;
     try { const raw = JSON.parse(localStorage.getItem(POS_KEY) ?? "null"); if (raw && typeof raw.x === "number" && typeof raw.y === "number") p = raw; } catch {}
-    setPos(clamp(p?.x ?? window.innerWidth - SIZE, p?.y ?? Math.round(window.innerHeight * 0.32)));
+    // Default stance: parked on the left edge, just above the prompt box, facing in toward the screen.
+    setPos(clamp(p?.x ?? 0, p?.y ?? Math.round(window.innerHeight * 0.555)));
     const onResize = () => setPos((q) => (q ? clamp(q.x, q.y) : q));
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
