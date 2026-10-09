@@ -82,3 +82,5 @@
 .ad-go:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
 .ad-ok { color: #3ecf6e; font-size: 14px; }
 .ad-err { color: var(--a-danger); font-size: 14px; }
+.st-tabs button { display: inline-flex; align-items: center; gap: 8px; } .st-tabs .st-soon { font-size: 9px; padding: 1px 6px; }
+.st-upgrade { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }

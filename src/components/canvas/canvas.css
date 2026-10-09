@@ -123,3 +123,4 @@
 .cv-wrap.is-full .cv-pop { max-height: calc(100dvh - 120px); }
 
 .cv-cost { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding-left: 7px; border-left: 1px solid rgba(255,255,255,.4); font-weight: 600; }
+.cv-tile .cv-soon { margin-left: auto; }

@@ -19,3 +19,4 @@
 .tu-x { position: absolute; top: -46px; right: 0; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; background: transparent; color: #fff; cursor: pointer; }
 .tone-0 { --tone: linear-gradient(135deg, #7f1d1d, #0f0f10); } .tone-1 { --tone: linear-gradient(135deg, #be123c, #1a0b0d); } .tone-2 { --tone: linear-gradient(135deg, #9f1239, #1c1917); }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .tu-main { padding-top: 48px; } .tu-main h1 { font-size: 34px; } .tu-close { top: 14px; } }
+.tu-watch .tu-soon { margin-left: 8px; }

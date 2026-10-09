@@ -1,5 +1,6 @@
 "use client";
 
+import SoonTag from "@/components/SoonTag";
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Link2, Moon, Monitor, Radio, Smartphone, Sun, Upload } from "lucide-react";
 import { listProjects, type Project } from "@/lib/projects";
@@ -92,9 +93,9 @@ export default function PortfolioView() {
               {d.slug.length > 1 && <Check size={16} className="pf-ok" aria-hidden="true" />}
             </div>
             <div className="pf-actions">
-              <button type="button" className="pf-ghost"><Copy size={15} /> Copy link</button>
+              <button type="button" className="pf-ghost"><Copy size={15} /> Copy link <SoonTag /></button>
               <button type="button" className="pf-outline" onClick={save}>Save draft</button>
-              <button type="button" className="pf-primary">Publish</button>
+              <button type="button" className="pf-primary">Publish <SoonTag /></button>
             </div>
             <small>{note || "Your draft is saved on this device."}</small>
           </section>

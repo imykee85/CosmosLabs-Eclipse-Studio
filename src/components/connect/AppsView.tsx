@@ -1,5 +1,6 @@
 "use client";
 
+import SoonTag from "@/components/SoonTag";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -164,7 +165,9 @@ export default function AppsView() {
                     <span className="cn-text"><b>{c.name}</b><small>{c.blurb}</small></span>
                     {linked[connectorId(c)] !== undefined
                       ? <button type="button" className="cn-plus is-on" aria-label={`${c.name} is connected. Disconnect`} title="Connected. Click to disconnect" onClick={() => disconnect(c)}><Check size={20} /></button>
-                      : <button type="button" className="cn-plus" aria-label={`Connect ${c.name}`} onClick={() => begin(c)}><Plus size={20} /></button>}
+                      : directConnectors[connectorId(c)]
+                        ? <button type="button" className="cn-plus" aria-label={`Connect ${c.name}`} onClick={() => begin(c)}><Plus size={20} /></button>
+                        : <SoonTag className="cn-soon" />}
                   </li>
                 ))}
               </ul>

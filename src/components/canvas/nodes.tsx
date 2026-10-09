@@ -1,5 +1,6 @@
 "use client";
 
+import SoonTag from "@/components/SoonTag";
 import { useEffect } from "react";
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 import { Coins, Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
@@ -48,7 +49,7 @@ function Ingredient({ id, data, selected, kind }: NodeProps<CNode> & { kind: "ch
         <div className="cv-slot">{META[kind].icon}<span>{data.desc?.trim() ? data.desc : `No ${label} selected`}</span></div>
         <input className="cv-input nodrag" value={data.desc ?? ""} maxLength={200} placeholder={`Describe the ${label}...`} aria-label={`${META[kind].title} description`}
           onChange={(e) => updateNodeData(id, { desc: e.target.value })} />
-        <button type="button" className="cv-btn">Choose from Library</button>
+        <button type="button" className="cv-btn">Choose from Library <SoonTag /></button>
       </div>
     </Shell>
   );
@@ -65,7 +66,7 @@ export function TextNode({ id, data, selected }: NodeProps<CNode>) {
       <div className="cv-body">
         <textarea className="cv-input cv-area nodrag nowheel" rows={4} value={data.text ?? ""} maxLength={2000} placeholder="Describe the shot you imagine..." aria-label="Prompt"
           onChange={(e) => updateNodeData(id, { text: e.target.value })} />
-        <button type="button" className="cv-btn"><Lightbulb size={14} /> Polish prompt</button>
+        <button type="button" className="cv-btn"><Lightbulb size={14} /> Polish prompt <SoonTag /></button>
       </div>
     </Shell>
   );

@@ -69,3 +69,4 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
 .lib-binlink:hover { color: var(--a-fg); }
 
 .lib-tile .lib-sub { color: var(--a-muted2); font-size: 12px; }
+.lib-tabs button .lib-soon { margin-left: 8px; font-size: 9px; padding: 1px 6px; }

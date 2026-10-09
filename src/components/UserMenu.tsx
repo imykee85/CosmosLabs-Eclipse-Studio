@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { Award, LayoutGrid, LogOut, Settings, User } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import Avatar from "@/components/Avatar";
+import SoonTag from "@/components/SoonTag";
 import "./user-menu.css";
 
 const ITEMS = [
-  { label: "Avatars", href: "/avatars", icon: User },
+  { label: "Avatars", href: "/avatars", icon: User, soon: true },
   { label: "Portfolio", href: "/portfolio", icon: LayoutGrid },
-  { label: "Certificates", href: "/certificates", icon: Award },
+  { label: "Certificates", href: "/certificates", icon: Award, soon: true },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -41,9 +42,9 @@ export default function UserMenu({ variant = "header" }: { variant?: "header" | 
       </AccountName>
       {open && (
         <div className="um-menu" role="menu">
-          {ITEMS.map(({ label, href, icon: Icon }) => (
+          {ITEMS.map(({ label, href, icon: Icon, soon }) => (
             <Link key={href} href={href} role="menuitem" className="um-item" onClick={() => setOpen(false)}>
-              <Icon size={17} /> {label}
+              <Icon size={17} /> {label}{soon && <SoonTag className="um-soon" />}
             </Link>
           ))}
           <span className="um-sep" role="separator" />

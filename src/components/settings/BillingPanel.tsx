@@ -1,4 +1,5 @@
 import { CreditCard, Inbox, Zap } from "lucide-react";
+import SoonTag from "@/components/SoonTag";
 import { plans } from "@/lib/plans";
 import { CreditBalance, CreditHistory, CreditNotes } from "./BillingLive";
 
@@ -31,7 +32,7 @@ export default function BillingPanel() {
               <span className="st-pill">{p.name}</span>
               <p className="st-price">${p.price}<small>/mo</small></p>
               <p className="st-meta">{p.credits.toLocaleString("en-US")} credits/mo · {p.seats} seat{p.seats === 1 ? "" : "s"}</p>
-              <button type="button" className="st-upgrade">Upgrade</button>
+              <button type="button" className="st-upgrade">Upgrade <SoonTag /></button>
             </article>
           ))}
         </div>

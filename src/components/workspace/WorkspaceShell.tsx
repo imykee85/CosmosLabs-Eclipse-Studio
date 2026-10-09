@@ -13,6 +13,7 @@ import NotificationsButton from "@/components/Notifications";
 import AgentIcon from "@/components/AgentIcon";
 import ConnectMark from "@/components/ConnectMark";
 import ImageStudioIcon from "@/components/ImageStudioIcon";
+import SoonTag from "@/components/SoonTag";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -23,7 +24,7 @@ import { listProjects, readCurrentProject, readCurrentProjectName, setCurrentPro
 import { tutorialHref } from "@/lib/tutorial";
 import "./workspace.css";
 
-type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number };
+type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
 
 const connectItem: Item = { label: "Connect", hint: "Your creative computer", href: "/connect", icon: <ConnectMark size={20} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
@@ -33,17 +34,17 @@ const photo: Item[] = [
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
   { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> },
 ];
-const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} /> };
+const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} />, soon: true };
 const video: Item[] = [
-  { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment" },
-  { label: "Prompts", hint: "Scene by scene", step: 2 },
-  { label: "Generate", hint: "Render the clips", step: 3, href: "/generate" },
-  { label: "Export", hint: "Deliver and share", step: 4 },
+  { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment", soon: true },
+  { label: "Prompts", hint: "Scene by scene", step: 2, soon: true },
+  { label: "Generate", hint: "Render the clips", step: 3, href: "/generate", soon: true },
+  { label: "Export", hint: "Deliver and share", step: 4, soon: true },
 ];
 const audio: Item[] = [
-  { label: "Voiceover", hint: "Narrate your script", icon: <Mic size={17} /> },
-  { label: "Music", hint: "Score your content", icon: <Music size={17} /> },
-  { label: "Sound effects", hint: "Add the final touches", icon: <Volume2 size={17} /> },
+  { label: "Voiceover", hint: "Narrate your script", icon: <Mic size={17} />, soon: true },
+  { label: "Music", hint: "Score your content", icon: <Music size={17} />, soon: true },
+  { label: "Sound effects", hint: "Add the final touches", icon: <Volume2 size={17} />, soon: true },
 ];
 
 function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onPick?: (item: Item) => void }) {
@@ -54,6 +55,7 @@ function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onP
         <b>{item.label}</b>
         <small>{item.hint}</small>
       </span>
+      {item.soon && <SoonTag />}
     </>
   );
   // Rows with no page yet still respond to a tap; they just do not go anywhere.

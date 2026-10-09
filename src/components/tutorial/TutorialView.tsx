@@ -1,6 +1,7 @@
 "use client";
 
 import CreditsPill from "@/components/CreditsPill";
+import SoonTag from "@/components/SoonTag";
 import ImageStudioIcon from "@/components/ImageStudioIcon";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -80,7 +81,7 @@ export default function TutorialView({ back }: { back: { path: string; label: st
                 <span><Play size={22} fill="currentColor" /></span>
               </div>
               <button type="button" className="tu-watch" onClick={() => l.video && setPlaying(l)}>
-                Watch
+                Watch{!l.video && <SoonTag className="tu-soon" />}
               </button>
             </li>
           ))}

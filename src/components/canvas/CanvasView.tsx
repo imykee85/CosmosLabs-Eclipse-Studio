@@ -1,5 +1,6 @@
 "use client";
 
+import SoonTag from "@/components/SoonTag";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -182,7 +183,7 @@ function Inner({ projectId }: { projectId: string }) {
                       <div className="cv-grid">
                         {g.items.map((i) => (
                           <button key={i.id} type="button" className="cv-tile" title={i.blurb} onClick={() => i.kind && addNode(i.kind)}>
-                            {ICONS[i.id]}<span>{i.label}</span>
+                            {ICONS[i.id]}<span>{i.label}</span>{!i.kind && <SoonTag className="cv-soon" />}
                           </button>
                         ))}
                       </div>

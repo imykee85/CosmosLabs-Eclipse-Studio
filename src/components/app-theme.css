@@ -36,3 +36,6 @@ html[data-app-theme="light"] .db-logo svg { color: #141414; }
 /* The page canvas follows the theme too (not only the body), so browsers that tint their bars from it pick the right colour. */
 html:has(.db-page, .ws-root) { background: #000; color-scheme: dark; }
 html[data-app-theme="light"]:has(.db-page, .ws-root) { background: #faf8f5; color-scheme: light; }
+
+/* "Soon" pill for unfinished features (see SoonTag) */
+.soon-tag { flex: none; display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--a-line3); border-radius: 999px; color: var(--a-muted); font-size: 10px; font-style: normal; font-weight: 600; letter-spacing: .06em; line-height: 1.4; text-transform: uppercase; white-space: nowrap; }

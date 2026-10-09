@@ -19,3 +19,4 @@
 .um-v-sidebar .um-text { flex: 1; min-width: 0; text-align: left; }
 .um-v-sidebar .um-text strong { max-width: 100%; }
 .um-v-sidebar .um-menu { top: auto; bottom: calc(100% + 8px); left: 12px; right: 12px; min-width: 0; }
+.um-item .um-soon { margin-left: auto; }

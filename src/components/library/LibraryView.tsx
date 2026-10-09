@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FolderOpen, Search } from "lucide-react";
 import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
 import { useRenders } from "@/lib/use-renders";
+import SoonTag from "@/components/SoonTag";
 import UploadPanel from "@/components/uploads/UploadPanel";
 import RenderTile from "./RenderTile";
 import "./library.css";
@@ -27,7 +28,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
 
       <div className="lib-tabs" role="tablist" aria-label="Filter by type">
         {LIBRARY_KINDS.map((k) => (
-          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}</button>
+          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}{(k === "Videos" || k === "Audio") && <SoonTag className="lib-soon" />}</button>
         ))}
       </div>
 

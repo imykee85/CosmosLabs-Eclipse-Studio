@@ -226,3 +226,4 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-hist-main b { overflow: hidden; font-size: 15px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .cn-hist-main small { color: var(--a-muted); font-size: 12px; }
 .cn-hist-list .cn-pop-del { margin-right: 8px; }
+.cn-row .cn-soon { margin-left: auto; align-self: center; }
