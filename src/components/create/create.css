@@ -1,8 +1,8 @@
-.cr-wrap { max-width: 760px; margin: 0 auto; padding-top: 24px; }
+.cr-wrap { max-width: 760px; margin: 0 auto; padding-top: 24px; padding-bottom: 24px; }
 .cr-intro { text-align: center; }
 .cr-intro h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -.03em; }
 .cr-intro p { max-width: 520px; margin: 12px auto 0; color: var(--a-muted); font-size: 16px; line-height: 1.5; }
-.cr-box { margin-top: 48px; padding: 18px 18px 14px; border: 1px solid var(--a-line2); border-radius: 28px; background: var(--a-card); box-shadow: 0 20px 70px var(--a-shadow); transition: border-color .2s, box-shadow .2s; }
+.cr-box { margin-top: 56px; padding: 18px 18px 14px; border: 1px solid var(--a-line2); border-radius: 28px; background: var(--a-card); box-shadow: 0 20px 70px var(--a-shadow); transition: border-color .2s, box-shadow .2s; }
 .cr-box:focus-within { border-color: rgba(192,7,7,.8); box-shadow: 0 20px 70px var(--a-shadow), 0 0 0 3px rgba(192,7,7,.2); }
 .cr-box textarea { width: 100%; min-height: 56px; max-height: 220px; resize: none; border: 0; outline: 0; background: transparent; padding: 4px 6px; color: var(--a-fg); font: inherit; font-size: 16px; line-height: 1.5; }
 .cr-box textarea::placeholder { color: var(--a-ph); }
@@ -18,7 +18,7 @@
 .cr-go:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
 .cr-hint { margin: 12px 0 0; text-align: center; color: var(--a-ph); font-size: 12px; }
 .cr-error { margin: 18px 0 0; text-align: center; color: var(--a-danger); font-size: 14px; }
-.cr-preview { margin-top: 88px; padding-bottom: 24px; text-align: center; }
+.cr-preview { margin-top: 40px; padding-bottom: 0; text-align: center; }
 .cr-preview h2 { margin: 0 0 20px; color: var(--a-muted); font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
 .cr-stage { display: grid; place-items: center; width: 100%; margin: 0 auto; overflow: hidden; border: 1px dashed var(--a-line3); border-radius: 28px; background: var(--a-card); box-shadow: 0 20px 70px var(--a-shadow); transition: max-width .25s; }
 .cr-stage a { display: block; width: 100%; height: 100%; }
@@ -33,7 +33,7 @@
 .cr-spin { animation: cr-spin 1s linear infinite; }
 @keyframes cr-spin { to { transform: rotate(360deg); } }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
-@media (max-width: 800px) { .cr-intro h1 { font-size: 28px; } .cr-box { margin-top: 36px; border-radius: 22px; } .cr-preview { margin-top: 64px; } .cr-stage { border-radius: 22px; } }
+@media (max-width: 800px) { .cr-intro h1 { font-size: 28px; } .cr-box { margin-top: 36px; border-radius: 22px; } .cr-preview { margin-top: 32px; } .cr-stage { border-radius: 22px; } }
 @media (prefers-reduced-motion: reduce) { .cr-spin { animation-duration: 3s; } }
 
 .cr-cost { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.4); font-weight: 600; }

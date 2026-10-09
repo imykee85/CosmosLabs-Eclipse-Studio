@@ -105,8 +105,46 @@ export default function CreateStudio() {
     <div className="cr-wrap">
       <header className="cr-intro">
         <h1 className="pg-title">Image Studio</h1>
-        <p>Describe the shot you imagine. Your preview appears in the panel below.</p>
+        <p>Describe the shot you imagine. Your preview appears in the panel above.</p>
       </header>
+
+      <section className="cr-preview" aria-label="Preview">
+        <h2>Preview</h2>
+        {(() => {
+          const shown = pending ? null : latestDone;
+          const r = pending?.aspectRatio ?? shown?.aspectRatio ?? ratio;
+          return (
+            <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: previewWidth(r) }} aria-live="polite">
+              {pending ? (
+                <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Creating your image…</p></div>
+              ) : shown?.imageUrl ? (
+                <a href={shown.imageUrl} target="_blank" rel="noreferrer" title="Open full size">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={shown.imageUrl} alt={shown.prompt} />
+                </a>
+              ) : (
+                <div className="cr-empty"><ImageIcon size={34} strokeWidth={1.4} /><p>Your preview appears here</p></div>
+              )}
+            </div>
+          );
+        })()}
+        {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && (
+          <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} /></div>
+        )}
+        {(() => {
+          const earlier = list.filter((g) => g.status === "completed" && g.imageUrl).slice(0, 5);
+          return earlier.length > 0 && (
+            <div className="cr-earlier" aria-label="Your five most recent renders">
+              {earlier.map((r) => (
+                <a key={r.id} href={r.imageUrl ?? undefined} target="_blank" rel="noreferrer" title={r.prompt}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.imageUrl ?? ""} alt={r.prompt} />
+                </a>
+              ))}
+            </div>
+          );
+        })()}
+      </section>
 
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); generate(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
@@ -170,44 +208,6 @@ export default function CreateStudio() {
       <p className="cr-hint">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
-
-      <section className="cr-preview" aria-label="Preview">
-        <h2>Preview</h2>
-        {(() => {
-          const shown = pending ? null : latestDone;
-          const r = pending?.aspectRatio ?? shown?.aspectRatio ?? ratio;
-          return (
-            <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: previewWidth(r) }} aria-live="polite">
-              {pending ? (
-                <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Creating your image…</p></div>
-              ) : shown?.imageUrl ? (
-                <a href={shown.imageUrl} target="_blank" rel="noreferrer" title="Open full size">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={shown.imageUrl} alt={shown.prompt} />
-                </a>
-              ) : (
-                <div className="cr-empty"><ImageIcon size={34} strokeWidth={1.4} /><p>Your preview appears here</p></div>
-              )}
-            </div>
-          );
-        })()}
-        {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && (
-          <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} /></div>
-        )}
-        {(() => {
-          const earlier = list.filter((g) => g.status === "completed" && g.imageUrl).slice(0, 5);
-          return earlier.length > 0 && (
-            <div className="cr-earlier" aria-label="Your five most recent renders">
-              {earlier.map((r) => (
-                <a key={r.id} href={r.imageUrl ?? undefined} target="_blank" rel="noreferrer" title={r.prompt}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={r.imageUrl ?? ""} alt={r.prompt} />
-                </a>
-              ))}
-            </div>
-          );
-        })()}
-      </section>
     </div>
   );
 }
