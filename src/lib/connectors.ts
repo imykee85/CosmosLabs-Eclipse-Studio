@@ -1,6 +1,27 @@
-// Apps Connect will link to. Nothing here connects yet: real connections need sign-in with each service and a backend.
-// Descriptions are Eclipse's own wording. Add or remove entries freely; `brand` is mapped to a logo in components/connect/brands.tsx.
+// Apps Connect links to. Telegram and Slack really connect (a bot token / a channel webhook address you paste in) and the agent can
+// send to them. The others need a sign-in approved by the service; their connect button starts that and says plainly when this
+// server has no app registered with the service yet (src/app/api/connectors).
+// Descriptions are Eclipse's own wording. `brand` is mapped to a logo in components/connect/brands.tsx.
 export type Connector = { name: string; blurb: string; brand: string };
+
+export const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+export const connectorId = (c: Connector) => slug(c.name);
+
+// What the user pastes to connect, for the apps that connect directly.
+export type ConnectField = { key: string; label: string; hint: string; secret?: boolean };
+export const directConnectors: Record<string, { help: string; fields: ConnectField[] }> = {
+  telegram: {
+    help: "Create a bot with @BotFather, send it any message, then paste its token and the chat id you want content delivered to.",
+    fields: [
+      { key: "token", label: "Bot token", hint: "123456:ABC-DEF...", secret: true },
+      { key: "chatId", label: "Chat id", hint: "For example 123456789 or @yourchannel" },
+    ],
+  },
+  slack: {
+    help: "In Slack, add an Incoming Webhook to a channel and paste its address here.",
+    fields: [{ key: "token", label: "Webhook address", hint: "https://hooks.slack.com/services/...", secret: true }],
+  },
+};
 
 export const connectorGroups: { title: string; icon: string; items: Connector[] }[] = [
   {

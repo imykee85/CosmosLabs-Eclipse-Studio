@@ -91,3 +91,69 @@ model CreditLedger {
   @@index([userId, createdAt(sort: Desc)])
   @@map("credit_ledger")
 }
+
+// Connect: one chat with the assistant. Messages are kept exactly as the model produced them, so a thread can be continued later.
+model ConnectChat {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  projectId String?  @map("project_id")
+  title     String   @default("New chat")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  messages  ConnectMessage[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("connect_chats")
+}
+
+model ConnectMessage {
+  id        String      @id @default(cuid())
+  chatId    String      @map("chat_id")
+  chat      ConnectChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  seq       Int // order inside the chat
+  role      String // user | assistant
+  content   Json // the message's content blocks as sent to / received from the model (text, images, tool calls, tool results)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([chatId, seq])
+  @@map("connect_messages")
+}
+
+// What Eclipse remembers about a user and their work. topic: projects | products | characters | style | tastes.
+model Memory {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  topic     String
+  text      String
+  source    String   @default("user") // user | agent
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("memories")
+}
+
+// A skill the user wrote themselves (the built-in ones live in code).
+model UserSkill {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  blurb        String   @default("")
+  instructions String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("user_skills")
+}
+
+// A connected app. secret is the credential (a bot token or webhook address), stored encrypted (src/lib/secret-box.ts).
+model ConnectorLink {
+  userId    String   @map("user_id")
+  connector String // registry id, see src/lib/connectors.ts
+  label     String   @default("") // what to show, e.g. the channel name; never the secret
+  secret    String
+  extra     Json? // non-secret settings, e.g. the Telegram chat id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([userId, connector])
+  @@map("connector_links")
+}

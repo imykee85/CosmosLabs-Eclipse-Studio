@@ -42,3 +42,35 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
   .mm-add { bottom: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .mm-orb { animation: none; } }
+
+/* Real memory: counts on nodes, the list of what is remembered, and the topic picker in the add bar */
+.mm-node { cursor: pointer; transition: border-color .18s, transform .12s; } .mm-node:hover, .mm-node.is-on { border-color: #c00707; } .mm-node:active { transform: scale(.95); }
+.mm-node i { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #c00707; color: #fff; font-size: 11px; font-style: normal; font-weight: 600; line-height: 20px; text-align: center; }
+.mm-side { position: absolute; z-index: 3; top: 72px; right: max(18px, calc(50% - 460px)); bottom: 88px; width: min(340px, 40%); display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.mm-side .cn-nav { margin: 0; flex-wrap: wrap; }
+.mm-tabs { display: flex; flex-wrap: wrap; gap: 6px; } .mm-tabs button { height: 30px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-muted); font: inherit; font-size: 13px; cursor: pointer; } .mm-tabs button.is-on { color: var(--a-fg); border-color: var(--a-line4); }
+.mm-list { display: grid; gap: 8px; margin: 0; padding: 0 2px 0 0; list-style: none; overflow-y: auto; }
+.mm-list li { position: relative; display: grid; gap: 4px; padding: 10px 40px 10px 12px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); font-size: 14px; line-height: 1.4; }
+.mm-list li.mm-none { padding: 14px; color: var(--a-muted); border-style: dashed; }
+.mm-tag { color: var(--a-redtext); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; } .mm-list small { color: var(--a-muted2); font-size: 12px; }
+.mm-text { overflow-wrap: anywhere; }
+.mm-list li > button { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; } .mm-list li > button:hover { background: var(--a-line2); color: var(--a-fg); }
+.mm-add select { flex: none; max-width: 110px; height: 36px; padding: 0 8px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 13px; }
+.mm-send:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
+.mm-error { position: absolute; z-index: 3; left: 50%; bottom: 78px; transform: translateX(-50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: var(--a-card); color: var(--a-redtext); font-size: 13px; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .mm-side { top: auto; right: 14px; left: 14px; bottom: 76px; width: auto; max-height: 38%; }
+  .mm-add select { max-width: 92px; }
+}
+
+.mm-stage { inset: 0 380px 0 0; }
+.mm-copy { right: 380px; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .mm-stage { inset: 118px 0 36% 0; }
+  .mm-copy { right: 0; top: 58px; }
+  .mm-copy h1 { font-size: 22px; } .mm-copy p { font-size: 18px; }
+  .mm-side { max-height: 34%; }
+  .mm-node { width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 14px; } .mm-orb { width: 60px; height: 60px; margin: -30px 0 0 -30px; }
+  .mm-side .cn-nav { display: none; }
+  .mm-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .mm-tabs button { flex: none; }
+}

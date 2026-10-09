@@ -55,7 +55,7 @@ export default function ModelPicker() {
           <div className="cn-sheet" role="listbox" aria-label="Choose a model">
             <span className="cn-grab" aria-hidden="true" />
             {connectModels.filter((m) => m.featured).map((m) => <Row key={m.id} m={m} on={m.id === id} pick={choose} />)}
-            <p className="cn-group">All models</p>
+            {connectModels.some((m) => !m.featured) && <p className="cn-group">All models</p>}
             {connectModels.filter((m) => !m.featured).map((m) => <Row key={m.id} m={m} on={m.id === id} pick={choose} />)}
           </div>
         </>

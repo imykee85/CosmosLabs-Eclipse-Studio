@@ -26,3 +26,11 @@
 }
 
 .sk-card { cursor: pointer; } .sk-art img { transition: transform .35s ease; } .sk-card:hover .sk-art img { transform: scale(1.04); } .sk-card:hover .sk-art { border-color: var(--a-line4); }
+
+.sk-mine-head { display: flex; justify-content: flex-end; margin-top: 18px; }
+.sk-own { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+.sk-own li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--a-line); border-radius: 22px; background: var(--a-card); }
+.sk-own .cn-btn { white-space: nowrap; }
+.sk-card .tl-open { display: inline-flex; align-items: center; gap: 6px; }
+.sk-card .tl-open { flex: none; padding: 9px 20px; border: 0; border-radius: 12px; background: #c00707; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .18s, transform .12s; }
+.sk-card .tl-open:hover { background: #d90b0b; } .sk-card .tl-open:active { transform: scale(.94); }
