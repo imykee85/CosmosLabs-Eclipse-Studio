@@ -17,3 +17,20 @@ export function parseImportLine(raw: string, fallback: MemoryTopic): { topic: Me
   const text = (labelled ? m![2] : l).replace(/\*\*/g, "").trim().slice(0, MEMORY_TEXT_MAX);
   return text ? { topic: labelled || fallback, text } : null;
 }
+
+// Text from an uploaded file, ready for the import route: JSON arrays of strings (or of objects with a text, memory or content
+// field) become one line each; anything else is used as it is, one fact per line.
+export const MEMORY_FILE_MAX_BYTES = 200 * 1024;
+export function memoryFileToText(name: string, raw: string): string {
+  if (/\.json$/i.test(name)) {
+    try {
+      const data = JSON.parse(raw);
+      const list = Array.isArray(data) ? data : Array.isArray(data?.memories) ? data.memories : null;
+      if (list) {
+        const lines = list.map((x: unknown) => (typeof x === "string" ? x : x && typeof x === "object" ? String((x as Record<string, unknown>).text ?? (x as Record<string, unknown>).memory ?? (x as Record<string, unknown>).content ?? "") : "")).map((l: string) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+        if (lines.length) return lines.join("\n");
+      }
+    } catch {}
+  }
+  return raw;
+}

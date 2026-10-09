@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Brain, ChevronLeft, Folder, Heart, Package, Palette, Plus, Trash2, Upload, User, X } from "lucide-react";
 import ConnectNav from "@/components/connect/ConnectNav";
 import ImportMemoryDialog from "./ImportMemoryDialog";
-import { MEMORY_TEXT_MAX, MEMORY_TOPICS, TOPIC_LABEL, type MemoryItem, type MemoryTopic } from "@/lib/memory";
+import { MEMORY_FILE_MAX_BYTES, MEMORY_TEXT_MAX, MEMORY_TOPICS, TOPIC_LABEL, memoryFileToText, type MemoryItem, type MemoryTopic } from "@/lib/memory";
 import "@/components/connect/connect.css";
 import "./memory.css";
 
@@ -35,6 +35,8 @@ export default function MemoryView() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [notice, setNotice] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/memory", { cache: "no-store" });
@@ -60,6 +62,23 @@ export default function MemoryView() {
     if (!res.ok) { setError(data.error ?? "Could not save that."); return; }
     setText("");
     setItems((l) => [data, ...(l ?? [])]);
+  }
+  // The + uploads a text file (.txt, .md, .csv or .json): each line becomes a memory under the chosen topic, and lines that
+  // start with a label such as "Style:" go under that topic.
+  async function uploadFile(file: File | undefined) {
+    if (!file || saving) return;
+    setError(""); setNotice("");
+    if (file.size > MEMORY_FILE_MAX_BYTES) { setError("That file is larger than 200 KB. Please use a smaller one."); return; }
+    if (!/\.(txt|md|markdown|csv|json)$/i.test(file.name) && !file.type.startsWith("text/")) { setError("Upload a text file: .txt, .md, .csv or .json."); return; }
+    setSaving(true);
+    const body = memoryFileToText(file.name, await file.text());
+    const res = await fetch("/api/memory/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: saveTopic, text: body }) });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) { setError(data.error ?? "Could not add that file."); return; }
+    setNotice(`Added ${data.added} ${data.added === 1 ? "memory" : "memories"} from ${file.name}${data.skipped ? ` (${data.skipped} skipped, memory is full)` : ""}.`);
+    setTimeout(() => setNotice(""), 4000);
+    load();
   }
   async function remove(id: string) {
     setItems((l) => l?.filter((i) => i.id !== id) ?? null);
@@ -111,8 +130,10 @@ export default function MemoryView() {
       </div>
 
       {error && <p className="mm-error" role="alert">{error}</p>}
+      {notice && <p className="mm-error mm-notice" role="status">{notice}</p>}
       <form className="mm-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <button type="button" className="mm-plus" aria-label="Import memory" onClick={() => setImporting(true)}><Plus size={18} /></button>
+        <button type="button" className="mm-plus" aria-label="Upload a file" title="Upload a text file (.txt, .md, .csv, .json): each line becomes a memory" onClick={() => fileInput.current?.click()}><Plus size={18} /></button>
+        <input ref={fileInput} type="file" accept=".txt,.md,.markdown,.csv,.json,text/plain" hidden onChange={(e) => { void uploadFile(e.target.files?.[0]); e.target.value = ""; }} />
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MEMORY_TEXT_MAX} placeholder="Add a memory" aria-label="Add a memory" />
         <select value={saveTopic} onChange={(e) => { setSaveTopic(e.target.value as MemoryTopic); setTopic(e.target.value as MemoryTopic); }} aria-label="Topic for this memory">
           {MEMORY_TOPICS.map((t) => <option key={t} value={t}>{TOPIC_LABEL[t]}</option>)}

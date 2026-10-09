@@ -138,3 +138,4 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 .mm-imp-go { margin-top: 18px; }
 .mm-imp-title { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
 .mm-imp-list button > .soon-tag { flex: none; }
+.mm-error.mm-notice { color: var(--a-fg); }
