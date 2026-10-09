@@ -28,6 +28,8 @@ model Generation {
   storageKey String?  @map("storage_key") // the file in the private R2 bucket; served only through short-lived signed links
   projectId  String?  @map("project_id") // the project it was made in; the Gallery shows only its own project, the Library shows all
   model      String?  // registry id of the model that REALLY ran
+  provider   String?  // who made it: higgsfield, google, openai (null on renders from before providers were recorded)
+  providerUsage Json? @map("provider_usage") // the provider's own usage numbers for this render (tokens), kept so real costs can be worked out later
   requestId  String?  @map("request_id") // Higgsfield's request id
   seed       Int?     // the seed ACTUALLY sent to the provider; null when the model has no seed
   seedLocked Boolean  @default(false) @map("seed_locked") // true when the user locked it (Fixed seed on, or a seed named for a re-run)

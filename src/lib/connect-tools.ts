@@ -116,11 +116,14 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
   try {
     switch (name) {
       case "list_image_models":
-        return { text: JSON.stringify(enabledModels().filter((m) => m.references.min === 0).map((m) => ({ id: m.id, name: m.label, about: m.blurb, shapes: m.ratios, max_prompt_chars: m.maxPrompt }))) };
+        return { text: JSON.stringify(enabledModels().filter((m) => m.references.min === 0 && m.provider === "higgsfield").map((m) => ({ id: m.id, name: m.label, about: m.blurb, shapes: m.ratios, max_prompt_chars: m.maxPrompt }))) };
 
       case "generate_image": {
         const target = str(args.project_id, 64);
         if (target && !(await db.project.findFirst({ where: { id: target, userId: ctx.userId, deletedAt: null } }))) return { text: "No such project. Use list_projects.", isError: true };
+        // Google and OpenAI renders run inside the request and would outlast this chat turn's time budget.
+        const wanted = enabledModels().find((m) => m.id === (str(args.model, 80) || "soul_v2"));
+        if (wanted && wanted.provider !== "higgsfield") return { text: "That model is not available in chat yet. Pick one from list_image_models.", isError: true };
         const r = await startRender({ userId: ctx.userId, prompt: args.prompt, model: str(args.model, 80) || "soul_v2", aspectRatio: args.aspect_ratio || undefined, projectId: target || ctx.projectId });
         if (!r.ok) return { text: r.error, isError: true };
         ctx.onRender(r.item.id);

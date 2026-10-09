@@ -38,10 +38,10 @@ const popularTile = (label: string) => (label.startsWith("Google") ? "Google" : 
 
 // Popular, as laid out for the product. Entries with no `id` have no working model behind them yet (they carry the Soon tag
 // and do nothing when tapped); add `id` (and `real`) as each one is connected.
-const POPULAR: { label: string; isNew?: boolean }[] = [
+const POPULAR: { label: string; isNew?: boolean; id?: string }[] = [
   { label: "Eclipse DOP V1", isNew: true },
-  { label: "Google Nano Banana 2.1", isNew: true },
-  { label: "GPT 2.5", isNew: true },
+  { label: "Google Nano Banana 2.1", isNew: true, id: "nano_banana_2_1" },
+  { label: "GPT 2.5", isNew: true, id: "gpt_image_2_5_sunburst" },
   { label: "Seedream 5 Pro", isNew: true },
 ];
 
@@ -51,8 +51,8 @@ const POPULAR: { label: string; isNew?: boolean }[] = [
 const GROUPS: { name: string; total: number; match?: (id: string) => boolean }[] = [
   { name: "Soul", total: 0, match: (id) => id.startsWith("soul") },
   { name: "Marketing Studio", total: 0, match: (id) => id.startsWith("marketing_studio") || id === "ads_studio" },
-  { name: "Google", total: 5 },
-  { name: "GPT", total: 6 },
+  { name: "Google", total: 5, match: (id) => id.startsWith("nano_banana") },
+  { name: "GPT", total: 6, match: (id) => id.startsWith("gpt_image") },
   { name: "Seedream", total: 6 },
   { name: "Flux", total: 11 },
   { name: "Mystic", total: 4 },
@@ -115,7 +115,7 @@ export default function ModelPicker({ models, value, onPick, onClose }: {
             <>
               <h3>Popular</h3>
               <AutoRow value={value} onPick={onPick} />
-              {POPULAR.map(soonRow)}
+              {POPULAR.map((p) => { const m = p.id ? models.find((x) => x.id === p.id) : undefined; return m ? row(m, popularTile(p.label)) : soonRow(p); })}
               <h3>All models</h3>
               {groups.map((g) => (
                 <div key={g.name} className="mp-group">

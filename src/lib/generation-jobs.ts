@@ -12,6 +12,8 @@ const GIVE_UP_AFTER_MS = 15 * 60 * 1000;
 const SAVING_STALE_MS = 2 * 60 * 1000;
 // A failed render is not worth keeping. It stays this long after it failed so whoever is watching still reads why, then it is deleted.
 const FAILED_KEEP_MS = 2 * 60 * 1000;
+export const SYNC_MARK = "sync:";                 // statusUrl of a render that runs inside its own request
+const SYNC_GIVE_UP_MS = 4 * 60 * 1000;            // such a request cannot outlive its function time limit; past this it is gone
 
 export type RenderItem = {
   id: string;
@@ -53,6 +55,11 @@ async function fail(id: string, error: string): Promise<Generation | null> {
 export async function finalizeGeneration(g: Generation): Promise<Generation> {
   const staleSaving = g.status === "saving" && Date.now() - g.updatedAt.getTime() > SAVING_STALE_MS;
   if (g.status !== "pending" && !staleSaving) return g;
+  // A render from Google or OpenAI runs inside the request that started it (no job to ask about): leave it alone while it can still be running, and fail it if that request died.
+  if (g.statusUrl?.startsWith(SYNC_MARK)) {
+    if (g.status === "pending" && Date.now() - g.createdAt.getTime() > SYNC_GIVE_UP_MS) return (await fail(g.id, "This render took too long and was stopped. Please try again.")) ?? g;
+    return g;
+  }
   if (!g.statusUrl) return (await fail(g.id, "This render could not be started.")) ?? g;
 
   let s;
@@ -95,6 +102,18 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
 
 // Deletes failed renders (one user's, or everyone's when no user is given) once they have been shown for a moment. A render fails before
 // anything is stored, so there is no file to remove and no credit was charged.
+// The render exists as a picture now: charge once (a model with no credit price is free) and mark it completed. Used by the Google and OpenAI path.
+export async function completeFromBytes(g: Generation, saved: SavedImage, usage: unknown): Promise<Generation> {
+  const model = getModelById(g.model);
+  const cost = chargeFor(model);
+  if (cost != null) {
+    try { await spendCredits(g.userId, cost, `${model?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
+  }
+  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, providerUsage: usage == null ? undefined : (usage as object) } });
+}
+
+export async function failRender(id: string, error: string): Promise<void> { await fail(id, error); }
+
 export async function purgeFailed(userId?: string): Promise<number> {
   const r = await db.generation.deleteMany({ where: { status: "failed", updatedAt: { lt: new Date(Date.now() - FAILED_KEEP_MS) }, ...(userId ? { userId } : {}) } });
   return r.count;

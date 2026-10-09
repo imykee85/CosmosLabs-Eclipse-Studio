@@ -86,6 +86,17 @@ export async function saveImageFromUrl(userId: string, sourceUrl: string): Promi
   return { key, contentType: type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null };
 }
 
+/** Stores a picture that arrived as bytes (Google and OpenAI send it inside the reply, not as an address). Same key layout and facts as saveImageFromUrl. */
+export async function saveImageBytes(userId: string, bytes: Uint8Array, type: string): Promise<SavedImage> {
+  const extension = EXTENSIONS[type];
+  if (!extension) throw new Error(`Unsupported image type: ${type || "unknown"}`);
+  if (bytes.byteLength === 0 || bytes.byteLength > MAX_IMAGE_BYTES) throw new Error("Image is empty or too large");
+  const key = `u/${userId}/${randomUUID()}.${extension}`;
+  await putObject(key, bytes, type);
+  const size = readImageSize(bytes);
+  return { key, contentType: type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null };
+}
+
 /** The address to show for a generation: a fresh signed link when the file is in our storage, else the provider's link. */
 export async function displayUrl(generation: { imageUrl: string; storageKey: string | null }): Promise<string> {
   return generation.storageKey && storageEnabled ? signedGetUrl(generation.storageKey) : generation.imageUrl;

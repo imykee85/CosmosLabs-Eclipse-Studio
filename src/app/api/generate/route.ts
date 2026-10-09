@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { startRender } from "@/lib/start-render";
 
-export const maxDuration = 30;
+// 60 s: a render by Google or OpenAI runs inside this request (Higgsfield renders only start here).
+export const maxDuration = 60;
 
 // Starts a render and returns at once with a "pending" job. The render keeps running at Higgsfield even if the browser
 // closes; GET /api/generations (or /api/generations/<id>) finishes it whenever someone next asks.

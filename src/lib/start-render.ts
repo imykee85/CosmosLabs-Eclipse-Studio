@@ -1,11 +1,19 @@
 import { getBalance } from "@/lib/credits";
 import { db } from "@/lib/db";
-import { toItem, type RenderItem } from "@/lib/generation-jobs";
+import { completeFromBytes, failRender, SYNC_MARK, toItem, type RenderItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
 import { chargeFor, findEnabledModel, maxRefs, minRefs } from "@/lib/models";
 import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, resolveReferences } from "@/lib/references";
 import { randomSeed, seedInRange } from "@/lib/seed";
+import { randomUUID } from "node:crypto";
+import { openaiUser } from "@/lib/providers/openai";
+import { syncProvider } from "@/lib/providers";
+import { ProviderError, type ReferenceImage } from "@/lib/providers/types";
+import { getObjectBytes, saveImageBytes, storageEnabled } from "@/lib/storage";
+import { sniffImageType } from "@/lib/uploads";
+import type { ImageModel } from "@/lib/models";
+import type { ReferenceItem } from "@/lib/references";
 
 export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown };
 export type StartRenderResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string };
@@ -77,6 +85,9 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   const resolved = await resolveReferences(userId, refs);
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
+  // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll.
+  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, resolution, refs, items: resolved.items, seedNote });
+
   try {
     const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: await deliverReferences(resolved.items), seed: seed ?? undefined });
     const generation = await db.generation.create({
@@ -89,5 +100,47 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
     const code = err instanceof Error ? ` (${(err as { code?: string }).code ?? err.name})` : "";
     const why = err instanceof HiggsfieldError && err.detail ? ` ${model.label}: ${err.detail}` : ` Our side failed to record the render${code}.`;
     return { ok: false, status: 502, error: `Generation failed. Please try again.${why}` };
+  }
+}
+
+
+const INLINE_TIMEOUT_MS = 55_000; // the start route's time limit is 60 s
+
+async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
+  let bytes: Uint8Array;
+  if (it.storageKey) bytes = await getObjectBytes(it.storageKey);
+  else {
+    if (new URL(it.signedUrl).protocol !== "https:") throw new Error("Refusing a non-https reference");
+    const res = await fetch(it.signedUrl, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) throw new Error(`Could not read a reference picture (${res.status})`);
+    bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.byteLength === 0 || bytes.byteLength > 15 * 1024 * 1024) throw new Error("A reference picture is empty or too large");
+  }
+  return { bytes, contentType: sniffImageType(bytes) ?? it.contentType ?? "image/png" };
+}
+
+// A render by a provider that answers in the same call. The row is written BEFORE the provider is called (our own double-submit
+// protection: a retry can see that the job exists, and nothing is re-submitted after a timeout), then the picture is decoded from the
+// reply, copied into private storage and the row completed. A failure marks the row failed with a plain sentence.
+async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string }): Promise<StartRenderResult> {
+  const { model, userId } = a;
+  const provider = syncProvider(model.provider);
+  if (!provider || !model.apiModel) return { ok: false, status: 400, error: "That model is not available." };
+  // The reply carries the picture itself, so there is no provider link to fall back on: it has to go into our storage.
+  if (!storageEnabled) return { ok: false, status: 503, error: "Image storage is not set up yet, so this model cannot be used." };
+  const jobId = randomUUID();
+  const row = await db.generation.create({
+    data: { userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined },
+  });
+  try {
+    const references = await Promise.all(a.items.map(loadReference));
+    const out = await provider.generate({ apiModel: model.apiModel, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+    const saved = await saveImageBytes(userId, out.bytes, out.contentType);
+    return { ok: true, item: await toItem(await completeFromBytes(row, saved, out.usage)), seedNote: a.seedNote };
+  } catch (err) {
+    console.error("inline generation failed", model.id, err instanceof ProviderError ? err.detail : err);
+    const message = err instanceof ProviderError ? err.userMessage : "Our side failed to make or save this image. Please try again.";
+    await failRender(row.id, message);
+    return { ok: false, status: 502, error: message };
   }
 }

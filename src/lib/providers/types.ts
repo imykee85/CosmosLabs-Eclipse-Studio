@@ -10,3 +10,26 @@ export interface ImageProvider {
   status(statusUrl: string): Promise<ProviderStatus>;
   cancel(requestId: string): Promise<void>;
 }
+
+// Providers that answer in the SAME call (Google and OpenAI return the finished picture in the reply, base64 encoded; they have no job to poll).
+// Their render runs inside the request that starts it, so there is no submit/status/cancel pair: `generate` is all of it.
+export type ReferenceImage = { bytes: Uint8Array; contentType: string };
+export type SyncGenerateInput = {
+  apiModel: string;            // the provider's own model id
+  prompt: string;
+  aspectRatio?: string;
+  resolution?: string;         // our tier ("1k", "2k", "4k"); each provider maps it to its own size field
+  references: ReferenceImage[];
+  sizing?: "custom16" | "fixed3"; // OpenAI only: free WIDTHxHEIGHT (gpt-image-2 family) or one of the three fixed sizes
+  user?: string;               // an opaque id for the person (never their real id)
+  signal?: AbortSignal;
+};
+export type SyncGenerateResult = { bytes: Uint8Array; contentType: string; usage?: unknown };
+export interface SyncImageProvider {
+  generate(input: SyncGenerateInput): Promise<SyncGenerateResult>;
+}
+
+// A provider's refusal or failure, with a sentence a person can read (`message`) and the provider's own words for the logs and for us (`detail`).
+export class ProviderError extends Error {
+  constructor(readonly userMessage: string, readonly detail?: string) { super(userMessage); }
+}

@@ -7,6 +7,8 @@
 // add disabled entries back without a code change). Edit models (references.min > 0) are listed once their picture field is confirmed; Image Studio asks for a picture before it will run them.
 // HIGGSFIELD_ENDPOINT_<ID> (id upper-cased) overrides an endpoint without a code change.
 
+import { PROVIDER_KEYS, type ProviderId } from "./providers";
+
 // min 1 means an edit model that cannot run without a picture. `field` is the request field the pictures go in; it is
 // left out until it has been confirmed on the model's Higgsfield request page, and a model without a confirmed field takes
 // NO pictures (it is never sent a guess that the provider might silently ignore). The environment can supply a field
@@ -25,6 +27,9 @@ const SEED_INT31: SeedSpec = { supported: true, min: 0, max: 2_147_483_647, allo
 
 export type ImageModel = {
   id: string;
+  provider: ProviderId;         // who makes the picture: Higgsfield (a job to poll) or Google / OpenAI / BytePlus (the reply carries the picture)
+  apiModel?: string;            // the provider's own model id, for the providers that name one (Google, OpenAI)
+  sizing?: "custom16" | "fixed3"; // OpenAI: the model takes any WIDTHxHEIGHT, or one of three fixed sizes
   label: string;
   blurb: string;
   type: "image";
@@ -44,10 +49,13 @@ export type ImageModel = {
 };
 
 const SOUL_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"];
+const GEMINI_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]; // provisional: to be replaced by the list on Google's page
+const GPT_FREE_RATIOS = ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"];
+const GPT_FIXED_RATIOS = ["1:1", "3:2", "2:3"];
 const WIDE = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 
 function m(p: Partial<ImageModel> & Pick<ImageModel, "id" | "label" | "blurb" | "endpoint" | "ratios">): ImageModel {
-  return { type: "image", resolutions: [], maxPrompt: 2000, maxBatch: 1, seed: NO_SEED, references: { min: 0, max: 0 }, enabled: true, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
+  return { type: "image", resolutions: [], maxPrompt: 2000, maxBatch: 1, provider: "higgsfield", seed: NO_SEED, references: { min: 0, max: 0 }, enabled: true, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
 }
 
 // CREDIT PRICES (provisional). Provider cost seen so far on the Higgsfield bill: about $0.00 (Soul 2), $0.01 to $0.04, $0.12 and $0.21
@@ -93,11 +101,29 @@ const MODELS: ImageModel[] = [
   m({ id: "ideogram_4", creditCost: CREDITS.light, maxPrompt: 2048, label: "Ideogram 4.0", blurb: "Strong typography in images.", endpoint: "ideogram/v4.0", ratios: ["1:1", "1:2", "2:1", "2:3", "3:2", "4:5", "5:4", "9:16", "16:9", "5:8", "8:5", "3:4", "4:3", "9:22", "22:9", "9:23", "23:9", "3:8", "8:3", "5:12", "12:5", "1:3", "3:1"], references: { min: 0, max: 1, field: "image_url", style: "url" }, extraBody: { rendering_speed: "TURBO" } }),
   // z_image_turbo: request page read (text-to-image only, prompt up to 800 characters, 1k/2k PNG, 10 shapes, unknown fields rejected; prompt_extend stays off, the cheaper tier). Not yet test-rendered.
   m({ id: "z_image_turbo", seed: SEED_INT31, creditCost: CREDITS.light, label: "Z-Image Turbo", blurb: "Very fast drafts.", endpoint: "z-image/turbo", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k", maxPrompt: 800 }),
+  // ---- Google Nano Banana (Gemini API). From the owner's brief; NOT test-rendered, so every entry is disabled until one cheap live render passes
+  // (then add the id to ENABLED_MODELS). Provisional, to confirm from the page: the aspect-ratio list, the prompt limit, request size limits. No seed is documented.
+  // The brief's reference split (objects, characters, style) is not modelled yet: every picture is sent as an object image, so the cap is the object-image limit.
+  m({ id: "nano_banana_2_1", provider: "google", apiModel: "gemini-nano-banana-2.1", label: "Nano Banana 2.1", blurb: "Google's recommended image model.", endpoint: "", ratios: GEMINI_RATIOS, resolutions: ["1k", "2k", "4k"], defaultResolution: "1k", maxPrompt: 8000, references: { min: 0, max: 10, field: "input" }, enabled: false }),
+  m({ id: "nano_banana_2_lite", provider: "google", apiModel: "gemini-3.1-flash-lite-image", label: "Nano Banana 2 Lite", blurb: "Fastest and cheapest. 1K only.", endpoint: "", ratios: GEMINI_RATIOS, resolutions: ["1k"], defaultResolution: "1k", maxPrompt: 8000, references: { min: 0, max: 14, field: "input" }, enabled: false }),
+  m({ id: "nano_banana_2", provider: "google", apiModel: "gemini-3.1-flash-image", label: "Nano Banana 2", blurb: "Fast, sharp images.", endpoint: "", ratios: GEMINI_RATIOS, resolutions: ["1k", "2k", "4k"], defaultResolution: "1k", maxPrompt: 8000, references: { min: 0, max: 10, field: "input" }, enabled: false }),
+  m({ id: "nano_banana_pro", provider: "google", apiModel: "gemini-3-pro-image", label: "Nano Banana Pro", blurb: "Google's highest quality.", endpoint: "", ratios: GEMINI_RATIOS, resolutions: ["1k", "2k", "4k"], defaultResolution: "1k", maxPrompt: 8000, references: { min: 0, max: 6, field: "input" }, enabled: false }),
+  // gemini-2.5-flash-image: the brief gives no size or reference facts for it, so it takes neither until they are confirmed.
+  m({ id: "nano_banana", provider: "google", apiModel: "gemini-2.5-flash-image", label: "Nano Banana", blurb: "The original Nano Banana.", endpoint: "", ratios: GEMINI_RATIOS, maxPrompt: 8000, enabled: false }),
+
+  // ---- OpenAI GPT Image. From the owner's brief; NOT test-rendered (all disabled until a cheap live render passes). No seed. Quality is sent as medium until real costs are measured.
+  // The gpt-image-2 family takes any WIDTHxHEIGHT; the older models take only 1024x1024, 1536x1024 and 1024x1536. References go through /images/edits (up to 16).
+  m({ id: "gpt_image_2_5_sunburst", provider: "openai", apiModel: "gpt-image-2.5-sunburst", sizing: "custom16", label: "GPT Image 2.5 Sunburst", blurb: "OpenAI's newest image model.", endpoint: "", ratios: GPT_FREE_RATIOS, resolutions: ["1k", "2k"], defaultResolution: "1k", maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
+  m({ id: "gpt_image_2_5_flare", provider: "openai", apiModel: "gpt-image-2.5-flare", sizing: "custom16", label: "GPT Image 2.5 Flare", blurb: "OpenAI's 2.5 image model, Flare variant.", endpoint: "", ratios: GPT_FREE_RATIOS, resolutions: ["1k", "2k"], defaultResolution: "1k", maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
+  m({ id: "gpt_image_2", provider: "openai", apiModel: "gpt-image-2", sizing: "custom16", label: "GPT Image 2", blurb: "Flexible sizes and strong detail.", endpoint: "", ratios: GPT_FREE_RATIOS, resolutions: ["1k", "2k"], defaultResolution: "1k", maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
+  m({ id: "gpt_image_1_5", provider: "openai", apiModel: "gpt-image-1.5", sizing: "fixed3", label: "GPT Image 1.5", blurb: "Three fixed sizes.", endpoint: "", ratios: GPT_FIXED_RATIOS, maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
+  m({ id: "gpt_image_1", provider: "openai", apiModel: "gpt-image-1", sizing: "fixed3", label: "GPT Image 1", blurb: "Three fixed sizes.", endpoint: "", ratios: GPT_FIXED_RATIOS, maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
+  m({ id: "gpt_image_1_mini", provider: "openai", apiModel: "gpt-image-1-mini", sizing: "fixed3", label: "GPT Image 1 mini", blurb: "The cheapest GPT Image.", endpoint: "", ratios: GPT_FIXED_RATIOS, maxPrompt: 32000, references: { min: 0, max: 16, field: "images" }, enabled: false }),
 ];
 
-// Disabled entries become available when listed in HIGGSFIELD_ENABLED_MODELS.
+// Disabled entries become available when listed in ENABLED_MODELS (HIGGSFIELD_ENABLED_MODELS still works): set it to enable a model after its first cheap live render passed.
 function isEnabled(model: ImageModel): boolean {
-  const extra = (process.env.HIGGSFIELD_ENABLED_MODELS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const extra = `${process.env.ENABLED_MODELS ?? ""},${process.env.HIGGSFIELD_ENABLED_MODELS ?? ""}`.split(",").map((s) => s.trim()).filter(Boolean);
   return model.enabled || extra.includes(model.id);
 }
 
@@ -130,7 +156,8 @@ function referenceSpec(model: ImageModel) {
 export const maxRefs = (model: ImageModel) => referenceSpec(model).max;
 export const minRefs = (model: ImageModel) => referenceSpec(model).min;
 // An edit model whose picture field is not confirmed cannot run at all, so it stays out of every list.
-const isRunnable = (model: ImageModel) => model.references.min === 0 || referenceSpec(model).supported;
+// A model is also hidden while its provider's key is missing on the server.
+const isRunnable = (model: ImageModel) => (model.references.min === 0 || referenceSpec(model).supported) && (!PROVIDER_KEYS[model.provider] || Boolean(process.env[PROVIDER_KEYS[model.provider]!]));
 
 // How reference pictures are added to a request body.
 export function referenceBody(model: ImageModel, urls: string[]): Record<string, unknown> {
