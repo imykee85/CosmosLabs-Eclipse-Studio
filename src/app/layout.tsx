@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], 
 export const metadata: Metadata = {
   title: "Eclipse — your creative studio",
   description: "Turn any idea into premium images. By Cosmos Labs AI.",
+  applicationName: "Eclipse",
+  // iPhone "Add to Home Screen": the name under the icon (the icon is src/app/apple-icon.png).
+  appleWebApp: { capable: true, title: "Eclipse", statusBarStyle: "black" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
