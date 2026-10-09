@@ -18,6 +18,9 @@ const STARTS: Start[] = [
   { id: "video", title: "Make a video", image: "/carousel/card-4-poster.jpg" },
 ];
 
+const HERO = ["/carousel/card-5.jpg", "/carousel/card-9-poster.jpg", "/carousel/card-2-poster.jpg", "/carousel/card-6-poster.jpg"];
+const EXAMPLES = ["card-12", "card-8", "card-13", "card-5", "card-14", "card-11", "card-2-poster", "card-9-poster", "card-6-poster", "card-4-poster"].map((n) => `/carousel/${n}.jpg`);
+
 const FAQ: [string, string][] = [
   ["What can I create?", "Images today, with video and more creative tools on the roadmap. Anything tagged Soon is not ready yet."],
   ["Where do my creations go?", "Each image is saved to your private Library, and to the Gallery of the project you made it in."],
@@ -29,6 +32,19 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
   const [open, setOpen] = useState<number | null>(null);
   return (
     <section className="hf" aria-label="Start something new">
+      <div className="hf-sec">
+        <h2>Discover</h2>
+        <div className="hf-hero">
+          <div className="hf-hero-pics" aria-hidden="true">{HERO.map((src) => <span key={src} style={{ backgroundImage: `url(${src})` }} />)}</div>
+          <div className="hf-hero-copy">
+            <small>Image Studio</small>
+            <h3>Describe it, and see it</h3>
+            <p>Pick a model, add reference pictures if you like, and make your first image in a minute.</p>
+            <button type="button" onClick={() => onGo("/create")}>Open Image Studio</button>
+          </div>
+        </div>
+      </div>
+
       <div className="hf-sec">
         <h2>Start something new</h2>
         <ul className="hf-row hf-row-big">
@@ -72,6 +88,15 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
               </button>
             </li>
           ))}
+        </ul>
+      </div>
+
+      <div className="hf-sec">
+        <h2>Examples</h2>
+        <p className="hf-sub">A look at the kind of work Eclipse makes.</p>
+        <ul className="hf-masonry">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {EXAMPLES.map((src) => <li key={src}><img src={src} alt="" loading="lazy" /></li>)}
         </ul>
       </div>
 
