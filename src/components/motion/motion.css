@@ -49,8 +49,8 @@
 .mo-meta b { font-size: 13px; font-weight: 500; color: var(--a-muted); }
 .mo-kind { padding: 3px 12px; border: 1px solid var(--a-line3); border-radius: 999px; color: var(--a-muted); font-size: 12px; text-decoration: none; }
 .mo-kind:hover { color: var(--a-fg); border-color: var(--a-fg); }
-.mo-source { display: inline-flex; align-items: center; gap: 6px; margin: 16px 0 0 14px; color: var(--a-muted); font-size: 13px; }
-.mo-credit { margin: 14px 0 0; color: var(--a-muted2); font-size: 12px; }
+.mo-source { display: inline-flex; align-items: center; gap: 3px; margin: 14px 0 0 12px; color: var(--a-muted2); font-size: 10px; text-decoration: underline; }
+.mo-credit { margin: 6px 0 0; color: var(--a-muted2); font-size: 10px; }
 
 .mo-video { object-fit: cover; }
 .mo-media-link { display: block; text-decoration: none; }
