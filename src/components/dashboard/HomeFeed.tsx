@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, MoreVertical, Plus } from "lucide-react";
 import SoonTag from "@/components/SoonTag";
 import "./home-feed.css";
@@ -16,6 +16,24 @@ const FAQ: [string, string][] = [
   ["What is Orbit?", "Your creative computer: a chat that can make images, follow skills, remember your style and send finished work to Telegram or Slack."],
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
 ];
+
+// A muted looping clip that only plays while it is on screen (and not at all when the device asks for reduced motion).
+function LoopVideo({ src, webm, poster, className = "" }: { src: string; webm: string; poster: string; className?: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) v.play().catch(() => {}); else v.pause(); }, { threshold: 0.3 });
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <video ref={ref} className={className} poster={poster} muted loop playsInline preload="metadata" aria-hidden="true">
+      <source src={src} type="video/mp4" />
+      <source src={webm} type="video/webm" />
+    </video>
+  );
+}
 
 const Empty = ({ className = "" }: { className?: string }) => <span className={`hf-empty ${className}`} />;
 
@@ -62,7 +80,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <ul className="hf-row hf-row-2">
           <li className="hf-wide"><Empty className="hf-fill" /><span className="hf-label">Video templates</span></li>
           <li className="hf-wide">
-            <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><Empty className="hf-fill" /><span className="hf-label">Motion graphics</span></Link>
+            <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
           </li>
         </ul>
       </div>
