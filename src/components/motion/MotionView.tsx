@@ -3,24 +3,23 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { MOTION_TAGS, motionPrompts, orderedMotion, tagCount, type MotionPrompt } from "@/lib/motion";
+import { MOTION_TAGS, motionPrompts, tagCount, type MotionPrompt } from "@/lib/motion";
 import MotionMedia from "./MotionMedia";
 import "./motion.css";
 
 // Motion graphics: a filterable feed of motion prompts, adapted from the user's Prompt Motion project (their own Manus build).
 // Topic chips show how many videos each topic holds; filters live in the address (?tag=<topic>&sort=popular|newest|title) so a
-// view can be shared and the back button restores it. Every card plays its clip (the 20 from the Manus project carry their own file; the
-// rest look theirs up from the post on X when they come near the screen) and opens /motion/<id>. Shown in pages of PAGE so the feed stays light.
+// view can be shared and the back button restores it. Every card plays its clip and opens /motion/<id>. Shown in pages of PAGE so the feed stays light.
 const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const PAGE = 24;
 
 function Card({ p, paused }: { p: MotionPrompt; paused: boolean }) {
   return (
     <li className="mo-item">
-      <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title ?? `@${p.handle}`}`}><MotionMedia item={p} paused={paused} /></Link>
+      <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title}`}><MotionMedia item={p} paused={paused} /></Link>
       <div className="mo-meta">
         <span><b>@{p.handle}</b></span>
-        <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open ${p.title ?? p.handle}`}>Open</Link>
+        <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open the prompt for ${p.title}`}>Prompt</Link>
       </div>
     </li>
   );
@@ -48,8 +47,8 @@ export default function MotionView() {
   }
 
   const items = useMemo(() => {
-    const list = orderedMotion.filter((p) => !tag || p.tags.includes(tag));
-    if (sort === "title") return [...list].sort((a, b) => (a.title ?? a.handle).localeCompare(b.title ?? b.handle));
+    const list = motionPrompts.filter((p) => !tag || p.tags.includes(tag));
+    if (sort === "title") return [...list].sort((a, b) => a.title.localeCompare(b.title));
     if (sort === "newest") return [...list].reverse();
     return list;
   }, [tag, sort]);

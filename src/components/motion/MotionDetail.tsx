@@ -25,13 +25,13 @@ export default function MotionDetail({ item }: { item: MotionPrompt }) {
       <div className="mo-page">
         <MotionMedia item={item} controls />
         <div className="mo-detail">
-          <h1>{item.title ?? `@${item.handle}`}</h1>
+          <h1>{item.title}</h1>
           <dl>
-            {item.model && <div><dt>Model</dt><dd>{item.model}</dd></div>}
-            {item.tries && <div><dt>Tries</dt><dd>{item.tries}</dd></div>}
+            <div><dt>Model</dt><dd>{item.model}</dd></div>
+            <div><dt>Tries</dt><dd>{item.tries}</dd></div>
             <div><dt>Topics</dt><dd>{item.tags.join(", ")}</dd></div>
-            <div><dt>By</dt><dd>{item.name ? `${item.name} (@${item.handle})` : `@${item.handle}`}</dd></div>
-            {item.posted && <div><dt>Posted</dt><dd>{item.posted}</dd></div>}
+            <div><dt>By</dt><dd>{item.name} (@{item.handle})</dd></div>
+            <div><dt>Posted</dt><dd>{item.posted}</dd></div>
           </dl>
           {item.prompt && (
             <>
