@@ -12,6 +12,7 @@ import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import ModelPicker, { AUTO } from "./ModelPicker";
 import AgentIcon from "../AgentIcon";
+import AgentMenu from "./AgentMenu";
 import "./create.css";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
@@ -38,6 +39,7 @@ export default function CreateStudio() {
   const [refs, setRefs] = useState<RefPick[]>([]);
   const [modelId, setModelId] = useState("");
   const [pickingModel, setPickingModel] = useState(false);
+  const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
   // Auto: Eclipse picks. The server never swaps models, so Auto resolves here to one real model: a verified one that can
   // take as many reference pictures as are chosen (never an edit-only model).
   const autoModel = (() => {
@@ -272,7 +274,7 @@ export default function CreateStudio() {
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
           </button>
-          <button type="button" className="cr-chip" title="Choose your agent" onClick={() => router.push("/agents")}>
+          <button type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
             <AgentIcon size={14} /> Agents
           </button>
           </div>
@@ -289,6 +291,7 @@ export default function CreateStudio() {
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
+      {agentAnchor && <AgentMenu anchor={agentAnchor} onClose={() => setAgentAnchor(null)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} autoModel={autoModel} onPick={pickModel} onClose={() => setPickingModel(false)} />}
       {expanded && (
         <div className="cr-full" style={vvh ? { height: vvh, bottom: "auto" } : undefined} role="dialog" aria-label="Write your prompt">

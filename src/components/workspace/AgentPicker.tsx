@@ -5,8 +5,8 @@ import { Check } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
 import SoonTag from "@/components/SoonTag";
 
-const AGENTS = ["Agent 1", "Agent 2", "Agent 3"];
-const AGENT_KEY = "eclipse-agent";
+export const AGENTS = ["Agent 1", "Agent 2", "Agent 3"];
+export const AGENT_KEY = "eclipse-agent";
 
 // Pick one agent; the choice is remembered in this browser. Select it again to clear.
 export default function AgentPicker() {
