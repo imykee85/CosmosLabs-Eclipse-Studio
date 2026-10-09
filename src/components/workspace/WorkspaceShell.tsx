@@ -169,8 +169,9 @@ const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
-  // The tab is always a plus with "Create" under it. A tap goes to the studio you used last; before you have used one it opens
-  // the "What are we creating?" chooser. The cards on that chooser (or the double-tap list) pick a different studio.
+  // On the "What are we creating?" screen (and until you have used a studio) the tab is a plus with "Create" under it. Once you
+  // are in a studio it shows that studio's icon and name, and keeps showing the last one on other pages. A tap goes to the
+  // studio you used last (the chooser if there is none); the cards on the chooser or the double-tap list pick another.
   const [slot, setSlot] = useState<Item | null>(null);
 
   useEffect(() => {
@@ -183,12 +184,13 @@ function CreateTab({ pathname }: { pathname: string }) {
     try { const s = SLOT_ITEMS.find((i) => i.label === localStorage.getItem(SLOT_KEY)); if (s) setSlot(s); } catch {}
   }, [pathname]);
   const here = SLOT_ITEMS.some((i) => i.href === pathname) || pathname === "/project";
+  const plain = pathname === "/project" || !slot;
 
   return (
     <>
       <Link ref={m.tabRef} href={slot?.href ?? "/project"} className={`mb-tab ${here ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
         aria-haspopup="menu" aria-expanded={m.open} title={slot ? `Opens ${slot.label} (double-tap for shortcuts)` : "Double-tap for shortcuts"} onClick={m.onClick} onKeyDown={m.onKeyDown}>
-        <span className="mb-tab-icon"><Plus size={24} strokeWidth={2.2} /></span><span>Create</span>
+        <span className="mb-tab-icon">{plain ? <Plus size={24} strokeWidth={2.2} /> : tabIcon(slot.icon)}</span><span>{plain ? "Create" : slot.label}</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
