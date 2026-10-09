@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Download, Share2, Trash2 } from "lucide-react";
+import { Check, Copy, Download, Info, Share2, Trash2 } from "lucide-react";
 import { trashRender } from "@/lib/render-actions";
 import type { Render } from "@/lib/use-renders";
 import "./library.css";
@@ -14,7 +14,9 @@ function fmtBytes(n: number): string {
 const FORMATS: Record<string, string> = { "image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WebP" };
 
 // The facts about one finished image, with the actions people reach for: copy the prompt, download the file, share it.
-export default function RenderDetails({ g, onDeleted }: { g: Render; onDeleted?: () => void }) {
+// With `collapsible` (Image Studio) the facts stay hidden until the "i" button in front of Copy prompt is tapped; tap it again to close them.
+export default function RenderDetails({ g, onDeleted, collapsible = false }: { g: Render; onDeleted?: () => void; collapsible?: boolean }) {
+  const [info, setInfo] = useState(false);
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState("");
 
@@ -68,13 +70,14 @@ export default function RenderDetails({ g, onDeleted }: { g: Render; onDeleted?:
   return (
     <div className="rd">
       <div className="rd-actions">
+        {collapsible && <button type="button" className={`rd-btn rd-info ${info ? "is-on" : ""}`} aria-expanded={info} aria-label={info ? "Hide image details" : "Show image details"} title="Image details" onClick={() => setInfo((v) => !v)}><Info size={16} /></button>}
         <button type="button" className="rd-btn" onClick={copyPrompt}>{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy prompt"}</button>
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined}><Download size={15} />Download</a>
         <button type="button" className="rd-btn" onClick={share}><Share2 size={15} />Share</button>
         <button type="button" className="rd-btn rd-danger" onClick={remove} title="Move to the bin"><Trash2 size={15} />Delete</button>
       </div>
       {note && <p className="rd-note" role="status">{note}</p>}
-      <dl className="rd-list">
+      {(!collapsible || info) && <dl className="rd-list">
         {rows.filter((r): r is [string, string] => Boolean(r[1])).map(([k, v]) => (
           <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
         ))}
@@ -82,7 +85,7 @@ export default function RenderDetails({ g, onDeleted }: { g: Render; onDeleted?:
           <dt>Prompt<button type="button" className="rd-icon" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={14} /> : <Copy size={14} />}</button></dt>
           <dd>{g.prompt}</dd>
         </div>
-      </dl>
+      </dl>}
     </div>
   );
 }

@@ -70,3 +70,5 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
 
 .lib-tile .lib-sub { color: var(--a-muted2); font-size: 12px; }
 .lib-tabs button .lib-soon { margin-left: 8px; font-size: 9px; padding: 1px 6px; }
+.rd-info { width: 38px; padding: 0; justify-content: center; }
+.rd-info.is-on { border-color: var(--a-line4); background: var(--a-hover); }

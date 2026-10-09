@@ -205,7 +205,7 @@ export default function CreateStudio() {
           );
         })()}
         {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && (
-          <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} /></div>
+          <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} collapsible /></div>
         )}
         {(() => {
           const earlier = list.filter((g) => g.status === "completed" && g.imageUrl).slice(0, 5);
