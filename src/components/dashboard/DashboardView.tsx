@@ -101,9 +101,9 @@ export default function DashboardView() {
   return (
     <div className="db-page">
       <header className="db-header">
-        <span className="db-logo"><LogoMark size={48} /></span>
+        <div className="db-left"><span className="db-logo"><LogoMark size={48} /></span><h1 className="db-title">Dashboard</h1></div>
         <div className="db-header-right">
-          <Link href={tutorialHref("/dashboard")} className="db-pill"><GraduationCap size={15} /> Tutorial</Link>
+          <Link href={tutorialHref("/dashboard")} className="db-pill"><GraduationCap size={15} /> <span className="db-pill-text">Tutorial</span></Link>
           <CreditsPill className="db-pill db-pill-solid" />
           <ThemeToggle className="db-icon" />
           <NotificationsButton className="db-icon" />
@@ -184,20 +184,20 @@ export default function DashboardView() {
             {tab === "projects" ? (
               query.trim() ? (
                 <>
-                  <h1>No matches</h1>
+                  <h2>No matches</h2>
                   <p>No project is called &ldquo;{query.trim()}&rdquo;.</p>
                 </>
               ) : (
                 <>
                   <button type="button" className="db-empty-plus" aria-label="New project" onClick={() => setCreating(true)}><Plus size={22} /></button>
-                  <h1>No projects yet</h1>
+                  <h2>No projects yet</h2>
                   <p>Create your first project to get started.</p>
                   {newBtn()}
                 </>
               )
             ) : (
               <>
-                <h1>{query.trim() ? "No matches" : "Bin is empty"}</h1>
+                <h2>{query.trim() ? "No matches" : "Bin is empty"}</h2>
                 <p>{query.trim() ? "Nothing in the bin matches your search." : "Deleted projects will show up here."}</p>
               </>
             )}

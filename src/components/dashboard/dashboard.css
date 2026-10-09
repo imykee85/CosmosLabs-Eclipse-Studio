@@ -27,7 +27,7 @@
 .db-empty { display: grid; justify-items: center; gap: 10px; padding: 96px 0 0; text-align: center; }
 .db-empty-plus { display: grid; place-items: center; width: 70px; height: 70px; margin-bottom: 8px; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); color: var(--a-fg); transition: border-color .18s; }
 .db-empty-plus:hover { border-color: #c00707; }
-.db-empty h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+.db-empty h1, .db-empty h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
 .db-empty p { margin: 0 0 14px; color: var(--a-muted); font-size: 15px; }
 .db-page :focus-visible { outline: 2px solid #c00707; outline-offset: 2px; }
 
@@ -148,4 +148,16 @@
   .db-view { width: 42px; height: 42px; }
   .db-top { min-height: 0; }
   .hf { margin-top: 28px; padding-top: 24px; }
+}
+
+/* Screen title in the header, like the Studio screens */
+.db-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.db-title { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+@media (max-width: 520px) { .db-left { gap: 8px; } .db-header-right .db-pill-text { display: none; } .db-header-right .db-pill:has(.db-pill-text) { padding: 8px 10px; } }
+@media (max-width: 520px) {
+  .db-header { gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .db-header-right { gap: 4px; }
+  .db-header-right .db-icon, .db-header-right .um-avatar { width: 32px; height: 32px; }
+  .db-header-right .db-pill { padding: 7px 9px; font-size: 13px; }
+  .db-title { font-size: 16px; }
 }
