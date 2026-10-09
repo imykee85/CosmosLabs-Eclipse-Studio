@@ -2,9 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Workflow, X } from "lucide-react";
+import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Wand2, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
+import type { PublicModel } from "@/lib/models";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
@@ -122,10 +123,20 @@ export default function CreateStudio() {
     setError("");
     setSubmitting(true);
     try {
-      const resolution = model.resolutions.length ? tierResolution(model.resolutions, tier) : undefined;
-      const body = JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id, resolution, projectId: readCurrentProject()?.id, references: refs.map((r) => ({ type: r.type, id: r.id })) });
+      // On Auto each image gets its own pick: a model that fits the task (pictures, shape, quality), chosen at random from
+      // the tested ones (or, when none fits, from the rest). A specific model is used as chosen.
+      const pickFor = (): PublicModel => {
+        if (modelId !== AUTO) return model;
+        const fits = (models ?? []).filter((m) => !m.requiresReference && m.maxReferences >= refs.length && m.ratios.includes(ratio) && (!m.resolutions.length || !!tierResolution(m.resolutions, tier)));
+        const tested = fits.filter((m) => m.verified);
+        const pool = tested.length ? tested : fits;
+        return pool[Math.floor(Math.random() * pool.length)] ?? model;
+      };
+      const refList = refs.map((r) => ({ type: r.type, id: r.id }));
       // Each image is its own render, started side by side.
       const results = await Promise.all(Array.from({ length: qty }, async () => {
+        const m = pickFor();
+        const body = JSON.stringify({ prompt: text, aspectRatio: ratio, model: m.id, resolution: m.resolutions.length ? tierResolution(m.resolutions, tier) : undefined, projectId: readCurrentProject()?.id, references: refList });
         const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body });
         const data = await res.json().catch(() => ({}));
         return { ok: res.ok, error: res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again." };
@@ -239,7 +250,7 @@ export default function CreateStudio() {
             <Workflow size={14} /> Open in canvas
           </button>
           <button type="button" className="cr-chip cr-modelbtn" aria-label="Image model" aria-haspopup="dialog" title={model?.blurb} onClick={() => setPickingModel(true)}>
-            <span>{modelId === AUTO ? "Auto" : model?.label ?? "Model"}</span><ChevronDown size={14} />
+            {modelId === AUTO && <Wand2 size={14} />}<span>{modelId === AUTO ? "Auto" : model?.label ?? "Model"}</span><ChevronDown size={14} />
           </button>
           </div>
           <div className="cr-row">
@@ -262,7 +273,7 @@ export default function CreateStudio() {
           </label>
           </div>
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>

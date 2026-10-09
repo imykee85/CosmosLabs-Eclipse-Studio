@@ -131,7 +131,7 @@ function AutoRow({ value, autoModel, onPick }: { value: string; autoModel: Publi
   return (
     <button type="button" className={`mp-row ${value === AUTO ? "is-on" : ""}`} onClick={() => onPick(AUTO)}>
       <ModelIcon name="Auto" />
-      <span className="mp-name">Auto<small>{autoModel ? `Eclipse picks the model. Right now: ${autoModel.label}.` : "Eclipse picks the model for you."}</small></span>
+      <span className="mp-name">Auto<small>Eclipse picks the best fitting model for each image.</small></span>
       {value === AUTO && <Check size={16} />}
     </button>
   );
