@@ -17,18 +17,17 @@ const FAQ: [string, string][] = [
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
 ];
 
-// A muted looping clip that only plays while it is on screen (and not at all when the device asks for reduced motion).
+// A muted looping clip that plays all the time, on screen or not (and not at all when the device asks for reduced motion).
 function LoopVideo({ src, webm, poster, className = "" }: { src: string; webm: string; poster: string; className?: string }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const [still, setStill] = useState(false);
   useEffect(() => {
-    const v = ref.current;
-    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) v.play().catch(() => {}); else v.pause(); }, { threshold: 0.3 });
-    io.observe(v);
-    return () => io.disconnect();
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setStill(reduce);
+    if (!reduce) ref.current?.play().catch(() => {});
   }, []);
   return (
-    <video ref={ref} className={className} poster={poster} muted loop playsInline preload="metadata" aria-hidden="true">
+    <video ref={ref} className={className} poster={poster} muted loop playsInline autoPlay={!still} preload="auto" aria-hidden="true">
       <source src={src} type="video/mp4" />
       <source src={webm} type="video/webm" />
     </video>
