@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Check, ChevronLeft, Copy, ExternalLink } from "lucide-react";
 import type { MotionPrompt } from "@/lib/motion";
 import { postUrl } from "@/lib/motion";
-import XPost from "./XPost";
+import MotionMedia from "./MotionMedia";
 import "./motion.css";
 
 // One motion prompt: the clip (or an empty tile) beside its details and the prompt with a Copy button.
@@ -22,7 +22,7 @@ export default function MotionDetail({ item }: { item: MotionPrompt }) {
     <div className="mo">
       <Link href="/motion" className="mo-back"><ChevronLeft size={18} /> Motion graphics</Link>
       <div className="mo-page">
-        <XPost item={item} large />
+        <MotionMedia item={item} controls />
         <div className="mo-detail">
           <h1>{item.title}</h1>
           <dl>

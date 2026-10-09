@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MOTION_TAGS, motionPrompts } from "@/lib/motion";
-import XPost from "./XPost";
+import MotionMedia from "./MotionMedia";
 import "./motion.css";
 
 // Motion graphics: a filterable feed of motion prompts, adapted from the user's Prompt Motion project (their own Manus build).
 // The filters live in the address (?type=prompt|skill&tag=<topic>&sort=popular|newest|title) so a view can be shared and the
-// back button restores it. Each card is the creator's post on X (X's own embed); "Prompt" opens /motion/<id>.
+// back button restores it. Each card is just the video; it and "Prompt" open /motion/<id>.
 const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export default function MotionView() {
   const router = useRouter();
+  const [paused, setPaused] = useState(false);
   const pathname = usePathname();
   const q = useSearchParams();
 
@@ -42,7 +43,7 @@ export default function MotionView() {
     <div className="mo">
       <header className="mo-intro">
         <h1>Motion graphics</h1>
-        <p>Motion videos made with AI, with the prompts behind them. Each video is a post by its creator on X.</p>
+        <p>Motion videos made with AI, with the prompts behind them. Every video is credited to its creator, with a link to their post on X.</p>
       </header>
 
       <div className="mo-filter">
@@ -56,6 +57,7 @@ export default function MotionView() {
             <option value="newest">Newest</option>
             <option value="title">Title</option>
           </select>
+          <button type="button" className="mo-sort" onClick={() => setPaused((v) => !v)}>{paused ? "Play previews" : "Pause previews"}</button>
         </div>
       </div>
       <div className="mo-tags" role="group" aria-label="Topics">
@@ -69,7 +71,7 @@ export default function MotionView() {
         <ul className="mo-grid">
           {items.map((p) => (
             <li key={p.id} className="mo-item">
-              <XPost item={p} />
+              <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title}`}><MotionMedia item={p} paused={paused} /></Link>
               <div className="mo-meta">
                 <span><b>@{p.handle}</b></span>
                 <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open the prompt for ${p.title}`}>Prompt</Link>

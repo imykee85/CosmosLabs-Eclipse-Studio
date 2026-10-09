@@ -1,13 +1,15 @@
-// Motion graphics: a library of motion videos made with AI, with the prompt behind each one. Each entry is a post on X by its
-// creator, shown through X's own embed (the video plays inside X's player, credited and linked to the original post); we do not
-// host or copy the videos. Entries were taken from the user's Prompt Motion project (their Manus build). Add more by appending
-// an entry with the post's id (the number at the end of its x.com address).
+// Motion graphics: a library of motion videos made with AI, with the prompt behind each one. Entries come from the user's Prompt
+// Motion project (their Manus build). Each one credits its creator and links to the original post on X. The video files are
+// NOT stored by us: they are played from the address in `video` / `preview` (the host that project used), so they can stop
+// working if that host removes them, and the creators' permission to show them is the owner's responsibility. Add an entry by
+// appending to `motionPrompts`; the post id is the number at the end of its x.com address.
 export type MotionTag = "Product UI" | "Phone" | "Charts" | "Diagrams" | "Kinetic type" | "Shapes" | "Particles" | "Characters" | "Photos" | "Music" | "Code";
 export const MOTION_TAGS: MotionTag[] = ["Product UI", "Phone", "Charts", "Diagrams", "Kinetic type", "Shapes", "Particles", "Characters", "Photos", "Music", "Code"];
 
 export type MotionPrompt = {
   id: string; title: string; tags: MotionTag[]; prompt: string; model: string; tries: string; posted: string; ratio: "16 / 9" | "9 / 16" | "1 / 1";
   handle: string; name: string; xId: string;
+  poster?: string; preview?: string; video?: string;
 };
 
 export const motionPrompts: MotionPrompt[] = [
@@ -25,7 +27,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "One-shot",
     "posted": "Sep 26, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/emollick-how-do-you-explain/poster.cb56816f.webp",
+    "preview": "https://media.prompt-motion.com/emollick-how-do-you-explain/preview.a01cbf9c.mp4",
+    "video": "https://media.prompt-motion.com/emollick-how-do-you-explain/video.9a2f0974.mp4"
   },
   {
     "id": "davidmarcus-a28a60",
@@ -41,7 +46,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "One-shot",
     "posted": "Sep 25, 2026",
-    "ratio": "9 / 16"
+    "ratio": "9 / 16",
+    "poster": "https://media.prompt-motion.com/davidmarcus-opus-5-5-got-quite/poster.cb723240.webp",
+    "preview": "https://media.prompt-motion.com/davidmarcus-opus-5-5-got-quite/preview.90d0bc7d.mp4",
+    "video": "https://media.prompt-motion.com/davidmarcus-opus-5-5-got-quite/video.90d87aa7.mp4"
   },
   {
     "id": "ho-ba-f3f0e9",
@@ -57,7 +65,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 26, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/ho-ba-i-made-this-using/poster.838e141c.webp",
+    "preview": "https://media.prompt-motion.com/ho-ba-i-made-this-using/preview.1e4fdf4f.mp4",
+    "video": "https://media.prompt-motion.com/ho-ba-i-made-this-using/video.50cdb1e7.mp4"
   },
   {
     "id": "viktoroddy-98c1d8",
@@ -74,7 +85,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 26, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/viktoroddy-opus-5-5-one-shoted-this/poster.b1768912.webp",
+    "preview": "https://media.prompt-motion.com/viktoroddy-opus-5-5-one-shoted-this/preview.98c7e9c5.mp4",
+    "video": "https://media.prompt-motion.com/viktoroddy-opus-5-5-one-shoted-this/video.3ebc4180.mp4"
   },
   {
     "id": "kloss-xyz-15182a",
@@ -90,7 +104,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 26, 2026",
-    "ratio": "9 / 16"
+    "ratio": "9 / 16",
+    "poster": "https://media.prompt-motion.com/kloss-xyz-had-to-test-this/poster.d87473a6.webp",
+    "preview": "https://media.prompt-motion.com/kloss-xyz-had-to-test-this/preview.ba5e96c3.mp4",
+    "video": "https://media.prompt-motion.com/kloss-xyz-had-to-test-this/video.aec5854d.mp4"
   },
   {
     "id": "ddryo-loos-300829",
@@ -106,7 +123,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Oct 2, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/ddryo-loos-bgm-opus-5-5-lism-css/poster.4869fc76.webp",
+    "preview": "https://media.prompt-motion.com/ddryo-loos-bgm-opus-5-5-lism-css/preview.4a319cc5.mp4",
+    "video": "https://media.prompt-motion.com/ddryo-loos-bgm-opus-5-5-lism-css/video.f372d945.mp4"
   },
   {
     "id": "yunn260414-60d996",
@@ -122,7 +142,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 27, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/yunn260414-opus-5-5-git-git-js-git/poster.7e7d81bf.webp",
+    "preview": "https://media.prompt-motion.com/yunn260414-opus-5-5-git-git-js-git/preview.1d01a300.mp4",
+    "video": "https://media.prompt-motion.com/yunn260414-opus-5-5-git-git-js-git/video.69fedeaf.mp4"
   },
   {
     "id": "hqmank-7c61f1",
@@ -139,7 +162,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 26, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/hqmank-wtf-opus-5-5-is/poster.1dcc92d4.webp",
+    "preview": "https://media.prompt-motion.com/hqmank-wtf-opus-5-5-is/preview.c3d6f55b.mp4",
+    "video": "https://media.prompt-motion.com/hqmank-wtf-opus-5-5-is/video.edeb438d.mp4"
   },
   {
     "id": "ezshine-c90d73",
@@ -155,7 +181,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "One-shot",
     "posted": "Sep 25, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/ezshine-opus-5-5-16-9-mp4/poster.e1456e5a.webp",
+    "preview": "https://media.prompt-motion.com/ezshine-opus-5-5-16-9-mp4/preview.c0f380e8.mp4",
+    "video": "https://media.prompt-motion.com/ezshine-opus-5-5-16-9-mp4/video.b7b797aa.mp4"
   },
   {
     "id": "techyoutbe-945b56",
@@ -172,7 +201,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "One-shot",
     "posted": "Sep 25, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/techyoutbe-i-used-below-prompt/poster.2c3d9bcc.webp",
+    "preview": "https://media.prompt-motion.com/techyoutbe-i-used-below-prompt/preview.c16f12be.mp4",
+    "video": "https://media.prompt-motion.com/techyoutbe-i-used-below-prompt/video.40a1ba80.mp4"
   },
   {
     "id": "theviableedge-9065be",
@@ -188,7 +220,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "One-shot",
     "posted": "Sep 27, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/theviableedge-getting-in-on-the/poster.f3985c5e.webp",
+    "preview": "https://media.prompt-motion.com/theviableedge-getting-in-on-the/preview.b73b35a0.mp4",
+    "video": "https://media.prompt-motion.com/theviableedge-getting-in-on-the/video.fe26f20f.mp4"
   },
   {
     "id": "misbahsy-80eaec",
@@ -205,7 +240,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 26, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/misbahsy-opus-5-5-is-incredible/poster.d7baeada.webp",
+    "preview": "https://media.prompt-motion.com/misbahsy-opus-5-5-is-incredible/preview.8b4e1d75.mp4",
+    "video": "https://media.prompt-motion.com/misbahsy-opus-5-5-is-incredible/video.e715c8ae.mp4"
   },
   {
     "id": "madhav-xo-f97f20",
@@ -222,7 +260,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 25, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/madhav-xo-pretty-cool-with-just/poster.0a07a517.webp",
+    "preview": "https://media.prompt-motion.com/madhav-xo-pretty-cool-with-just/preview.948bdf3d.mp4",
+    "video": "https://media.prompt-motion.com/madhav-xo-pretty-cool-with-just/video.a4c7af56.mp4"
   },
   {
     "id": "rames-jusso-589f80",
@@ -238,7 +279,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 24, 2026",
-    "ratio": "1 / 1"
+    "ratio": "1 / 1",
+    "poster": "https://media.prompt-motion.com/rames-jusso-creating-videos-with-opus/poster.e3ba7281.webp",
+    "preview": "https://media.prompt-motion.com/rames-jusso-creating-videos-with-opus/preview.874c1c70.mp4",
+    "video": "https://media.prompt-motion.com/rames-jusso-creating-videos-with-opus/video.4645be1e.mp4"
   },
   {
     "id": "kamstudiolabs-c9bb28",
@@ -254,7 +298,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 23, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/kamstudiolabs-opus-5-5-second-prompt/poster.e16225c9.webp",
+    "preview": "https://media.prompt-motion.com/kamstudiolabs-opus-5-5-second-prompt/preview.b41d6002.mp4",
+    "video": "https://media.prompt-motion.com/kamstudiolabs-opus-5-5-second-prompt/video.87de085c.mp4"
   },
   {
     "id": "kyonax-on-tech-aabc1d",
@@ -270,7 +317,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "One-shot",
     "posted": "Sep 25, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/kyonax-on-tech-yes-i-also-did/poster.f8558a96.webp",
+    "preview": "https://media.prompt-motion.com/kyonax-on-tech-yes-i-also-did/preview.a21ee032.mp4",
+    "video": "https://media.prompt-motion.com/kyonax-on-tech-yes-i-also-did/video.2b04af9e.mp4"
   },
   {
     "id": "robvjourney-ce3e1a",
@@ -287,7 +337,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 26, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/robvjourney-opus-5-5-is-cooking/poster.de6252e3.webp",
+    "preview": "https://media.prompt-motion.com/robvjourney-opus-5-5-is-cooking/preview.f380143d.mp4",
+    "video": "https://media.prompt-motion.com/robvjourney-opus-5-5-is-cooking/video.3c4b95b3.mp4"
   },
   {
     "id": "amol909s-27533e",
@@ -304,7 +357,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "Not stated",
     "posted": "Sep 25, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/amol909s-opus-5-5-on-medium/poster.c62deccd.webp",
+    "preview": "https://media.prompt-motion.com/amol909s-opus-5-5-on-medium/preview.922891d9.mp4",
+    "video": "https://media.prompt-motion.com/amol909s-opus-5-5-on-medium/video.46856152.mp4"
   },
   {
     "id": "jazzen-chen-4542ae",
@@ -320,7 +376,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "One-shot",
     "posted": "Sep 26, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/jazzen-chen-someone-on-reddit-asked/poster.bdb066d9.webp",
+    "preview": "https://media.prompt-motion.com/jazzen-chen-someone-on-reddit-asked/preview.56255f04.mp4",
+    "video": "https://media.prompt-motion.com/jazzen-chen-someone-on-reddit-asked/video.baa6207a.mp4"
   },
   {
     "id": "iammxfschr-d68f90",
@@ -336,7 +395,10 @@ export const motionPrompts: MotionPrompt[] = [
     "model": "Opus 5.5",
     "tries": "A few rounds",
     "posted": "Sep 25, 2026",
-    "ratio": "16 / 9"
+    "ratio": "16 / 9",
+    "poster": "https://media.prompt-motion.com/iammxfschr-a-little-spoiler-because/poster.55289293.webp",
+    "preview": "https://media.prompt-motion.com/iammxfschr-a-little-spoiler-because/preview.d2c7402c.mp4",
+    "video": "https://media.prompt-motion.com/iammxfschr-a-little-spoiler-because/video.cea2f258.mp4"
   }
 ];
 

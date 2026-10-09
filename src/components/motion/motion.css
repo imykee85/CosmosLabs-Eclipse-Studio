@@ -51,3 +51,9 @@
 .mo-kind:hover { color: var(--a-fg); border-color: var(--a-fg); }
 .mo-source { display: inline-flex; align-items: center; gap: 6px; margin: 16px 0 0 14px; color: var(--a-muted); font-size: 13px; }
 .mo-credit { margin: 14px 0 0; color: var(--a-muted2); font-size: 12px; }
+
+.mo-video { object-fit: cover; }
+.mo-media-link { display: block; text-decoration: none; }
+.mo-media-link .mo-tile { transition: border-color .18s; }
+.mo-media-link:hover .mo-tile { border-color: rgba(192,7,7,.8); }
+.mo-page .mo-tile { width: auto; height: min(60dvh, 520px); max-width: 100%; justify-self: center; background: var(--a-input); }

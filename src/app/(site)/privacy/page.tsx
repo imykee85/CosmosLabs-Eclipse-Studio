@@ -25,7 +25,7 @@ export default function PrivacyPage() {
       <p>To provide the service we send data to these kinds of providers, only what each one needs:</p>
       <ul>
         <li>sign-in and account management;</li>
-        <li>X, whose embedded posts appear on the Motion graphics page (loading them contacts X, which may set its own cookies; we ask X not to personalise from them);</li>
+        <li>the host of the example videos on the Motion graphics page, which receives a normal web request (your address and browser details) when a video loads;</li>
         <li>database and hosting;</li>
         <li>private file storage for your images and uploads;</li>
         <li>AI image providers, which receive your prompt and any reference image to make a render;</li>
