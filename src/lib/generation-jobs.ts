@@ -26,6 +26,9 @@ export type RenderItem = {
   resolution: string | null;
   projectId: string | null;
   aspectRatio: string | null;
+  seed: number | null;
+  seedLocked: boolean;
+  references: { type: string; id: string }[] | null;
   status: "pending" | "completed" | "failed";
   error: string | null;
   imageUrl: string | null;
@@ -122,6 +125,9 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     resolution: g.resolution,
     projectId: g.projectId,
     aspectRatio: g.aspectRatio,
+    seed: g.seed,
+    seedLocked: g.seedLocked,
+    references: Array.isArray(g.references) ? (g.references as { type: string; id: string }[]) : null,
     status: g.status === "failed" ? "failed" : done ? "completed" : "pending",
     error: g.status === "failed" ? g.error : null,
     imageUrl: done ? await displayUrl(g) : null,

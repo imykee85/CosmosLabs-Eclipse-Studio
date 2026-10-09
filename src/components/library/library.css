@@ -72,3 +72,10 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
 .lib-tabs button .lib-soon { margin-left: 8px; font-size: 9px; padding: 1px 6px; }
 .rd-info { width: 38px; padding: 0; justify-content: center; }
 .rd-info.is-on { border-color: var(--a-line4); background: var(--a-hover); }
+.rd-seed { grid-template-columns: 1fr !important; }
+.rd-seed dt { margin-bottom: 4px; }
+.rd-seed dd { display: grid; gap: 8px; }
+.rd-seedline { display: inline-flex; align-items: center; gap: 8px; }
+.rd-seedline code { font-size: 15px; font-variant-numeric: tabular-nums; }
+.rd-seedbtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.rd-seed small { color: var(--a-muted); font-size: 12px; }

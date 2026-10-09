@@ -191,3 +191,9 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-head b { flex: 1; font-size: 15px; font-weight: 600; }
 .aw-head button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }
 .aw-card p { margin: 10px 0 0; color: var(--a-muted); font-size: 13.5px; line-height: 1.5; }
+/* Seed number and Randomize, shown while Fixed seed is on for a model that has a seed. */
+.cr-seedrow { display: flex; align-items: center; gap: 8px; }
+.cr-seedfield { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-muted); font-size: 14px; font-weight: 500; }
+.cr-seedfield input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; }
+.cr-seedfield input::placeholder { color: var(--a-ph); }
+.cr-switch:disabled { opacity: .4; cursor: not-allowed; }

@@ -29,6 +29,8 @@ model Generation {
   projectId  String?  @map("project_id") // the project it was made in; the Gallery shows only its own project, the Library shows all
   model      String?  // registry id of the model that REALLY ran
   requestId  String?  @map("request_id") // Higgsfield's request id
+  seed       Int?     // the seed ACTUALLY sent to the provider; null when the model has no seed
+  seedLocked Boolean  @default(false) @map("seed_locked") // true when the user locked it (Fixed seed on, or a seed named for a re-run)
   references Json?    // the pictures used as references: [{ type: "upload" | "render", id }]
   costUsd    Float?   @map("cost_usd") // real cost once measured; blank until then
   createdAt  DateTime @default(now()) @map("created_at")

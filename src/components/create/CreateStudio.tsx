@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Sprout, Wand2, Workflow, X } from "lucide-react";
+import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Shuffle, Sprout, Wand2, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import type { PublicModel } from "@/lib/models";
@@ -62,6 +62,29 @@ export default function CreateStudio() {
     return ok.find((m) => m.verified) ?? ok[0] ?? null;
   })();
   const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;
+
+  // Fixed seed: the switch (remembered), the number (remembered) and what the chosen model allows. The server always sends a seed to a
+  // model that has one (a random one when the switch is off) and never sends one to a model that does not.
+  const [seedText, setSeedText] = useState("");
+  const [seedNote, setSeedNote] = useState("");
+  useEffect(() => { try { setSeedText(localStorage.getItem("eclipse-seed-value") ?? ""); } catch {} }, []);
+  function putSeed(t: string) { setSeedText(t); try { if (t) localStorage.setItem("eclipse-seed-value", t); else localStorage.removeItem("eclipse-seed-value"); } catch {} }
+  const seedSpec = model?.seed;
+  const seedSupported = !!seedSpec?.supported;
+  const seedLive = seedOn && seedSupported;
+  const seedNum = /^\d+$/.test(seedText) ? Number(seedText) : null;
+  const seedBad = seedLive && !!seedSpec && seedText !== "" && (seedNum == null || seedNum < seedSpec.min || seedNum > seedSpec.max);
+  // A locked seed that does not fit the model you switch to is cleared, with a note.
+  const lastSeedModel = useRef<string | null>(null);
+  useEffect(() => {
+    const id = model?.id ?? null;
+    if (id === lastSeedModel.current) return;
+    const first = lastSeedModel.current === null;
+    lastSeedModel.current = id;
+    if (first || !seedSpec?.supported || seedNum == null) return;
+    if (seedNum < seedSpec.min || seedNum > seedSpec.max) { putSeed(""); setSeedNote("Seed reset: not valid for this model."); }
+  }, [model, seedSpec, seedNum]);
+  const randomizeSeed = () => { if (seedSpec) { putSeed(String(seedSpec.min + Math.floor(Math.random() * (seedSpec.max - seedSpec.min + 1)))); setSeedNote(""); } };
   const [picking, setPicking] = useState(false);
   const [noRefs, setNoRefs] = useState(false); // the chosen model takes no pictures: say so, with the models that do
   const [submitting, setSubmitting] = useState(false);
@@ -146,19 +169,38 @@ export default function CreateStudio() {
       const pickFor = (): PublicModel => {
         if (modelId !== AUTO) return model;
         const fits = (models ?? []).filter((m) => !m.requiresReference && m.maxReferences >= refs.length && m.ratios.includes(ratio) && (!m.resolutions.length || !!tierResolution(m.resolutions, tier)));
-        const tested = fits.filter((m) => m.verified);
-        const pool = tested.length ? tested : fits;
+        // With the seed switch on, Auto only picks models that can use the seed (and whose range holds it).
+        const seeded = seedOn ? fits.filter((m) => m.seed.supported && (seedNum == null || (seedNum >= m.seed.min && seedNum <= m.seed.max))) : fits;
+        const usable = seeded.length ? seeded : fits;
+        const tested = usable.filter((m) => m.verified);
+        const pool = tested.length ? tested : usable;
         return pool[Math.floor(Math.random() * pool.length)] ?? model;
       };
       const refList = refs.map((r) => ({ type: r.type, id: r.id }));
-      // Each image is its own render, started side by side.
-      const results = await Promise.all(Array.from({ length: qty }, async () => {
+      let base = seedNum;
+      // One render. With the seed locked, image i uses seed + i (wrapping inside the model's range) so several images are related variations, not copies.
+      const run = async (i: number): Promise<{ ok: boolean; error: string; seed?: number; note?: string }> => {
         const m = pickFor();
-        const body = JSON.stringify({ prompt: text, aspectRatio: ratio, model: m.id, resolution: m.resolutions.length ? tierResolution(m.resolutions, tier) : undefined, projectId: readCurrentProject()?.id, references: refList });
+        const lock = seedOn && m.seed.supported;
+        const seed = lock && base != null ? m.seed.min + ((base - m.seed.min + i) % (m.seed.max - m.seed.min + 1)) : undefined;
+        const body = JSON.stringify({ prompt: text, aspectRatio: ratio, model: m.id, resolution: m.resolutions.length ? tierResolution(m.resolutions, tier) : undefined, projectId: readCurrentProject()?.id, references: refList, ...(lock ? { lockSeed: true, ...(seed != null ? { seed } : {}) } : {}) });
         const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body });
         const data = await res.json().catch(() => ({}));
-        return { ok: res.ok, error: res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again." };
-      }));
+        return { ok: res.ok, error: res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again.", seed: typeof data.seed === "number" ? data.seed : undefined, note: typeof data.seedNote === "string" ? data.seedNote : undefined };
+      };
+      // Each image is its own render, started side by side. With the switch on and no number yet, the first one goes alone so the server's seed
+      // (the last one used with this model, or a new one) can be shown and the others can count up from it.
+      const results: { ok: boolean; error: string; seed?: number; note?: string }[] = [];
+      if (seedOn && base == null && seedSupported) {
+        const r0 = await run(0);
+        results.push(r0);
+        if (r0.ok && r0.seed != null) { base = r0.seed; putSeed(String(r0.seed)); }
+        results.push(...await Promise.all(Array.from({ length: qty - 1 }, (_, i) => run(i + 1))));
+      } else {
+        results.push(...await Promise.all(Array.from({ length: qty }, (_, i) => run(i))));
+      }
+      const note = results.find((r) => r.note)?.note;
+      if (note) setSeedNote(note);
       const failed = results.find((r) => !r.ok);
       if (failed && results.every((r) => !r.ok)) throw new Error(failed.error);
       if (failed) setError(`${results.filter((r) => !r.ok).length} of ${qty} images could not be started: ${failed.error}`);
@@ -205,7 +247,7 @@ export default function CreateStudio() {
           );
         })()}
         {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && (
-          <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} collapsible /></div>
+          <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} onStarted={reload} collapsible /></div>
         )}
         {(() => {
           const earlier = list.filter((g) => g.status === "completed" && g.imageUrl).slice(0, 5);
@@ -298,14 +340,28 @@ export default function CreateStudio() {
             </div>
             <div className="cr-grp">
               <span className="cr-chip cr-seed"><Sprout size={14} /> Fixed seed</span>
-              <button type="button" role="switch" aria-checked={seedOn} aria-label="Fixed seed" title="Fixed seed" className={`cr-switch ${seedOn ? "is-on" : ""}`} onClick={() => flip("eclipse-fixed-seed", !seedOn, setSeedOn)}><i /></button>
+              <button type="button" role="switch" aria-checked={seedLive} aria-label="Fixed seed" disabled={!seedSupported} title={seedSupported ? "Fixed seed: similar results with the same seed" : "This model doesn't support seeds"} className={`cr-switch ${seedLive ? "is-on" : ""}`} onClick={() => flip("eclipse-fixed-seed", !seedOn, setSeedOn)}><i /></button>
             </div>
           </div>
-          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
+          {seedLive && seedSpec && (
+            <div className="cr-seedrow">
+              <label className="cr-seedfield">
+                <span>Seed</span>
+                <input inputMode="numeric" pattern="[0-9]*" aria-label="Seed number" value={seedText} placeholder={`${seedSpec.min.toLocaleString("en-US")} to ${seedSpec.max.toLocaleString("en-US")}`}
+                  onChange={(e) => { putSeed(e.target.value.replace(/\D/g, "").slice(0, 10)); setSeedNote(""); }} />
+              </label>
+              <button type="button" className="cr-chip" onClick={randomizeSeed}><Shuffle size={14} /> Randomize</button>
+            </div>
+          )}
+          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
             {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>
+      {!seedSupported && model && <p className="cr-hint" role="status">This model doesn&rsquo;t support seeds.</p>}
+      {seedBad && seedSpec && <p className="cr-error" role="alert">Use a whole number from {seedSpec.min.toLocaleString("en-US")} to {seedSpec.max.toLocaleString("en-US")} for this model.</p>}
+      {seedNote && <p className="cr-hint" role="status">{seedNote}</p>}
+      {seedLive && <p className="cr-hint">Similar results with the same seed.{qty > 1 ? " With more than one image the seed counts up by one for each." : ""}</p>}
       {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with Ingredients first.</p>}
       {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
       {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}

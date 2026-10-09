@@ -5,9 +5,10 @@ import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
 import { chargeFor, findEnabledModel, maxRefs, minRefs } from "@/lib/models";
 import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, resolveReferences } from "@/lib/references";
+import { randomSeed, seedInRange } from "@/lib/seed";
 
-export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown };
-export type StartRenderResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string };
+export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown };
+export type StartRenderResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string };
 
 // The one place a render is validated and started, used by POST /api/generate and by the Connect agent, so both are
 // priced, checked and recorded exactly the same way.
@@ -44,6 +45,28 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
     return { ok: false, status: 400, error: `${model.label} does not support the ${resolution} resolution.` };
   }
 
+  // Seed. A model without a seed field is never sent one (its schema would reject it): a seed or lock that arrives is ignored and the reply says so.
+  // For a model with a seed we ALWAYS send one: the user's, or (when none is locked) a random one made here, because the provider does not
+  // tell us which seed it picked and a seed we cannot see can never be reused. Never null (invalid for Soul 2 and Soul Cinema).
+  let seed: number | null = null;
+  let seedLocked = false;
+  let seedNote: string | undefined;
+  const spec = model.seed;
+  if (!spec.supported) {
+    if (input.seed != null || input.lockSeed === true) seedNote = `${model.label} does not support seeds, so none was used.`;
+  } else {
+    if (input.seed != null && !seedInRange(spec, input.seed)) {
+      return { ok: false, status: 400, error: `The seed must be a whole number from ${spec.min.toLocaleString("en-US")} to ${spec.max.toLocaleString("en-US")} for ${model.label}.` };
+    }
+    if (input.seed != null || input.lockSeed === true) {
+      seedLocked = true;
+      // Locked with no number: continue from the last seed used with this model, else make one (the reply carries it so it can be shown).
+      seed = (input.seed as number | null | undefined) ?? (await db.generation.findFirst({ where: { userId, model: model.id, seed: { not: null } }, orderBy: { createdAt: "desc" }, select: { seed: true } }))?.seed ?? randomSeed(spec);
+    } else {
+      seed = randomSeed(spec);
+    }
+  }
+
   // Credits are checked before Higgsfield is called and charged when the render finishes. A model with no credit price yet is free.
   const cost = chargeFor(model);
   if (cost != null) {
@@ -55,11 +78,11 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
   try {
-    const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: await deliverReferences(resolved.items) });
+    const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: await deliverReferences(resolved.items), seed: seed ?? undefined });
     const generation = await db.generation.create({
-      data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, references: refs.length ? refs : undefined },
+      data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined },
     });
-    return { ok: true, item: await toItem(generation) };
+    return { ok: true, item: await toItem(generation), seedNote };
   } catch (err) {
     console.error("starting generation failed", model.id, err);
     // Higgsfield's own rejection (bad setting, empty balance, unknown endpoint) is shown so it can be fixed fast.

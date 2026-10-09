@@ -22,7 +22,7 @@ export default function RenderDialog({ g, onClose, onChanged }: { g: Render; onC
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {g.imageUrl && <img src={g.imageUrl} alt={g.prompt} />}
         </div>
-        <RenderDetails g={g} onDeleted={() => { onClose(); onChanged?.(); }} />
+        <RenderDetails g={g} onDeleted={() => { onClose(); onChanged?.(); }} onStarted={onChanged} />
       </div>
     </div>
   );

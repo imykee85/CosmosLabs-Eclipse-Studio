@@ -15,6 +15,9 @@ export type Render = {
   resolution: string | null;
   projectId: string | null;
   aspectRatio: string | null;
+  seed: number | null;
+  seedLocked: boolean;
+  references: { type: string; id: string }[] | null;
   status: "pending" | "completed" | "failed";
   error: string | null;
   imageUrl: string | null;

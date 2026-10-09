@@ -14,6 +14,15 @@
 //   urls: "field": ["https://...", ...]   url: "field": "https://..." (first picture)   objects: "field": [{ type: "image_url", image_url }]
 type RefSpec = { min: number; max: number; field?: string; style?: "urls" | "url" | "objects" };
 
+// Seed: the starting number of the noise a render grows from. Only the models below list a `seed` field in their request schema (read from
+// docs.higgsfield.ai, 2026-10-09). Every schema rejects unknown fields, so a seed is NEVER sent to a model whose spec says `supported: false`.
+// `allowNull` is whether an explicit null means "random" (we never send null: when no seed is chosen we pick a random one ourselves, so it can be saved and reused).
+export type SeedSpec = { supported: boolean; min: number; max: number; allowNull: boolean };
+const NO_SEED: SeedSpec = { supported: false, min: 0, max: 0, allowNull: false };
+const SEED_SOUL: SeedSpec = { supported: true, min: 1, max: 1_000_000, allowNull: false };   // soul/v2 and soul/cinema: omit = random, explicit null is invalid
+const SEED_SOUL_V1: SeedSpec = { supported: true, min: 1, max: 1_000_000, allowNull: true };  // soul/standard: omit or null = random
+const SEED_INT31: SeedSpec = { supported: true, min: 0, max: 2_147_483_647, allowNull: false }; // qwen-image-3/edit, z-image/turbo
+
 export type ImageModel = {
   id: string;
   label: string;
@@ -25,6 +34,7 @@ export type ImageModel = {
   defaultResolution?: string;  // the cheapest tier, sent when the request names none
   maxPrompt: number;           // longest prompt the model accepts, in characters
   maxBatch: number;
+  seed: SeedSpec;              // see SeedSpec; unconfirmed models are unsupported until their page says otherwise
   references: RefSpec;         // reference pictures: how many, and which request field carries them (see RefSpec)
   extraBody?: Record<string, unknown>;  // fixed fields sent with every request (e.g. the cheapest quality tier)
   enabled: boolean;
@@ -37,7 +47,7 @@ const SOUL_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"];
 const WIDE = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 
 function m(p: Partial<ImageModel> & Pick<ImageModel, "id" | "label" | "blurb" | "endpoint" | "ratios">): ImageModel {
-  return { type: "image", resolutions: [], maxPrompt: 2000, maxBatch: 1, references: { min: 0, max: 0 }, enabled: true, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
+  return { type: "image", resolutions: [], maxPrompt: 2000, maxBatch: 1, seed: NO_SEED, references: { min: 0, max: 0 }, enabled: true, verified: false, estimatedCostUsd: null, creditCost: null, ...p };
 }
 
 // CREDIT PRICES (provisional). Provider cost seen so far on the Higgsfield bill: about $0.00 (Soul 2), $0.01 to $0.04, $0.12 and $0.21
@@ -52,11 +62,11 @@ function m(p: Partial<ImageModel> & Pick<ImageModel, "id" | "label" | "blurb" | 
 const CREDITS = { soul: 2, light: 7, standard: 19, premium: 32 } as const;
 
 const MODELS: ImageModel[] = [
-  m({ id: "soul_v2", creditCost: CREDITS.soul, label: "Soul 2", blurb: "Realistic people and fashion.", endpoint: "higgsfield-ai/soul/v2/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4, enabled: true, verified: true }),
+  m({ id: "soul_v2", seed: SEED_SOUL, creditCost: CREDITS.soul, label: "Soul 2", blurb: "Realistic people and fashion.", endpoint: "higgsfield-ai/soul/v2/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4, enabled: true, verified: true }),
   // soul: request page read (same fields as Soul 2: 720p/1080p, batch 1 or 4, the 7 shapes above); not yet test-rendered.
-  m({ id: "soul", creditCost: CREDITS.light, label: "Soul", blurb: "The first Soul model.", endpoint: "higgsfield-ai/soul/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4 }),
+  m({ id: "soul", seed: SEED_SOUL_V1, creditCost: CREDITS.light, label: "Soul", blurb: "The first Soul model.", endpoint: "higgsfield-ai/soul/standard", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4 }),
   // soul_cinema: request page read (fixed style, the 7 Soul shapes, 720p/1080p, batch 1 or 4; 21:9 is NOT accepted); not yet test-rendered.
-  m({ id: "soul_cinema", creditCost: CREDITS.light, label: "Soul Cinema", blurb: "Cinema-grade stills and concept art.", endpoint: "higgsfield-ai/soul/cinema", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4 }),
+  m({ id: "soul_cinema", seed: SEED_SOUL, creditCost: CREDITS.light, label: "Soul Cinema", blurb: "Cinema-grade stills and concept art.", endpoint: "higgsfield-ai/soul/cinema", ratios: SOUL_RATIOS, resolutions: ["720p", "1080p"], defaultResolution: "720p", maxBatch: 4 }),
   // marketing_studio_image (2.0 Alpha): request page read. Text-only works (no image_urls, enhance_prompt off); prompt up to 5000 characters; quality low/medium/high; 1k/2k/4k; "auto" shape left out of the picker; unknown fields rejected. Sent at quality low and 1k, the cheapest. Not yet test-rendered.
   m({ id: "marketing_studio_image", creditCost: CREDITS.standard, maxPrompt: 5000, label: "Marketing Studio Image", blurb: "Product and campaign visuals.", endpoint: "marketing-studio/image", ratios: ["1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"], resolutions: ["1k", "2k", "4k"], defaultResolution: "1k", references: { min: 0, max: 16, field: "image_urls" }, extraBody: { quality: "low", enhance_prompt: false } }),
   // marketing_studio_image_flare (2.5 Flare): request page read. Same fields as 2.0 Alpha except quality also accepts xhigh and max. Sent at quality low and 1k. Not yet test-rendered.
@@ -78,11 +88,11 @@ const MODELS: ImageModel[] = [
   // qwen_image_3: request page read (1k/2k PNG, the 10 shapes below, no batch field, unknown fields are rejected); not yet test-rendered.
   m({ id: "qwen_image_3", creditCost: CREDITS.light, label: "Qwen Image 3", blurb: "Detailed text-to-image.", endpoint: "alibaba/qwen-image-3/text-to-image", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k" }),
   // qwen_image_3_edit: request page read (1 to 3 public image_urls REQUIRED, 1k/2k, same 10 shapes as text-to-image); not test-rendered. The app now sends reference pictures (see RefSpec).
-  m({ id: "qwen_image_3_edit", creditCost: CREDITS.light, label: "Qwen Image 3 Edit", blurb: "Edits existing images (needs a reference image).", endpoint: "alibaba/qwen-image-3/edit", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k", references: { min: 1, max: 3, field: "image_urls" } }),
+  m({ id: "qwen_image_3_edit", seed: SEED_INT31, creditCost: CREDITS.light, label: "Qwen Image 3 Edit", blurb: "Edits existing images (needs a reference image).", endpoint: "alibaba/qwen-image-3/edit", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k", references: { min: 1, max: 3, field: "image_urls" } }),
   // ideogram_4: request page read (no resolution field and unknown fields are rejected; 23 shapes; prompt 2 to 2048 characters; rendering_speed is case-sensitive). Sent at TURBO, the cheapest speed. Not yet test-rendered.
   m({ id: "ideogram_4", creditCost: CREDITS.light, maxPrompt: 2048, label: "Ideogram 4.0", blurb: "Strong typography in images.", endpoint: "ideogram/v4.0", ratios: ["1:1", "1:2", "2:1", "2:3", "3:2", "4:5", "5:4", "9:16", "16:9", "5:8", "8:5", "3:4", "4:3", "9:22", "22:9", "9:23", "23:9", "3:8", "8:3", "5:12", "12:5", "1:3", "3:1"], references: { min: 0, max: 1, field: "image_url", style: "url" }, extraBody: { rendering_speed: "TURBO" } }),
   // z_image_turbo: request page read (text-to-image only, prompt up to 800 characters, 1k/2k PNG, 10 shapes, unknown fields rejected; prompt_extend stays off, the cheaper tier). Not yet test-rendered.
-  m({ id: "z_image_turbo", creditCost: CREDITS.light, label: "Z-Image Turbo", blurb: "Very fast drafts.", endpoint: "z-image/turbo", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k", maxPrompt: 800 }),
+  m({ id: "z_image_turbo", seed: SEED_INT31, creditCost: CREDITS.light, label: "Z-Image Turbo", blurb: "Very fast drafts.", endpoint: "z-image/turbo", ratios: ["1:1", "2:3", "3:2", "3:4", "4:3", "7:9", "9:7", "9:16", "16:9", "21:9"], resolutions: ["1k", "2k"], defaultResolution: "1k", maxPrompt: 800 }),
 ];
 
 // Disabled entries become available when listed in HIGGSFIELD_ENABLED_MODELS.
@@ -136,7 +146,7 @@ export function endpointFor(model: ImageModel): string {
 }
 
 // What the pickers need, with no server-only fields.
-export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "resolutions" | "maxBatch" | "maxPrompt" | "verified"> & { maxReferences: number; requiresReference: boolean; credits: number | null };
+export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "resolutions" | "maxBatch" | "maxPrompt" | "verified" | "seed"> & { maxReferences: number; requiresReference: boolean; credits: number | null };
 export function toPublic(model: ImageModel): PublicModel {
-  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, resolutions: model.resolutions, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, maxReferences: maxRefs(model), requiresReference: minRefs(model) > 0, credits: chargeFor(model) };
+  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, resolutions: model.resolutions, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, seed: model.seed, maxReferences: maxRefs(model), requiresReference: minRefs(model) > 0, credits: chargeFor(model) };
 }
