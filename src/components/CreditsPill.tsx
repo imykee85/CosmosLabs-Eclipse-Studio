@@ -10,7 +10,7 @@ export default function CreditsPill({ className, text = false }: { className: st
   const n = credits ? credits.balance.toLocaleString("en-US") : "";
   const title = credits && !credits.charging ? "Credits (not charged yet)" : "Credits";
   return (
-    <Link href="/settings" className={className} title={title}>
+    <Link href="/settings?tab=billing" className={className} title={title}>
       <Coins size={text ? 15 : 14} /> {n && (text ? `${n} credits` : n)}
     </Link>
   );

@@ -1,18 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { SETTINGS_TABS as TABS, type SettingsTab as Tab } from "@/lib/settings-tabs";
 import ApiPanel from "./ApiPanel";
 import BillingPanel from "./BillingPanel";
 import ProfilePanel from "./ProfilePanel";
 import TeamPanel from "./TeamPanel";
 import "./settings.css";
 
-const TABS = ["Profile", "Billing", "Team", "API/MCP"] as const;
-type Tab = (typeof TABS)[number];
-
-
-export default function SettingsView() {
-  const [tab, setTab] = useState<Tab>("Profile");
+export default function SettingsView({ initialTab = "Profile" }: { initialTab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   return (
     <div className="st-wrap">

@@ -17,6 +17,15 @@ const POS: Record<MemoryTopic, { x: number; y: number }> = {
   projects: { x: 40, y: 38 }, products: { x: 76, y: 45 }, characters: { x: 20, y: 52 }, style: { x: 76, y: 63 }, tastes: { x: 40, y: 70 },
 };
 
+// Faint placeholders hanging off each topic, as in the original map: [topic, x, y, width %]. The ones of the chosen category light up.
+const PILLS: [MemoryTopic, number, number, number][] = [
+  ["projects", 40, 5, 28], ["projects", 64, 4, 26], ["projects", 3, 30, 22],
+  ["products", 82, 24, 24], ["products", 92, 36, 26], ["products", 96, 49, 20],
+  ["characters", -4, 41, 18], ["characters", -6, 62, 22], ["characters", 5, 76, 28],
+  ["style", 92, 70, 22], ["style", 88, 86, 26], ["style", 64, 90, 22],
+  ["tastes", 8, 84, 30], ["tastes", 24, 94, 26], ["tastes", 48, 95, 20],
+];
+
 export default function MemoryView() {
   const [items, setItems] = useState<MemoryItem[] | null>(null);
   const [topic, setTopic] = useState<MemoryTopic | "all">("all");
@@ -80,11 +89,13 @@ export default function MemoryView() {
 
       <div className="mm-stage">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          {MEMORY_TOPICS.map((t) => <line key={t} x1={50} y1={52} x2={POS[t].x} y2={POS[t].y} />)}
+          {MEMORY_TOPICS.map((t) => <line key={t} className={saveTopic === t ? "is-on" : ""} x1={50} y1={52} x2={POS[t].x} y2={POS[t].y} />)}
+          {PILLS.map(([t, x, y, w], k) => <line key={`l${k}`} className={saveTopic === t ? "is-on" : ""} x1={POS[t].x} y1={POS[t].y} x2={x + w / 2} y2={y} />)}
         </svg>
+        {PILLS.map(([t, x, y, w], k) => <i key={`p${k}`} className={`mm-pill ${saveTopic === t ? "is-on" : ""}`} style={{ left: `${x}%`, top: `${y}%`, width: `${w}%` }} />)}
         {MEMORY_TOPICS.map((t) => (
-          <button key={t} type="button" className={`mm-node ${topic === t ? "is-on" : ""}`} style={{ left: `${POS[t].x}%`, top: `${POS[t].y}%` }}
-            title={`${TOPIC_LABEL[t]} (${counts[t]})`} aria-pressed={topic === t} onClick={() => setTopic(topic === t ? "all" : t)}>
+          <button key={t} type="button" className={`mm-node ${saveTopic === t ? "is-on" : ""}`} style={{ left: `${POS[t].x}%`, top: `${POS[t].y}%` }}
+            title={`${TOPIC_LABEL[t]} (${counts[t]})`} aria-pressed={saveTopic === t} onClick={() => { setSaveTopic(t); setTopic(topic === t ? "all" : t); }}>
             {ICON[t]}{counts[t] > 0 && <i>{counts[t]}</i>}
           </button>
         ))}
@@ -98,10 +109,6 @@ export default function MemoryView() {
 
       <div className="mm-side">
         <ConnectNav current="/memory" />
-        <div className="mm-tabs" role="tablist" aria-label="Topic">
-          <button type="button" className={topic === "all" ? "is-on" : ""} onClick={() => setTopic("all")}>All</button>
-          {MEMORY_TOPICS.map((t) => <button key={t} type="button" className={topic === t ? "is-on" : ""} onClick={() => setTopic(t)}>{TOPIC_LABEL[t]}</button>)}
-        </div>
         <ul className="mm-list">
           {shown.map((i) => (
             <li key={i.id}>
@@ -119,7 +126,7 @@ export default function MemoryView() {
       <form className="mm-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
         <button type="button" className="mm-plus" aria-label="Import notes" onClick={() => setImporting(true)}><Plus size={18} /></button>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MEMORY_TEXT_MAX} placeholder="Add a memory" aria-label="Add a memory" />
-        <select value={saveTopic} onChange={(e) => setSaveTopic(e.target.value as MemoryTopic)} aria-label="Topic for this memory">
+        <select value={saveTopic} onChange={(e) => { setSaveTopic(e.target.value as MemoryTopic); setTopic(e.target.value as MemoryTopic); }} aria-label="Topic for this memory">
           {MEMORY_TOPICS.map((t) => <option key={t} value={t}>{TOPIC_LABEL[t]}</option>)}
         </select>
         <button type="submit" className="mm-send" aria-label="Save memory" disabled={!text.trim() || saving}><ArrowUp size={18} /></button>
