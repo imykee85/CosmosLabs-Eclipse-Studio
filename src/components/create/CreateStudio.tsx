@@ -146,6 +146,7 @@ export default function CreateStudio() {
         })()}
       </section>
 
+      <div className="cr-dock">
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); generate(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <textarea
@@ -205,9 +206,10 @@ export default function CreateStudio() {
       {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
       {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}
       {picking && model && <ReferencePicker max={model.maxReferences} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
-      <p className="cr-hint">Press Ctrl or Cmd + Enter to generate.</p>
+      <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
+      </div>
     </div>
   );
 }

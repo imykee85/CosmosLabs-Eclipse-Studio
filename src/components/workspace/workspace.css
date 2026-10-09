@@ -94,7 +94,9 @@ a.ws-card .ws-card-cta { color: var(--a-redtext); }
   .ws-content { min-height: 100vh; min-height: 100dvh; }
   /* the page name is already in the top bar */
   .ws-main h1.pg-title { display: none; }
-  .ws-main { max-width: none; padding: 28px 18px calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .ws-main { max-width: none; padding: 16px 18px calc(96px + env(safe-area-inset-bottom, 0px)); }
+  /* with the title hidden, the line under it starts at the top */
+  .ws-ing > h1.pg-title + p { margin-top: 0; }
 
   .mb-top { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; align-items: center; height: 58px; padding: 0 10px; border-bottom: 1px solid var(--a-line); background: var(--a-bg); }
   .mb-top .mb-icon { justify-self: start; }

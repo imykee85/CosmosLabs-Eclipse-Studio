@@ -49,3 +49,13 @@
 .cr-ref-move { position: absolute; left: 50%; bottom: -14px; display: flex; gap: 2px; transform: translateX(-50%); }
 .cr-ref-move button { display: grid; place-items: center; width: 22px; height: 18px; padding: 0; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-bg); color: var(--a-fg); cursor: pointer; }
 .cr-ref-move button:disabled { opacity: .35; cursor: default; } .cr-ref-move button:hover:not(:disabled) { border-color: var(--a-line4); }
+.cr-dock { display: contents; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cr-wrap { padding-top: 0; padding-bottom: 300px; }
+  .cr-intro p { margin-top: 0; }
+  .cr-preview { margin-top: 24px; }
+  .cr-keys { display: none; }
+  /* The prompt box sits just above the bottom tab bar, like Orbit's. */
+  .cr-dock { display: block; position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; max-height: 55dvh; overflow-y: auto; background: var(--a-bg); }
+  .cr-dock .cr-box { margin-top: 0; }
+}
