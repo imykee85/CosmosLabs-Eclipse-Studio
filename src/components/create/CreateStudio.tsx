@@ -285,9 +285,9 @@ export default function CreateStudio() {
           <button type="button" className="cr-chip" onClick={() => { if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
-          <button type="button" className="cr-chip" aria-label="Open in canvas" title="Move this prompt to the Canvas"
+          <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to the Canvas"
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
-            <Workflow size={14} /> Open in canvas
+            <Workflow size={14} /> Open canvas
           </button>
             <div className="cr-grp">
             <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
