@@ -296,7 +296,7 @@ export default function CreateStudio() {
                 onClick={() => { if (!agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } flip("eclipse-agent-on", !agentOn, setAgentOn); }}><i /></button>
             </div>
             <div className="cr-grp">
-              <span className="cr-chip cr-seed"><Sprout size={14} /> Fixed seed</span>
+              <span className="cr-chip cr-seed"><Sprout size={14} /> Seed</span>
               <button type="button" role="switch" aria-checked={seedOn} aria-label="Fixed seed" title="Fixed seed" className={`cr-switch ${seedOn ? "is-on" : ""}`} onClick={() => flip("eclipse-fixed-seed", !seedOn, setSeedOn)}><i /></button>
             </div>
           </div>
