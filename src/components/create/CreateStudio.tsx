@@ -198,6 +198,7 @@ export default function CreateStudio() {
           </div>
         )}
         <div className="cr-tools">
+          <div className="cr-row">
           <button type="button" className="cr-chip" onClick={() => { if ((model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
@@ -205,6 +206,8 @@ export default function CreateStudio() {
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
           </button>
+          </div>
+          <div className="cr-row">
           <label className="cr-chip cr-select" title={model?.blurb}>
             <span className="sr-only">Image model</span>
             <select value={modelId} onChange={(e) => pickModel(e.target.value)} aria-label="Image model">
@@ -217,6 +220,7 @@ export default function CreateStudio() {
               {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
+          </div>
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
             {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null ? <>Generate <span className="cr-cost" title={`${model.credits} credits`}><Coins size={14} />{model.credits}</span></> : <>Generate <ArrowUp size={16} /></>}
           </button>

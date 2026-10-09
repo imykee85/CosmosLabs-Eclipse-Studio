@@ -79,3 +79,8 @@
 .cr-full-x { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg2); cursor: pointer; }
 .cr-done { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; transition: background .2s, transform .18s; }
 .cr-done:hover { background: #d90b0b; }
+/* Three rows under the field: Ingredients, model and shape, then a full-width Generate. */
+.cr-tools { display: grid; gap: 10px; }
+.cr-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.cr-go { width: 100%; justify-content: center; margin-left: 0; }
+.cr-cost { margin-left: 0; padding-left: 0; border-left: 0; }
