@@ -17,8 +17,8 @@ function Bot() {
         <div className="aw-ball" />
         <div className="aw-spin">
           <div className="aw-sphere">
-            <i className="aw-eye aw-eye-l" />
-            <i className="aw-eye aw-eye-r" />
+            <i className="aw-eye aw-eye-l"><b /></i>
+            <i className="aw-eye aw-eye-r"><b /></i>
           </div>
         </div>
       </div>
