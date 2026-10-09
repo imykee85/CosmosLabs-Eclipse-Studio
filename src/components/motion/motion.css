@@ -57,3 +57,9 @@
 .mo-media-link .mo-tile { transition: border-color .18s; }
 .mo-media-link:hover .mo-tile { border-color: rgba(192,7,7,.8); }
 .mo-page .mo-tile { width: auto; height: min(60dvh, 520px); max-width: 100%; justify-self: center; background: var(--a-input); }
+.mo-filter { flex-wrap: wrap; }
+.mo-filter-right { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+@media (max-width: 520px) { .mo-filter-right .mo-sort { height: 34px; padding: 0 10px; font-size: 13px; } }
+.mo-meta > span { min-width: 0; overflow: hidden; }
+.mo-meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mo-kind { flex: none; }
