@@ -2,13 +2,14 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Workflow, X } from "lucide-react";
+import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
-import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
+import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
+import ModelPicker, { AUTO } from "./ModelPicker";
 import "./create.css";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
@@ -32,9 +33,16 @@ export default function CreateStudio() {
   const [qty, setQty] = useState(1);
   const [tier, setTier] = useState("1k");
   const models = useModels({ edit: true });
-  const [modelId, setModelId] = useState("");
-  const model = models?.find((m) => m.id === modelId) ?? null;
   const [refs, setRefs] = useState<RefPick[]>([]);
+  const [modelId, setModelId] = useState("");
+  const [pickingModel, setPickingModel] = useState(false);
+  // Auto: Eclipse picks. The server never swaps models, so Auto resolves here to one real model: a verified one that can
+  // take as many reference pictures as are chosen (never an edit-only model).
+  const autoModel = (() => {
+    const ok = (models ?? []).filter((m) => !m.requiresReference && m.maxReferences >= refs.length);
+    return ok.find((m) => m.verified) ?? ok[0] ?? null;
+  })();
+  const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;
   const [picking, setPicking] = useState(false);
   const [noRefs, setNoRefs] = useState(false); // the chosen model takes no pictures: say so, with the models that do
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +63,10 @@ export default function CreateStudio() {
   const lastFailed = list[0]?.status === "failed" ? list[0] : null;
 
   useEffect(() => {
-    if (models?.length) setModelId(rememberedModel(models)?.id ?? "");
+    if (!models?.length) return;
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(MODEL_STORAGE_KEY); } catch {}
+    setModelId(saved && models.some((m) => m.id === saved) ? saved : AUTO);
   }, [models]);
 
   // Keep the chosen shape one the chosen model supports.
@@ -77,6 +88,7 @@ export default function CreateStudio() {
 
   function pickModel(id: string) {
     setModelId(id);
+    setPickingModel(false);
     try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {}
   }
 
@@ -219,19 +231,16 @@ export default function CreateStudio() {
         )}
         <div className="cr-tools">
           <div className="cr-row cr-row-top">
-          <button type="button" className="cr-chip" onClick={() => { if ((model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
+          <button type="button" className="cr-chip" onClick={() => { if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
           <button type="button" className="cr-chip" aria-label="Open in canvas" title="Move this prompt to the Canvas"
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
           </button>
-          <label className="cr-chip cr-select" title={model?.blurb}>
-            <span className="sr-only">Image model</span>
-            <select value={modelId} onChange={(e) => pickModel(e.target.value)} aria-label="Image model">
-              {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </label>
+          <button type="button" className="cr-chip cr-modelbtn" aria-label="Image model" aria-haspopup="dialog" title={model?.blurb} onClick={() => setPickingModel(true)}>
+            <span>{modelId === AUTO ? "Auto" : model?.label ?? "Model"}</span><ChevronDown size={14} />
+          </button>
           </div>
           <div className="cr-row">
           <label className="cr-chip cr-select">
@@ -260,11 +269,12 @@ export default function CreateStudio() {
       {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with Ingredients first.</p>}
       {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
       {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}
-      {picking && model && <ReferencePicker max={model.maxReferences} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
+      {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
+      {pickingModel && models && <ModelPicker models={models} value={modelId} autoModel={autoModel} onPick={pickModel} onClose={() => setPickingModel(false)} />}
       {expanded && (
         <div className="cr-full" style={vvh ? { height: vvh, bottom: "auto" } : undefined} role="dialog" aria-label="Write your prompt">
           <button type="button" className="cr-full-x" aria-label="Back to the prompt box" title="Back" onClick={() => setExpanded(false)}><Minimize2 size={16} /></button>
