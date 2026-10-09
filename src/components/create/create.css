@@ -7,7 +7,7 @@
 .cr-box textarea { width: 100%; min-height: 56px; max-height: 220px; resize: none; border: 0; outline: 0; background: transparent; padding: 4px 6px; color: var(--a-fg); font: inherit; font-size: 16px; line-height: 1.5; }
 .cr-box textarea::placeholder { color: var(--a-ph); }
 .cr-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
-.cr-chip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 14px; font-weight: 500; }
+.cr-chip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; }
 .cr-chip:disabled { opacity: .55; cursor: not-allowed; }
 .cr-chip em { padding: 1px 7px; border: 1px solid var(--a-line3); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
 .cr-select { padding: 0; }
@@ -70,7 +70,7 @@
 .cr-earlier a { width: 32px; height: 32px; border-radius: 8px; }
 
 /* Two lines only; the expand button shows once the text needs more. */
-.cr-field { position: relative; padding: 12px 0; border: 1px solid var(--a-line3); border-radius: 16px; background: var(--a-card); }
+.cr-field { position: relative; padding: 6px 0 4px; }
 .cr-expand { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }
 .cr-expand:hover { background: var(--a-hover); color: var(--a-fg); }
 .cr-full { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--a-card); color: var(--a-fg); padding: env(safe-area-inset-top, 0px) 0 0; }
@@ -85,7 +85,7 @@
 .cr-go { width: 100%; justify-content: center; margin-left: 0; }
 .cr-cost { margin-left: 0; padding-left: 0; border-left: 0; }
 /* How many images to make at once. */
-.cr-qty { display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--a-line2); border-radius: 999px; color: var(--a-fg2); font-size: 14px; font-weight: 500; }
+.cr-qty { display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 14px; font-weight: 500; }
 .cr-qty button { display: grid; place-items: center; width: 34px; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .cr-qty button:disabled { opacity: .35; cursor: default; }
 .cr-qty span { min-width: 18px; text-align: center; color: var(--a-fg); }
@@ -138,3 +138,5 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .mp-gh .mp-ico { margin: -4px 0; }
 .cr-mlabel { color: var(--a-muted); font-weight: 400; }
 .cr-chip svg, .cr-qty svg { width: 16px; height: 16px; }
+/* Like Orbit: the field is the box itself; the selectors are white (card colour). */
+.cr-box textarea { padding-left: 8px; }
