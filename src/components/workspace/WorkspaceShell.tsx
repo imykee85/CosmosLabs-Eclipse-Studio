@@ -35,6 +35,8 @@ const photo: Item[] = [
   { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> },
 ];
 const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} />, soon: true };
+// The four tools that work across Photo, Audio and Video, shown together under one heading at the top.
+const utilities: Item[] = [connectItem, agentsItem, canvasItem, ingredients];
 const video: Item[] = [
   { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment", soon: true },
   { label: "Prompts", hint: "Scene by scene", step: 2, soon: true },
@@ -301,10 +303,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="ws-icon-btn" aria-label="Collapse sidebar" onClick={() => setOpen(false)}><PanelLeft size={16} /></button>
         </div>
         <nav className="ws-nav">
-          <NavItem item={connectItem} pathname={pathname} />
-          <NavItem item={agentsItem} pathname={pathname} />
-          <NavItem item={canvasItem} pathname={pathname} />
-          <NavItem item={ingredients} pathname={pathname} />
+          <Section title="UTILITIES" items={utilities} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
           <Section title="AUDIO" items={audio} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
@@ -356,10 +355,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             )}
           </AccountName>
           <nav className="mb-nav">
-            <NavItem item={connectItem} pathname={pathname} />
-            <NavItem item={agentsItem} pathname={pathname} />
-            <NavItem item={canvasItem} pathname={pathname} />
-            <NavItem item={ingredients} pathname={pathname} />
+            <Section title="UTILITIES" items={utilities} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />
             <Section title="AUDIO" items={audio} pathname={pathname} />
             <Section title="VIDEO" items={video} pathname={pathname} />
