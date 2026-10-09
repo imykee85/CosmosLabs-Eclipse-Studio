@@ -130,3 +130,22 @@
 /* Upper half of the dashboard: projects. The home feed starts below it. */
 .db-top { min-height: 42vh; }
 .db-top .db-empty { padding-top: 56px; }
+
+/* View toggle and the compact grid (default) */
+.db-view { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--a-line2); border-radius: 50%; background: transparent; color: var(--a-fg); cursor: pointer; transition: border-color .18s; }
+.db-view:hover { border-color: var(--a-line4); }
+.db-grid.is-compact { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 20px; }
+.db-grid.is-compact .db-card { border-radius: 18px; }
+.db-grid.is-compact .db-thumb { height: 96px; }
+.db-grid.is-compact .db-thumb b { font-size: 38px; }
+.db-grid.is-compact .db-badge { top: 8px; left: 8px; padding: 2px 9px; font-size: 11px; }
+.db-grid.is-compact .db-card-body { padding: 10px 8px 10px 14px; }
+.db-grid.is-compact h2 { font-size: 15px; }
+.db-grid.is-compact .db-meta { margin-top: 6px; padding-top: 8px; font-size: 12px; }
+.db-grid.is-compact .db-card-btn { width: 28px; height: 28px; }
+@media (max-width: 600px) {
+  .db-grid.is-compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .db-view { width: 42px; height: 42px; }
+  .db-top { min-height: 0; }
+  .hf { margin-top: 28px; padding-top: 24px; }
+}

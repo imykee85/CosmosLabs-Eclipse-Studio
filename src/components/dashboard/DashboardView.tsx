@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Clock, FolderOpen, GraduationCap, Info, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Clock, FolderOpen, GraduationCap, Info, LayoutGrid, Rows3, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { rememberPage } from "@/lib/last-page";
 import { tutorialHref } from "@/lib/tutorial";
@@ -34,6 +34,10 @@ export default function DashboardView() {
   const [menu, setMenu] = useState<{ project: Project; top: number; right: number } | null>(null);
   const [renaming, setRenaming] = useState<Project | null>(null);
   const [details, setDetails] = useState<Project | null>(null);
+  // Compact grid is the default so the home feed below comes up into view; "large" is the roomy card layout.
+  const [view, setView] = useState<"grid" | "large">("grid");
+  useEffect(() => { try { if (localStorage.getItem("eclipse-dashboard-view") === "large") setView("large"); } catch {} }, []);
+  function pickView(v: "grid" | "large") { setView(v); try { localStorage.setItem("eclipse-dashboard-view", v); } catch {} }
 
   // A Gallery's "Recently deleted" link arrives as /dashboard?bin=images&project=<id>.
   useEffect(() => {
@@ -122,6 +126,10 @@ export default function DashboardView() {
             <Search size={16} />
             <input type="search" placeholder="Search projects…" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search projects" />
           </label>
+          <button type="button" className="db-view" aria-label={view === "grid" ? "Show large project cards" : "Show compact project grid"} title={view === "grid" ? "Large cards" : "Compact grid"}
+            onClick={() => pickView(view === "grid" ? "large" : "grid")}>
+            {view === "grid" ? <Rows3 size={18} /> : <LayoutGrid size={18} />}
+          </button>
           {newBtn()}
         </div>
 
@@ -139,7 +147,7 @@ export default function DashboardView() {
         ) : projects === null ? (
           <p className="db-loading" aria-live="polite">Loading your projects…</p>
         ) : shown.length > 0 ? (
-          <ul className="db-grid">
+          <ul className={`db-grid ${view === "grid" ? "is-compact" : ""}`}>
             {shown.map((p) => (
               <li key={p.id} className={`db-card ${tab === "bin" ? "is-bin" : ""}`}>
                 <div className="db-thumb">
