@@ -40,8 +40,7 @@ export default function MotionDetail({ item }: { item: MotionPrompt }) {
               <button type="button" className="mo-copy" onClick={copy}>{copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy prompt</>}</button>
             </>
           )}
-          <a className="mo-source" href={postUrl(item)} target="_blank" rel="noopener noreferrer">View original on X <ExternalLink size={3} /></a>
-          <p className="mo-credit">The video and prompt belong to their creator.</p>
+          <a className="mo-source" href={postUrl(item)} target="_blank" rel="noopener noreferrer">View original on X <ExternalLink size={4} /></a>
         </div>
       </div>
     </div>
