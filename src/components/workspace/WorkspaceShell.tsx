@@ -190,12 +190,10 @@ function CreateTab({ pathname }: { pathname: string }) {
         <span className="mb-tab-icon">{tabIcon(slot.icon)}</span><span>{slot.label}</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
-        <NavItem item={agentsItem} pathname={pathname} />
-        <NavItem item={canvasItem} pathname={pathname} />
-        <NavItem item={ingredients} pathname={pathname} />
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
-        <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
         <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
+        <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
+        <Section title="UTILITIES" items={[agentsItem, canvasItem, ingredients]} pathname={pathname} defaultOpen={[agentsItem, canvasItem, ingredients].some((i) => i.href === pathname)} />
       </TabMenuBox>
     </>
   );
@@ -303,10 +301,10 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="ws-icon-btn" aria-label="Collapse sidebar" onClick={() => setOpen(false)}><PanelLeft size={16} /></button>
         </div>
         <nav className="ws-nav">
-          <Section title="UTILITIES" items={utilities} pathname={pathname} />
           <Section title="PHOTO" items={photo} pathname={pathname} />
-          <Section title="AUDIO" items={audio} pathname={pathname} />
           <Section title="VIDEO" items={video} pathname={pathname} />
+          <Section title="AUDIO" items={audio} pathname={pathname} />
+          <Section title="UTILITIES" items={utilities} pathname={pathname} />
         </nav>
         <UserMenu variant="sidebar" />
       </aside>
@@ -355,10 +353,10 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             )}
           </AccountName>
           <nav className="mb-nav">
-            <Section title="UTILITIES" items={utilities} pathname={pathname} />
             <Section title="PHOTO" items={photo} pathname={pathname} />
-            <Section title="AUDIO" items={audio} pathname={pathname} />
             <Section title="VIDEO" items={video} pathname={pathname} />
+            <Section title="AUDIO" items={audio} pathname={pathname} />
+            <Section title="UTILITIES" items={utilities} pathname={pathname} />
           </nav>
           <div className="mb-foot">
             <Link href="/dashboard" className="mb-foot-link"><LayoutDashboard size={19} /> Dashboard</Link>
