@@ -24,6 +24,7 @@ export default function CreateStudio() {
   const model = models?.find((m) => m.id === modelId) ?? null;
   const [refs, setRefs] = useState<RefPick[]>([]);
   const [picking, setPicking] = useState(false);
+  const [noRefs, setNoRefs] = useState(false); // the chosen model takes no pictures: say so, with the models that do
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const box = useRef<HTMLTextAreaElement>(null);
@@ -53,6 +54,8 @@ export default function CreateStudio() {
   // A model takes only so many reference pictures; keep the choice within its limit.
   useEffect(() => { if (model && refs.length > model.maxReferences) setRefs((r) => r.slice(0, model.maxReferences)); }, [model, refs.length]);
   const needsRef = !!model?.requiresReference && refs.length === 0;
+  useEffect(() => { setNoRefs(false); }, [modelId]);
+  const refModels = (models ?? []).filter((m) => m.maxReferences > 0).map((m) => m.label);
 
   function pickModel(id: string) {
     setModelId(id);
@@ -136,11 +139,9 @@ export default function CreateStudio() {
           </div>
         )}
         <div className="cr-tools">
-          {(model?.maxReferences ?? 0) > 0 && (
-            <button type="button" className="cr-chip" onClick={() => setPicking(true)} title="Choose pictures the model should work from">
-              <Layers size={14} /> References{refs.length > 0 ? ` (${refs.length})` : ""}
-            </button>
-          )}
+          <button type="button" className="cr-chip" onClick={() => { if ((model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
+            <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
+          </button>
           <button type="button" className="cr-chip" title="Move this prompt to the Canvas"
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
@@ -162,8 +163,9 @@ export default function CreateStudio() {
           </button>
         </div>
       </form>
-      {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with References first.</p>}
+      {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with Ingredients first.</p>}
       {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
+      {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}
       {picking && model && <ReferencePicker max={model.maxReferences} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       <p className="cr-hint">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
