@@ -63,8 +63,19 @@
 .cr-empty { padding: 14px; gap: 8px; }
 .cr-empty p { font-size: 13px; }
 /* The prompt field: twice as tall, an inset field in the theme's input colour with its own border so it reads as a text field. */
-.cr-box textarea { min-height: 112px; max-height: 320px; padding: 12px 14px; border: 1px solid var(--a-line3); border-radius: 16px; background: var(--a-input); color: var(--a-fg); }
+.cr-box textarea { height: 48px; min-height: 0; max-height: none; padding: 0 42px 0 14px; border: 0; border-radius: 0; background: transparent; color: var(--a-fg); overflow-y: auto; }
 .cr-box textarea::placeholder { color: var(--a-ph); }
 /* Earlier renders: one fifth of the old area. */
 .cr-earlier { gap: 6px; margin-top: 18px; }
 .cr-earlier a { width: 32px; height: 32px; border-radius: 8px; }
+
+/* Two lines only; the expand button shows once the text needs more. */
+.cr-field { position: relative; padding: 12px 0; border: 1px solid var(--a-line3); border-radius: 16px; background: var(--a-input); }
+.cr-expand { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }
+.cr-expand:hover { background: var(--a-hover); color: var(--a-fg); }
+.cr-full { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--a-card); color: var(--a-fg); padding: env(safe-area-inset-top, 0px) 0 0; }
+.cr-full textarea { flex: 1; width: 100%; min-height: 0; resize: none; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 17px; line-height: 1.6; padding: 64px 20px 90px; }
+.cr-full textarea::placeholder { color: var(--a-ph); }
+.cr-full-x { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg2); cursor: pointer; }
+.cr-done { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; transition: background .2s, transform .18s; }
+.cr-done:hover { background: #d90b0b; }

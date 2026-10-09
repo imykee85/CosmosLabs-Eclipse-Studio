@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, ChevronLeft, ChevronRight, Coins, ImageIcon, Layers, Loader2, Workflow, X } from "lucide-react";
+import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, Layers, Loader2, Maximize2, Minimize2, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
@@ -62,13 +62,29 @@ export default function CreateStudio() {
     try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {}
   }
 
-  // Grow the box with its content, up to a limit.
+  // The prompt field shows two lines; once the text needs more, an expand button opens a full-screen editor.
+  const [overflowing, setOverflowing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const el = box.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
-  }, [prompt]);
+    if (el) setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [prompt, expanded]);
+  // Keep the editor (and its Done button) above the on-screen keyboard.
+  const [vvh, setVvh] = useState<number | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!expanded || !vv) return;
+    const fit = () => setVvh(vv.height);
+    fit();
+    vv.addEventListener("resize", fit);
+    return () => { vv.removeEventListener("resize", fit); setVvh(null); };
+  }, [expanded]);
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setExpanded(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
 
   async function generate() {
     const text = prompt.trim();
@@ -148,16 +164,21 @@ export default function CreateStudio() {
       <div className="cr-dock">
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); generate(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
-        <textarea
-          id="cr-prompt"
-          ref={box}
-          rows={2}
-          maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)}
-          placeholder="Describe the shot you imagine…"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={onKeyDown}
-        />
+        <div className="cr-field">
+          <textarea
+            id="cr-prompt"
+            ref={box}
+            rows={2}
+            maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)}
+            placeholder="Describe the shot you imagine…"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={onKeyDown}
+          />
+          {(overflowing || prompt.includes("\n")) && (
+            <button type="button" className="cr-expand" aria-label="Expand the prompt box" title="Expand" onClick={() => setExpanded(true)}><Maximize2 size={15} /></button>
+          )}
+        </div>
         {refs.length > 0 && (
           <div className="cr-refs" aria-label="Reference pictures">
             {refs.map((r, i) => (
@@ -209,6 +230,13 @@ export default function CreateStudio() {
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
+      {expanded && (
+        <div className="cr-full" style={vvh ? { height: vvh, bottom: "auto" } : undefined} role="dialog" aria-label="Write your prompt">
+          <button type="button" className="cr-full-x" aria-label="Back to the prompt box" title="Back" onClick={() => setExpanded(false)}><Minimize2 size={16} /></button>
+          <textarea autoFocus aria-label="Prompt" value={prompt} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder="Describe the shot you imagine…" onChange={(e) => setPrompt(e.target.value)} onFocus={(e) => e.currentTarget.setSelectionRange(prompt.length, prompt.length)} />
+          <button type="button" className="cr-done" aria-label="Done" title="Done" onClick={() => setExpanded(false)}><Check size={20} /></button>
+        </div>
+      )}
     </div>
   );
 }
