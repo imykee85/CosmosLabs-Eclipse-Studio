@@ -208,3 +208,11 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-btn:disabled { opacity: .55; cursor: not-allowed; }
 .cn-on { color: #3f8a1f; font-size: 13px; font-weight: 500; }
 .cn-plus.is-on { background: rgba(63,138,31,.18); color: #3f8a1f; }
+
+/* History and New chat: icon buttons at the top right of the screen, just below the header */
+.cn-corner { position: fixed; z-index: 14; top: 74px; right: 18px; display: flex; align-items: center; gap: 8px; }
+.cn-corner-btn { flex: none; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; transition: border-color .18s, background .18s, transform .12s; }
+.cn-corner-btn:hover { border-color: var(--a-line4); } .cn-corner-btn:active { transform: scale(.94); }
+.cn-corner-btn[aria-expanded="true"] { border-color: #c00707; }
+.cn-corner-pop { position: absolute; top: 48px; right: 0; width: min(340px, calc(100vw - 36px)); margin: 0; max-height: min(60vh, 420px); }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cn-corner { top: 68px; right: 14px; } }

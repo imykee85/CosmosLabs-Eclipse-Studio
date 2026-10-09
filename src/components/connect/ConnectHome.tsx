@@ -145,6 +145,27 @@ function ConnectChat() {
 
   return (
     <div className={`cn-wrap cn-chat ${chatting ? "is-chatting" : ""}`}>
+      <div className="cn-corner">
+        <button type="button" className="cn-corner-btn" onClick={showHistory} aria-expanded={historyOpen} aria-label="History" title="History"><Clock size={18} /></button>
+        {chatting && <button type="button" className="cn-corner-btn" onClick={fresh} aria-label="New chat" title="New chat"><SquarePen size={18} /></button>}
+        {historyOpen && (
+        <div className="cn-pop cn-corner-pop" role="dialog" aria-label="Your chats">
+          {history === null ? <p className="cn-pop-note">Loading…</p> : history.length === 0 ? <p className="cn-pop-note">No chats yet.</p> : (
+            <ul>
+              {history.map((c) => (
+                <li key={c.id} className={c.id === chatId ? "is-on" : ""}>
+                  <button type="button" className="cn-pop-main" onClick={() => { setHistoryOpen(false); open(c.id); window.history.replaceState(null, "", `/connect?chat=${c.id}`); }}>
+                    <b>{c.title}</b><small>{new Date(c.updatedAt).toLocaleString()}</small>
+                  </button>
+                  <button type="button" className="cn-pop-del" aria-label={`Delete ${c.title}`} onClick={() => drop(c.id)}><Trash2 size={16} /></button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        )}
+      </div>
+
       {chatting ? (
         <>
           <ChatThread lines={lines} busy={busy} grew={scrollEnd} />
@@ -167,26 +188,7 @@ function ConnectChat() {
           <Link href="/connect/apps" className="cn-chip">
             <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connectors
           </Link>
-          <button type="button" className="cn-chip" onClick={showHistory} aria-expanded={historyOpen}><Clock size={15} /> History</button>
-          {chatting && <button type="button" className="cn-chip" onClick={fresh}><SquarePen size={15} /> New chat</button>}
         </div>
-
-        {historyOpen && (
-          <div className="cn-pop" role="dialog" aria-label="Your chats">
-            {history === null ? <p className="cn-pop-note">Loading…</p> : history.length === 0 ? <p className="cn-pop-note">No chats yet.</p> : (
-              <ul>
-                {history.map((c) => (
-                  <li key={c.id} className={c.id === chatId ? "is-on" : ""}>
-                    <button type="button" className="cn-pop-main" onClick={() => { setHistoryOpen(false); open(c.id); window.history.replaceState(null, "", `/connect?chat=${c.id}`); }}>
-                      <b>{c.title}</b><small>{new Date(c.updatedAt).toLocaleString()}</small>
-                    </button>
-                    <button type="button" className="cn-pop-del" aria-label={`Delete ${c.title}`} onClick={() => drop(c.id)}><Trash2 size={16} /></button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
 
         {attachOpen && (
           <div className="cn-pop cn-attach" role="dialog" aria-label="Attach pictures from your Library">
