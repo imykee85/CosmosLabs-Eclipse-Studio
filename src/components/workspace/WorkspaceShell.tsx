@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, User, Video, Volume2, Workflow, X,
+  ArrowLeft, ChevronDown, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, User, Video, Volume2, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -21,7 +21,6 @@ import "@/components/app-theme.css";
 import { rememberPage } from "@/lib/last-page";
 import { LIBRARY_KINDS } from "@/lib/library";
 import { listProjects, readCurrentProject, readCurrentProjectName, setCurrentProject, timeAgo, type Project } from "@/lib/projects";
-import { tutorialHref } from "@/lib/tutorial";
 import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
@@ -318,7 +317,6 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <Link href="/dashboard" className="ws-back"><ArrowLeft size={15} /> Dashboard</Link>
           {project && <span className="ws-project" title="Current project">{project}</span>}
           <div className="ws-topbar-right">
-            <Link href={tutorialHref(pathname)} className="ws-pill"><GraduationCap size={15} /> Tutorial</Link>
             <CreditsPill className="ws-pill ws-pill-solid" />
             <ThemeToggle className="ws-icon-btn" />
             <NotificationsButton className="ws-icon-btn" />
