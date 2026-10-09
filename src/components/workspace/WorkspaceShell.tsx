@@ -11,7 +11,7 @@ import {
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
 import AgentIcon from "@/components/AgentIcon";
-import ConnectIcon from "@/components/ConnectIcon";
+import ConnectMark from "@/components/ConnectMark";
 import ImageStudioIcon from "@/components/ImageStudioIcon";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
@@ -25,7 +25,7 @@ import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number };
 
-const connectItem: Item = { label: "Connect", hint: "Share and link your apps", href: "/connect", icon: <ConnectIcon size={17} /> };
+const connectItem: Item = { label: "Connect", hint: "Share and link your apps", href: "/connect", icon: <ConnectMark size={20} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
 const photo: Item[] = [
@@ -338,7 +338,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         <HomeTab pathname={pathname} />
         <CreateTab pathname={pathname} />
         <LibraryTab pathname={pathname} />
-        <Link href="/connect" className={`mb-tab ${pathname.startsWith("/connect") ? "is-active" : ""}`}><span className="mb-tab-icon"><ConnectIcon size={21} /></span><span>Connect</span></Link>
+        <Link href="/connect" className={`mb-tab ${pathname.startsWith("/connect") ? "is-active" : ""}`}><span className="mb-tab-icon"><ConnectMark size={22} /></span><span>Connect</span></Link>
       </nav>
 
       <div className={`mb-drawer ${drawer ? "is-open" : ""}`} aria-hidden={!drawer}>
