@@ -4,8 +4,9 @@ import { toItem, type RenderItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
 import { chargeFor, findEnabledModel } from "@/lib/models";
 import { checkPrompt } from "@/lib/moderation";
+import { parseReferenceRefs, resolveReferences } from "@/lib/references";
 
-export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown };
+export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown };
 export type StartRenderResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string };
 
 // The one place a render is validated and started, used by POST /api/generate and by the Connect agent, so both are
@@ -23,7 +24,14 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   const model = findEnabledModel(input.model);
   if (!model) return { ok: false, status: 400, error: "That model is not available." };
   if (prompt.length > model.maxPrompt) return { ok: false, status: 400, error: `${model.label} accepts prompts up to ${model.maxPrompt} characters (yours is ${prompt.length}).` };
-  if (model.requiresReference) return { ok: false, status: 400, error: `${model.label} needs a reference image, which cannot be sent from here yet.` };
+
+  // Reference pictures: ids of the user's own uploads and renders, checked against the model's limits.
+  const refs = parseReferenceRefs(input.references);
+  if (!refs) return { ok: false, status: 400, error: "The reference pictures were not understood." };
+  if (refs.length > model.maxReferences) {
+    return { ok: false, status: 400, error: model.maxReferences === 0 ? `${model.label} does not take reference pictures.` : `${model.label} accepts up to ${model.maxReferences} reference picture${model.maxReferences > 1 ? "s" : ""} (you chose ${refs.length}).` };
+  }
+  if (model.requiresReference && refs.length === 0) return { ok: false, status: 400, error: `${model.label} edits a picture. Choose at least one reference picture.` };
 
   const projectId = typeof input.projectId === "string" && input.projectId.length <= 64 ? input.projectId : null;
 
@@ -43,10 +51,13 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
     if (have < cost) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits and you have ${have}. Ask the owner to add more credits.` };
   }
 
+  const resolved = await resolveReferences(userId, refs);
+  if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
+
   try {
-    const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution });
+    const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: resolved.urls });
     const generation = await db.generation.create({
-      data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd },
+      data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, references: refs.length ? refs : undefined },
     });
     return { ok: true, item: await toItem(generation) };
   } catch (err) {

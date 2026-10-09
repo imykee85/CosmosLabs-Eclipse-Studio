@@ -2,7 +2,7 @@
 // Confirmed live for Soul 2 only (POST /<endpoint> with `Authorization: Key <key>`, answer carries request_id and
 // status_url, poll GET /requests/<id>/status until "completed" with images[0].url). docs.higgsfield.ai is not
 // reachable from the build sandbox, so the other models' request bodies are unverified.
-import { endpointFor, type ImageModel } from "./models";
+import { endpointFor, referenceBody, type ImageModel } from "./models";
 import type { ImageProvider, ProviderStatus, SubmitResult } from "./providers/types";
 
 const BASE_URL = process.env.HIGGSFIELD_BASE_URL ?? "https://platform.higgsfield.ai";
@@ -80,13 +80,13 @@ export const higgsfield: ImageProvider = {
   },
 };
 
-export type GenerateInput = { model: ImageModel; prompt: string; aspectRatio?: string; resolution?: string };
+export type GenerateInput = { model: ImageModel; prompt: string; aspectRatio?: string; resolution?: string; references?: string[] };
 
 // Starts a render on the model's own endpoint and returns at once; never substitutes another model. The render keeps
 // running at Higgsfield whether or not anyone is watching, and is picked up later with higgsfield.status(statusUrl).
 export async function startGeneration(input: GenerateInput, provider: ImageProvider = higgsfield): Promise<SubmitResult> {
   const { model, prompt, aspectRatio } = input;
   const resolution = input.resolution ?? model.defaultResolution;
-  const body = { ...model.extraBody, prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) };
+  const body = { ...model.extraBody, prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}), ...referenceBody(model, input.references ?? []) };
   return withSlot(() => provider.submit(endpointFor(model), body, crypto.randomUUID()));
 }

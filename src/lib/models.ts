@@ -4,7 +4,7 @@
 // `verified` means a real render passed through this app. Only soul_v2 has. Every model's fields come from its Higgsfield
 // request page, but the others have not been test-rendered; they are all switched on at the owner's request so they can be
 // tried from the picker. To hide one that fails, set `enabled: false` on its entry (HIGGSFIELD_ENABLED_MODELS can still
-// add disabled entries back without a code change). Models that need an input image are kept out of the picker.
+// add disabled entries back without a code change). Edit models (requiresReference) are listed too; Image Studio asks for a picture before it will run them.
 // HIGGSFIELD_ENDPOINT_<ID> (id upper-cased) overrides an endpoint without a code change.
 
 export type ImageModel = {
@@ -18,8 +18,10 @@ export type ImageModel = {
   defaultResolution?: string;  // the cheapest tier, sent when the request names none
   maxPrompt: number;           // longest prompt the model accepts, in characters
   maxBatch: number;
-  maxReferences: number;       // reference images the model accepts (none are sent yet)
-  requiresReference: boolean;  // needs an input image; kept out of the pickers until the app can send one
+  maxReferences: number;       // reference pictures the model accepts (0: it takes none)
+  requiresReference: boolean;  // needs at least one reference picture to run (edit models)
+  referenceField?: string;     // request field the pictures go in (default image_urls); UNVERIFIED per model, see referenceBody
+  referenceStyle?: "urls" | "url" | "objects"; // how the field is shaped (default urls)
   extraBody?: Record<string, unknown>;  // fixed fields sent with every request (e.g. the cheapest quality tier)
   enabled: boolean;
   verified: boolean;
@@ -103,12 +105,28 @@ export function chargeFor(model: ImageModel | undefined): number | null {
   return model?.creditCost ?? null;
 }
 
+// How reference pictures are added to a request. Higgsfield documents this per model and docs.higgsfield.ai cannot be
+// reached from the build sandbox, so the field name and shape are defaults that a model entry (referenceField,
+// referenceStyle) or the environment can correct without touching the code:
+//   HIGGSFIELD_REFERENCE_FIELD_<ID>=input_images   HIGGSFIELD_REFERENCE_STYLE_<ID>=urls | url | objects
+//   urls:    "field": ["https://...", ...]          url: "field": "https://..." (first picture only)
+//   objects: "field": [{ "type": "image_url", "image_url": "https://..." }, ...]
+export function referenceBody(model: ImageModel, urls: string[]): Record<string, unknown> {
+  if (urls.length === 0) return {};
+  const key = model.id.toUpperCase();
+  const field = process.env[`HIGGSFIELD_REFERENCE_FIELD_${key}`] ?? model.referenceField ?? "image_urls";
+  const style = (process.env[`HIGGSFIELD_REFERENCE_STYLE_${key}`] ?? model.referenceStyle ?? "urls") as "urls" | "url" | "objects";
+  if (style === "url") return { [field]: urls[0] };
+  if (style === "objects") return { [field]: urls.map((u) => ({ type: "image_url", image_url: u })) };
+  return { [field]: urls };
+}
+
 export function endpointFor(model: ImageModel): string {
   return process.env[`HIGGSFIELD_ENDPOINT_${model.id.toUpperCase()}`] ?? model.endpoint;
 }
 
 // What the pickers need, with no server-only fields.
-export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "maxBatch" | "maxPrompt" | "verified"> & { credits: number | null };
+export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "maxBatch" | "maxPrompt" | "verified" | "maxReferences" | "requiresReference"> & { credits: number | null };
 export function toPublic(model: ImageModel): PublicModel {
-  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, credits: chargeFor(model) };
+  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, maxReferences: model.maxReferences, requiresReference: model.requiresReference, credits: chargeFor(model) };
 }

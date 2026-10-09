@@ -37,3 +37,10 @@
 @media (prefers-reduced-motion: reduce) { .cr-spin { animation-duration: 3s; } }
 
 .cr-cost { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.4); font-weight: 600; }
+
+/* Chosen reference pictures, shown inside the prompt box */
+.cr-refs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.cr-ref { position: relative; width: 56px; height: 56px; }
+.cr-ref img { width: 100%; height: 100%; object-fit: cover; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-card); }
+.cr-ref button { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-bg); color: var(--a-fg); cursor: pointer; }
+.cr-ref button:hover { border-color: #c00707; }

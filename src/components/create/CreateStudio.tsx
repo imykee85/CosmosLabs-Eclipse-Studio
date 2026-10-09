@@ -2,12 +2,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Coins, ImageIcon, Layers, Loader2, Workflow } from "lucide-react";
+import { ArrowUp, Coins, ImageIcon, Layers, Loader2, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
+import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import "./create.css";
 
 // Widest the preview gets for each shape, so tall ones do not run off the screen.
@@ -18,9 +19,11 @@ export default function CreateStudio() {
   const router = useRouter();
   const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
   const [ratio, setRatio] = useState("1:1");
-  const models = useModels();
+  const models = useModels({ edit: true });
   const [modelId, setModelId] = useState("");
   const model = models?.find((m) => m.id === modelId) ?? null;
+  const [refs, setRefs] = useState<RefPick[]>([]);
+  const [picking, setPicking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const box = useRef<HTMLTextAreaElement>(null);
@@ -47,6 +50,10 @@ export default function CreateStudio() {
     if (model && !model.ratios.includes(ratio)) setRatio(model.ratios[0]);
   }, [model, ratio]);
 
+  // A model takes only so many reference pictures; keep the choice within its limit.
+  useEffect(() => { if (model && refs.length > model.maxReferences) setRefs((r) => r.slice(0, model.maxReferences)); }, [model, refs.length]);
+  const needsRef = !!model?.requiresReference && refs.length === 0;
+
   function pickModel(id: string) {
     setModelId(id);
     try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {}
@@ -69,7 +76,7 @@ export default function CreateStudio() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id, projectId: readCurrentProject()?.id }),
+        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id, projectId: readCurrentProject()?.id, references: refs.map((r) => ({ type: r.type, id: r.id })) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -110,10 +117,23 @@ export default function CreateStudio() {
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={onKeyDown}
         />
+        {refs.length > 0 && (
+          <div className="cr-refs" aria-label="Reference pictures">
+            {refs.map((r) => (
+              <span key={`${r.type}-${r.id}`} className="cr-ref" title={r.label}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.url} alt={r.label} />
+                <button type="button" aria-label={`Remove ${r.label}`} onClick={() => setRefs((l) => l.filter((x) => !(x.type === r.type && x.id === r.id)))}><X size={12} /></button>
+              </span>
+            ))}
+          </div>
+        )}
         <div className="cr-tools">
-          <button type="button" className="cr-chip">
-            <Layers size={14} /> Ingredients
-          </button>
+          {(model?.maxReferences ?? 0) > 0 && (
+            <button type="button" className="cr-chip" onClick={() => setPicking(true)} title="Choose pictures the model should work from">
+              <Layers size={14} /> References{refs.length > 0 ? ` (${refs.length})` : ""}
+            </button>
+          )}
           <button type="button" className="cr-chip" title="Move this prompt to the Canvas"
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
             <Workflow size={14} /> Open in canvas
@@ -130,11 +150,13 @@ export default function CreateStudio() {
               {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
-          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model}>
+          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
             {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null ? <>Generate <span className="cr-cost" title={`${model.credits} credits`}><Coins size={14} />{model.credits}</span></> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>
+      {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with References first.</p>}
+      {picking && model && <ReferencePicker max={model.maxReferences} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       <p className="cr-hint">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
