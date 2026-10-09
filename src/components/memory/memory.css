@@ -80,7 +80,8 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 
 /* Import dialog (bring memory over from another assistant) */
 .mm-imp { width: min(480px, 100%); padding: 22px; }
-.mm-imp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.mm-imp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.mm-imp-crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--a-muted); font-size: 15px; } .mm-imp-crumbs b { overflow: hidden; color: var(--a-fg); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .mm-imp-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
 .mm-imp-round { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%; background: var(--a-active); color: var(--a-fg); cursor: pointer; transition: background .18s, transform .12s; }
 .mm-imp-round:hover:not(:disabled) { background: var(--a-line2); } .mm-imp-round:active { transform: scale(.94); }
@@ -101,3 +102,18 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 .mm-imp-prompt p { margin: 0 !important; max-height: 96px; overflow-y: auto; color: var(--a-fg2, var(--a-fg)); font-size: 13px !important; line-height: 1.45 !important; }
 .mm-imp-prompt .cn-btn { justify-self: start; height: 36px; }
 .mm-imp-err { margin: 0 0 8px !important; color: var(--a-redtext); }
+
+/* Source screen: the prompt typed into a mock message box, then the link between the source and Eclipse */
+.mm-imp-mock { position: relative; margin: 10px 0 18px; padding: 26px 14px 14px; border: 1px solid var(--a-line2); border-radius: 20px; background: var(--a-input); }
+.mm-imp-mock-title { position: absolute; top: 8px; left: 16px; color: var(--a-muted2); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.mm-imp-mock-box { height: 128px; overflow: hidden; padding: 12px 14px; border: 1px solid var(--a-line3); border-radius: 14px; background: var(--a-card); }
+.mm-imp-mock-box p { margin: 0 !important; color: var(--a-fg); font-size: 13px !important; line-height: 1.55 !important; }
+.mm-imp-caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--a-fg); animation: mm-blink 1s steps(2) infinite; }
+@keyframes mm-blink { 50% { opacity: 0; } }
+.mm-imp-link { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 14px; }
+.mm-imp-eclipse { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-input); }
+.mm-imp-dashes { width: 96px; height: 4px; background: repeating-linear-gradient(90deg, var(--a-muted2) 0 12px, transparent 12px 20px); background-size: 20px 4px; animation: mm-flow 1.1s linear infinite; border-radius: 2px; }
+@keyframes mm-flow { to { background-position: 20px 0; } }
+.mm-imp-go { display: flex; justify-content: center; margin-top: 6px; } .mm-imp-go .cn-btn { height: 46px; padding: 0 30px; font-size: 16px; }
+.mm-imp-note { margin: 0 0 14px !important; } .mm-imp-again { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: var(--a-fg); font: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .mm-imp-dashes, .mm-imp-caret { animation: none; } }
