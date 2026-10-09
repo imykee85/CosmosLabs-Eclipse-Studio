@@ -40,7 +40,7 @@ export default function MotionDetail({ item }: { item: MotionPrompt }) {
               <button type="button" className="mo-copy" onClick={copy}>{copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy prompt</>}</button>
             </>
           )}
-          <a className="mo-source" href={postUrl(item)} target="_blank" rel="noopener noreferrer">View original on X <ExternalLink size={4} /></a>
+          <a className="mo-source" href={postUrl(item)} target="_blank" rel="noopener noreferrer">View original on X <ExternalLink size={2} /></a>
         </div>
       </div>
     </div>
