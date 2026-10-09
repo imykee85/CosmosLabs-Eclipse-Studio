@@ -1,10 +1,11 @@
 "use client";
 
 import CreditsPill from "@/components/CreditsPill";
+import ImageStudioIcon from "@/components/ImageStudioIcon";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  Award, Brain, Clapperboard, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, Paintbrush, Play, Puzzle, Settings, User, Workflow, Wrench, X,
+  Award, Brain, Clapperboard, FolderOpen, Images, Layers, LayoutDashboard, LayoutGrid, Library, Play, Puzzle, Settings, User, Workflow, Wrench, X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
@@ -19,7 +20,7 @@ import "./tutorial.css";
 
 // The back button wears the icon of the page it returns to (Dashboard uses the same icon as the menu).
 const ORIGIN_ICONS: Record<string, LucideIcon | typeof AgentIcon> = {
-  "/dashboard": LayoutDashboard, "/project": Clapperboard, "/create": Paintbrush, "/gallery": Images, "/library": Library,
+  "/dashboard": LayoutDashboard, "/project": Clapperboard, "/create": ImageStudioIcon, "/gallery": Images, "/library": Library,
   "/ingredients": Layers, "/canvas": Workflow, "/memory": Brain, "/skills": Puzzle, "/generate": Clapperboard, "/tools": Wrench, "/agents": AgentIcon, "/assets": FolderOpen, "/avatars": User, "/portfolio": LayoutGrid,
   "/certificates": Award, "/settings": Settings,
 };

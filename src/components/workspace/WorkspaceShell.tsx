@@ -6,12 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, Paintbrush, Settings, User, Video, Volume2, Workflow, X,
+  ArrowLeft, ChevronDown, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, Settings, User, Video, Volume2, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
 import AgentIcon from "@/components/AgentIcon";
 import ConnectIcon from "@/components/ConnectIcon";
+import ImageStudioIcon from "@/components/ImageStudioIcon";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -28,7 +29,7 @@ const connectItem: Item = { label: "Connect", hint: "Share and link your apps", 
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
 const photo: Item[] = [
-  { label: "Image Studio", hint: "Write a prompt", href: "/create", icon: <Paintbrush size={17} /> },
+  { label: "Image Studio", hint: "Write a prompt", href: "/create", icon: <ImageStudioIcon size={22} /> },
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
   { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> },
 ];
