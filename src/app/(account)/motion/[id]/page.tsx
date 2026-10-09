@@ -3,7 +3,7 @@ import MotionDetail from "@/components/motion/MotionDetail";
 import { findMotion, motionPrompts } from "@/lib/motion";
 
 export function generateStaticParams() {
-  return motionPrompts.map((p) => ({ id: p.id }));
+  return motionPrompts.filter((p) => p.video || p.preview || p.prompt).map((p) => ({ id: p.id }));
 }
 
 export default function MotionDetailPage({ params }: { params: { id: string } }) {

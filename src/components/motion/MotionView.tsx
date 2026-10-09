@@ -2,30 +2,53 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import { MOTION_TAGS, motionPrompts } from "@/lib/motion";
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLink } from "lucide-react";
+import { MOTION_TAGS, motionPrompts, orderedMotion, postUrl, tagCount, type MotionPrompt } from "@/lib/motion";
 import MotionMedia from "./MotionMedia";
 import "./motion.css";
 
 // Motion graphics: a filterable feed of motion prompts, adapted from the user's Prompt Motion project (their own Manus build).
-// The filters live in the address (?type=prompt|skill&tag=<topic>&sort=popular|newest|title) so a view can be shared and the
-// back button restores it. Each card is just the video; it and "Prompt" open /motion/<id>.
+// Topic chips show how many videos each topic holds; filters live in the address (?tag=<topic>&sort=popular|newest|title) so a
+// view can be shared and the back button restores it. A card with a clip plays it and opens /motion/<id>; a card that only has
+// the creator's link opens the post on X. Shown in pages of PAGE so the feed stays light.
 const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const PAGE = 24;
+
+function Card({ p, paused }: { p: MotionPrompt; paused: boolean }) {
+  const playable = !!(p.video || p.preview);
+  return (
+    <li className="mo-item">
+      {playable ? (
+        <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title ?? `@${p.handle}`}`}><MotionMedia item={p} paused={paused} /></Link>
+      ) : (
+        <a href={postUrl(p)} target="_blank" rel="noopener noreferrer" className="mo-media-link mo-link-only" aria-label={`Watch @${p.handle}'s video on X`}>
+          <span className="mo-tile mo-empty-tile" style={{ aspectRatio: p.ratio ?? "16 / 9" }}><span>Watch on X <ExternalLink size={12} /></span></span>
+        </a>
+      )}
+      <div className="mo-meta">
+        <span><b>@{p.handle}</b></span>
+        {playable ? <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open the prompt for ${p.title ?? p.handle}`}>Prompt</Link> : <a className="mo-kind" href={postUrl(p)} target="_blank" rel="noopener noreferrer">X</a>}
+      </div>
+    </li>
+  );
+}
 
 export default function MotionView() {
   const router = useRouter();
-  const [paused, setPaused] = useState(false);
   const pathname = usePathname();
   const q = useSearchParams();
+  const [paused, setPaused] = useState(false);
+  const [shown, setShown] = useState(PAGE);
 
-  const kind = q.get("type") === "skill" ? "skill" : "prompt";
   const tag = MOTION_TAGS.find((t) => slug(t) === q.get("tag")) ?? null;
   const sortParam = q.get("sort");
   const sort = sortParam === "newest" || sortParam === "title" ? sortParam : "popular";
 
-  function setView(next: { type?: string; tag?: string | null; sort?: string }) {
+  useEffect(() => setShown(PAGE), [tag, sort]);
+
+  function setView(next: { tag?: string | null; sort?: string }) {
     const p = new URLSearchParams(q.toString());
-    if (next.type !== undefined) { if (next.type === "prompt") p.delete("type"); else p.set("type", next.type); }
     if (next.tag !== undefined) { if (next.tag) p.set("tag", next.tag); else p.delete("tag"); }
     if (next.sort !== undefined) { if (next.sort === "popular") p.delete("sort"); else p.set("sort", next.sort); }
     const s = p.toString();
@@ -33,11 +56,11 @@ export default function MotionView() {
   }
 
   const items = useMemo(() => {
-    const list = kind === "skill" ? [] : motionPrompts.filter((p) => !tag || p.tags.includes(tag));
-    if (sort === "title") return [...list].sort((a, b) => a.title.localeCompare(b.title));
+    const list = orderedMotion.filter((p) => !tag || p.tags.includes(tag));
+    if (sort === "title") return [...list].sort((a, b) => (a.title ?? a.handle).localeCompare(b.title ?? b.handle));
     if (sort === "newest") return [...list].reverse();
     return list;
-  }, [kind, tag, sort]);
+  }, [tag, sort]);
 
   return (
     <div className="mo">
@@ -47,10 +70,7 @@ export default function MotionView() {
       </header>
 
       <div className="mo-filter">
-        <div className="mo-seg" role="group" aria-label="Type">
-          <button type="button" aria-pressed={kind === "prompt"} onClick={() => setView({ type: "prompt" })}>Prompt</button>
-          <button type="button" aria-pressed={kind === "skill"} onClick={() => setView({ type: "skill" })}>Skill</button>
-        </div>
+        <span className="mo-count">{items.length} {items.length === 1 ? "video" : "videos"}</span>
         <div className="mo-filter-right">
           <select className="mo-sort" aria-label="Sort" value={sort} onChange={(e) => setView({ sort: e.target.value })}>
             <option value="popular">Popular</option>
@@ -61,24 +81,17 @@ export default function MotionView() {
         </div>
       </div>
       <div className="mo-tags" role="group" aria-label="Topics">
-        <button type="button" aria-pressed={tag === null} onClick={() => setView({ tag: null })}>All</button>
-        {MOTION_TAGS.map((t) => <button key={t} type="button" aria-pressed={tag === t} onClick={() => setView({ tag: tag === t ? null : slug(t) })}>{t}</button>)}
+        <button type="button" aria-pressed={tag === null} onClick={() => setView({ tag: null })}>All <i>{motionPrompts.length}</i></button>
+        {MOTION_TAGS.map((t) => <button key={t} type="button" aria-pressed={tag === t} onClick={() => setView({ tag: tag === t ? null : slug(t) })}>{t} <i>{tagCount(t)}</i></button>)}
       </div>
 
       {items.length === 0 ? (
-        <p className="mo-empty">{kind === "skill" ? "Motion skills are coming soon." : "Nothing under this topic yet."}</p>
+        <p className="mo-empty">Nothing under this topic yet.</p>
       ) : (
-        <ul className="mo-grid">
-          {items.map((p) => (
-            <li key={p.id} className="mo-item">
-              <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title}`}><MotionMedia item={p} paused={paused} /></Link>
-              <div className="mo-meta">
-                <span><b>@{p.handle}</b></span>
-                <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open the prompt for ${p.title}`}>Prompt</Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="mo-grid">{items.slice(0, shown).map((p) => <Card key={p.id} p={p} paused={paused} />)}</ul>
+          {shown < items.length && <button type="button" className="mo-more" onClick={() => setShown((n) => n + PAGE)}>Show more ({items.length - shown} left)</button>}
+        </>
       )}
     </div>
   );

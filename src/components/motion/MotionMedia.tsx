@@ -18,6 +18,6 @@ export default function MotionMedia({ item, paused = false, controls = false }: 
     return () => io.disconnect();
   }, [paused, controls, src]);
 
-  if (!src) return <span className="mo-tile" style={{ aspectRatio: item.ratio }} />;
-  return <video ref={ref} className="mo-tile mo-video" style={{ aspectRatio: item.ratio }} src={src} poster={item.poster} muted={!controls} loop={!controls} playsInline controls={controls} preload={controls ? "metadata" : "none"} aria-label={item.title} />;
+  if (!src) return <span className="mo-tile" style={{ aspectRatio: item.ratio ?? "16 / 9" }} />;
+  return <video ref={ref} className="mo-tile mo-video" style={{ aspectRatio: item.ratio ?? "16 / 9" }} src={src} poster={item.poster} muted={!controls} loop={!controls} playsInline controls={controls} preload={controls ? "metadata" : "none"} aria-label={item.title} />;
 }

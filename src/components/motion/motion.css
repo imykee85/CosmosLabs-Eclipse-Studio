@@ -63,3 +63,11 @@
 .mo-meta > span { min-width: 0; overflow: hidden; }
 .mo-meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mo-kind { flex: none; }
+
+.mo-tags button i { margin-left: 4px; color: var(--a-muted2); font-size: 12px; font-style: normal; }
+.mo-tags button[aria-pressed="true"] i { color: var(--a-muted); }
+.mo-count { color: var(--a-muted); font-size: 14px; }
+.mo-empty-tile { display: grid; place-items: center; color: var(--a-muted); font-size: 13px; }
+.mo-empty-tile span { display: inline-flex; align-items: center; gap: 5px; }
+.mo-more { display: block; margin: 12px auto 0; height: 42px; padding: 0 22px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; cursor: pointer; }
+.mo-more:hover { border-color: var(--a-line4); }
