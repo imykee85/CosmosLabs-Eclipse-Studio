@@ -30,7 +30,7 @@ export default function MotionDetail({ item }: { item: MotionPrompt }) {
             <div><dt>Model</dt><dd>{item.model}</dd></div>
             <div><dt>Tries</dt><dd>{item.tries}</dd></div>
             <div><dt>Topics</dt><dd>{item.tags.join(", ")}</dd></div>
-            <div><dt>By</dt><dd><a href={postUrl(item)} target="_blank" rel="noopener noreferrer" title="Open the original post on X">{item.name} (@{item.handle})</a></dd></div>
+            <div><dt>By</dt><dd>{item.name} (<a className="mo-handle-link" href={postUrl(item)} target="_blank" rel="noopener noreferrer" title="Open the original post on X">@{item.handle}</a>)</dd></div>
             <div><dt>Posted</dt><dd>{item.posted}</dd></div>
           </dl>
           {item.prompt && (
