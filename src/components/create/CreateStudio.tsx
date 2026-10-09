@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, Layers, Loader2, Maximize2, Minimize2, Workflow, X } from "lucide-react";
+import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Workflow, X } from "lucide-react";
 import { seedFromPrompt } from "@/lib/canvas";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
@@ -13,12 +13,24 @@ import "./create.css";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 215, "4:5": 188, "9:16": 134, "16:9": 304 };
+// Quality tiers on offer. A model takes the ones it can render: 1K and 2K and 4K by name, and Soul's 720p and 1080p
+// stand in for 1K and 1.5K. Tiers a model cannot make are greyed out rather than guessed.
+const TIERS = [{ id: "1k", label: "1K" }, { id: "1.5k", label: "1.5K" }, { id: "2k", label: "2K" }, { id: "4k", label: "4K" }];
+const MAX_QTY = 4;
+function tierResolution(resolutions: string[], tier: string): string | undefined {
+  if (resolutions.includes(tier)) return tier;
+  if (tier === "1k" && resolutions.includes("720p")) return "720p";
+  if (tier === "1.5k" && resolutions.includes("1080p")) return "1080p";
+  return undefined;
+}
 const previewWidth = (r: string) => PREVIEW_WIDTH[r] ?? 215;
 
 export default function CreateStudio() {
   const router = useRouter();
   const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
   const [ratio, setRatio] = useState("1:1");
+  const [qty, setQty] = useState(1);
+  const [tier, setTier] = useState("1k");
   const models = useModels({ edit: true });
   const [modelId, setModelId] = useState("");
   const model = models?.find((m) => m.id === modelId) ?? null;
@@ -50,6 +62,12 @@ export default function CreateStudio() {
   useEffect(() => {
     if (model && !model.ratios.includes(ratio)) setRatio(model.ratios[0]);
   }, [model, ratio]);
+  // Keep the chosen quality to one the model can render; otherwise fall back to its first.
+  useEffect(() => {
+    if (!model || !model.resolutions.length || tierResolution(model.resolutions, tier)) return;
+    const first = TIERS.find((t) => tierResolution(model.resolutions, t.id));
+    if (first) setTier(first.id);
+  }, [model, tier]);
 
   // A model takes only so many reference pictures; keep the choice within its limit.
   useEffect(() => { if (model && refs.length > model.maxReferences) setRefs((r) => r.slice(0, model.maxReferences)); }, [model, refs.length]);
@@ -92,15 +110,17 @@ export default function CreateStudio() {
     setError("");
     setSubmitting(true);
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id, projectId: readCurrentProject()?.id, references: refs.map((r) => ({ type: r.type, id: r.id })) }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again.");
-      }
+      const resolution = model.resolutions.length ? tierResolution(model.resolutions, tier) : undefined;
+      const body = JSON.stringify({ prompt: text, aspectRatio: ratio, model: model.id, resolution, projectId: readCurrentProject()?.id, references: refs.map((r) => ({ type: r.type, id: r.id })) });
+      // Each image is its own render, started side by side.
+      const results = await Promise.all(Array.from({ length: qty }, async () => {
+        const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, error: res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again." };
+      }));
+      const failed = results.find((r) => !r.ok);
+      if (failed && results.every((r) => !r.ok)) throw new Error(failed.error);
+      if (failed) setError(`${results.filter((r) => !r.ok).length} of ${qty} images could not be started: ${failed.error}`);
       setPrompt("");
       await reload();
     } catch (e) {
@@ -198,31 +218,42 @@ export default function CreateStudio() {
           </div>
         )}
         <div className="cr-tools">
-          <div className="cr-row">
+          <div className="cr-row cr-row-top">
           <button type="button" className="cr-chip" onClick={() => { if ((model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
-          <button type="button" className="cr-chip" title="Move this prompt to the Canvas"
+          <button type="button" className="cr-chip" aria-label="Open in canvas" title="Move this prompt to the Canvas"
             onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
-            <Workflow size={14} /> Open in canvas
+            <Workflow size={14} /> <span className="cr-lbl">Open in canvas</span>
           </button>
-          </div>
-          <div className="cr-row">
           <label className="cr-chip cr-select" title={model?.blurb}>
             <span className="sr-only">Image model</span>
             <select value={modelId} onChange={(e) => pickModel(e.target.value)} aria-label="Image model">
               {(models ?? []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label>
+          </div>
+          <div className="cr-row">
           <label className="cr-chip cr-select">
             <span className="sr-only">Aspect ratio</span>
             <select value={ratio} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio">
               {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
+          <div className="cr-qty" role="group" aria-label="Number of images">
+            <button type="button" aria-label="Fewer images" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus size={14} /></button>
+            <span aria-live="polite">{qty}</span>
+            <button type="button" aria-label="More images" disabled={qty >= MAX_QTY} onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}><Plus size={14} /></button>
+          </div>
+          <label className="cr-chip cr-select" title={model && !model.resolutions.length ? "This model has one fixed quality" : "Image quality"}>
+            <span className="sr-only">Image quality</span>
+            <select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="Image quality" disabled={!model || !model.resolutions.length}>
+              {TIERS.map((t) => <option key={t.id} value={t.id} disabled={!!model?.resolutions.length && !tierResolution(model.resolutions, t.id)}>{t.label}</option>)}
+            </select>
+          </label>
           </div>
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null ? <>Generate <span className="cr-cost" title={`${model.credits} credits`}><Coins size={14} />{model.credits}</span></> : <>Generate <ArrowUp size={16} /></>}
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>

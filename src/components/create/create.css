@@ -84,3 +84,15 @@
 .cr-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .cr-go { width: 100%; justify-content: center; margin-left: 0; }
 .cr-cost { margin-left: 0; padding-left: 0; border-left: 0; }
+/* How many images to make at once. */
+.cr-qty { display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--a-line2); border-radius: 999px; color: var(--a-fg2); font-size: 13px; font-weight: 500; }
+.cr-qty button { display: grid; place-items: center; width: 34px; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.cr-qty button:disabled { opacity: .35; cursor: default; }
+.cr-qty span { min-width: 18px; text-align: center; color: var(--a-fg); }
+.cr-select select:disabled { cursor: default; opacity: .6; }
+/* Ingredients, Open in canvas and the model picker share one line, even on a phone; a long model name is clipped. */
+.cr-row-top { flex-wrap: nowrap; gap: 6px; }
+.cr-row-top .cr-chip { padding: 0 10px; font-size: 12.5px; gap: 5px; white-space: nowrap; }
+.cr-row-top .cr-select { flex: 1 1 0; min-width: 0; padding: 0; }
+.cr-row-top .cr-select select { width: 100%; min-width: 0; padding: 0 8px; text-overflow: ellipsis; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cr-row-top .cr-lbl { display: none; } }

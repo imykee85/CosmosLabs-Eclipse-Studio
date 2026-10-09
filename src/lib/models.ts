@@ -136,7 +136,7 @@ export function endpointFor(model: ImageModel): string {
 }
 
 // What the pickers need, with no server-only fields.
-export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "maxBatch" | "maxPrompt" | "verified"> & { maxReferences: number; requiresReference: boolean; credits: number | null };
+export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "resolutions" | "maxBatch" | "maxPrompt" | "verified"> & { maxReferences: number; requiresReference: boolean; credits: number | null };
 export function toPublic(model: ImageModel): PublicModel {
-  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, maxReferences: maxRefs(model), requiresReference: minRefs(model) > 0, credits: chargeFor(model) };
+  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, resolutions: model.resolutions, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, maxReferences: maxRefs(model), requiresReference: minRefs(model) > 0, credits: chargeFor(model) };
 }
