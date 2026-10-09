@@ -67,7 +67,7 @@ export default function CreateStudio() {
     const el = box.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
   }, [prompt]);
 
   async function generate() {
