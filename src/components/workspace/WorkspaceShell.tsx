@@ -363,7 +363,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           </nav>
           <div className="mb-foot">
             <Link href="/dashboard" className="mb-foot-link"><LayoutDashboard size={19} /> Dashboard</Link>
-            <NotificationsButton className="mb-foot-link mb-foot-text" up label="Notifications" />
+            <NotificationsButton className="mb-foot-link" up label="Notifications" />
             <Link href="/settings" className="mb-foot-link"><Settings size={19} /> Settings</Link>
             <div className="mb-foot-row">
               <CreditsPill className="mb-credits" text />
