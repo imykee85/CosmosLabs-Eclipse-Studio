@@ -195,7 +195,6 @@ function CreateTab({ pathname }: { pathname: string }) {
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
         <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
         <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
-        <Section title="UTILITIES" items={[agentsItem, canvasItem, ingredients]} pathname={pathname} defaultOpen={[agentsItem, canvasItem, ingredients].some((i) => i.href === pathname)} />
       </TabMenuBox>
     </>
   );
