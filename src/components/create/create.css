@@ -99,15 +99,16 @@
 .cr-row-top .cr-select select { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .cr-box { padding: 14px 14px 12px; }
-  .cr-row-top { gap: 5px; }
-  .cr-row-top .cr-chip { padding: 0 9px; font-size: 12px; gap: 5px; }
+  .cr-row-top { gap: 4px; }
+  .cr-row-top .cr-chip { padding: 0 8px; font-size: 11.5px; gap: 4px; }
+  .cr-row-top .cr-modelbtn > svg:first-of-type:not(:last-child) { display: none; }
   .cr-row-top .cr-select select { padding: 0 6px; }
   .cr-row-top .cr-select { overflow: hidden; }
 }
 /* Model picker chip and sheet. */
 .cr-modelbtn { cursor: pointer; }
 .cr-row-top .cr-modelbtn { flex: 0 1 auto; min-width: 0; }
-.cr-row-top .cr-modelbtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-row-top .cr-modelbtn .cr-mname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-scrim { position: fixed; inset: 0; z-index: 300; display: grid; place-items: end center; background: rgba(0,0,0,.55); }
 .mp-sheet { display: flex; flex-direction: column; width: min(560px, 100%); max-height: 88dvh; border: 1px solid var(--a-line2); border-radius: 28px 28px 0 0; background: var(--a-card); color: var(--a-fg); box-shadow: 0 -20px 60px var(--a-shadow); }
 .mp-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 8px; }
@@ -134,3 +135,4 @@
 html[data-app-theme="light"] .mp-new { color: #c00707; }
 .mp-ico { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; color: var(--a-fg2); }
 .mp-gh .mp-ico { margin: -4px 0; }
+.cr-mlabel { color: var(--a-muted); font-weight: 400; }

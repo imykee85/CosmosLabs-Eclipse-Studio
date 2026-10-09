@@ -250,7 +250,7 @@ export default function CreateStudio() {
             <Workflow size={14} /> Open in canvas
           </button>
           <button type="button" className="cr-chip cr-modelbtn" aria-label="Image model" aria-haspopup="dialog" title={model?.blurb} onClick={() => setPickingModel(true)}>
-            {modelId === AUTO && <Wand2 size={14} />}<span>{modelId === AUTO ? "Auto" : model?.label ?? "Model"}</span><ChevronDown size={14} />
+            <span className="cr-mlabel">Model:</span>{modelId === AUTO && <Wand2 size={14} />}<span className="cr-mname">{modelId === AUTO ? "Auto" : model?.label ?? "Model"}</span><ChevronDown size={14} />
           </button>
           </div>
           <div className="cr-row">
