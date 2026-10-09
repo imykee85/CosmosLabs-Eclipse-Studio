@@ -1,26 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Check } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import SoonTag from "../SoonTag";
-import { AGENTS, AGENT_KEY } from "../workspace/AgentPicker";
+import { AGENTS } from "../workspace/AgentPicker";
 
 // A small pop-up above the Agents chip listing the agents. The choice is the same one the Agents page keeps
 // (remembered in this browser); choose it again to clear it.
-export default function AgentMenu({ anchor, onClose }: { anchor: DOMRect; onClose: () => void }) {
-  const [selected, setSelected] = useState<string | null>(null);
+export default function AgentMenu({ anchor, selected, onPick, onClose }: { anchor: DOMRect; selected: string | null; onPick: (name: string | null) => void; onClose: () => void }) {
   useEffect(() => {
-    try { const saved = localStorage.getItem(AGENT_KEY); if (saved && AGENTS.includes(saved)) setSelected(saved); } catch {}
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   function choose(name: string) {
-    const next = selected === name ? null : name;
-    setSelected(next);
-    try { if (next) localStorage.setItem(AGENT_KEY, next); else localStorage.removeItem(AGENT_KEY); } catch {}
+    onPick(selected === name ? null : name);
     onClose();
   }
 

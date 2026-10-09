@@ -158,3 +158,4 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .am-item:hover { background: var(--a-hover); }
 .am-item span:first-of-type { flex: 1; }
 .am-check { color: #c00707; }
+.cr-aname { white-space: nowrap; }

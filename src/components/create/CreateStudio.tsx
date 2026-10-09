@@ -13,6 +13,7 @@ import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import ModelPicker, { AUTO } from "./ModelPicker";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "./AgentMenu";
+import { AGENTS, AGENT_KEY } from "../workspace/AgentPicker";
 import "./create.css";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
@@ -40,6 +41,13 @@ export default function CreateStudio() {
   const [modelId, setModelId] = useState("");
   const [pickingModel, setPickingModel] = useState(false);
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
+  // The agent helping with this work (None when no agent is chosen); the same choice the Agents page keeps.
+  const [agent, setAgent] = useState<string | null>(null);
+  useEffect(() => { try { const a = localStorage.getItem(AGENT_KEY); if (a && AGENTS.includes(a)) setAgent(a); } catch {} }, []);
+  function pickAgent(name: string | null) {
+    setAgent(name);
+    try { if (name) localStorage.setItem(AGENT_KEY, name); else localStorage.removeItem(AGENT_KEY); } catch {}
+  }
   // Auto: Eclipse picks. The server never swaps models, so Auto resolves here to one real model: a verified one that can
   // take as many reference pictures as are chosen (never an edit-only model).
   const autoModel = (() => {
@@ -275,7 +283,7 @@ export default function CreateStudio() {
             <Workflow size={14} /> Open in canvas
           </button>
           <button type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
-            <AgentIcon size={14} /> Agents
+            <AgentIcon size={14} /> <span className="cr-mlabel">Agent:</span> <span className="cr-aname">{agent ?? "None"}</span>
           </button>
           </div>
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef}>
@@ -291,7 +299,7 @@ export default function CreateStudio() {
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
-      {agentAnchor && <AgentMenu anchor={agentAnchor} onClose={() => setAgentAnchor(null)} />}
+      {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={pickAgent} onClose={() => setAgentAnchor(null)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} autoModel={autoModel} onPick={pickModel} onClose={() => setPickingModel(false)} />}
       {expanded && (
         <div className="cr-full" style={vvh ? { height: vvh, bottom: "auto" } : undefined} role="dialog" aria-label="Write your prompt">
