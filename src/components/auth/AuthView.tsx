@@ -203,6 +203,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
         <button className="auth-submit" type="submit" disabled={busy}>
           {busy ? "Please wait…" : step === "credentials" ? c.submit : step === "verify" ? (mode === "signup" ? "Verify email" : "Continue") : step === "forgot" ? "Send code" : "Reset password"}
         </button>
+        {mode === "signup" && step === "credentials" && <p className="auth-terms">By creating an account you agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Use</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</p>}
       </form>
 
       {step === "verify" && mode === "signup" && (

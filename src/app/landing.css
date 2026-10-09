@@ -469,3 +469,5 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .auth-resend:hover { background: #e9e6e0; } .auth-resend:active { transform: scale(.96); } .auth-resend:disabled { opacity: .6; cursor: default; }
 @media (max-height: 760px) { .auth-card.is-verify .auth-steps { display: none; } }
 @media (max-height: 640px) { .auth-card.is-verify .auth-sent p { display: none; } .auth-card.is-verify .auth-sent { margin-top: 12px; padding: 10px; } }
+.footer-bottom div a { color: #77736e; transition: color .18s ease; }.footer-bottom div a:hover { color: #fff; }
+.auth-terms { margin: 10px 0 0; color: #8a857e; font-size: 12px; line-height: 1.4; text-align: center; }.auth-terms a { color: #e6e3de; text-decoration: underline; text-underline-offset: 2px; }html[data-app-theme="light"] .auth-terms { color: #6b665f; }html[data-app-theme="light"] .auth-terms a { color: #141414; }

@@ -1,0 +1,17 @@
+.lg { min-height: 100vh; background: #000; color: #e5e5e5; }
+.lg-wrap { width: min(760px, 100% - 32px); margin: 0 auto; padding: 36px 0 80px; }
+.lg-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
+.lg-top a { color: #a3a3a3; font-size: 14px; font-weight: 500; transition: color .18s; }
+.lg-top a:hover { color: #fff; }
+.lg h1 { margin: 0 0 8px; color: #fff; font-size: 40px; font-weight: 700; letter-spacing: -.03em; }
+.lg-date { margin: 0 0 36px; color: #8a8a8a; font-size: 14px; }
+.lg h2 { margin: 36px 0 10px; color: #fff; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.lg p, .lg li { color: #c8c8c8; font-size: 16px; line-height: 1.65; }
+.lg p { margin: 0 0 14px; }
+.lg ul { margin: 0 0 14px; padding-left: 22px; }
+.lg li { margin-bottom: 6px; }
+.lg a.lg-link { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.lg-foot { margin-top: 56px; padding-top: 24px; border-top: 1px solid #222; display: flex; gap: 20px; font-size: 14px; }
+.lg-foot a { color: #a3a3a3; }
+.lg-foot a:hover { color: #fff; }
+@media (max-width: 600px) { .lg h1 { font-size: 32px; } }

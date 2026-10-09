@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
 import { chargeFor, findEnabledModel } from "@/lib/models";
+import { checkPrompt } from "@/lib/moderation";
 
 export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown };
 export type StartRenderResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string };
@@ -14,6 +15,9 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   const prompt = typeof input.prompt === "string" ? input.prompt.trim() : "";
   if (!prompt) return { ok: false, status: 400, error: "Prompt is required" };
   if (prompt.length > 10000) return { ok: false, status: 400, error: "Prompt is too long" };
+
+  const moderation = checkPrompt(prompt);
+  if (!moderation.ok) return { ok: false, status: 422, error: moderation.reason };
 
   // The model must be named and available. There is no default and no fallback to a different model.
   const model = findEnabledModel(input.model);

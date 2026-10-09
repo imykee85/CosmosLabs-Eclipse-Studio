@@ -34,6 +34,7 @@ model Generation {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, projectId, createdAt(sort: Desc)])
+  @@index([status, updatedAt])
   @@map("generations")
 }
 
@@ -156,4 +157,23 @@ model ConnectorLink {
 
   @@id([userId, connector])
   @@map("connector_links")
+}
+
+// A picture the user uploaded as a reference: an asset (any reference photo) or an ingredient (character, product, scene).
+// The file lives in the private bucket under storageKey; it is shown only through short-lived signed links.
+model Upload {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  kind        String // asset | character | product | scene
+  name        String
+  projectId   String?  @map("project_id") // the project it was added in, if any; uploads are usable from every project
+  storageKey  String   @map("storage_key")
+  contentType String   @map("content_type")
+  sizeBytes   Int      @map("size_bytes")
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId, kind, createdAt(sort: Desc)])
+  @@map("uploads")
 }

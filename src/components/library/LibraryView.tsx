@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FolderOpen, Search } from "lucide-react";
 import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
 import { useRenders } from "@/lib/use-renders";
+import UploadPanel from "@/components/uploads/UploadPanel";
 import RenderTile from "./RenderTile";
 import "./library.css";
 
@@ -43,7 +44,9 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search your library..." aria-label="Search your library" />
       </label>
 
-      {(kind === "All" || kind === "Images") && shown.length > 0 ? (
+      {kind === "Ingredients" ? (
+        <UploadPanel show="ingredients" addKinds={["character", "product", "scene"]} addLabel="Add ingredient" role={role === "All" ? "all" : (role.toLowerCase() as "character" | "product" | "scene")} empty={{ title: "No ingredients yet", copy: "Characters, products and scenes you add appear here, ready to reuse in any project." }} />
+      ) : (kind === "All" || kind === "Images") && shown.length > 0 ? (
         <div className="lib-grid">
           {shown.map((g) => (
             <RenderTile key={g.id} g={g} onChanged={reload} />
