@@ -1,23 +1,39 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Aperture, Banana, Bot, Check, ChevronDown, Clapperboard, Cloud, Cpu, Landmark, LayoutGrid, Megaphone, MessageSquare, Moon, Palette, PenTool, Route, ScanFace, Search, Sprout, Type, Waves, Wand2, X, Zap, type LucideIcon } from "lucide-react";
+import { Box, Check, ChevronDown, Megaphone, ScanFace, Search, Video, Wand2, X, Zap, type LucideIcon } from "lucide-react";
+import { siGoogle, siOpenai } from "simple-icons";
 import ConnectMark from "../ConnectMark";
 import type { PublicModel } from "@/lib/models";
 import SoonTag from "../SoonTag";
 
 export const AUTO = "auto";
 
-// Plain outline icon beside each name, drawn like the bottom tab icons (one colour, thin line, no logos).
-const ICONS: Record<string, LucideIcon> = {
-  Auto: Wand2, Cinematic: Clapperboard, GPT: MessageSquare, Seedream: Sprout, Soul: ScanFace, "Marketing Studio": Megaphone,
-  Google: Banana, Flux: Waves, Mystic: Moon, Ideogram: Type, Luma: Aperture, Runway: Route, Classic: Landmark, "Z-Image": Zap,
-  Qwen: Cloud, Grok: Bot, Recraft: PenTool, Krea: Palette, Microsoft: LayoutGrid,
+// One-colour icon beside each name, like the product reference: the real marks for Google and OpenAI (Simple Icons set) and
+// plain one-colour drawings for the rest, drawn here as stand-ins until official artwork is added. All marks belong to their owners.
+const LUCIDE: Record<string, LucideIcon> = { Auto: Wand2, Cinematic: Video, Soul: ScanFace, "Marketing Studio": Megaphone, Luma: Box, Classic: Zap };
+const Stroke = ({ children }: { children: React.ReactNode }) => <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</g>;
+const Letter = ({ c, x = 12, y = 17.5, size = 15 }: { c: string; x?: number; y?: number; size?: number }) => <text x={x} y={y} textAnchor="middle" fontSize={size} fontWeight="800" fontFamily="Inter, system-ui, sans-serif" fill="currentColor">{c}</text>;
+const DRAWN: Record<string, React.ReactNode> = {
+  Google: <path fill="currentColor" d={siGoogle.path} />,
+  GPT: <path fill="currentColor" d={siOpenai.path} />,
+  Seedream: <g fill="currentColor"><rect x="3" y="10" width="3" height="8" rx="1.2" /><rect x="8" y="5" width="3" height="14" rx="1.2" /><rect x="13" y="8" width="3" height="11" rx="1.2" /><rect x="18" y="12" width="3" height="6" rx="1.2" /></g>,
+  Flux: <Stroke><path d="M2.5 19L9 6l6.5 13M9.5 19l4-8 4 8" /></Stroke>,
+  Mystic: <Stroke><path d="M12 4L21 19H3z" /></Stroke>,
+  Ideogram: <Stroke><path d="M3.5 8c3-3 5 3 8.5 0s5 3 8.5 0M3.5 15c3-3 5 3 8.5 0s5 3 8.5 0" /></Stroke>,
+  Runway: <><Stroke><rect x="3" y="3" width="18" height="18" rx="5" /></Stroke><Letter c="R" y={16.5} size={12} /></>,
+  "Z-Image": <Letter c="Z" size={18} y={18} />,
+  Qwen: <Stroke><path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z" /><path d="M12 8.2l3.9 2.2v4.4L12 17l-3.9-2.2v-4.4z" /></Stroke>,
+  Grok: <Stroke><circle cx="12" cy="12" r="8" /><path d="M7 17.5L17.5 7" /></Stroke>,
+  Recraft: <Letter c="R" size={18} y={18} />,
+  Krea: <Letter c="K" size={18} y={18} />,
+  Microsoft: <g fill="currentColor"><rect x="3.5" y="3.5" width="8" height="8" rx="1" /><rect x="12.5" y="3.5" width="8" height="8" rx="1" /><rect x="3.5" y="12.5" width="8" height="8" rx="1" /><rect x="12.5" y="12.5" width="8" height="8" rx="1" /></g>,
 };
 function ModelIcon({ name }: { name: string }) {
   if (name === "Eclipse Studio V1") return <span className="mp-ico"><ConnectMark size={20} /></span>;
-  const Icon = ICONS[name] ?? Cpu;
-  return <span className="mp-ico"><Icon size={20} strokeWidth={1.8} /></span>;
+  const L = LUCIDE[name];
+  if (L) return <span className="mp-ico"><L size={20} strokeWidth={1.8} /></span>;
+  return <span className="mp-ico"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">{DRAWN[name] ?? <Stroke><circle cx="12" cy="12" r="8" /></Stroke>}</svg></span>;
 }
 // Which icon a popular entry uses.
 const popularTile = (label: string) => (label.startsWith("Google") ? "Google" : label.startsWith("GPT") ? "GPT" : label.startsWith("Seedream") ? "Seedream" : label);
