@@ -58,7 +58,7 @@ export default function MotionView() {
     <div className="mo">
       <header className="mo-intro">
         <h1>Motion graphics</h1>
-        <p>Motion videos made with AI, with the prompts behind them. Every video is credited to its creator, with a link to their post on X.</p>
+        <p>Motion videos made with AI, with the prompts behind them.</p>
       </header>
 
       <div className="mo-filter">
