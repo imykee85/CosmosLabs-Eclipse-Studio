@@ -1,25 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import SoonTag from "@/components/SoonTag";
-import { MOTION_TAGS, motionPrompts, type MotionPrompt, type MotionTag } from "@/lib/motion";
+import { MOTION_TAGS, hasClips, motionPrompts } from "@/lib/motion";
+import MotionMedia from "./MotionMedia";
 import "./motion.css";
 
-// Motion graphics: a filterable feed of motion prompts. Cards are empty tiles until clips exist; each opens a dialog with the prompt and a Copy button.
-export default function MotionView() {
-  const [kind, setKind] = useState<"prompt" | "skill">("prompt");
-  const [tag, setTag] = useState<MotionTag | null>(null);
-  const [sort, setSort] = useState<"popular" | "newest" | "title">("popular");
-  const [open, setOpen] = useState<MotionPrompt | null>(null);
-  const [copied, setCopied] = useState(false);
+// Motion graphics: a filterable feed of motion prompts, adapted from the user's Prompt Motion project (their own Manus build).
+// The filters live in the address (?type=prompt|skill&tag=<topic>&sort=popular|newest|title) so a view can be shared and the
+// back button restores it. Each card opens /motion/<id>. Cards are empty tiles until clips are added to `src/lib/motion.ts`.
+const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(null); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+export default function MotionView() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const q = useSearchParams();
+  const [paused, setPaused] = useState(false);
+
+  const kind = q.get("type") === "skill" ? "skill" : "prompt";
+  const tag = MOTION_TAGS.find((t) => slug(t) === q.get("tag")) ?? null;
+  const sortParam = q.get("sort");
+  const sort = sortParam === "newest" || sortParam === "title" ? sortParam : "popular";
+
+  function setView(next: { type?: string; tag?: string | null; sort?: string }) {
+    const p = new URLSearchParams(q.toString());
+    if (next.type !== undefined) { if (next.type === "prompt") p.delete("type"); else p.set("type", next.type); }
+    if (next.tag !== undefined) { if (next.tag) p.set("tag", next.tag); else p.delete("tag"); }
+    if (next.sort !== undefined) { if (next.sort === "popular") p.delete("sort"); else p.set("sort", next.sort); }
+    const s = p.toString();
+    router.replace(s ? `${pathname}?${s}` : pathname, { scroll: false });
+  }
 
   const items = useMemo(() => {
     const list = kind === "skill" ? [] : motionPrompts.filter((p) => !tag || p.tags.includes(tag));
@@ -27,14 +39,6 @@ export default function MotionView() {
     if (sort === "newest") return [...list].reverse();
     return list;
   }, [kind, tag, sort]);
-
-  async function copy(text: string) {
-    try { await navigator.clipboard.writeText(text); } catch {
-      const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); } finally { ta.remove(); }
-    }
-    setCopied(true); setTimeout(() => setCopied(false), 1800);
-  }
 
   return (
     <div className="mo">
@@ -45,18 +49,21 @@ export default function MotionView() {
 
       <div className="mo-filter">
         <div className="mo-seg" role="group" aria-label="Type">
-          <button type="button" aria-pressed={kind === "prompt"} onClick={() => setKind("prompt")}>Prompt</button>
-          <button type="button" aria-pressed={kind === "skill"} onClick={() => setKind("skill")}>Skill</button>
+          <button type="button" aria-pressed={kind === "prompt"} onClick={() => setView({ type: "prompt" })}>Prompt</button>
+          <button type="button" aria-pressed={kind === "skill"} onClick={() => setView({ type: "skill" })}>Skill</button>
         </div>
-        <select className="mo-sort" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
-          <option value="popular">Popular</option>
-          <option value="newest">Newest</option>
-          <option value="title">Title</option>
-        </select>
+        <div className="mo-filter-right">
+          <select className="mo-sort" aria-label="Sort" value={sort} onChange={(e) => setView({ sort: e.target.value })}>
+            <option value="popular">Popular</option>
+            <option value="newest">Newest</option>
+            <option value="title">Title</option>
+          </select>
+          {hasClips && <button type="button" className="mo-sort" onClick={() => setPaused((v) => !v)}>{paused ? "Play previews" : "Pause previews"}</button>}
+        </div>
       </div>
       <div className="mo-tags" role="group" aria-label="Topics">
-        <button type="button" aria-pressed={tag === null} onClick={() => setTag(null)}>All</button>
-        {MOTION_TAGS.map((t) => <button key={t} type="button" aria-pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>{t}</button>)}
+        <button type="button" aria-pressed={tag === null} onClick={() => setView({ tag: null })}>All</button>
+        {MOTION_TAGS.map((t) => <button key={t} type="button" aria-pressed={tag === t} onClick={() => setView({ tag: tag === t ? null : slug(t) })}>{t}</button>)}
       </div>
 
       {items.length === 0 ? (
@@ -65,33 +72,13 @@ export default function MotionView() {
         <ul className="mo-grid">
           {items.map((p) => (
             <li key={p.id}>
-              <button type="button" className="mo-card" onClick={() => setOpen(p)} aria-label={`Open ${p.title}`}>
-                <span className="mo-tile" style={{ aspectRatio: p.ratio }} />
-                <span className="mo-meta"><b>{p.title}</b><small>{p.tags.join(" · ")}</small></span>
-              </button>
+              <Link href={`/motion/${p.id}`} className="mo-card" aria-label={`Open ${p.title}`}>
+                <MotionMedia item={p} paused={paused} />
+                <span className="mo-meta"><b>{p.title}</b><small>{p.by ? `@${p.by.name} · ` : ""}{p.tags.join(" · ")}</small></span>
+              </Link>
             </li>
           ))}
         </ul>
-      )}
-
-      {open && (
-        <div className="mo-scrim" onMouseDown={(e) => e.target === e.currentTarget && setOpen(null)}>
-          <div className="mo-dialog" role="dialog" aria-modal="true" aria-label={open.title}>
-            <button type="button" className="mo-close" aria-label="Close" onClick={() => setOpen(null)}><X size={18} /></button>
-            <span className="mo-tile mo-tile-big" style={{ aspectRatio: open.ratio }} />
-            <div className="mo-detail">
-              <h2>{open.title}</h2>
-              <dl>
-                <div><dt>Model</dt><dd>{open.model}</dd></div>
-                <div><dt>Tries</dt><dd>{open.tries}</dd></div>
-                <div><dt>Topics</dt><dd>{open.tags.join(", ")}</dd></div>
-              </dl>
-              <h3>Prompt</h3>
-              <p className="mo-prompt">{open.prompt}</p>
-              <button type="button" className="mo-copy" onClick={() => copy(open.prompt)}>{copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy prompt</>}</button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

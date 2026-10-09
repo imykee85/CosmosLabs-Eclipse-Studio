@@ -4,7 +4,13 @@
 export type MotionTag = "Product UI" | "Phone" | "Charts" | "Diagrams" | "Kinetic type" | "Shapes" | "Particles" | "Characters" | "Photos" | "Music";
 export const MOTION_TAGS: MotionTag[] = ["Product UI", "Phone", "Charts", "Diagrams", "Kinetic type", "Shapes", "Particles", "Characters", "Photos", "Music"];
 
-export type MotionPrompt = { id: string; title: string; tags: MotionTag[]; prompt: string; model: string; tries: string; ratio: "16 / 9" | "9 / 16" | "1 / 1" | "4 / 5" };
+// `poster`, `video` and `preview` are optional: a card with none of them is an empty tile. When clips exist, `preview` (short, muted,
+// looping) plays in the feed and `video` plays with controls on the detail page. `by` credits a creator when a clip is not ours.
+export type MotionPrompt = {
+  id: string; title: string; tags: MotionTag[]; prompt: string; model: string; tries: string; ratio: "16 / 9" | "9 / 16" | "1 / 1" | "4 / 5";
+  poster?: string; video?: string; preview?: string; by?: { name: string; url?: string };
+};
+
 
 export const motionPrompts: MotionPrompt[] = [
   { id: "launch", title: "App launch reveal", tags: ["Product UI", "Phone"], ratio: "9 / 16", model: "Sample", tries: "One try", prompt: "A phone floats up from the dark, the screen lights, and three app panels slide out around it in sequence. Slow camera push, soft red rim light, clean background." },
@@ -16,3 +22,6 @@ export const motionPrompts: MotionPrompt[] = [
   { id: "character", title: "Character walk cycle", tags: ["Characters"], ratio: "9 / 16", model: "Sample", tries: "Four tries", prompt: "A simple flat character walks across the frame in a seamless loop, with a small bounce on each step and a soft shadow underneath." },
   { id: "photos", title: "Photo collage in motion", tags: ["Photos"], ratio: "4 / 5", model: "Sample", tries: "Two tries", prompt: "A stack of photographs shuffles, spreads into a grid, and each photo gently drifts and tilts before the grid closes back into a stack." },
 ];
+
+export const findMotion = (id: string) => motionPrompts.find((p) => p.id === id);
+export const hasClips = motionPrompts.some((p) => p.video || p.preview);
