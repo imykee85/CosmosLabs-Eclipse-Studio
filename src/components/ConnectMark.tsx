@@ -1,17 +1,17 @@
-// The Connect icon: the Cosmos Labs mark simplified for small sizes. A solid hub with five nodes around it, one for each
-// place Connect sends content to (the "C" of the full logo is left out because it blurs below about 24 px).
-// One colour (currentColor), so it follows the theme like the other icons.
+// The Orbit icon: the Cosmos Labs mark at small size. Same layout as the full logo: a hub with nine nodes in an even ring
+// (40 degrees apart, the first at 280 degrees, exactly as in the logo) joined to it by faint lines. The "C" of the full
+// logo is left out because it blurs below about 24 px. One colour (currentColor), so it follows the theme.
+const NODE_ANGLES = [280, 320, 0, 40, 80, 120, 160, 200, 240];
+const R = 9.2;
+const nodes = NODE_ANGLES.map((deg) => ({ x: +(12 + R * Math.cos((deg * Math.PI) / 180)).toFixed(2), y: +(12 + R * Math.sin((deg * Math.PI) / 180)).toFixed(2) }));
+
 export default function ConnectMark({ size = 20, className, ...rest }: { size?: number; className?: string } & React.SVGProps<SVGSVGElement>) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true" {...rest}>
-      <path d="M12 12V3.4M12 12l8.2-2.7M12 12l5 6.9M12 12l-5 6.9M12 12 3.8 9.3" stroke="currentColor" strokeOpacity=".6" strokeWidth="1.5" strokeLinecap="round" />
+      <path d={nodes.map((n) => `M12 12L${n.x} ${n.y}`).join("")} stroke="currentColor" strokeOpacity=".5" strokeWidth="1" strokeLinecap="round" />
       <g fill="currentColor">
-        <circle cx="12" cy="12" r="3.2" />
-        <circle cx="12" cy="3.4" r="1.8" />
-        <circle cx="20.2" cy="9.3" r="1.8" />
-        <circle cx="17" cy="18.9" r="1.8" />
-        <circle cx="7" cy="18.9" r="1.8" />
-        <circle cx="3.8" cy="9.3" r="1.8" />
+        <circle cx="12" cy="12" r="3" />
+        {nodes.map((n, i) => <circle key={i} cx={n.x} cy={n.y} r="1.4" />)}
       </g>
     </svg>
   );
