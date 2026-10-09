@@ -11,9 +11,9 @@ import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import "./create.css";
 
-// Widest the preview gets for each shape, so tall ones do not run off the screen.
-const PREVIEW_WIDTH: Record<string, number> = { "1:1": 480, "4:5": 420, "9:16": 300, "16:9": 680 };
-const previewWidth = (r: string) => PREVIEW_WIDTH[r] ?? 480;
+// Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
+const PREVIEW_WIDTH: Record<string, number> = { "1:1": 215, "4:5": 188, "9:16": 134, "16:9": 304 };
+const previewWidth = (r: string) => PREVIEW_WIDTH[r] ?? 215;
 
 export default function CreateStudio() {
   const router = useRouter();

@@ -59,3 +59,6 @@
   .cr-dock { display: block; position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; max-height: 55dvh; overflow-y: auto; background: var(--a-bg); }
   .cr-dock .cr-box { margin-top: 0; }
 }
+.cr-stage { border-radius: 20px; }
+.cr-empty { padding: 14px; gap: 8px; }
+.cr-empty p { font-size: 13px; }
