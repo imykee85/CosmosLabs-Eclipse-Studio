@@ -177,8 +177,19 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .cr-row-top .cr-grp .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
 .cr-row-top .cr-grp .cr-chip svg { width: 14px; height: 14px; }
 /* Floating agent widget: a round button you can drag anywhere on the screen. */
-.aw-btn { position: fixed; z-index: 250; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: 1px solid rgba(255,255,255,.2); border-radius: 50%; background: #1c1c1e; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.aw-btn { --lx: 0; --ly: 0; position: fixed; z-index: 250; display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg); filter: drop-shadow(0 8px 14px rgba(0,0,0,.35)); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .aw-btn:active { cursor: grabbing; }
+.aw-bot { display: block; overflow: visible; animation: aw-float 3.4s ease-in-out infinite; transition: transform .2s; }
+.aw-eye { fill: var(--a-bg); transform-box: fill-box; transform-origin: center; animation: aw-blink 5s infinite; }
+.aw-eyes { transform-box: view-box; }
+.aw-eyes { translate: calc(var(--lx) * 3px) calc(var(--ly) * 3px); transition: translate .12s ease-out; }
+.aw-btn.is-drag .aw-bot { animation: aw-wobble .5s ease-in-out infinite; transform: scale(1.1); }
+.aw-btn.is-hop .aw-bot { animation: aw-hop .65s ease-out; }
+@keyframes aw-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes aw-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+@keyframes aw-wobble { 0%, 100% { transform: scale(1.1) rotate(-6deg); } 50% { transform: scale(1.1) rotate(6deg); } }
+@keyframes aw-hop { 0% { transform: translateY(0) scale(1, 1); } 25% { transform: translateY(-14px) scale(.94, 1.08); } 55% { transform: translateY(0) scale(1.1, .9); } 100% { transform: translateY(0) scale(1, 1); } }
+@media (prefers-reduced-motion: reduce) { .aw-bot, .aw-eye { animation: none; } }
 .aw-scrim { position: fixed; inset: 0; z-index: 248; }
 .aw-card { position: fixed; z-index: 251; width: 260px; padding: 14px; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); color: var(--a-fg); box-shadow: 0 18px 50px var(--a-shadow); }
 .aw-head { display: flex; align-items: center; gap: 8px; }
