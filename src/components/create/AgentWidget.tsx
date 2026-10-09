@@ -8,17 +8,22 @@ import SoonTag from "../SoonTag";
 const POS_KEY = "eclipse-agent-widget-pos";
 const SIZE = 64;
 
-// The agent as a little animated character: the Agents ball with two upright eyes. It floats, blinks, looks toward your finger or
-// cursor, leans when you drag it and hops when you tap it. Drawn in the theme's text colour, eyes in the page colour.
+// The agent as a little 3D character: a ball that always stays round, with two eyes that sit on its surface and travel round it. It floats, blinks, turns its head toward your
+// finger or cursor, and spins all the way round when you tap it. Real CSS 3D (no images), drawn in the theme's colours.
 function Bot() {
   return (
-    <svg className="aw-bot" viewBox="0 0 48 48" width="64" height="64" aria-hidden="true">
-      <circle cx="24" cy="24" r="20" fill="currentColor" />
-      <g className="aw-eyes">
-        <rect className="aw-eye" x="15.3" y="15.5" width="4.4" height="10" rx="2.2" />
-        <rect className="aw-eye" x="28.3" y="15.5" width="4.4" height="10" rx="2.2" />
-      </g>
-    </svg>
+    <div className="aw-3d" aria-hidden="true">
+      <div className="aw-float">
+        <div className="aw-ball" />
+        <div className="aw-spin">
+          <div className="aw-sphere">
+            <i className="aw-eye aw-eye-l" />
+            <i className="aw-eye aw-eye-r" />
+          </div>
+        </div>
+      </div>
+      <div className="aw-ground" />
+    </div>
   );
 }
 
@@ -81,7 +86,7 @@ export default function AgentWidget({ name }: { name: string }) {
     setDragging(false);
     if (!d) return;
     if (d.moved) { try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch {} }
-    else { setOpen((o) => !o); setHop(true); window.setTimeout(() => setHop(false), 650); }
+    else { setOpen((o) => !o); setHop(true); window.setTimeout(() => setHop(false), 1000); }
   }
 
   // The card opens on the side of the button with more room.
