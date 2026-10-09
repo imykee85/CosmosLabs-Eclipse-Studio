@@ -1,6 +1,6 @@
-import { Cloud, Film, Mail, type LucideIcon } from "lucide-react";
+import { Cloud, FileText, Film, Mail, type LucideIcon } from "lucide-react";
 import {
-  siDropbox, siDiscord, siGithub, siGmail, siGooglecalendar, siGoogledocs, siGoogledrive, siGooglesheets, siHubspot, siInstagram, siJira, siLinear,
+  siClaude, siDropbox, siDiscord, siGithub, siGmail, siGooglecalendar, siGoogledocs, siGoogledrive, siGooglesheets, siGooglegemini, siHubspot, siInstagram, siJira, siLinear, siMeta, siPerplexity,
   siNotion, siOpenai, siSalesforce, siSendgrid, siSlack, siSupabase, siTelegram, siTiktok, siTodoist, siTwilio, siVimeo, siWhatsapp, siYoutube,
   type SimpleIcon,
 } from "simple-icons";
@@ -34,6 +34,11 @@ export const BRANDS: Record<string, Brand> = {
   github: { icon: siGithub, bg: "#24292f", fg: white },
   supabase: { icon: siSupabase, bg: "#3ecf8e", fg: white },
   openai: { icon: siOpenai, bg: "#202123", fg: white },
+  claude: { icon: siClaude, bg: "#d97757", fg: white },
+  gemini: { icon: siGooglegemini, bg: white, fg: "#8e75b2" },
+  perplexity: { icon: siPerplexity, bg: "#1f2023", fg: "#20b8cd" },
+  meta: { icon: siMeta, bg: "#0467df", fg: white },
+  notes: { icon: FileText, bg: "#3a3a3d", fg: white },
   youtube: { icon: siYoutube, bg: "#ff0000", fg: white },
   vimeo: { icon: siVimeo, bg: "#1ab7ea", fg: white },
   frameio: { icon: Film, bg: "#5b50f5", fg: white },

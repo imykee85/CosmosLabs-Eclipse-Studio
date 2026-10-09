@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowUp, Brain, ChevronLeft, Folder, Heart, Package, Palette, Plus, Trash2, Upload, User, X } from "lucide-react";
 import ConnectNav from "@/components/connect/ConnectNav";
+import ImportMemoryDialog from "./ImportMemoryDialog";
 import { MEMORY_TEXT_MAX, MEMORY_TOPICS, TOPIC_LABEL, type MemoryItem, type MemoryTopic } from "@/lib/memory";
 import "@/components/connect/connect.css";
 import "./memory.css";
@@ -34,7 +35,6 @@ export default function MemoryView() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [paste, setPaste] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch("/api/memory", { cache: "no-store" });
@@ -66,17 +66,6 @@ export default function MemoryView() {
     const res = await fetch(`/api/memory/${id}`, { method: "DELETE" });
     if (!res.ok) { setError("Could not delete that."); load(); }
   }
-  async function runImport() {
-    if (!paste.trim() || saving) return;
-    setSaving(true); setError("");
-    const res = await fetch("/api/memory/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: saveTopic, text: paste }) });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) { setError(data.error ?? "Could not import."); return; }
-    setPaste(""); setImporting(false);
-    load();
-  }
-
   return (
     <div className="mm-wrap">
       <div className="mm-top">
@@ -123,7 +112,7 @@ export default function MemoryView() {
 
       {error && <p className="mm-error" role="alert">{error}</p>}
       <form className="mm-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <button type="button" className="mm-plus" aria-label="Import notes" onClick={() => setImporting(true)}><Plus size={18} /></button>
+        <button type="button" className="mm-plus" aria-label="Import memory" onClick={() => setImporting(true)}><Plus size={18} /></button>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MEMORY_TEXT_MAX} placeholder="Add a memory" aria-label="Add a memory" />
         <select value={saveTopic} onChange={(e) => { setSaveTopic(e.target.value as MemoryTopic); setTopic(e.target.value as MemoryTopic); }} aria-label="Topic for this memory">
           {MEMORY_TOPICS.map((t) => <option key={t} value={t}>{TOPIC_LABEL[t]}</option>)}
@@ -131,22 +120,7 @@ export default function MemoryView() {
         <button type="submit" className="mm-send" aria-label="Save memory" disabled={!text.trim() || saving}><ArrowUp size={18} /></button>
       </form>
 
-      {importing && (
-        <div className="cn-modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && setImporting(false)}>
-          <div className="cn-modal" role="dialog" aria-label="Import notes">
-            <h2>Import notes</h2>
-            <p>Paste your notes, one fact per line. Each line becomes a memory under the topic you choose.</p>
-            <label className="cn-field">Topic
-              <select value={saveTopic} onChange={(e) => setSaveTopic(e.target.value as MemoryTopic)}>{MEMORY_TOPICS.map((t) => <option key={t} value={t}>{TOPIC_LABEL[t]}</option>)}</select>
-            </label>
-            <label className="cn-field">Notes<textarea rows={8} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={"Our brand colours are deep red and charcoal\nNever show the product on a white background"} /></label>
-            <div className="cn-actions">
-              <button type="button" className="cn-btn" onClick={() => setImporting(false)}><X size={14} /> Cancel</button>
-              <button type="button" className="cn-btn is-red" disabled={!paste.trim() || saving} onClick={runImport}>Import</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {importing && <ImportMemoryDialog onClose={() => setImporting(false)} onImported={load} />}
     </div>
   );
 }
