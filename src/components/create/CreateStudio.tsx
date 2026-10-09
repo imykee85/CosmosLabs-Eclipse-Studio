@@ -314,7 +314,7 @@ export default function CreateStudio() {
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
-      {agentOn && agent && <AgentWidget name={agent} />}
+      {agentOn && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={pickAgent} onClose={() => setAgentAnchor(null)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} autoModel={autoModel} onPick={pickModel} onClose={() => setPickingModel(false)} />}
       {expanded && (

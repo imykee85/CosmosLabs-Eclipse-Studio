@@ -29,7 +29,7 @@ function Bot() {
 
 // A floating agent button that appears while the agent switch is on. Drag it anywhere on the screen (it stays where you
 // leave it, remembered in this browser); tap it to open a small card about the agent.
-export default function AgentWidget({ name }: { name: string }) {
+export default function AgentWidget({ name, watch }: { name: string; watch?: string | null }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [open, setOpen] = useState(false);
   const [hop, setHop] = useState(false);
@@ -50,10 +50,12 @@ export default function AgentWidget({ name }: { name: string }) {
   }, []);
 
   // The eyes look toward the pointer (or the last touch) wherever it is on the screen.
+  const watching = useRef<string | null>(null);
+  watching.current = watch ?? null;
   useEffect(() => {
     const look = (e: PointerEvent) => {
       const el = btn.current;
-      if (!el) return;
+      if (!el || watching.current) return;
       const r = el.getBoundingClientRect();
       const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
       const d = Math.hypot(dx, dy) || 1;
@@ -65,6 +67,25 @@ export default function AgentWidget({ name }: { name: string }) {
     window.addEventListener("pointerdown", look);
     return () => { window.removeEventListener("pointermove", look); window.removeEventListener("pointerdown", look); };
   }, []);
+
+  // While something is being made, the agent keeps its eyes on the preview (the element named by `watch`).
+  useEffect(() => {
+    if (!watch) return;
+    const tick = () => {
+      const el = btn.current;
+      const target = document.querySelector(watch);
+      if (!el || !target) return;
+      const r = el.getBoundingClientRect(), t = target.getBoundingClientRect();
+      const dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2);
+      const d = Math.hypot(dx, dy) || 1;
+      const k = Math.min(1, d / 120);
+      el.style.setProperty("--lx", String((dx / d) * k));
+      el.style.setProperty("--ly", String((dy / d) * k));
+    };
+    tick();
+    const id = window.setInterval(tick, 120);
+    return () => window.clearInterval(id);
+  }, [watch]);
 
   if (!pos) return null;
 
