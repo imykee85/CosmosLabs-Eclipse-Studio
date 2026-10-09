@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, ChevronLeft, Copy } from "lucide-react";
+import { Check, ChevronLeft, Copy, ExternalLink } from "lucide-react";
 import type { MotionPrompt } from "@/lib/motion";
-import MotionMedia from "./MotionMedia";
+import { postUrl } from "@/lib/motion";
+import XPost from "./XPost";
 import "./motion.css";
 
 // One motion prompt: the clip (or an empty tile) beside its details and the prompt with a Copy button.
@@ -21,18 +22,21 @@ export default function MotionDetail({ item }: { item: MotionPrompt }) {
     <div className="mo">
       <Link href="/motion" className="mo-back"><ChevronLeft size={18} /> Motion graphics</Link>
       <div className="mo-page">
-        <MotionMedia item={item} controls className="mo-tile-big" />
+        <XPost item={item} large />
         <div className="mo-detail">
           <h1>{item.title}</h1>
           <dl>
             <div><dt>Model</dt><dd>{item.model}</dd></div>
             <div><dt>Tries</dt><dd>{item.tries}</dd></div>
             <div><dt>Topics</dt><dd>{item.tags.join(", ")}</dd></div>
-            {item.by && <div><dt>By</dt><dd>{item.by.url ? <a href={item.by.url} target="_blank" rel="noopener noreferrer">@{item.by.name}</a> : `@${item.by.name}`}</dd></div>}
+            <div><dt>By</dt><dd>{item.name} (@{item.handle})</dd></div>
+            <div><dt>Posted</dt><dd>{item.posted}</dd></div>
           </dl>
           <h3>Prompt</h3>
           <p className="mo-prompt">{item.prompt}</p>
           <button type="button" className="mo-copy" onClick={copy}>{copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy prompt</>}</button>
+          <a className="mo-source" href={postUrl(item)} target="_blank" rel="noopener noreferrer">View the original post on X <ExternalLink size={13} /></a>
+          <p className="mo-credit">The video and prompt belong to their creator.</p>
         </div>
       </div>
     </div>

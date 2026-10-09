@@ -2,22 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import SoonTag from "@/components/SoonTag";
-import { MOTION_TAGS, hasClips, motionPrompts } from "@/lib/motion";
-import MotionMedia from "./MotionMedia";
+import { useMemo } from "react";
+import { MOTION_TAGS, motionPrompts } from "@/lib/motion";
+import XPost from "./XPost";
 import "./motion.css";
 
 // Motion graphics: a filterable feed of motion prompts, adapted from the user's Prompt Motion project (their own Manus build).
 // The filters live in the address (?type=prompt|skill&tag=<topic>&sort=popular|newest|title) so a view can be shared and the
-// back button restores it. Each card opens /motion/<id>. Cards are empty tiles until clips are added to `src/lib/motion.ts`.
+// back button restores it. Each card is the creator's post on X (X's own embed); "Prompt" opens /motion/<id>.
 const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export default function MotionView() {
   const router = useRouter();
   const pathname = usePathname();
   const q = useSearchParams();
-  const [paused, setPaused] = useState(false);
 
   const kind = q.get("type") === "skill" ? "skill" : "prompt";
   const tag = MOTION_TAGS.find((t) => slug(t) === q.get("tag")) ?? null;
@@ -43,8 +41,8 @@ export default function MotionView() {
   return (
     <div className="mo">
       <header className="mo-intro">
-        <h1>Motion graphics <SoonTag /></h1>
-        <p>A library of motion prompts: the exact words behind each clip, with the model and how many tries it took.</p>
+        <h1>Motion graphics</h1>
+        <p>Motion videos made with AI, with the prompts behind them. Each video is a post by its creator on X.</p>
       </header>
 
       <div className="mo-filter">
@@ -58,7 +56,6 @@ export default function MotionView() {
             <option value="newest">Newest</option>
             <option value="title">Title</option>
           </select>
-          {hasClips && <button type="button" className="mo-sort" onClick={() => setPaused((v) => !v)}>{paused ? "Play previews" : "Pause previews"}</button>}
         </div>
       </div>
       <div className="mo-tags" role="group" aria-label="Topics">
@@ -71,11 +68,12 @@ export default function MotionView() {
       ) : (
         <ul className="mo-grid">
           {items.map((p) => (
-            <li key={p.id}>
-              <Link href={`/motion/${p.id}`} className="mo-card" aria-label={`Open ${p.title}`}>
-                <MotionMedia item={p} paused={paused} />
-                <span className="mo-meta"><b>{p.title}</b><small>{p.by ? `@${p.by.name} · ` : ""}{p.tags.join(" · ")}</small></span>
-              </Link>
+            <li key={p.id} className="mo-item">
+              <XPost item={p} />
+              <div className="mo-meta">
+                <span><b>@{p.handle}</b></span>
+                <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open the prompt for ${p.title}`}>Prompt</Link>
+              </div>
             </li>
           ))}
         </ul>
