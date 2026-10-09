@@ -7,7 +7,7 @@
 .cr-box textarea { width: 100%; min-height: 56px; max-height: 220px; resize: none; border: 0; outline: 0; background: transparent; padding: 4px 6px; color: var(--a-fg); font: inherit; font-size: 16px; line-height: 1.5; }
 .cr-box textarea::placeholder { color: var(--a-ph); }
 .cr-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
-.cr-chip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 13px; font-weight: 500; }
+.cr-chip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 14px; font-weight: 500; }
 .cr-chip:disabled { opacity: .55; cursor: not-allowed; }
 .cr-chip em { padding: 1px 7px; border: 1px solid var(--a-line3); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
 .cr-select { padding: 0; }
@@ -85,24 +85,24 @@
 .cr-go { width: 100%; justify-content: center; margin-left: 0; }
 .cr-cost { margin-left: 0; padding-left: 0; border-left: 0; }
 /* How many images to make at once. */
-.cr-qty { display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--a-line2); border-radius: 999px; color: var(--a-fg2); font-size: 13px; font-weight: 500; }
+.cr-qty { display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--a-line2); border-radius: 999px; color: var(--a-fg2); font-size: 14px; font-weight: 500; }
 .cr-qty button { display: grid; place-items: center; width: 34px; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .cr-qty button:disabled { opacity: .35; cursor: default; }
 .cr-qty span { min-width: 18px; text-align: center; color: var(--a-fg); }
 .cr-select select:disabled { cursor: default; opacity: .6; }
 /* Ingredients, Open in canvas and the model picker share one line, each at its natural width. */
 .cr-row-top { flex-wrap: nowrap; gap: 6px; }
-.cr-row-top .cr-chip { padding: 0 11px; font-size: 13px; white-space: nowrap; }
+.cr-row-top .cr-chip { padding: 0 11px; font-size: 14px; white-space: nowrap; }
 .cr-row-top .cr-select { padding: 0; }
 .cr-row-top .cr-select select { padding: 0 8px; }
 .cr-row-top .cr-select { min-width: 0; flex: 0 1 auto; }
 .cr-row-top .cr-select select { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
-  .cr-box { padding: 12px 8px 10px; }
-  .cr-dock { left: 10px; right: 10px; }
-  .cr-row-top { gap: 3px; }
-  .cr-row-top .cr-chip { padding: 0 6px; font-size: 13px; gap: 3px; }
-  .cr-row-top .cr-chip svg { width: 12px; height: 12px; }
+  .cr-box { padding: 12px 6px 10px; }
+  .cr-dock { left: 8px; right: 8px; }
+  .cr-row-top { gap: 2px; }
+  .cr-row-top .cr-chip { padding: 0 5px; font-size: 14px; gap: 2px; }
+  .cr-row-top .cr-chip svg { width: 14px; height: 14px; }
   .cr-row-top .cr-select select { padding: 0 6px; }
   .cr-row-top .cr-select { overflow: hidden; }
 }
@@ -137,3 +137,4 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .mp-ico { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; color: var(--a-fg2); }
 .mp-gh .mp-ico { margin: -4px 0; }
 .cr-mlabel { color: var(--a-muted); font-weight: 400; }
+.cr-chip svg, .cr-qty svg { width: 16px; height: 16px; }
