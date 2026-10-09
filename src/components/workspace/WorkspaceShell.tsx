@@ -171,7 +171,7 @@ function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
   // On the "What are we creating?" screen (and until you have used a studio) the tab is a plus with "Create" under it. Once you
   // are in a studio it shows that studio's icon and name, and keeps showing the last one on other pages. A tap goes to the
-  // studio you used last (the chooser if there is none); the cards on the chooser or the double-tap list pick another.
+  // studio you used last (Image Studio, the first creation tool, if there is none); the cards on the chooser or the double-tap list pick another.
   const [slot, setSlot] = useState<Item | null>(null);
 
   useEffect(() => {
@@ -188,8 +188,8 @@ function CreateTab({ pathname }: { pathname: string }) {
 
   return (
     <>
-      <Link ref={m.tabRef} href={slot?.href ?? "/project"} className={`mb-tab ${here ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
-        aria-haspopup="menu" aria-expanded={m.open} title={slot ? `Opens ${slot.label} (double-tap for shortcuts)` : "Double-tap for shortcuts"} onClick={m.onClick} onKeyDown={m.onKeyDown}>
+      <Link ref={m.tabRef} href={slot?.href ?? photo[0].href ?? "/create"} className={`mb-tab ${here ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
+        aria-haspopup="menu" aria-expanded={m.open} title={`Opens ${(slot ?? photo[0]).label} (double-tap for shortcuts)`} onClick={m.onClick} onKeyDown={m.onKeyDown}>
         <span className="mb-tab-icon">{plain ? <Plus size={24} strokeWidth={2.2} /> : tabIcon(slot.icon)}</span><span>{plain ? "Create" : slot.label}</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
