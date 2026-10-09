@@ -92,7 +92,7 @@
 .cr-select select:disabled { cursor: default; opacity: .6; }
 /* Ingredients, Open in canvas and the model picker share one line, each at its natural width. */
 .cr-row-top { flex-wrap: nowrap; gap: 6px; }
-.cr-row-top .cr-chip { padding: 0 11px; white-space: nowrap; }
+.cr-row-top .cr-chip { padding: 0 11px; font-size: 13px; white-space: nowrap; }
 .cr-row-top .cr-select { padding: 0; }
 .cr-row-top .cr-select select { padding: 0 8px; }
 .cr-row-top .cr-select { min-width: 0; flex: 0 1 auto; }
@@ -100,8 +100,8 @@
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .cr-box { padding: 14px 14px 12px; }
   .cr-row-top { gap: 4px; }
-  .cr-row-top .cr-chip { padding: 0 8px; font-size: 11.5px; gap: 4px; }
-  .cr-row-top .cr-modelbtn > svg:first-of-type:not(:last-child) { display: none; }
+  .cr-row-top .cr-chip { padding: 0 8px; font-size: 13px; gap: 4px; }
+  .cr-row-top .cr-modelbtn > svg:first-of-type:not(:last-child), .cr-row-top .cr-chip > svg:first-child { display: none; }
   .cr-row-top .cr-select select { padding: 0 6px; }
   .cr-row-top .cr-select { overflow: hidden; }
 }
