@@ -8,15 +8,15 @@ import SoonTag from "../SoonTag";
 const POS_KEY = "eclipse-agent-widget-pos";
 const SIZE = 64;
 
-// The agent as a little animated character: the Agents ball with two eyes. It floats, blinks, looks toward your finger or
+// The agent as a little animated character: the Agents ball with two upright eyes. It floats, blinks, looks toward your finger or
 // cursor, leans when you drag it and hops when you tap it. Drawn in the theme's text colour, eyes in the page colour.
 function Bot() {
   return (
     <svg className="aw-bot" viewBox="0 0 48 48" width="64" height="64" aria-hidden="true">
       <circle cx="24" cy="24" r="20" fill="currentColor" />
-      <g className="aw-eyes" transform="rotate(-27 24 22)">
-        <rect className="aw-eye" x="14.2" y="14.5" width="4.4" height="10" rx="2.2" />
-        <rect className="aw-eye" x="28.6" y="14.5" width="4.4" height="10" rx="2.2" />
+      <g className="aw-eyes">
+        <rect className="aw-eye" x="15.3" y="15.5" width="4.4" height="10" rx="2.2" />
+        <rect className="aw-eye" x="28.3" y="15.5" width="4.4" height="10" rx="2.2" />
       </g>
     </svg>
   );

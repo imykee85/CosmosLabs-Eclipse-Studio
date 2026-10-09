@@ -185,9 +185,9 @@ html[data-app-theme="light"] .mp-new { color: #c00707; }
 .aw-eyes { translate: calc(var(--lx) * 3px) calc(var(--ly) * 3px); transition: translate .12s ease-out; }
 .aw-btn.is-drag .aw-bot { animation: aw-wobble .5s ease-in-out infinite; transform: scale(1.1); }
 .aw-btn.is-hop .aw-bot { animation: aw-hop .65s ease-out; }
-@keyframes aw-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes aw-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes aw-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
-@keyframes aw-wobble { 0%, 100% { transform: scale(1.1) rotate(-6deg); } 50% { transform: scale(1.1) rotate(6deg); } }
+@keyframes aw-wobble { 0%, 100% { transform: scale(1.1) translateX(-2px); } 50% { transform: scale(1.1) translateX(2px); } }
 @keyframes aw-hop { 0% { transform: translateY(0) scale(1, 1); } 25% { transform: translateY(-14px) scale(.94, 1.08); } 55% { transform: translateY(0) scale(1.1, .9); } 100% { transform: translateY(0) scale(1, 1); } }
 @media (prefers-reduced-motion: reduce) { .aw-bot, .aw-eye { animation: none; } }
 .aw-scrim { position: fixed; inset: 0; z-index: 248; }
