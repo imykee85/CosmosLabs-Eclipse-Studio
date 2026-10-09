@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, Settings, User, Video, Volume2, Workflow, X,
+  ArrowLeft, ChevronDown, FolderOpen, GraduationCap, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, User, Video, Volume2, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -169,10 +169,10 @@ const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
-  const [slot, setSlot] = useState<Item>(photo[0]);
+  // The tab is always a plus with "Create" under it. A tap goes to the studio you used last; before you have used one it opens
+  // the "What are we creating?" chooser. The cards on that chooser (or the double-tap list) pick a different studio.
+  const [slot, setSlot] = useState<Item | null>(null);
 
-  // The tab follows the creation feature you are on, whether you got there from the sidebar, the menu or the shortcuts
-  // popup; away from those pages it keeps the last one.
   useEffect(() => {
     const here = SLOT_ITEMS.find((i) => i.href === pathname);
     if (here) {
@@ -182,12 +182,13 @@ function CreateTab({ pathname }: { pathname: string }) {
     }
     try { const s = SLOT_ITEMS.find((i) => i.label === localStorage.getItem(SLOT_KEY)); if (s) setSlot(s); } catch {}
   }, [pathname]);
+  const here = SLOT_ITEMS.some((i) => i.href === pathname) || pathname === "/project";
 
   return (
     <>
-      <Link ref={m.tabRef} href={slot.href ?? "/create"} className={`mb-tab ${pathname === slot.href ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
-        aria-haspopup="menu" aria-expanded={m.open} title="Double-tap for shortcuts" onClick={m.onClick} onKeyDown={m.onKeyDown}>
-        <span className="mb-tab-icon">{tabIcon(slot.icon)}</span><span>{slot.label}</span>
+      <Link ref={m.tabRef} href={slot?.href ?? "/project"} className={`mb-tab ${here ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
+        aria-haspopup="menu" aria-expanded={m.open} title={slot ? `Opens ${slot.label} (double-tap for shortcuts)` : "Double-tap for shortcuts"} onClick={m.onClick} onKeyDown={m.onKeyDown}>
+        <span className="mb-tab-icon"><Plus size={24} strokeWidth={2.2} /></span><span>Create</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
         <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
