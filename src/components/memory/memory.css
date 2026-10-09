@@ -94,7 +94,7 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 .mm-imp-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .mm-imp-list button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 6px; border: 0; border-radius: 14px; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; text-align: left; cursor: pointer; transition: background .15s; }
 .mm-imp-list button:hover { background: var(--a-hover); }
-.mm-imp-list button > span:not(.cn-logo) { flex: 1; } .mm-imp-list button > svg { flex: none; color: var(--a-muted2); }
+.mm-imp-list button > span:not(.cn-logo):not(.soon-tag) { flex: 1; } .mm-imp-list button > svg { flex: none; color: var(--a-muted2); }
 .mm-imp-who { display: flex; align-items: center; gap: 12px; margin: 6px 0 16px; }
 .mm-imp-steps { list-style: decimal; display: grid; gap: 14px; margin: 0 0 16px; padding-left: 20px; color: var(--a-muted); font-size: 14px; line-height: 1.5; }
 .mm-imp-steps b { color: var(--a-fg); font-weight: 600; }
@@ -136,3 +136,5 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 .mm-imp-fallback { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; color: var(--a-muted); font-size: 13px; }
 .mm-imp-fallback select { max-width: 150px; height: 34px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 13px; }
 .mm-imp-go { margin-top: 18px; }
+.mm-imp-title { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.mm-imp-list button > .soon-tag { flex: none; }

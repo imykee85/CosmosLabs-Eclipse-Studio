@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowUp, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, X } from "lucide-react";
 import BrandLogo from "@/components/connect/brands";
 import { LogoMark } from "@/components/Logo";
+import SoonTag from "@/components/SoonTag";
 import { MEMORY_TOPICS, TOPIC_LABEL, type MemoryTopic } from "@/lib/memory";
 
 // Bring memory over from another assistant: pick the source, then one screen with a drawing of that assistant's message
@@ -98,7 +99,7 @@ export default function ImportMemoryDialog({ onClose, onImported }: { onClose: (
               {SOURCES.map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => { setSource(s); setError(""); }}>
-                    <BrandLogo brand={s.brand} size={38} /><span>{s.name}</span><ChevronRight size={16} />
+                    <BrandLogo brand={s.brand} size={38} /><span>{s.name}</span>{s.id !== "notes" && <SoonTag />}<ChevronRight size={16} />
                   </button>
                 </li>
               ))}
@@ -112,7 +113,7 @@ export default function ImportMemoryDialog({ onClose, onImported }: { onClose: (
               <span className="mm-imp-dashes" />
               <span className="mm-imp-eclipse"><LogoMark size={30} /></span>
             </div>
-            <h3>{isNotes ? "Paste your notes" : `Import your ${source.name} memory`}</h3>
+            <h3 className="mm-imp-title">{isNotes ? "Paste your notes" : <>{`Import your ${source.name} memory`} <SoonTag /></>}</h3>
             <p className="mm-imp-sub">{isNotes ? "One fact per line. Start a line with Style:, Products: and so on to file it under that topic." : `Send the prompt below in ${source.name}, then paste its answer here.`}</p>
 
             {!isNotes && (
