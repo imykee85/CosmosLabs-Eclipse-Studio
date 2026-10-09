@@ -325,6 +325,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
           <h1 className="mb-title">{TITLES[pathname] ?? "Eclipse Studio"}</h1>
           <div className="mb-right">
+            <CreditsPill className="mb-pill" />
             <ThemeToggle className="mb-theme" />
             <UserMenu variant="avatar" />
           </div>
