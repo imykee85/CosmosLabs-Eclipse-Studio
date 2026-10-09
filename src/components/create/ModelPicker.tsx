@@ -11,7 +11,6 @@ export const AUTO = "auto";
 // and do nothing when tapped); add `id` (and `real`) as each one is connected.
 const POPULAR: { label: string; isNew?: boolean }[] = [
   { label: "Cinematic" },
-  { label: "Magnific One", isNew: true },
   { label: "Google Nano Banana 2.1", isNew: true },
   { label: "GPT 2.5", isNew: true },
   { label: "Seedream 5 Pro", isNew: true },
@@ -23,7 +22,6 @@ const POPULAR: { label: string; isNew?: boolean }[] = [
 const GROUPS: { name: string; total: number; match?: (id: string) => boolean }[] = [
   { name: "Soul", total: 0, match: (id) => id.startsWith("soul") },
   { name: "Marketing Studio", total: 0, match: (id) => id.startsWith("marketing_studio") || id === "ads_studio" },
-  { name: "Magnific", total: 1 },
   { name: "Google", total: 5 },
   { name: "GPT", total: 6 },
   { name: "Seedream", total: 6 },
