@@ -11,7 +11,7 @@ Status: ALL THREE PROVIDERS ARE BUILT AND PUSHED (commits 3af48d6 and 0135c76 on
 - The picker has Google, GPT and Seedream groups; Popular shows the real rows for Nano Banana 2.1, GPT 2.5 Sunburst and Seedream 5 Pro once they are enabled.
 - Schema change: `Generation.provider`, `providerUsage` (check `db-push: applying` in the build log of commit 3af48d6).
 
-## Models in the registry (all disabled)
+## Models in the registry (on once their key is set)
 | Family | Ids | Provider model ids |
 |---|---|---|
 | Google | `nano_banana_2_1`, `nano_banana_2_lite`, `nano_banana_2`, `nano_banana_pro`, `nano_banana` | gemini-nano-banana-2.1, gemini-3.1-flash-lite-image, gemini-3.1-flash-image, gemini-3-pro-image, gemini-2.5-flash-image |
