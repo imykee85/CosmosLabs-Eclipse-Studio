@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Shuffle, Sprout, Wand2, Workflow, X } from "lucide-react";
+import { ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Maximize2, Minimize2, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
@@ -12,6 +12,7 @@ import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import ModelPicker, { AUTO } from "./ModelPicker";
 import AgentIcon from "../AgentIcon";
+import SoonTag from "../SoonTag";
 import AgentMenu from "./AgentMenu";
 import AgentWidget from "./AgentWidget";
 import { useAgent } from "@/lib/use-agent";
@@ -160,7 +161,7 @@ export default function CreateStudio() {
       const failed = results.find((r) => !r.ok);
       if (failed && results.every((r) => !r.ok)) throw new Error(failed.error);
       if (failed) setError(`${results.filter((r) => !r.ok).length} of ${count} images could not be started: ${failed.error}`);
-      setPrompt("");
+      if (!over?.prompt) setPrompt("");
       await reload();
       return "";
     } catch (e) {
@@ -186,6 +187,21 @@ export default function CreateStudio() {
       submitBox();
     }
   }
+
+  // The tools for the picture in the preview. They sit tucked behind the prompt box and slide up when a picture is showing.
+  const toolPic = pending ? null : latestDone;
+  function editPicture() {
+    if (!toolPic?.imageUrl) return;
+    setRefs([{ type: "render", id: toolPic.id, url: toolPic.imageUrl, label: toolPic.prompt }]);
+    if (modelId !== AUTO && (model?.maxReferences ?? 0) === 0) setNoRefs(true);
+    box.current?.focus();
+  }
+  function newVariations() {
+    if (toolPic) void generate({ prompt: toolPic.prompt });
+  }
+  const soon = (label: string) => setToolNote(`${label} is coming soon.`);
+  const [toolNote, setToolNote] = useState("");
+  useEffect(() => { setToolNote(""); }, [toolPic?.id]);
 
   return (
     <div className="cr-wrap">
@@ -221,10 +237,10 @@ export default function CreateStudio() {
           return earlier.length > 0 && (
             <div className="cr-earlier" aria-label="Your five most recent renders">
               {earlier.map((r) => (
-                <a key={r.id} href={r.imageUrl ?? undefined} target="_blank" rel="noreferrer" title={r.prompt}>
+                <button key={r.id} type="button" className={r.id === latestDone?.id ? "is-on" : ""} aria-pressed={r.id === latestDone?.id} title={r.prompt} onClick={() => setWatched(r.id)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={r.imageUrl ?? ""} alt={r.prompt} />
-                </a>
+                </button>
               ))}
             </div>
           );
@@ -232,6 +248,15 @@ export default function CreateStudio() {
       </section>
 
       <div className="cr-dock">
+      <div className={`cr-tray ${toolPic ? "is-open" : ""}`} role="toolbar" aria-label="Tools for this picture" aria-hidden={!toolPic}>
+        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={editPicture} title="Use this picture as an ingredient and describe the change"><Pencil size={14} /> Edit</button>
+        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={newVariations} disabled={submitting || !model} title="Make another image from the same prompt"><Shuffle size={14} /> Variations</button>
+        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Upscale")}><ZoomIn size={14} /> Upscale <SoonTag /></button>
+        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Remove background")}><Eraser size={14} /> Remove background <SoonTag /></button>
+        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Relight")}><Sun size={14} /> Relight <SoonTag /></button>
+        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Change camera")}><Camera size={14} /> Change camera <SoonTag /></button>
+      </div>
+      {toolNote && toolPic && <p className="cr-hint" role="status">{toolNote}</p>}
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); submitBox(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <div className="cr-field">
