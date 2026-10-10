@@ -201,7 +201,7 @@ export default function CreateStudio() {
     <div className="cr-wrap">
       <header className="cr-intro">
         <h1 className="pg-title">Image Studio</h1>
-        <p>Describe the shot you imagine. Your preview appears in the panel above.</p>
+        <p>Describe the shot you imagine.</p>
       </header>
 
       <section className="cr-preview" aria-label="Preview">
