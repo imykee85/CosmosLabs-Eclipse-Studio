@@ -1,4 +1,4 @@
-.hf { margin-top: 48px; padding-top: 36px; border-top: 1px solid var(--a-line); display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; }
+.hf { margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--a-line); display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; }
 .hf-sec { min-width: 0; }
 .hf h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
 .hf-sub { margin: 8px 0 0; color: var(--a-muted); font-size: 15px; }

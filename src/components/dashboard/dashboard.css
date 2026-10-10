@@ -136,7 +136,7 @@
 @media (max-width: 600px) { .bi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .pd-list > div { grid-template-columns: 96px minmax(0, 1fr); } }
 
 /* Upper half of the dashboard: projects. The home feed starts below it. */
-.db-top { min-height: 42vh; }
+.db-top { min-height: 42vh; } .db-top:has(.db-rail) { min-height: 0; }
 .db-top .db-empty { padding-top: 56px; }
 
 /* View toggle and the compact grid (default) */
