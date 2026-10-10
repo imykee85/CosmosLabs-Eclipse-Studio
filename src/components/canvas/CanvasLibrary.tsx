@@ -70,7 +70,7 @@ export default function CanvasLibrary({ projectId, onOpen }: { projectId: string
           <h1 className="pg-title">Canvases</h1>
           <p>{projectName ? <>Everything you built in <b>{projectName}</b>. Open one to carry on exactly where you left off.</> : "Open one to carry on exactly where you left off."}</p>
         </div>
-        {!(tab === "canvases" && items?.length === 0) && <button type="button" className="cl-new" onClick={startNew} disabled={busy === "new"}>{busy === "new" ? <Loader2 size={16} className="cv-spin" /> : <Plus size={16} />} New canvas</button>}
+        <button type="button" className="cl-new" onClick={startNew} disabled={busy === "new"}>{busy === "new" ? <Loader2 size={16} className="cv-spin" /> : <Plus size={16} />} New canvas</button>
       </header>
 
       <div className="cl-tabs" role="tablist" aria-label="Canvas lists">
@@ -83,7 +83,7 @@ export default function CanvasLibrary({ projectId, onOpen }: { projectId: string
       {items === null ? <p className="cl-note"><Loader2 size={14} className="cv-spin" /> Loading your canvases…</p>
         : items.length === 0 ? (
           tab === "bin" ? <p className="cl-note">Nothing here. A canvas you delete waits here until you delete it for good, and can be restored until then.</p>
-            : <div className="cl-empty"><Workflow size={30} strokeWidth={1.4} /><b>No canvases yet</b><p>A canvas is a board of nodes: prompts, characters, products and styles wired into image generators. Start one and it is saved here for good.</p><button type="button" className="cl-new" onClick={startNew}><Plus size={16} /> New canvas</button></div>
+            : <div className="cl-empty"><Workflow size={30} strokeWidth={1.4} /><b>No canvases yet</b><p>A canvas is a board of nodes: prompts, characters, products and styles wired into image generators. Start one and it is saved here for good.</p><button type="button" className="cl-plus" onClick={startNew} aria-label="New canvas" title="New canvas"><Plus size={22} /></button></div>
         ) : (
           <ul className="cl-grid">
             {items.map((m) => (

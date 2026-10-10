@@ -40,3 +40,5 @@
 .cl-dialog div { display: flex; justify-content: flex-end; gap: 8px; }
 .cl-dialog button { padding: 9px 14px; border: 1px solid var(--a-line2); border-radius: 10px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 13px; cursor: pointer; }
 @media (max-width: 800px) { .cl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .cl-head { align-items: stretch; } .cl-new { width: 100%; } }
+.cl-plus { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; transition: background .18s; }
+.cl-plus:hover { background: #d90b0b; }
