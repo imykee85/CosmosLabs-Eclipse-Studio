@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Menu, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, User, Video, Volume2, Workflow, X,
+  ArrowLeft, ChevronDown, Clapperboard, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Lightbulb, Menu, MessageSquareText, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, Share2, User, Video, Volume2, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -23,7 +23,7 @@ import { LIBRARY_KINDS } from "@/lib/library";
 import { listProjects, readCurrentProject, readCurrentProjectName, setCurrentProject, timeAgo, type Project } from "@/lib/projects";
 import "./workspace.css";
 
-type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; step?: number; soon?: boolean };
+type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; soon?: boolean };
 
 const connectItem: Item = { label: "Orbit", hint: "Your creative computer", href: "/connect", icon: <ConnectMark size={20} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
@@ -37,10 +37,10 @@ const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/a
 // The four tools that work across Photo, Audio and Video, shown together under one heading at the top.
 const utilities: Item[] = [connectItem, agentsItem, canvasItem, ingredients];
 const video: Item[] = [
-  { label: "Treatment", hint: "Shape the concept", step: 1, href: "/treatment", soon: true },
-  { label: "Prompts", hint: "Scene by scene", step: 2, soon: true },
-  { label: "Generate", hint: "Render the clips", step: 3, href: "/generate", soon: true },
-  { label: "Export", hint: "Deliver and share", step: 4, soon: true },
+  { label: "Treatment", hint: "Shape the concept", href: "/treatment", icon: <Lightbulb size={17} />, soon: true },
+  { label: "Prompts", hint: "Scene by scene", icon: <MessageSquareText size={17} />, soon: true },
+  { label: "Video Studio", hint: "Render the clips", href: "/generate", icon: <Clapperboard size={17} />, soon: true },
+  { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true },
 ];
 const audio: Item[] = [
   { label: "Voiceover", hint: "Narrate your script", icon: <Mic size={17} />, soon: true },
@@ -51,7 +51,7 @@ const audio: Item[] = [
 function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onPick?: (item: Item) => void }) {
   const body = (
     <>
-      {item.step ? <span className="ws-step">{item.step}</span> : <span className="ws-icon">{item.icon}</span>}
+      <span className="ws-icon">{item.icon}</span>
       <span className="ws-item-text">
         <b>{item.label}</b>
         <small>{item.hint}</small>
@@ -269,7 +269,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/generate": "Generate", "/connect": "Orbit", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/generate": "Video Studio", "/connect": "Orbit", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {

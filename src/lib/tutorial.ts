@@ -11,7 +11,7 @@ const ORIGINS: Record<string, string> = {
   "/agents": "Agents",
   "/assets": "Assets",
   "/treatment": "Treatment",
-  "/generate": "Generate",
+  "/generate": "Video Studio",
   "/connect": "Orbit",
   "/memory": "Memory",
   "/skills": "Skills",
