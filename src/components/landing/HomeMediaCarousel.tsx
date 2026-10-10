@@ -10,30 +10,50 @@ const tryPlay = (video: HTMLVideoElement) => {
   video.play()?.catch(() => {});
 };
 
-function Slide({ item, index }: { item: CarouselItem; index: number }) {
+// A video that fails to load (a dropped or throttled phone connection is enough) is tried again a few times, each time with a fresh <video>,
+// and only then replaced: by its still frame when it has one, else by the colour tile. It never gives up on the first hiccup.
+const RETRY_DELAYS_MS = [1500, 3000, 6000, 10000];
+
+function Slide({ item, index, copy }: { item: CarouselItem; index: number; copy: number }) {
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const onFail = () => {
+    if (item.type !== "video") { setFailed(true); return; }
+    if (timer.current) return; // one retry at a time (the video and its source both report an error)
+    if (attempt >= RETRY_DELAYS_MS.length) { setFailed(true); return; }
+    timer.current = setTimeout(() => { timer.current = null; setAttempt((a) => a + 1); }, RETRY_DELAYS_MS[attempt]);
+  };
 
   return (
     <div className="carousel-slide flex justify-center">
       <div className="carousel-card relative w-full overflow-hidden bg-black">
         {failed ? (
-          // Placeholder until the file is added to public/carousel/
-          <div className={`tile tone-${index % 8} absolute inset-0 h-full`} style={{ borderRadius: 0 }} />
+          item.poster ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            // Placeholder until the file is added to public/carousel/
+            <div className={`tile tone-${index % 8} absolute inset-0 h-full`} style={{ borderRadius: 0 }} />
+          )
         ) : item.type === "video" ? (
           <video
+            key={attempt}
             autoPlay
             muted
             loop
             playsInline
-            preload="auto"
+            preload={copy === 0 ? "auto" : "metadata"}
             poster={item.poster}
             className="absolute inset-0 h-full w-full object-cover"
             onLoadedMetadata={(e) => tryPlay(e.currentTarget)}
             onCanPlay={(e) => tryPlay(e.currentTarget)}
             onLoadedData={(e) => tryPlay(e.currentTarget)}
-            onError={() => setFailed(true)}
+            onError={onFail}
           >
-            <source src={item.src} type="video/mp4" onError={() => setFailed(true)} />
+            <source src={item.src} type="video/mp4" onError={onFail} />
           </video>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
@@ -43,7 +63,7 @@ function Slide({ item, index }: { item: CarouselItem; index: number }) {
             className="absolute inset-0 h-full w-full object-cover"
             loading={index < 6 ? "eager" : "lazy"}
             decoding="async"
-            onError={() => setFailed(true)}
+            onError={onFail}
           />
         )}
       </div>
@@ -103,7 +123,7 @@ export default function HomeMediaCarousel() {
       `}</style>
       <div className="carousel-track">
         {[...carouselItems, ...carouselItems].map((item, i) => (
-          <Slide key={i} item={item} index={i} />
+          <Slide key={i} item={item} index={i} copy={i < n ? 0 : 1} />
         ))}
       </div>
     </div>
