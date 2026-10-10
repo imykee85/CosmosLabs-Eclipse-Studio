@@ -67,6 +67,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const [ask, setAsk] = useState<AskRequest | null>(null);      // a picker or dialog a node asked for
   const [detail, setDetail] = useState<Render | null>(null);    // a finished image shown with its details
   const [addMenu, setAddMenu] = useState<AddMenu | null>(null); // the "add the next node" menu
+  const [undo, setUndo] = useState<{ nodes: CNode[]; edges: Edge[] } | null>(null); // what was just deleted, for the Undo bar
   const [name, setName] = useState(meta.name);
   const [status, setStatus] = useState<"saved" | "saving" | "local">("saved");
   const wrap = useRef<HTMLDivElement>(null);
@@ -271,6 +272,24 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     try { await renameCanvas(projectId, canvasId, nm); renamed.current = nm; } catch { setName(renamed.current); }
   }
 
+  // Deleting a node (its trash button, or Delete / Backspace) takes its wires with it and offers Undo for a few seconds. Pictures it made stay in the Library.
+  const onDelete = useCallback(({ nodes: dn, edges: de }: { nodes: CNode[]; edges: Edge[] }) => { if (dn.length || de.length) setUndo({ nodes: dn, edges: de }); }, []);
+  useEffect(() => {
+    if (!undo) return;
+    const t = setTimeout(() => setUndo(null), 10000);
+    return () => clearTimeout(t);
+  }, [undo]);
+  function restoreDeleted() {
+    if (!undo) return;
+    const u = undo;
+    setNodes((ns) => [...ns.map((x) => ({ ...x, selected: false })), ...u.nodes.filter((n) => !ns.some((x) => x.id === n.id)).map((n) => ({ ...n, selected: false }))]);
+    setEdges((es) => {
+      const ids = new Set([...getNodes().map((n) => n.id), ...u.nodes.map((n) => n.id)]);
+      return [...es, ...u.edges.filter((e) => ids.has(e.source) && ids.has(e.target) && !es.some((x) => x.id === e.id))];
+    });
+    setUndo(null);
+  }
+
   const q = query.trim().toLowerCase();
   const groups = NODE_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !q || i.label.toLowerCase().includes(q)) })).filter((g) => g.items.length);
 
@@ -280,7 +299,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
         <ReactFlow
           nodes={nodes} edges={shownEdges} nodeTypes={nodeTypes}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={isValidConnection}
-          onNodeClick={onNodeClick} onPaneClick={onPaneClick} onMoveEnd={persist}
+          onNodeClick={onNodeClick} onPaneClick={onPaneClick} onMoveEnd={persist} onDelete={onDelete}
           defaultViewport={saved?.viewport ?? undefined} fitView={!saved?.viewport} fitViewOptions={{ padding: 0.25 }}
           minZoom={0.15} maxZoom={2.5} zoomOnDoubleClick={false} deleteKeyCode={["Backspace", "Delete"]}
           colorMode={dark ? "dark" : "light"} proOptions={{ hideAttribution: true }}
@@ -399,6 +418,13 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
         {ask?.kind === "model" && askNode && models && (
           <ModelPicker models={models} value={modelOf(askNode.data)} onClose={() => setAsk(null)}
             onPick={(id) => { patchNode(askNode.id, { model: id }); try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {} setAsk(null); }} />
+        )}
+        {undo && (
+          <div className="cv-undo" role="status">
+            <span>Deleted {undo.nodes.length === 1 ? (TITLES[undo.nodes[0].type as NodeKind] ?? "a node") : undo.nodes.length > 1 ? `${undo.nodes.length} nodes` : "a wire"}</span>
+            <button type="button" onClick={restoreDeleted}>Undo</button>
+            <button type="button" className="cv-undo-x" aria-label="Dismiss" onClick={() => setUndo(null)}><X size={13} /></button>
+          </div>
         )}
         {detail && <RenderDialog g={detail} onClose={() => setDetail(null)} />}
       </div>

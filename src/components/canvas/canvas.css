@@ -204,3 +204,9 @@
 .cv-gone { display: grid; place-items: center; width: 100%; height: 100%; color: var(--a-muted); font-size: 11px; }
 .cv-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-items: start; }
 .cv-thumbs .cv-res { border-radius: 8px; } .cv-thumbs .cv-res-pick { right: 3px; top: 3px; width: 18px; height: 18px; }
+
+.cv-head-btns .cv-del:hover { background: rgba(192,7,7,.12); color: #c00707; }
+.cv-undo { position: absolute; left: 50%; bottom: 18px; z-index: 30; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; transform: translateX(-50%); border: 1px solid var(--a-line3); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 13px; box-shadow: 0 10px 28px var(--a-shadow); white-space: nowrap; }
+.cv-undo button { padding: 6px 12px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.cv-undo .cv-undo-x { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; background: transparent; color: var(--a-muted); }
+.cv-undo .cv-undo-x:hover { background: var(--a-active); }

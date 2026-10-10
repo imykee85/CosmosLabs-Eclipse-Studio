@@ -3,7 +3,7 @@
 import SoonTag from "@/components/SoonTag";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { AlertTriangle, ArrowUp, Check, ChevronDown, Coins, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shuffle, Sprout, StickyNote, Type, User, Wand2, X } from "lucide-react";
+import { AlertTriangle, ArrowUp, Check, ChevronDown, Coins, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shuffle, Sprout, StickyNote, Trash2, Type, User, Wand2, X } from "lucide-react";
 import { AUTO } from "@/components/create/ModelPicker";
 import { refFileUrl, STYLES, type CanvasNodeData, type CNode, type NodeKind } from "@/lib/canvas";
 import { composePrompt, givesText, inputsOf, isGen, picturesOf, TITLES } from "@/lib/canvas-flow";
@@ -31,7 +31,7 @@ function Shell({ id, kind, data, selected, className = "", children }: { id: str
         <span className="cv-title">{ICONS[kind]}{title}</span>
         <span className="cv-head-btns nodrag">
           <button type="button" aria-label={`Zoom to ${title}`} title="Zoom to this node" onClick={() => focus(id)}><Maximize2 size={13} /></button>
-          {selected && <button type="button" aria-label={`Delete ${title}`} title="Delete node" onClick={() => deleteElements({ nodes: [{ id }] })}><X size={14} /></button>}
+          <button type="button" className="cv-del" aria-label={`Delete ${title}`} title="Delete this node (you can undo)" onClick={() => deleteElements({ nodes: [{ id }] })}><Trash2 size={13} /></button>
         </span>
       </header>
       {children}
