@@ -53,9 +53,9 @@ export default function ReferencePicker({ max, picked, onChange, onClose }: { ma
 
   return (
     <div className="rd-scrim" onClick={onClose}>
-      <div className="up-dialog rp-dialog" role="dialog" aria-modal="true" aria-label="Choose reference pictures" onClick={(e) => e.stopPropagation()}>
+      <div className="up-dialog rp-dialog" role="dialog" aria-modal="true" aria-label="Choose ingredients" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="rd-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
-        <h2>Reference pictures</h2>
+        <h2>Choose ingredients</h2>
         <p className="rp-note">Choose up to {max}. The model uses them as a starting point for your prompt. <b>{picked.length} of {max}</b> chosen.</p>
         <div className="lib-roles" role="tablist" aria-label="Where from">
           {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? "is-active" : ""} onClick={() => setTab(t.id)}>{t.label}</button>)}

@@ -8,16 +8,20 @@ import {
   type Connection, type Edge, type FinalConnectionState, type NodeMouseHandler,
 } from "@xyflow/react";
 import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
+import AgentMenu from "@/components/create/AgentMenu";
+import AgentWidget from "@/components/create/AgentWidget";
 import ModelPicker, { AUTO } from "@/components/create/ModelPicker";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import RenderDialog from "@/components/library/RenderDialog";
 import { deleteTemplate, instantiate, loadTemplates, newNode, NODE_GROUPS, refFileUrl, saveTemplate, type CanvasNodeData, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
-import { canWire, inputsOf, isGen, NEXT_KINDS, picturesOf, PREV_KINDS, TITLES, wireLabel } from "@/lib/canvas-flow";
+import { canWire, inputsOf, isGen, makeEdge, NEXT_KINDS, picturesOf, portFor, PREV_KINDS, TITLES, withoutReplaced, type PortId } from "@/lib/canvas-flow";
 import { renameCanvas, saveCanvasDoc, type CanvasDoc, type CanvasMeta } from "@/lib/canvas-store";
+import { useAgent } from "@/lib/use-agent";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import type { Render } from "@/lib/use-renders";
 import { CanvasCtx, type AskRequest } from "./CanvasContext";
 import { nodeTypes } from "./nodes";
+import "@/components/create/create.css";
 import "./canvas.css";
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -40,7 +44,7 @@ function useAppDark() {
   return dark;
 }
 
-type AddMenu = { nodeId: string; side: "after" | "before"; left: number; top: number; flow?: { x: number; y: number } };
+type AddMenu = { nodeId: string; side: "after" | "before"; left: number; top: number; flow?: { x: number; y: number }; port?: PortId };
 
 // A spot at (x, y) or just below whatever is already there, so a new node never lands on top of another.
 function freeSpot(nodes: CNode[], x: number, y: number): { x: number; y: number } {
@@ -74,6 +78,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const lastTap = useRef({ id: "", t: 0 });
   const dark = useAppDark();
   const models = useModels({ edit: true });
+  const agent = useAgent();
   const { screenToFlowPosition, getNode, getNodes, getEdges, getViewport, setViewport } = useReactFlow();
 
   // Save after changes (nodes, wires, camera), a moment after the last one, and at once when you leave.
@@ -143,9 +148,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     else lastTap.current = { id: "pane", t: now };
   }, [overview]);
 
-  const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge({ ...c, id: `e-${c.source}-${c.target}-${Date.now().toString(36)}` }, es)), [setEdges]);
-  // Wires run into a generator from any node but a note, and from one generator into the next (its picture); never in a loop and never twice.
-  const isValidConnection = useCallback((c: Connection | Edge) => canWire(getNodes() as CNode[], getEdges(), c.source, c.target), [getNodes, getEdges]);
+  // A wire goes from an output to the input of its own kind (or to Ingredients for a picture). A port that takes one wire swaps the old wire for the new one.
+  const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge({ ...c, id: `e-${c.source}-${c.target}-${c.targetHandle ?? "in"}-${Date.now().toString(36)}` }, withoutReplaced(es, c.target, c.targetHandle ?? ""))), [setEdges]);
+  const isValidConnection = useCallback((c: Connection | Edge) => canWire(getNodes() as CNode[], getEdges(), { source: c.source, target: c.target, targetHandle: c.targetHandle }), [getNodes, getEdges]);
 
   // A wire dragged out and dropped on empty space opens the same "add the next node" menu, there.
   const onConnectEnd = useCallback((event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
@@ -153,7 +158,8 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     const pt = "changedTouches" in event ? event.changedTouches[0] : event;
     const box = wrap.current?.getBoundingClientRect();
     if (!box) return;
-    setAddMenu({ nodeId: state.fromNode.id, side: state.fromHandle?.type === "target" ? "before" : "after", left: pt.clientX - box.left, top: pt.clientY - box.top, flow: screenToFlowPosition({ x: pt.clientX, y: pt.clientY }) });
+    const fromInput = state.fromHandle?.type === "target";
+    setAddMenu({ nodeId: state.fromNode.id, side: fromInput ? "before" : "after", port: fromInput ? (state.fromHandle?.id as PortId | undefined) : undefined, left: pt.clientX - box.left, top: pt.clientY - box.top, flow: screenToFlowPosition({ x: pt.clientX, y: pt.clientY }) });
   }, [screenToFlowPosition]);
 
   const openAdd = useCallback((nodeId: string, side: "after" | "before", anchor: DOMRect) => {
@@ -171,9 +177,14 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     const w = from.measured?.width ?? 300;
     const at = m.flow ?? (m.side === "after" ? { x: from.position.x + w + 120, y: from.position.y } : { x: from.position.x - 460, y: from.position.y });
     const n = newNode(kind, freeSpot(getNodes() as CNode[], at.x, at.y));
-    const wire = m.side === "after" ? { source: from.id, target: n.id } : { source: n.id, target: from.id };
+    // The new node plugs into the port of its own kind (Ingredients where the generator has no such port).
+    const port = m.side === "after" ? portFor(from.type, kind) : (m.port ?? portFor(kind, from.type));
+    if (!port) { setAddMenu(null); return; }
     setNodes((ns) => [...ns.map((x) => ({ ...x, selected: false })), { ...n, selected: true }]);
-    setEdges((es) => [...es, { id: `e-${wire.source}-${wire.target}-${Date.now().toString(36)}`, ...wire }]);
+    setEdges((es) => {
+      const edge = m.side === "after" ? makeEdge(from.id, n.id, port) : makeEdge(n.id, from.id, port);
+      return [...withoutReplaced(es, edge.target, port), edge];
+    });
     setAddMenu(null); setHint(false);
     setTimeout(() => flyTo([from.id, n.id], 0.2, 1), 120);
   }
@@ -223,14 +234,12 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", esc); };
   }, [full]);
 
-  // The wires say what travels along them (text, a picture, a style, an image), run while their source is still making an image, and are dashed while the
-  // source has nothing to give yet.
+  // Wires run while their source is still making an image, and are dashed while the source has nothing to give yet.
   const shownEdges = useMemo(() => edges.map((e) => {
     const src = nodes.find((n) => n.id === e.source);
-    const label = src ? wireLabel(src) : "";
-    const waiting = label === "empty" || label === "no image yet";
+    const waiting = !!src && isGen(src.type) && !(src.data.gens?.length) && !(src.data.pending?.length);
     const running = !!src && isGen(src.type) && (src.data.pending?.length ?? 0) > 0;
-    return { ...e, label, animated: running, className: waiting ? "cv-wire-wait" : "", labelStyle: { fill: "var(--a-muted)", fontSize: 11 }, labelBgStyle: { fill: "var(--a-card)" }, labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 8 };
+    return { ...e, animated: running, className: waiting ? "cv-wire-wait" : "" };
   }), [edges, nodes]);
 
   // Pickers and dialogs a node asked for.
@@ -389,7 +398,8 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
           )}
         </ReactFlow>
         {addMenu && (() => {
-          const kinds = addMenu.side === "after" ? NEXT_KINDS : PREV_KINDS;
+          const target = getNode(addMenu.nodeId);
+          const kinds = addMenu.side === "after" ? NEXT_KINDS : PREV_KINDS.filter((k) => (addMenu.port ? portFor(k, target?.type) === addMenu.port : !!portFor(k, target?.type)));
           const w = wrap.current?.clientWidth ?? 800, h = wrap.current?.clientHeight ?? 600;
           const blurb = (k: NodeKind) => NODE_GROUPS.flatMap((g) => g.items).find((i) => i.kind === k)?.blurb ?? "";
           return (
@@ -426,8 +436,10 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
             <button type="button" className="cv-undo-x" aria-label="Dismiss" onClick={() => setUndo(null)}><X size={13} /></button>
           </div>
         )}
+        {ask?.kind === "agent" && <AgentMenu anchor={ask.anchor} selected={agent.agent} onPick={agent.setAgent} onClose={() => setAsk(null)} />}
         {detail && <RenderDialog g={detail} onClose={() => setDetail(null)} />}
       </div>
+      {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
     </CanvasCtx.Provider>
   );
 }

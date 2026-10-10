@@ -1,7 +1,7 @@
 import type { Edge } from "@xyflow/react";
 import { clerkEnabled } from "./clerk-enabled";
 import { migrateNode, newNode, type CNode, type SavedCanvas } from "./canvas";
-import { isGen, outputOf } from "./canvas-flow";
+import { isGen, makeEdge, migrateEdges, outputOf } from "./canvas-flow";
 
 // The canvas library of one project. Signed in: the account holds the canvases (so they follow you across devices) and this browser keeps a copy of each
 // that is used when the account cannot be reached; a copy that could not be sent is marked and wins on the next open. Demo mode (no sign-in): browser only.
@@ -28,14 +28,15 @@ const fromServer = (m: ServerMeta): CanvasMeta => ({ id: m.id, name: m.name, nod
 function normalize(d: unknown): CanvasDoc | null {
   const g = d as CanvasDoc | null;
   if (!g || !Array.isArray(g.nodes) || !Array.isArray(g.edges)) return null;
-  return { ...g, nodes: g.nodes.map(migrateNode) };
+  const nodes = g.nodes.map(migrateNode);
+  return { ...g, nodes, edges: migrateEdges(nodes, g.edges) };
 }
 
 // What is saved of a graph: layout, wiring and everything typed or chosen; running work is kept so it can be picked up again.
 function payloadOf(nodes: CNode[], edges: Edge[], viewport?: CanvasDoc["viewport"]): CanvasDoc {
   return {
     nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data } })),
-    edges: edges.map(({ id, source, target }) => ({ id, source, target })),
+    edges: edges.map(({ id, source, sourceHandle, target, targetHandle }) => ({ id, source, sourceHandle, target, targetHandle })),
     viewport: viewport ?? null,
   };
 }
@@ -200,5 +201,5 @@ export async function createCanvasFromPrompt(projectId: string, seed: { prompt: 
   const text = newNode("text", { x: 0, y: 0 }, { text: seed.prompt });
   const gen = newNode("generator", { x: 420, y: 0 }, { ratio: seed.ratio });
   const name = seed.prompt.replace(/\s+/g, " ").trim().slice(0, 40) || "From Image Studio";
-  return createCanvas(projectId, name, { nodes: [text, gen], edges: [{ id: `e-${text.id}-${gen.id}`, source: text.id, target: gen.id }], viewport: null });
+  return createCanvas(projectId, name, { nodes: [text, gen], edges: [makeEdge(text.id, gen.id, "description")], viewport: null });
 }

@@ -7,7 +7,8 @@ export type AskRequest =
   | { kind: "picture"; nodeId: string }   // choose a Library picture for a Character, Product or Scene node
   | { kind: "refs"; nodeId: string }      // choose reference pictures for a generator
   | { kind: "model"; nodeId: string }     // open the model sheet for a generator
-  | { kind: "details"; genId: string };   // show a finished image with its details
+  | { kind: "details"; genId: string }    // show a finished image with its details
+  | { kind: "agent"; anchor: DOMRect };   // the list of agents, above the Agent chip that asked
 
 type Ctx = {
   focus: (id: string) => void;                                  // fly the camera to a node (the header button works on phones where double-tap is awkward)

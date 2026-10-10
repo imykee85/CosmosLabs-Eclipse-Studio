@@ -1,4 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
+import { makeEdge, migrateEdges, type PortId } from "./canvas-flow";
 
 // Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
 export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator";
@@ -69,18 +70,19 @@ export function newNode(kind: NodeKind, position: { x: number; y: number }, data
 // A new canvas is blank. This is the ready-made flow offered as the "Starter flow" template: the character, text and style feed a
 // full-body generator, which feeds the image generator together with two products, a scene and the text.
 function starterGraph(): { nodes: CNode[]; edges: Edge[] } {
+  // Nodes are about 264 px wide and 330 to 560 px tall (title, display, controls) with port labels beside them, so the columns and rows are spaced wide.
   const character = newNode("character", { x: 0, y: 0 });
-  const productA = newNode("product", { x: 0, y: 300 });
-  const productB = newNode("product", { x: 0, y: 600 });
-  const text = newNode("text", { x: 360, y: -60 });
-  const style = newNode("style", { x: 360, y: 320 });
-  const scene = newNode("scene", { x: 360, y: 570 });
-  const body = newNode("fullbody", { x: 740, y: -20 });
-  const gen = newNode("generator", { x: 1120, y: 180 });
-  const wire = (a: CNode, b: CNode) => ({ id: `e-${a.id}-${b.id}`, source: a.id, target: b.id });
+  const productA = newNode("product", { x: 0, y: 520 });
+  const productB = newNode("product", { x: 0, y: 1040 });
+  const text = newNode("text", { x: 440, y: 0 });
+  const style = newNode("style", { x: 440, y: 520 });
+  const scene = newNode("scene", { x: 440, y: 1040 });
+  const body = newNode("fullbody", { x: 900, y: 120 });
+  const gen = newNode("generator", { x: 1380, y: 480 });
+  const wire = (a: CNode, b: CNode, port: PortId): Edge => makeEdge(a.id, b.id, port);
   return {
     nodes: [character, productA, productB, text, style, scene, body, gen],
-    edges: [wire(character, body), wire(text, body), wire(style, body), wire(body, gen), wire(productA, gen), wire(productB, gen), wire(scene, gen), wire(text, gen)],
+    edges: [wire(character, body, "character"), wire(text, body, "description"), wire(style, body, "style"), wire(body, gen, "ingredients"), wire(productA, gen, "product"), wire(productB, gen, "product"), wire(scene, gen, "scene"), wire(text, gen, "description")],
   };
 }
 
@@ -106,7 +108,7 @@ export function saveTemplate(name: string, nodes: CNode[], edges: Edge[]): Canva
   const t: CanvasTemplate = {
     id: `t-${Date.now().toString(36)}`, name: name.trim().slice(0, 40) || "My template",
     nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, error: undefined, note: undefined, gens: undefined, pending: undefined, pick: undefined } })),
-    edges: edges.map(({ id, source, target }) => ({ id, source, target })),
+    edges: edges.map(({ id, source, sourceHandle, target, targetHandle }) => ({ id, source, sourceHandle, target, targetHandle })),
   };
   const list = [...loadTemplates(), t];
   writeTemplates(list);
@@ -128,8 +130,8 @@ export function instantiate(t: CanvasTemplate, at: { x: number; y: number }): { 
     ids.set(n.id, c.id);
     return c;
   });
-  const edges = t.edges.filter((e) => ids.has(e.source) && ids.has(e.target))
-    .map((e) => ({ id: `e-${ids.get(e.source)}-${ids.get(e.target)}`, source: ids.get(e.source)!, target: ids.get(e.target)! }));
+  const edges = migrateEdges(nodes, t.edges.filter((e) => ids.has(e.source) && ids.has(e.target))
+    .map((e) => ({ ...e, id: `e-${ids.get(e.source)}-${ids.get(e.target)}-${e.targetHandle ?? "in"}`, source: ids.get(e.source)!, target: ids.get(e.target)! })));
   return { nodes, edges };
 }
 

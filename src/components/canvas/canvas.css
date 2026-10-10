@@ -210,3 +210,41 @@
 .cv-undo button { padding: 6px 12px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .cv-undo .cv-undo-x { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; background: transparent; color: var(--a-muted); }
 .cv-undo .cv-undo-x:hover { background: var(--a-active); }
+
+/* Display-style nodes: the title above, a big display card, the controls underneath. Ports sit on the card's edges and are labelled when the node is selected. */
+.cv-n { position: relative; width: 264px; }
+.cv-n.cv-gen { width: 264px; }
+.cv-n-title { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 0 8px; color: var(--a-fg2); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.cv-n.is-selected .cv-n-title { color: var(--a-fg); }
+.cv-n-title .cv-head-btns { display: inline-flex; gap: 2px; }
+.cv-n-title .cv-head-btns button { width: 22px; height: 22px; }
+.cv-n-card { position: relative; width: 100%; min-height: 264px; border: 1px solid var(--a-line3); border-radius: 24px; background: var(--a-card); box-shadow: 0 6px 20px var(--a-shadow); transition: border-color .15s, box-shadow .15s; }
+.cv-n.is-selected .cv-n-card { border-color: #c00707; box-shadow: 0 0 0 1px #c00707, 0 6px 20px var(--a-shadow); }
+.cv-disp { position: absolute; inset: 8px; display: grid; overflow: hidden; border-radius: 17px; background: var(--a-input); }
+.cv-disp > img, .cv-disp .cv-res { width: 100%; height: 100%; object-fit: cover; }
+.cv-disp .cv-res { border: 0; border-radius: 0; box-shadow: none; aspect-ratio: auto !important; }
+.cv-disp-empty { display: grid; align-content: center; justify-items: center; gap: 10px; padding: 16px; color: var(--a-muted2); font-size: 13px; text-align: center; }
+.cv-disp-text { width: 100%; height: 100%; padding: 16px 18px; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; line-height: 1.5; resize: none; }
+.cv-disp-text:focus { outline: 0; } .cv-disp-text::placeholder { color: var(--a-ph); }
+.cv-disp-cap { position: absolute; left: 10px; right: 40px; bottom: 10px; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-disp .cv-pic-x { position: absolute; right: 8px; top: 8px; background: rgba(0,0,0,.55); color: #fff; }
+.cv-n-controls { display: grid; gap: 8px; margin-top: 10px; }
+.cv-ctl { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px 12px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.cv-ctl:hover { border-color: var(--a-line4); } .cv-ctl-select { appearance: none; text-align: center; text-align-last: center; }
+.cv-ctl-select option { background: var(--a-card); color: var(--a-fg); }
+/* ports */
+.cv-handle { width: 14px; height: 14px; border: 2px solid var(--a-muted); background: var(--a-card); }
+.cv-handle.is-on { border-color: #c00707; background: #c00707; }
+.cv-n-card .react-flow__handle-left { left: -1px; } .cv-n-card .react-flow__handle-right { right: -1px; }
+.cv-port-label { position: absolute; z-index: 2; padding: 2px 8px; border: 1px solid var(--a-line3); border-radius: 7px; background: var(--a-card); color: var(--a-fg2); font-size: 10.5px; line-height: 1.4; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(-50%); transition: opacity .12s; }
+.cv-port-l { right: calc(100% + 14px); } .cv-port-r { left: calc(100% + 14px); }
+.cv-n.is-selected .cv-port-label, .cv-n:hover .cv-port-label { opacity: 1; }
+.cv-plus { top: auto; bottom: 14px; margin-top: 0; }
+.cv-plus-out { right: -38px; } .cv-plus-in { left: -38px; }
+.cv-n .cv-nhint, .cv-n .cv-error { margin: 0; }
+.cv-send-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2px 0; border: 0; background: none; color: var(--a-muted); font: inherit; font-size: 11.5px; cursor: pointer; }
+.cv-send-toggle svg { transition: transform .15s; } .cv-send-toggle svg.is-up { transform: rotate(180deg); }
+.cv-send { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg2); font-size: 12px; line-height: 1.45; }
+.cv-send p { margin: 0; overflow-wrap: anywhere; }
+.cv-n .cv-chip { height: 30px; } .cv-n .cv-grp { margin-left: auto; }
+.cv-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-items: start; }

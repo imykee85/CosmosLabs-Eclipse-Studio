@@ -1,14 +1,16 @@
 "use client";
 
 import SoonTag from "@/components/SoonTag";
-import { useEffect, useMemo, useRef, useState } from "react";
+import AgentIcon from "@/components/AgentIcon";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { AlertTriangle, ArrowUp, Check, ChevronDown, Coins, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shuffle, Sprout, StickyNote, Trash2, Type, User, Wand2, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Coins, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Sprout, StickyNote, Trash2, Type, User, Wand2, X } from "lucide-react";
 import { AUTO } from "@/components/create/ModelPicker";
 import { refFileUrl, STYLES, type CanvasNodeData, type CNode, type NodeKind } from "@/lib/canvas";
-import { composePrompt, givesText, inputsOf, isGen, picturesOf, TITLES } from "@/lib/canvas-flow";
+import { composePrompt, inPortsOf, inputsOf, isGen, outLabelOf, OUT_HANDLE, picturesOf, TITLES } from "@/lib/canvas-flow";
 import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { readCurrentProject } from "@/lib/projects";
+import { useAgent } from "@/lib/use-agent";
 import { useModels } from "@/lib/use-models";
 import { useCanvas } from "./CanvasContext";
 
@@ -16,28 +18,51 @@ const ICONS: Record<NodeKind, React.ReactNode> = {
   character: <User size={15} />, product: <Package size={15} />, scene: <Mountain size={15} />, text: <Type size={15} />, style: <Palette size={15} />,
   note: <StickyNote size={15} />, fullbody: <PersonStanding size={15} />, generator: <ImageIcon size={15} />,
 };
+const BIG: Record<NodeKind, React.ReactNode> = {
+  character: <User size={34} strokeWidth={1.3} />, product: <Package size={34} strokeWidth={1.3} />, scene: <Mountain size={34} strokeWidth={1.3} />, text: <Type size={34} strokeWidth={1.3} />, style: <Palette size={34} strokeWidth={1.3} />,
+  note: <StickyNote size={34} strokeWidth={1.3} />, fullbody: <Wand2 size={34} strokeWidth={1.3} />, generator: <Wand2 size={34} strokeWidth={1.3} />,
+};
 
-function Shell({ id, kind, data, selected, className = "", children }: { id: string; kind: NodeKind; data: CanvasNodeData; selected?: boolean; className?: string; children: React.ReactNode }) {
+// Ports sit on the edges of the display card, first one near the top, evenly spaced; their labels show when the node is selected.
+const PORT_TOP = 40, PORT_STEP = 30;
+
+// A node: its title above, a big display card (what it holds or made), its controls underneath. Ports sit on the display card's edges.
+function Shell({ id, kind, selected, className = "", display, controls, cardStyle }: { id: string; kind: NodeKind; selected?: boolean; className?: string; display: React.ReactNode; controls?: React.ReactNode; cardStyle?: React.CSSProperties }) {
   const { deleteElements } = useReactFlow();
   const { focus, addAfter, addBefore } = useCanvas();
+  const edges = useEdges();
   const title = TITLES[kind];
-  const gen = isGen(kind);
-  const gives = givesText({ id, type: kind, position: { x: 0, y: 0 }, data });
+  const ins = inPortsOf(kind);
+  const out = outLabelOf(kind);
+  const wired = new Set(edges.filter((e) => e.target === id).map((e) => e.targetHandle));
+  const outWired = edges.some((e) => e.source === id);
   return (
-    <div className={`cv-node cv-${kind} ${selected ? "is-selected" : ""} ${className}`}>
-      {gen && <Handle type="target" position={Position.Left} className="cv-handle" />}
-      {gen && <button type="button" className="cv-plus cv-plus-in nodrag" aria-label={`Add a node that feeds ${title}`} title="Add a node that feeds this one" onClick={(e) => addBefore(id, e.currentTarget.getBoundingClientRect())}><Plus size={14} /></button>}
-      <header className="cv-head">
-        <span className="cv-title">{ICONS[kind]}{title}</span>
+    <div className={`cv-n cv-n-${kind} ${selected ? "is-selected" : ""} ${className}`}>
+      <header className="cv-n-title">
+        <span>{title}</span>
         <span className="cv-head-btns nodrag">
-          <button type="button" aria-label={`Zoom to ${title}`} title="Zoom to this node" onClick={() => focus(id)}><Maximize2 size={13} /></button>
-          <button type="button" className="cv-del" aria-label={`Delete ${title}`} title="Delete this node (you can undo)" onClick={() => deleteElements({ nodes: [{ id }] })}><Trash2 size={13} /></button>
+          <button type="button" aria-label={`Zoom to ${title}`} title="Zoom to this node" onClick={() => focus(id)}><Maximize2 size={12} /></button>
+          <button type="button" className="cv-del" aria-label={`Delete ${title}`} title="Delete this node (you can undo)" onClick={() => deleteElements({ nodes: [{ id }] })}><Trash2 size={12} /></button>
         </span>
       </header>
-      {children}
-      {kind !== "note" && <p className="cv-gives" title="What this node hands to the node it is wired into">Gives: <b>{gives}</b></p>}
-      {kind !== "note" && <Handle type="source" position={Position.Right} className="cv-handle" />}
-      {kind !== "note" && <button type="button" className="cv-plus cv-plus-out nodrag" aria-label={`Add the next node after ${title}`} title="Add the next node, already connected" onClick={(e) => addAfter(id, e.currentTarget.getBoundingClientRect())}><Plus size={14} /></button>}
+      <div className="cv-n-card" style={cardStyle}>
+        {display}
+        {ins.map((p, i) => (
+          <Fragment key={p.id}>
+            <Handle id={p.id} type="target" position={Position.Left} className={`cv-handle ${wired.has(p.id) ? "is-on" : ""}`} style={{ top: PORT_TOP + i * PORT_STEP }} />
+            <span className="cv-port-label cv-port-l" style={{ top: PORT_TOP + i * PORT_STEP }}>{p.label}</span>
+          </Fragment>
+        ))}
+        {out && (
+          <>
+            <Handle id={OUT_HANDLE} type="source" position={Position.Right} className={`cv-handle ${outWired ? "is-on" : ""}`} style={{ top: PORT_TOP }} />
+            <span className="cv-port-label cv-port-r" style={{ top: PORT_TOP }}>{out}</span>
+          </>
+        )}
+        {isGen(kind) && <button type="button" className="cv-plus cv-plus-in nodrag" aria-label={`Add a node that feeds ${title}`} title="Add a node that feeds this one" onClick={(e) => addBefore(id, e.currentTarget.getBoundingClientRect())}><Plus size={14} /></button>}
+        {out && <button type="button" className="cv-plus cv-plus-out nodrag" aria-label={`Add the next node after ${title}`} title="Add the next node, already connected" onClick={(e) => addAfter(id, e.currentTarget.getBoundingClientRect())}><Plus size={14} /></button>}
+      </div>
+      {controls && <div className="cv-n-controls">{controls}</div>}
     </div>
   );
 }
@@ -47,23 +72,25 @@ function Ingredient({ id, data, selected, kind }: NodeProps<CNode> & { kind: "ch
   const { ask } = useCanvas();
   const label = TITLES[kind].toLowerCase();
   return (
-    <Shell id={id} kind={kind} data={data} selected={selected}>
-      <div className="cv-body">
-        <div className="cv-slot">
+    <Shell id={id} kind={kind} selected={selected}
+      display={
+        <div className="cv-disp">
           {data.ref ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="cv-pic" src={refFileUrl(data.ref)} alt={data.ref.label} />
-              <span className="cv-pic-name" title={data.ref.label}>{data.ref.label}</span>
+              <img src={refFileUrl(data.ref)} alt={data.ref.label} />
+              <span className="cv-disp-cap" title={data.ref.label}>{data.ref.label}</span>
               <button type="button" className="cv-pic-x nodrag" aria-label="Remove picture" title="Remove picture" onClick={() => updateNodeData(id, { ref: undefined })}><X size={13} /></button>
             </>
-          ) : <>{ICONS[kind]}<span>{data.desc?.trim() ? data.desc : `No ${label} selected`}</span></>}
+          ) : <div className="cv-disp-empty">{BIG[kind]}<span>No {label} selected</span></div>}
         </div>
-        <input className="cv-input nodrag" value={data.desc ?? ""} maxLength={200} placeholder={`Describe the ${label}...`} aria-label={`${TITLES[kind]} description`}
-          onChange={(e) => updateNodeData(id, { desc: e.target.value })} />
-        <button type="button" className="cv-btn nodrag" onClick={() => ask({ kind: "picture", nodeId: id })}>{data.ref ? "Change picture" : "Choose from Library"}</button>
-      </div>
-    </Shell>
+      }
+      controls={
+        <>
+          <button type="button" className="cv-ctl nodrag" onClick={() => ask({ kind: "picture", nodeId: id })}>{data.ref ? `Change ${label}` : `Select ${label}`}</button>
+          <input className="cv-input nodrag" value={data.desc ?? ""} maxLength={200} placeholder={`Describe the ${label}...`} aria-label={`${TITLES[kind]} description`} onChange={(e) => updateNodeData(id, { desc: e.target.value })} />
+        </>
+      } />
   );
 }
 
@@ -74,39 +101,31 @@ const SceneNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="scene" />;
 function TextNode({ id, data, selected }: NodeProps<CNode>) {
   const { updateNodeData } = useReactFlow();
   return (
-    <Shell id={id} kind="text" data={data} selected={selected} className="cv-wide">
-      <div className="cv-body">
-        <textarea className="cv-input cv-area nodrag nowheel" rows={4} value={data.text ?? ""} maxLength={2000} placeholder="Describe the shot you imagine..." aria-label="Prompt"
-          onChange={(e) => updateNodeData(id, { text: e.target.value })} />
-        <button type="button" className="cv-btn"><Lightbulb size={14} /> Polish prompt <SoonTag /></button>
-      </div>
-    </Shell>
+    <Shell id={id} kind="text" selected={selected}
+      display={<div className="cv-disp"><textarea className="cv-disp-text nodrag nowheel" value={data.text ?? ""} maxLength={2000} placeholder="Describe the shot you imagine..." aria-label="Prompt" onChange={(e) => updateNodeData(id, { text: e.target.value })} /></div>}
+      controls={<button type="button" className="cv-ctl"><Lightbulb size={14} /> Polish prompt <SoonTag /></button>} />
   );
 }
 
 function NoteNode({ id, data, selected }: NodeProps<CNode>) {
   const { updateNodeData } = useReactFlow();
   return (
-    <Shell id={id} kind="note" data={data} selected={selected} className="cv-wide">
-      <div className="cv-body">
-        <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.text ?? ""} maxLength={1000} placeholder="Write a note for yourself..." aria-label="Note"
-          onChange={(e) => updateNodeData(id, { text: e.target.value })} />
-      </div>
-    </Shell>
+    <Shell id={id} kind="note" selected={selected}
+      display={<div className="cv-disp"><textarea className="cv-disp-text nodrag nowheel" value={data.text ?? ""} maxLength={1000} placeholder="Write a note for yourself..." aria-label="Note" onChange={(e) => updateNodeData(id, { text: e.target.value })} /></div>} />
   );
 }
 
 function StyleNode({ id, data, selected }: NodeProps<CNode>) {
   const { updateNodeData } = useReactFlow();
+  const set = data.style && data.style !== "None";
   return (
-    <Shell id={id} kind="style" data={data} selected={selected}>
-      <div className="cv-body">
-        <div className="cv-slot">{ICONS.style}<span>{data.style && data.style !== "None" ? data.style : "No style selected"}</span></div>
-        <select className="cv-input nodrag" value={data.style ?? "None"} aria-label="Style" onChange={(e) => updateNodeData(id, { style: e.target.value })}>
-          {STYLES.map((s) => <option key={s} value={s}>{s}</option>)}
+    <Shell id={id} kind="style" selected={selected}
+      display={<div className="cv-disp"><div className="cv-disp-empty">{BIG.style}<span>{set ? data.style : "No style selected"}</span></div></div>}
+      controls={
+        <select className="cv-ctl cv-ctl-select nodrag" value={data.style ?? "None"} aria-label="Style" onChange={(e) => updateNodeData(id, { style: e.target.value })}>
+          {STYLES.map((s) => <option key={s} value={s}>{s === "None" ? "Select style" : s}</option>)}
         </select>
-      </div>
-    </Shell>
+      } />
   );
 }
 
@@ -126,15 +145,17 @@ function Result({ gid, ratio, on, onPick, onOpen, small }: { gid: string; ratio:
   );
 }
 
-// The image generator is Image Studio's prompt box on the canvas: the same prompt, shape, number of images, quality, model (Auto picks for each image), reference
-// pictures, fixed seed and price, started the same way (src/lib/image-render.ts). On top of that it reads what is wired into it and shows what it receives
-// and what it will send; the picture it makes is what it gives to the next node.
+// The image generator is Image Studio's prompt box on the canvas: the same prompt, shape, number of images, quality, model (Auto picks for each image), ingredients,
+// fixed seed (a switch only: the seed of its first render is kept and reused) and price, started the same way (src/lib/image-render.ts). It reads what is plugged
+// into its ports; the picture it makes (its Result port) is what it gives to the next node.
 function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "generator" | "fullbody" }) {
   const { updateNodeData } = useReactFlow();
   const { ask } = useCanvas();
   const nodes = useNodes() as CNode[];
   const edges = useEdges();
   const models = useModels({ edit: true });
+  const agent = useAgent();
+  const agentChip = useRef<HTMLButtonElement>(null);
 
   const ratioWanted = data.ratio ?? (kind === "fullbody" ? "9:16" : "4:5");
   const qty = Math.min(MAX_QTY, Math.max(1, data.qty ?? 1));
@@ -143,11 +164,11 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   const seedOn = !!data.seedOn;
   const seedText = data.seed ?? "";
 
-  // What is wired in, and the pictures the model will read, in order.
+  // What is plugged in, and the pictures the model will read, in order.
   const inputs = useMemo(() => inputsOf(nodes, edges, id), [nodes, edges, id]);
   const pics = useMemo(() => picturesOf(inputs, data.refs ?? []), [inputs, data.refs]);
   const refList = pics.map((p) => ({ type: p.pic.type, id: p.pic.id }));
-  const waiting = inputs.filter((i) => i.role === "result" && !i.ready);
+  const waiting = inputs.filter((i) => i.fromResult && !i.ready);
 
   // Auto resolves to one real model: a verified one that can take as many pictures as there are (never an edit-only model).
   const autoModel = (() => {
@@ -164,12 +185,12 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     if (first) updateNodeData(id, { tier: first.id });
   }, [model, tier, id, updateNodeData]);
 
-  // Fixed seed: only models that have one can use it; a number outside a new model's range is cleared with a note (as in Image Studio).
+  // Fixed seed: only models that have one can use it. The number is never shown: the seed of the first render is kept and reused, and one that does not fit a
+  // newly chosen model is dropped (the next render makes a new one).
   const seedSpec = model?.seed;
   const seedSupported = !!seedSpec?.supported;
   const seedLive = seedOn && seedSupported;
   const seedNum = /^\d+$/.test(seedText) ? Number(seedText) : null;
-  const seedBad = seedLive && !!seedSpec && seedText !== "" && (seedNum == null || seedNum < seedSpec.min || seedNum > seedSpec.max);
   const lastSeedModel = useRef<string | null>(null);
   useEffect(() => {
     const mid = model?.id ?? null;
@@ -177,7 +198,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     const first = lastSeedModel.current === null;
     lastSeedModel.current = mid;
     if (first || !seedSpec?.supported || seedNum == null) return;
-    if (seedNum < seedSpec.min || seedNum > seedSpec.max) updateNodeData(id, { seed: "", note: "Seed reset: not valid for this model." });
+    if (seedNum < seedSpec.min || seedNum > seedSpec.max) updateNodeData(id, { seed: "" });
   }, [model, seedSpec, seedNum, id, updateNodeData]);
 
   const composed = useMemo(() => composePrompt(kind, data.prompt ?? "", inputs, pics, Math.min(model?.maxPrompt ?? 2000, 5000)), [kind, data.prompt, inputs, pics, model?.maxPrompt]);
@@ -221,9 +242,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [pendingKey, id, updateNodeData]);
 
-  const randomizeSeed = () => { if (seedSpec) updateNodeData(id, { seed: String(seedSpec.min + Math.floor(Math.random() * (seedSpec.max - seedSpec.min + 1))), note: "" }); };
-
-  const canGo = !!composed.trim() && !!model && !busy && !submitting && !needsRef && !tooMany && !seedBad && waiting.length === 0 && tierOk;
+  const canGo = !!composed.trim() && !!model && !busy && !submitting && !needsRef && !tooMany && waiting.length === 0 && tierOk;
 
   async function run() {
     if (!canGo || !model) return;
@@ -244,122 +263,107 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
       updateNodeData(id, { error: e instanceof Error ? e.message : "Something went wrong. Please try again." });
     } finally { setSubmitting(false); }
   }
+  // The agent's "Generate" command (and anything else that wants this node to run) arrives as an event.
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    const onRun = (e: Event) => { if ((e as CustomEvent<{ id: string }>).detail?.id === id) void runRef.current(); };
+    window.addEventListener("eclipse-node-run", onRun);
+    return () => window.removeEventListener("eclipse-node-run", onRun);
+  }, [id]);
 
   const modelLabel = modelId === AUTO ? "Auto" : model?.label ?? "Model";
   const price = model?.credits != null && modelId !== AUTO ? model.credits * qty : null;
-  const [showRecv, setShowRecv] = useState(true);
+  const [showSend, setShowSend] = useState(false);
   const picked = data.pick && gens.includes(data.pick) ? data.pick : gens[0];
+  const ingN = (data.refs ?? []).length;
 
   return (
-    <Shell id={id} kind={kind} data={data} selected={selected} className="cv-gen">
-      <div className="cv-body">
-        {/* What this node receives from the nodes wired into it. */}
-        <div className="cv-recv nodrag">
-          <button type="button" className="cv-recv-head" aria-expanded={showRecv} onClick={() => setShowRecv((v) => !v)}>
-            <span>Receiving{inputs.length ? ` (${inputs.length})` : ""}</span><ChevronDown size={14} className={showRecv ? "is-up" : ""} />
-          </button>
-          {showRecv && (
-            inputs.length === 0 ? <p className="cv-recv-none">Nothing is wired in. Use the + on the left, or drag a wire from another node, to feed this one.</p> : (
-              <ul>
-                {inputs.map((i) => (
-                  <li key={i.nodeId} className={i.ready ? "" : "is-wait"}>
-                    <span className="cv-recv-from">{i.ready ? <Check size={12} /> : <AlertTriangle size={12} />} {i.title}</span>
-                    <span className="cv-recv-what">
-                      {i.pic ? <>picture{i.text ? " + " : ""}</> : null}
-                      {i.text ? <q>{i.text.length > 70 ? `${i.text.slice(0, 69)}…` : i.text}</q> : null}
-                      {!i.ready ? <em>{i.why}</em> : null}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )
+    <Shell id={id} kind={kind} selected={selected} className="cv-gen" cardStyle={{ aspectRatio: ratio.replace(":", " / ") }}
+      display={
+        <div className="cv-disp">
+          {busy && gens.length === 0 ? (
+            <div className="cv-disp-empty"><Loader2 size={30} className="cv-spin" /><span>Creating your image{pending.length > 1 ? "s" : ""}…</span></div>
+          ) : picked ? (
+            <Result gid={picked} ratio={ratio} on onOpen={() => ask({ kind: "details", genId: picked })} />
+          ) : (
+            <div className="cv-disp-empty">{BIG[kind]}<span>Ready to generate</span></div>
           )}
-          {showRecv && pics.length > 0 && (
-            <div className="cv-recv-pics" aria-label="Pictures sent to the model, in order">
-              {pics.map((p) => (
-                <span key={p.pic.id} className="cv-recv-pic" title={`Image ${p.n}: ${p.label}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={refFileUrl(p.pic)} alt={p.label} /><i>{p.n}</i>
-                </span>
-              ))}
+        </div>
+      }
+      controls={
+        <>
+          {gens.length > 1 && (
+            <div className="cv-thumbs" aria-label="Images made">
+              {gens.map((g) => <Result key={g} gid={g} ratio={ratio} small on={g === picked} onPick={() => updateNodeData(id, { pick: g })} onOpen={() => ask({ kind: "details", genId: g })} />)}
             </div>
           )}
-        </div>
-
-        <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder={kind === "fullbody" ? "Describe the full-body look…" : "Describe the shot you imagine…"} aria-label="Prompt"
-          onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
-          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
-
-        <div className="cv-controls nodrag">
-          <label className="cv-chip cv-sel"><span className="sr-only">Aspect ratio</span>
-            <select value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
-              {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </label>
-          <div className="cv-qty" role="group" aria-label="Number of images">
-            <button type="button" aria-label="Fewer images" disabled={qty <= 1} onClick={() => updateNodeData(id, { qty: Math.max(1, qty - 1) })}><Minus size={13} /></button>
-            <span aria-live="polite">{qty}</span>
-            <button type="button" aria-label="More images" disabled={qty >= MAX_QTY} onClick={() => updateNodeData(id, { qty: Math.min(MAX_QTY, qty + 1) })}><Plus size={13} /></button>
-          </div>
-          <label className="cv-chip cv-sel" title={model && !model.resolutions.length ? "This model has one fixed quality" : "Image quality"}><span className="sr-only">Image quality</span>
-            <select value={tier} aria-label="Image quality" disabled={!model || !model.resolutions.length} onChange={(e) => updateNodeData(id, { tier: e.target.value })}>
-              {TIERS.map((t) => <option key={t.id} value={t.id} disabled={!!model?.resolutions.length && !tierResolution(model.resolutions, t.id)}>{t.label}</option>)}
-            </select>
-          </label>
-        </div>
-        <button type="button" className="cv-chip cv-modelbtn nodrag" aria-label="Image model" aria-haspopup="dialog" title={model?.blurb} onClick={() => ask({ kind: "model", nodeId: id })}>
-          <span className="cv-muted">Model:</span>{modelId === AUTO && <Wand2 size={13} />}<b>{modelLabel}</b><ChevronDown size={13} />
-        </button>
-        <div className="cv-controls nodrag">
-          <button type="button" className="cv-chip" title="Pick reference pictures for this node (pictures from wired-in nodes are added automatically)"
-            onClick={() => ask({ kind: "refs", nodeId: id })}><Layers size={13} /> References{(data.refs ?? []).length ? ` (${(data.refs ?? []).length})` : ""}</button>
-          <span className="cv-grp">
-            <span className="cv-chip cv-seed"><Sprout size={13} /> Fixed seed</span>
-            <button type="button" role="switch" aria-checked={seedLive} aria-label="Fixed seed" disabled={!seedSupported} title={seedSupported ? "Fixed seed: similar results with the same seed" : "This model doesn't support seeds"} className={`cv-switch ${seedLive ? "is-on" : ""}`} onClick={() => updateNodeData(id, { seedOn: !seedOn })}><i /></button>
-          </span>
-        </div>
-        {seedLive && seedSpec && (
+          {gens.length > 1 && <p className="cv-nhint">The ticked image is the Result the next node receives.</p>}
+          <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder={kind === "fullbody" ? "Describe the full-body look…" : "Describe the shot you imagine…"} aria-label="Prompt"
+            onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
           <div className="cv-controls nodrag">
-            <label className="cv-seedfield"><span>Seed</span>
-              <input inputMode="numeric" pattern="[0-9]*" aria-label="Seed number" value={seedText} placeholder={`${seedSpec.min.toLocaleString("en-US")} to ${seedSpec.max.toLocaleString("en-US")}`}
-                onChange={(e) => updateNodeData(id, { seed: e.target.value.replace(/\D/g, "").slice(0, 10), note: "" })} />
+            <label className="cv-chip cv-sel"><span className="sr-only">Aspect ratio</span>
+              <select value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
+                {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
             </label>
-            <button type="button" className="cv-chip" onClick={randomizeSeed}><Shuffle size={13} /> Randomize</button>
+            <div className="cv-qty" role="group" aria-label="Number of images">
+              <button type="button" aria-label="Fewer images" disabled={qty <= 1} onClick={() => updateNodeData(id, { qty: Math.max(1, qty - 1) })}><Minus size={13} /></button>
+              <span aria-live="polite">{qty}</span>
+              <button type="button" aria-label="More images" disabled={qty >= MAX_QTY} onClick={() => updateNodeData(id, { qty: Math.min(MAX_QTY, qty + 1) })}><Plus size={13} /></button>
+            </div>
+            <label className="cv-chip cv-sel" title={model && !model.resolutions.length ? "This model has one fixed quality" : "Image quality"}><span className="sr-only">Image quality</span>
+              <select value={tier} aria-label="Image quality" disabled={!model || !model.resolutions.length} onChange={(e) => updateNodeData(id, { tier: e.target.value })}>
+                {TIERS.map((t) => <option key={t.id} value={t.id} disabled={!!model?.resolutions.length && !tierResolution(model.resolutions, t.id)}>{t.label}</option>)}
+              </select>
+            </label>
           </div>
-        )}
-
-        <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={run}>
-          {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Creating {pending.length === 1 ? "your image" : `${pending.length} images`}</> : price != null ? <>Generate <span className="cv-cost" title={`${price} credits`}><Coins size={13} />{price}</span></> : <>Generate <ArrowUp size={15} /></>}
-        </button>
-
-        {/* The picture(s) it made. The ticked one is what the next node receives. */}
-        {(busy || gens.length > 0) && (
-          <div className="cv-results">
-            {busy && gens.length === 0 ? (
-              <div className="cv-stage" style={{ aspectRatio: ratio.replace(":", " / ") }}><div className="cv-empty"><Loader2 size={24} className="cv-spin" /><span>Creating your image{pending.length > 1 ? "s" : ""}…</span></div></div>
-            ) : picked ? (
-              <>
-                <Result gid={picked} ratio={ratio} on onOpen={() => ask({ kind: "details", genId: picked })} />
-                {gens.length > 1 && (
-                  <div className="cv-thumbs" aria-label="Images made">
-                    {gens.map((g) => <Result key={g} gid={g} ratio={ratio} small on={g === picked} onPick={() => updateNodeData(id, { pick: g })} onOpen={() => ask({ kind: "details", genId: g })} />)}
-                  </div>
-                )}
-                <p className="cv-recv-none">{gens.length > 1 ? "The ticked image goes to the next node. Tap the tick on another to change it." : "This image goes to the next node."}{busy ? " More are still being made." : ""}</p>
-              </>
-            ) : null}
+          <button type="button" className="cv-chip cv-modelbtn nodrag" aria-label="Image model" aria-haspopup="dialog" title={model?.blurb} onClick={() => ask({ kind: "model", nodeId: id })}>
+            <span className="cv-muted">Model:</span>{modelId === AUTO && <Wand2 size={13} />}<b>{modelLabel}</b><ChevronDown size={13} />
+          </button>
+          <div className="cv-controls nodrag">
+            <button type="button" className="cv-chip" title="Choose ingredients for this node (pictures plugged into its ports are added automatically)" onClick={() => ask({ kind: "refs", nodeId: id })}><Layers size={13} /> Ingredients{ingN ? ` (${ingN})` : ""}</button>
+            <span className="cv-grp">
+              <span className="cv-chip cv-seed"><Sprout size={13} /> Fixed seed</span>
+              <button type="button" role="switch" aria-checked={seedLive} aria-label="Fixed seed" disabled={!seedSupported} title={seedSupported ? "Fixed seed: similar results with the same seed" : "This model doesn't support seeds"} className={`cv-switch ${seedLive ? "is-on" : ""}`} onClick={() => updateNodeData(id, { seedOn: !seedOn, seed: "" })}><i /></button>
+            </span>
           </div>
-        )}
-        {!seedSupported && model && <p className="cv-nhint">This model doesn&rsquo;t support seeds.</p>}
-        {seedBad && seedSpec && <p className="cv-error" role="alert">Use a whole number from {seedSpec.min.toLocaleString("en-US")} to {seedSpec.max.toLocaleString("en-US")} for this model.</p>}
-        {data.note && <p className="cv-nhint">{data.note}</p>}
-        {needsRef && <p className="cv-nhint">{model?.label} edits a picture. Choose one with References, or wire in a node that gives a picture.</p>}
-        {tooMany && model && <p className="cv-error" role="alert">{model.label} takes up to {model.maxReferences} reference {model.maxReferences === 1 ? "picture" : "pictures"}; {pics.length} are wired in or picked.{model.maxReferences === 0 ? " Choose a model that uses pictures, or remove them." : ""}</p>}
-        {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
-        {!composed.trim() && !busy && <p className="cv-nhint">Write a prompt here or wire in a text prompt to begin.</p>}
-        {data.error && <p className="cv-error" role="alert">{data.error}</p>}
-      </div>
-    </Shell>
+          <div className="cv-controls nodrag">
+            <span className="cv-grp">
+              <button ref={agentChip} type="button" className="cv-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => ask({ kind: "agent", anchor: e.currentTarget.getBoundingClientRect() })}><AgentIcon size={13} /> <span>{agent.agent ?? "Agents"}</span></button>
+              <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this node" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cv-switch ${agent.active ? "is-on" : ""}`}
+                onClick={() => { if (!agent.agent) { if (agentChip.current) ask({ kind: "agent", anchor: agentChip.current.getBoundingClientRect() }); return; } agent.setOn(!agent.on); }}><i /></button>
+            </span>
+          </div>
+          <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={run}>
+            {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Creating {pending.length === 1 ? "your image" : `${pending.length} images`}</> : price != null ? <>Generate <span className="cv-cost" title={`${price} credits`}><Coins size={13} />{price}</span></> : <>Generate <ArrowUp size={15} /></>}
+          </button>
+          <button type="button" className="cv-send-toggle nodrag" aria-expanded={showSend} onClick={() => setShowSend((v) => !v)}>What will be sent <ChevronDown size={12} className={showSend ? "is-up" : ""} /></button>
+          {showSend && (
+            <div className="cv-send nodrag">
+              <p>{composed || "Nothing yet. Write a prompt or plug in a text prompt."}</p>
+              {pics.length > 0 && (
+                <div className="cv-recv-pics" aria-label="Ingredients sent to the model, in order">
+                  {pics.map((p) => (
+                    <span key={p.pic.id} className="cv-recv-pic" title={`Image ${p.n}: ${p.label}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={refFileUrl(p.pic)} alt={p.label} /><i>{p.n}</i>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {!seedSupported && model && <p className="cv-nhint">This model doesn&rsquo;t support seeds.</p>}
+          {data.note && <p className="cv-nhint">{data.note}</p>}
+          {needsRef && <p className="cv-nhint">{model?.label} edits a picture. Choose one with Ingredients, or plug in a node that gives a picture.</p>}
+          {tooMany && model && <p className="cv-error" role="alert">{model.label} takes up to {model.maxReferences} {model.maxReferences === 1 ? "ingredient" : "ingredients"}; {pics.length} are plugged in or chosen.{model.maxReferences === 0 ? " Choose a model that uses pictures, or remove them." : ""}</p>}
+          {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
+          {!composed.trim() && !busy && <p className="cv-nhint">Write a prompt here or plug in a text prompt to begin.</p>}
+          {data.error && <p className="cv-error" role="alert">{data.error}</p>}
+        </>
+      } />
   );
 }
 
