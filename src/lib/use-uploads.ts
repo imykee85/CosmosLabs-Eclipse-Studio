@@ -26,13 +26,13 @@ export function useUploads(kind?: UploadKind | "ingredients") {
   return { items, error, reload };
 }
 
-export async function uploadPicture(file: File, kind: UploadKind, name: string, projectId: string | null): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function uploadPicture(file: File, kind: UploadKind, name: string, projectId: string | null): Promise<{ ok: true; item: UploadRow | null } | { ok: false; error: string }> {
   const form = new FormData();
   form.set("file", file); form.set("kind", kind); form.set("name", name); form.set("rights", "1"); // the caller has shown the "I have the right to use this picture" box
   if (projectId) form.set("projectId", projectId);
   try {
     const res = await fetch("/api/uploads", { method: "POST", body: form });
-    if (res.ok) return { ok: true };
+    if (res.ok) return { ok: true, item: (await res.json().catch(() => null)) as UploadRow | null };
     const data = await res.json().catch(() => null);
     return { ok: false, error: data?.error ?? (res.status === 413 ? "That picture is larger than 4 MB. Please use a smaller one." : "Could not upload that picture.") };
   } catch {

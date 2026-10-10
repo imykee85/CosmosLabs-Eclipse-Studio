@@ -7,6 +7,8 @@ import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
+import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
+import { uploadPicture } from "@/lib/use-uploads";
 import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
@@ -72,7 +74,6 @@ export default function CreateStudio() {
   }, [model, seedSpec, seedNum]);
   const randomizeSeed = () => { if (seedSpec) { putSeed(String(seedSpec.min + Math.floor(Math.random() * (seedSpec.max - seedSpec.min + 1)))); setSeedNote(""); } };
   const [picking, setPicking] = useState(false);
-  const [pickUpload, setPickUpload] = useState(false); // the + in the prompt box opens the picker straight on "upload a picture"
   const [noRefs, setNoRefs] = useState(false); // the chosen model takes no pictures: say so, with the models that do
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -115,8 +116,28 @@ export default function CreateStudio() {
   useEffect(() => { setNoRefs(false); }, [modelId]);
   const refModels = (models ?? []).filter((m) => m.maxReferences > 0).map((m) => m.label);
 
-  function openIngredients(upload: boolean) {
-    if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPickUpload(upload); setPicking(true); } else setNoRefs(true);
+  function openIngredients() {
+    if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true);
+  }
+
+  // The + in the prompt box: pick a picture from this device and attach it right away as an ingredient (it is saved to Assets).
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  async function uploadFromDevice(f: File | undefined) {
+    if (!f) return;
+    setError("");
+    if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setError("Only PNG, JPEG and WebP pictures can be uploaded."); return; }
+    if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 25 MB. Please use a smaller one."); return; }
+    setUploading(true);
+    try {
+      const fitted = await shrinkToFit(f);
+      if (!fitted) { setError("Could not make that picture small enough. Please try another."); return; }
+      const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
+      if (!r.ok) { setError(r.error); return; }
+      const maxRefs = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
+      if (r.item && maxRefs > refs.length) { setNoRefs(false); setRefs((l) => [...l, { type: "upload", id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }]); }
+      else if (maxRefs === 0) setNoRefs(true);
+    } finally { setUploading(false); }
   }
 
   function pickModel(id: string) {
@@ -265,7 +286,8 @@ export default function CreateStudio() {
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); submitBox(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <div className="cr-field">
-          <button type="button" className="cr-plus" aria-label="Upload a picture" title="Upload a picture to use as an ingredient" onClick={() => openIngredients(true)}><Plus size={18} /></button>
+          <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+          <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
           <textarea
             id="cr-prompt"
             ref={box}
@@ -322,7 +344,7 @@ export default function CreateStudio() {
           </button>
           </div>
           <div className="cr-row cr-row-top">
-          <button type="button" className="cr-chip" onClick={() => openIngredients(false)} title="Choose ingredients and pictures the model should work from">
+          <button type="button" className="cr-chip" onClick={() => openIngredients()} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
           <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas"
@@ -371,7 +393,7 @@ export default function CreateStudio() {
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
-      {picking && (model || modelId === AUTO) && <ReferencePicker startAdding={pickUpload} max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
+      {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
