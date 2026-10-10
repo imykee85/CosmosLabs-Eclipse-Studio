@@ -14,7 +14,7 @@ const tryPlay = (video: HTMLVideoElement) => {
 // and only then replaced: by its still frame when it has one, else by the colour tile. It never gives up on the first hiccup.
 const RETRY_DELAYS_MS = [1500, 3000, 6000, 10000];
 
-function Slide({ item, index, copy }: { item: CarouselItem; index: number; copy: number }) {
+function Slide({ item, index, active }: { item: CarouselItem; index: number; active: boolean }) {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -28,7 +28,7 @@ function Slide({ item, index, copy }: { item: CarouselItem; index: number; copy:
   };
 
   return (
-    <div className="carousel-slide flex justify-center">
+    <div className="carousel-slide flex justify-center" data-i={index}>
       <div className="carousel-card relative w-full overflow-hidden bg-black">
         {failed ? (
           item.poster ? (
@@ -38,6 +38,12 @@ function Slide({ item, index, copy }: { item: CarouselItem; index: number; copy:
             // Placeholder until the file is added to public/carousel/
             <div className={`tile tone-${index % 8} absolute inset-0 h-full`} style={{ borderRadius: 0 }} />
           )
+        ) : item.type === "video" && !active ? (
+          // Off screen: only the still frame. Phones (iPhone Safari above all) can decode just a few videos at once, so a video exists only while its card is near the screen.
+          item.poster ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : null
         ) : item.type === "video" ? (
           <video
             key={attempt}
@@ -45,7 +51,7 @@ function Slide({ item, index, copy }: { item: CarouselItem; index: number; copy:
             muted
             loop
             playsInline
-            preload={copy === 0 ? "auto" : "metadata"}
+            preload="auto"
             poster={item.poster}
             className="absolute inset-0 h-full w-full object-cover"
             onLoadedMetadata={(e) => tryPlay(e.currentTarget)}
@@ -74,12 +80,14 @@ function Slide({ item, index, copy }: { item: CarouselItem; index: number; copy:
 export default function HomeMediaCarousel() {
   const rootRef = useRef<HTMLDivElement>(null);
 
+  // Which cards are on (or just beside) the screen. Only those get a playing <video>; see Slide.
+  const [near, setNear] = useState<Set<number>>(() => new Set());
+
   // Keep muted autoplay running: retry on load, resume and visibility changes.
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    const videos = Array.from(root.querySelectorAll<HTMLVideoElement>("video"));
-    const playAll = () => videos.forEach(tryPlay);
+    const playAll = () => root.querySelectorAll<HTMLVideoElement>("video").forEach(tryPlay);
 
     playAll();
     const timers = [100, 300, 700, 1500, 3000, 6000].map((d) => window.setTimeout(playAll, d));
@@ -87,14 +95,23 @@ export default function HomeMediaCarousel() {
     document.addEventListener("visibilitychange", playAll);
     window.addEventListener("pageshow", playAll);
 
+    // Watch the cards against the carousel's own frame, a little wider than the frame so a card starts loading just before it slides in.
     const observer =
       "IntersectionObserver" in window
         ? new IntersectionObserver(
-            (entries) => entries.forEach((e) => e.isIntersecting && tryPlay(e.target as HTMLVideoElement)),
-            { threshold: 0.01 },
+            (entries) => setNear((prev) => {
+              const next = new Set(prev);
+              for (const e of entries) {
+                const i = Number((e.target as HTMLElement).dataset.i);
+                if (e.isIntersecting) next.add(i); else next.delete(i);
+              }
+              return next;
+            }),
+            { root, rootMargin: "0px 25% 0px 25%", threshold: 0 },
           )
         : null;
-    videos.forEach((v) => observer?.observe(v));
+    if (observer) root.querySelectorAll(".carousel-slide").forEach((el) => observer.observe(el));
+    else setNear(new Set(carouselItems.flatMap((_, i) => [i, i + carouselItems.length]))); // no observer: behave as before
 
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
@@ -123,7 +140,7 @@ export default function HomeMediaCarousel() {
       `}</style>
       <div className="carousel-track">
         {[...carouselItems, ...carouselItems].map((item, i) => (
-          <Slide key={i} item={item} index={i} copy={i < n ? 0 : 1} />
+          <Slide key={i} item={item} index={i} active={near.has(i)} />
         ))}
       </div>
     </div>
