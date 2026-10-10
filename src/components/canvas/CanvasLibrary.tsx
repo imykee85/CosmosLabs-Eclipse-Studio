@@ -70,7 +70,7 @@ export default function CanvasLibrary({ projectId, onOpen }: { projectId: string
           <h1 className="pg-title">Canvases</h1>
           <p>{projectName ? <>Everything you built in <b>{projectName}</b>. Open one to carry on exactly where you left off.</> : "Open one to carry on exactly where you left off."}</p>
         </div>
-        <button type="button" className="cl-new" onClick={startNew} disabled={busy === "new"}>{busy === "new" ? <Loader2 size={16} className="cv-spin" /> : <Plus size={16} />} New canvas</button>
+        {!(tab === "canvases" && items?.length === 0) && <button type="button" className="cl-new" onClick={startNew} disabled={busy === "new"}>{busy === "new" ? <Loader2 size={16} className="cv-spin" /> : <Plus size={16} />} New canvas</button>}
       </header>
 
       <div className="cl-tabs" role="tablist" aria-label="Canvas lists">
