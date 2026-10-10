@@ -31,7 +31,7 @@ a.ws-item:hover, .ws-item-btn:hover { background: var(--a-hover); }
 .ws-pill:hover { border-color: var(--a-line4); } .ws-pill-solid { background: var(--a-card); }
 .ws-icon-btn { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--a-line2); border-radius: 50%; background: transparent; color: var(--a-fg); cursor: pointer; transition: border-color .18s; }
 .ws-icon-btn:hover { border-color: var(--a-line4); }
-.ws-main { flex: 1; width: 100%; max-width: 1040px; padding: 56px clamp(16px, 4%, 48px) 80px; }
+.ws-main { flex: 1; width: 100%; max-width: 1040px; margin-inline: auto; padding: 56px clamp(16px, 4%, 48px) 80px; }
 
 .ws-choose h1 { margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -.03em; }
 .ws-choose > p { max-width: 640px; margin: 14px 0 0; color: var(--a-muted); font-size: 16px; line-height: 1.5; }
