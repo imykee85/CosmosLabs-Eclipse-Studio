@@ -91,10 +91,10 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       <div className="hf-sec">
         <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" />
         <ul className="hf-row hf-row-2">
-          <li className="hf-wide"><Empty className="hf-fill" /><span className="hf-label">Video templates</span></li>
           <li className="hf-wide">
             <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
           </li>
+          <li className="hf-wide"><Empty className="hf-fill" /><span className="hf-label">Video templates</span></li>
         </ul>
       </div>
 
