@@ -103,10 +103,8 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   useEffect(() => {
     if (!cue || cue.agent !== name || !pos) return;
     setCue(null);
-    setOpen(true);
     if (cue.kind === "on") { setHop(true); window.setTimeout(() => setHop(false), 1000); }
     else { setBounce(true); window.setTimeout(() => setBounce(false), 700); }
-    chat.introduce();
   }, [cue, name, pos]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const o = () => setOpen(true); window.addEventListener("eclipse-agent-open", o); return () => window.removeEventListener("eclipse-agent-open", o); }, []);
   useEffect(() => { const el = list.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.messages.length, chat.busy, open, big]);
