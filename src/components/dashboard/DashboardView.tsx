@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Clock, FolderOpen, Info, LayoutGrid, Rows3, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Clock, FolderOpen, Info, LayoutGrid, Rows3, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { rememberPage } from "@/lib/last-page";
 import NotificationsButton from "@/components/Notifications";
@@ -20,6 +20,38 @@ import ProjectDetailsModal from "./ProjectDetailsModal";
 import RenameProjectModal from "./RenameProjectModal";
 import "@/components/app-theme.css";
 import "./dashboard.css";
+
+// The project row: a sideways-scrolling strip (four cards at a time on a wide screen, two on a phone) with round arrows at its bottom right.
+// The arrows page through it and tell people there is more to swipe to; they hide when everything fits.
+function Rail({ className, n, children }: { className: string; n: number; children: ReactNode }) {
+  const ul = useRef<HTMLUListElement>(null);
+  const [more, setMore] = useState({ prev: false, next: false });
+  const check = useCallback(() => {
+    const el = ul.current;
+    if (el) setMore({ prev: el.scrollLeft > 4, next: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+  }, []);
+  useEffect(() => {
+    const el = ul.current;
+    if (!el) return;
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", check); ro.disconnect(); };
+  }, [check, n, className]);
+  const page = (dir: 1 | -1) => { const el = ul.current; if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" }); };
+  return (
+    <div className="db-rail">
+      <ul ref={ul} className={className}>{children}</ul>
+      {(more.prev || more.next) && (
+        <div className="db-rail-nav">
+          <button type="button" aria-label="Earlier projects" disabled={!more.prev} onClick={() => page(-1)}><ChevronLeft size={18} /></button>
+          <button type="button" aria-label="More projects" disabled={!more.next} onClick={() => page(1)}><ChevronRight size={18} /></button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardView() {
   const router = useRouter();
@@ -145,7 +177,7 @@ export default function DashboardView() {
         ) : projects === null ? (
           <p className="db-loading" aria-live="polite">Loading your projects…</p>
         ) : shown.length > 0 ? (
-          <ul className={`db-grid ${view === "grid" ? "is-compact" : ""}`}>
+          <Rail className={`db-grid ${view === "grid" ? "is-compact" : ""}`} n={shown.length}>
             {shown.map((p) => (
               <li key={p.id} className={`db-card ${tab === "bin" ? "is-bin" : ""}`}>
                 <div className="db-thumb">
@@ -176,7 +208,7 @@ export default function DashboardView() {
                 </div>
               </li>
             ))}
-          </ul>
+          </Rail>
         ) : (
           <section className="db-empty" aria-live="polite">
             {tab === "projects" ? (
