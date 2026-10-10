@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Maximize2, Minimize2, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
+import { ArrowRight, ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Maximize2, Minimize2, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
@@ -268,6 +269,7 @@ export default function CreateStudio() {
                   <img src={r.imageUrl ?? ""} alt={r.prompt} />
                 </button>
               ))}
+              <Link href="/gallery" className="cr-seeall" aria-label="See all in your Gallery" title="See all in your Gallery"><ArrowRight size={16} /></Link>
             </div>
           );
         })()}

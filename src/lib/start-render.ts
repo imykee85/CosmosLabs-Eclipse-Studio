@@ -6,6 +6,7 @@ import { apiModelOf, chargeFor, findEnabledModel, maxRefs, minRefs, type ImageMo
 import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, resolveReferences } from "@/lib/references";
 import { randomSeed, seedInRange } from "@/lib/seed";
+import { watchRender } from "@/lib/render-watch";
 import { randomUUID } from "node:crypto";
 import { openaiUser } from "@/lib/providers/openai";
 import { syncProvider } from "@/lib/providers";
@@ -26,7 +27,7 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   if (prompt.length > 10000) return { ok: false, status: 400, error: "Prompt is too long" };
 
   const moderation = checkPrompt(prompt);
-  if (!moderation.ok) return { ok: false, status: 422, error: moderation.reason };
+  if (!moderation.ok) { console.warn("prompt refused", moderation.category); return { ok: false, status: 422, error: moderation.reason }; }
 
   // The model must be named and available. There is no default and no fallback to a different model.
   const model = findEnabledModel(input.model);
@@ -92,6 +93,7 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
     const generation = await db.generation.create({
       data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined },
     });
+    watchRender(generation.id); // saves it in the background even if the person leaves right away
     return { ok: true, item: await toItem(generation), seedNote };
   } catch (err) {
     console.error("starting generation failed", model.id, err);
