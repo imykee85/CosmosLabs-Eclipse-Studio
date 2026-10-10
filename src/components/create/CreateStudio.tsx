@@ -47,7 +47,7 @@ export default function CreateStudio() {
   // Auto: Eclipse picks. The server never swaps models, so Auto resolves here to one real model: a verified one that can
   // take as many reference pictures as are chosen (never an edit-only model).
   const autoModel = (() => {
-    const ok = (models ?? []).filter((m) => !m.requiresReference && m.maxReferences >= refs.length);
+    const ok = (models ?? []).filter((m) => m.autoPick && !m.requiresReference && m.maxReferences >= refs.length);
     return ok.find((m) => m.verified) ?? ok[0] ?? null;
   })();
   const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;

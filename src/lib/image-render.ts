@@ -35,7 +35,7 @@ export type StartInput = {
 // fits, from the rest). A specific model is used as chosen. With the seed switch on, Auto only picks models that can use the seed.
 function pickFor(o: StartInput): PublicModel {
   if (!o.auto) return o.model;
-  const fits = o.models.filter((m) => !m.requiresReference && m.maxReferences >= o.refs.length && m.ratios.includes(o.ratio) && (!m.resolutions.length || !!tierResolution(m.resolutions, o.tier)));
+  const fits = o.models.filter((m) => m.autoPick && !m.requiresReference && m.maxReferences >= o.refs.length && m.ratios.includes(o.ratio) && (!m.resolutions.length || !!tierResolution(m.resolutions, o.tier)));
   const seeded = o.seedOn ? fits.filter((m) => m.seed.supported && (o.seedNum == null || (o.seedNum >= m.seed.min && o.seedNum <= m.seed.max))) : fits;
   const usable = seeded.length ? seeded : fits;
   const tested = usable.filter((m) => m.verified);
