@@ -81,6 +81,25 @@ model CanvasState {
   @@map("canvas_states")
 }
 
+// A canvas in a project's canvas library. A project can hold many; deletedAt marks one that is in "Recently deleted" (restorable) until it is deleted for good.
+// `data` is the whole graph (nodes with everything chosen and typed in them, wires, camera), `thumbId` the render shown on its card.
+// The older single CanvasState per project is read once into the first canvas (see GET /api/canvases) and then dropped.
+model Canvas {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  projectId String    @map("project_id")
+  name      String
+  data      Json
+  nodeCount Int       @default(0) @map("node_count")
+  thumbId   String?   @map("thumb_id")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, projectId, deletedAt])
+  @@map("canvases")
+}
+
 // Append-only credit ledger. A user's balance is the sum of delta; credits live here, never in the payment provider.
 // PURCHASE rows carry the provider's payment id, and the unique pair makes a repeated webhook delivery a no-op.
 model CreditLedger {

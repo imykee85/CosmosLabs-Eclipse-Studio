@@ -1,22 +1,34 @@
-import { clerkEnabled } from "./clerk-enabled";
 import type { Edge, Node } from "@xyflow/react";
 
 // Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
 export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator";
 
+export type PicRef = { type: "upload" | "render"; id: string; label: string };
+
 export type CanvasNodeData = {
   text?: string;      // text node: the prompt
-  desc?: string;      // ingredient nodes: a short description until the Library can supply real ones
-  ref?: { type: "upload" | "render"; id: string; label: string }; // ingredient nodes: a picture chosen from the Library
+  desc?: string;      // ingredient nodes: a short description
+  ref?: PicRef;       // ingredient nodes: a picture chosen from the Library
   style?: string;     // style node
-  ratio?: string;     // generator node
-  model?: string;     // generator node: image model id
-  busy?: boolean;     // (unused now: a running render is marked by pendingId)
-  pendingId?: string; // generator node: the render in progress, kept so it can be picked up after leaving the page
-  genId?: string;     // generator node: the finished render, used to fetch a fresh image link
-
+  // Image generators (and full-body generators) work like Image Studio's prompt box:
+  prompt?: string;    // what is typed into the node itself
+  ratio?: string;
+  model?: string;     // an image model id, or "auto"
+  qty?: number;       // images per press of Generate (1 to 4)
+  tier?: string;      // quality: 1k, 1.5k, 2k, 4k
+  refs?: PicRef[];    // reference pictures chosen on the node itself (the wired-in ones come on top of these)
+  seedOn?: boolean;   // fixed seed
+  seed?: string;      // the seed number as typed
+  gens?: string[];    // the finished renders of the latest batch
+  pending?: string[]; // renders still running (they keep going on the server if you leave)
+  pick?: string;      // which finished render this node hands to the next one (the first by default)
+  note?: string;
   error?: string;
-  imageUrl?: string;  // generator node: latest result
+  // Older saves: one render at a time. Read once and turned into the fields above by migrateNode.
+  busy?: boolean;
+  pendingId?: string;
+  genId?: string;
+  imageUrl?: string;
 };
 export type CNode = Node<CanvasNodeData>;
 
@@ -47,7 +59,6 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
 
 export const STYLES = ["None", "Editorial", "Cinematic", "Minimal studio", "Film grain", "Golden hour", "Luxury product"];
 
-const key = (projectId: string) => `eclipse-canvas-${projectId}`;
 const uid = () => `n-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 export function newNode(kind: NodeKind, position: { x: number; y: number }, data: CanvasNodeData = {}): CNode {
@@ -94,7 +105,7 @@ function writeTemplates(list: CanvasTemplate[]) {
 export function saveTemplate(name: string, nodes: CNode[], edges: Edge[]): CanvasTemplate[] {
   const t: CanvasTemplate = {
     id: `t-${Date.now().toString(36)}`, name: name.trim().slice(0, 40) || "My template",
-    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, busy: false, error: undefined, imageUrl: undefined, pendingId: undefined, genId: undefined } })),
+    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, error: undefined, note: undefined, gens: undefined, pending: undefined, pick: undefined } })),
     edges: edges.map(({ id, source, target }) => ({ id, source, target })),
   };
   const list = [...loadTemplates(), t];
@@ -124,98 +135,16 @@ export function instantiate(t: CanvasTemplate, at: { x: number; y: number }): { 
 
 export type SavedCanvas = { nodes: CNode[]; edges: Edge[]; viewport?: { x: number; y: number; zoom: number } | null };
 
-export function loadCanvas(projectId: string): SavedCanvas | null {
-  try {
-    const raw = localStorage.getItem(key(projectId));
-    if (!raw) return null;
-    const g = JSON.parse(raw) as SavedCanvas;
-    if (!Array.isArray(g.nodes) || !Array.isArray(g.edges)) return null;
-    return { ...g, nodes: g.nodes.map((n) => ({ ...n, data: { ...n.data, busy: false } })) };
-  } catch { return null; }
-}
-
-export function saveCanvas(projectId: string, nodes: CNode[], edges: Edge[], viewport?: SavedCanvas["viewport"]) {
-  const payload: SavedCanvas = {
-    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, busy: false } })),
-    edges: edges.map(({ id, source, target }) => ({ id, source, target })),
-    viewport: viewport ?? null,
-  };
-  try { localStorage.setItem(key(projectId), JSON.stringify(payload)); } catch {}
-  pushToServer(projectId, payload);
-}
-
-// With sign-in on, every save is also sent to the account so the canvas follows it across devices. This browser keeps
-// its own copy too; if a send fails the copy is marked unsynced so the next load keeps it instead of an older server copy.
-const dirtyKey = (projectId: string) => `eclipse-canvas-dirty-${projectId}`;
-
-function pushToServer(projectId: string, payload: SavedCanvas) {
-  if (!clerkEnabled) return;
-  fetch(`/api/canvas/${encodeURIComponent(projectId)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: payload }) })
-    .then((r) => { try { r.ok ? localStorage.removeItem(dirtyKey(projectId)) : localStorage.setItem(dirtyKey(projectId), "1"); } catch {} })
-    .catch(() => { try { localStorage.setItem(dirtyKey(projectId), "1"); } catch {} });
-}
-
-// Before the canvas opens: bring the account's saved copy into this browser, unless this browser has newer unsynced work.
-export async function hydrateCanvasFromServer(projectId: string): Promise<void> {
-  if (!clerkEnabled) return;
-  try {
-    if (localStorage.getItem(dirtyKey(projectId))) return;
-    const res = await fetch(`/api/canvas/${encodeURIComponent(projectId)}`);
-    if (!res.ok) return;
-    const { data } = await res.json();
-    if (data && Array.isArray(data.nodes) && Array.isArray(data.edges)) localStorage.setItem(key(projectId), JSON.stringify(data));
-  } catch {}
-}
-
-// "Open in canvas" from the prompt box: add a text node and a generator, wired together, below whatever is already there.
-export function seedFromPrompt(projectId: string, seed: { prompt: string; ratio: string }) {
-  const existing = loadCanvas(projectId) ?? { nodes: [], edges: [] };
-  const maxY = existing.nodes.reduce((m, n) => Math.max(m, n.position.y + 320), -40);
-  const text = newNode("text", { x: 380, y: maxY + 40 }, { text: seed.prompt });
-  const gen = newNode("generator", { x: 780, y: maxY + 40 }, { ratio: seed.ratio });
-  saveCanvas(projectId, [...existing.nodes, text, gen], [...existing.edges, { id: `e-${text.id}`, source: text.id, target: gen.id }], null);
+// Older canvases kept one render per generator in pendingId / genId (and a link that expired); turn them into the current fields.
+export function migrateNode(n: CNode): CNode {
+  const d = n.data as CanvasNodeData;
+  if (!("pendingId" in d) && !("genId" in d) && !("imageUrl" in d) && !("busy" in d)) return n;
+  const next: CanvasNodeData = { ...d };
+  if (d.pendingId && !next.pending?.length) next.pending = [d.pendingId];
+  if (d.genId && !next.gens?.length) { next.gens = [d.genId]; next.pick = d.genId; }
+  delete next.pendingId; delete next.genId; delete next.imageUrl; delete next.busy;
+  return { ...n, data: next };
 }
 
 // The address of a node's chosen picture (our own, so it does not expire).
 export const refFileUrl = (r: NonNullable<CanvasNodeData["ref"]>) => (r.type === "upload" ? `/api/uploads/${r.id}/file` : `/api/generations/${r.id}/file`);
-
-// The inputs wired into a generator, in the order the prompt reads them (a full-body generator's inputs count too).
-function wiredInputs(nodes: CNode[], edges: Edge[], generatorId: string): CNode[] {
-  const seen = new Set<string>();
-  const inputs: CNode[] = [];
-  const collect = (id: string) => {
-    if (seen.has(id)) return;
-    seen.add(id);
-    for (const e of edges) {
-      if (e.target !== id) continue;
-      const n = nodes.find((x) => x.id === e.source);
-      if (!n || inputs.includes(n)) continue;
-      inputs.push(n);
-      if (n.type === "fullbody") collect(n.id);
-    }
-  };
-  collect(generatorId);
-  return inputs;
-}
-
-// The pictures chosen in the Character, Product and Scene nodes wired into a generator, in that order (the order the model sees them).
-export function collectReferences(nodes: CNode[], edges: Edge[], generatorId: string): { type: "upload" | "render"; id: string }[] {
-  const inputs = wiredInputs(nodes, edges, generatorId);
-  const out: { type: "upload" | "render"; id: string }[] = [];
-  for (const kind of ["character", "product", "scene"] as const)
-    for (const n of inputs.filter((x) => x.type === kind)) if (n.data.ref && !out.some((o) => o.id === n.data.ref!.id)) out.push({ type: n.data.ref.type, id: n.data.ref.id });
-  return out;
-}
-
-// The prompt a generator sends: the text nodes, each ingredient description and the style wired into it, and (through a
-// full-body generator) whatever feeds that one too.
-export function buildPrompt(nodes: CNode[], edges: Edge[], generatorId: string): string {
-  const inputs = wiredInputs(nodes, edges, generatorId);
-  const parts: string[] = [];
-  for (const n of inputs.filter((x) => x.type === "text")) if (n.data.text?.trim()) parts.push(n.data.text.trim());
-  for (const [kind, label] of [["character", "Character"], ["product", "Product"], ["scene", "Scene"]] as const)
-    for (const n of inputs.filter((x) => x.type === kind)) if (n.data.desc?.trim()) parts.push(`${label}: ${n.data.desc.trim()}`);
-  for (const n of inputs.filter((x) => x.type === "style")) if (n.data.style && n.data.style !== "None") parts.push(`Style: ${n.data.style}`);
-  if (nodes.find((n) => n.id === generatorId)?.type === "fullbody" && parts.length) parts.push("Full body shot, head to toe");
-  return parts.join(". ").slice(0, 2000);
-}

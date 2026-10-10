@@ -3,9 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Maximize2, Minimize2, Minus, Plus, Shuffle, Sprout, Wand2, Workflow, X } from "lucide-react";
-import { seedFromPrompt } from "@/lib/canvas";
+import { createCanvasFromPrompt } from "@/lib/canvas-store";
+import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
-import type { PublicModel } from "@/lib/models";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
@@ -19,16 +19,6 @@ import "./create.css";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 215, "4:5": 188, "9:16": 134, "16:9": 304 };
-// Quality tiers on offer. A model takes the ones it can render: 1K and 2K and 4K by name, and Soul's 720p and 1080p
-// stand in for 1K and 1.5K. Tiers a model cannot make are greyed out rather than guessed.
-const TIERS = [{ id: "1k", label: "1K" }, { id: "1.5k", label: "1.5K" }, { id: "2k", label: "2K" }, { id: "4k", label: "4K" }];
-const MAX_QTY = 4;
-function tierResolution(resolutions: string[], tier: string): string | undefined {
-  if (resolutions.includes(tier)) return tier;
-  if (tier === "1k" && resolutions.includes("720p")) return "720p";
-  if (tier === "1.5k" && resolutions.includes("1080p")) return "1080p";
-  return undefined;
-}
 const previewWidth = (r: string) => PREVIEW_WIDTH[r] ?? 215;
 
 export default function CreateStudio() {
@@ -164,41 +154,9 @@ export default function CreateStudio() {
     setError("");
     setSubmitting(true);
     try {
-      // On Auto each image gets its own pick: a model that fits the task (pictures, shape, quality), chosen at random from
-      // the tested ones (or, when none fits, from the rest). A specific model is used as chosen.
-      const pickFor = (): PublicModel => {
-        if (modelId !== AUTO) return model;
-        const fits = (models ?? []).filter((m) => !m.requiresReference && m.maxReferences >= refs.length && m.ratios.includes(ratio) && (!m.resolutions.length || !!tierResolution(m.resolutions, tier)));
-        // With the seed switch on, Auto only picks models that can use the seed (and whose range holds it).
-        const seeded = seedOn ? fits.filter((m) => m.seed.supported && (seedNum == null || (seedNum >= m.seed.min && seedNum <= m.seed.max))) : fits;
-        const usable = seeded.length ? seeded : fits;
-        const tested = usable.filter((m) => m.verified);
-        const pool = tested.length ? tested : usable;
-        return pool[Math.floor(Math.random() * pool.length)] ?? model;
-      };
       const refList = refs.map((r) => ({ type: r.type, id: r.id }));
-      let base = seedNum;
-      // One render. With the seed locked, image i uses seed + i (wrapping inside the model's range) so several images are related variations, not copies.
-      const run = async (i: number): Promise<{ ok: boolean; error: string; seed?: number; note?: string }> => {
-        const m = pickFor();
-        const lock = seedOn && m.seed.supported;
-        const seed = lock && base != null ? m.seed.min + ((base - m.seed.min + i) % (m.seed.max - m.seed.min + 1)) : undefined;
-        const body = JSON.stringify({ prompt: text, aspectRatio: ratio, model: m.id, resolution: m.resolutions.length ? tierResolution(m.resolutions, tier) : undefined, projectId: readCurrentProject()?.id, references: refList, ...(lock ? { lockSeed: true, ...(seed != null ? { seed } : {}) } : {}) });
-        const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body });
-        const data = await res.json().catch(() => ({}));
-        return { ok: res.ok, error: res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again.", seed: typeof data.seed === "number" ? data.seed : undefined, note: typeof data.seedNote === "string" ? data.seedNote : undefined };
-      };
-      // Each image is its own render, started side by side. With the switch on and no number yet, the first one goes alone so the server's seed
-      // (the last one used with this model, or a new one) can be shown and the others can count up from it.
-      const results: { ok: boolean; error: string; seed?: number; note?: string }[] = [];
-      if (seedOn && base == null && seedSupported) {
-        const r0 = await run(0);
-        results.push(r0);
-        if (r0.ok && r0.seed != null) { base = r0.seed; putSeed(String(r0.seed)); }
-        results.push(...await Promise.all(Array.from({ length: qty - 1 }, (_, i) => run(i + 1))));
-      } else {
-        results.push(...await Promise.all(Array.from({ length: qty }, (_, i) => run(i))));
-      }
+      const { results, seed: firstSeed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt: text, ratio, tier, qty, refs: refList, seedOn, seedNum, projectId: readCurrentProject()?.id });
+      if (firstSeed != null) putSeed(String(firstSeed));
       const note = results.find((r) => r.note)?.note;
       if (note) setSeedNote(note);
       const failed = results.find((r) => !r.ok);
@@ -327,8 +285,13 @@ export default function CreateStudio() {
           <button type="button" className="cr-chip" onClick={() => { if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
-          <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to the Canvas"
-            onClick={() => { if (prompt.trim()) seedFromPrompt(readCurrentProject()?.id ?? "default", { prompt: prompt.trim(), ratio }); router.push("/canvas"); }}>
+          <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas"
+            onClick={async () => {
+              // With a prompt typed, it becomes a new canvas (a text node feeding an image generator) and opens; otherwise the canvas library opens.
+              const text = prompt.trim();
+              if (!text) { router.push("/canvas"); return; }
+              try { const made = await createCanvasFromPrompt(readCurrentProject()?.id ?? "default", { prompt: text, ratio }); router.push(made ? `/canvas?c=${made.id}` : "/canvas"); } catch { router.push("/canvas"); }
+            }}>
             <Workflow size={14} /> Open canvas
           </button>
             <div className="cr-grp">

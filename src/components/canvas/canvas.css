@@ -6,7 +6,7 @@
 
 /* nodes: flat cards */
 .cv-node { position: relative; width: 250px; padding: 12px 14px 14px; border: 1px solid var(--a-line3); border-radius: 16px; background: var(--a-card); box-shadow: 0 6px 20px var(--a-shadow); transition: border-color .15s, box-shadow .15s; }
-.cv-node.cv-wide { width: 300px; } .cv-node.cv-gen { width: 300px; }
+.cv-node.cv-wide { width: 300px; } .cv-node.cv-gen { width: 340px; }
 .cv-node.is-selected { border-color: #c00707; box-shadow: 0 0 0 1px #c00707, 0 6px 20px var(--a-shadow); }
 .cv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .cv-title { display: inline-flex; align-items: center; gap: 8px; color: var(--a-fg2); font-size: 13px; font-weight: 600; }
@@ -129,3 +129,78 @@
 .cv-pic-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--a-fg); }
 .cv-pic-x { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); }
 .cv-pic-x:hover { background: var(--a-hover, rgba(127,127,127,.15)); color: var(--a-fg); }
+
+/* header of the editor: back, name, save state */
+.cv-top { display: flex; align-items: center; gap: 8px; }
+.cv-back { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); cursor: pointer; }
+.cv-back:hover { border-color: var(--a-line4); }
+.cv-name { width: 190px; max-width: 42vw; height: 36px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 600; }
+.cv-name:hover { border-color: var(--a-line4); } .cv-name:focus { outline: 0; border-color: var(--a-line4); }
+.cv-status { color: var(--a-muted); font-size: 12px; white-space: nowrap; }
+.cv-status.is-local { color: var(--a-danger); }
+.cv-lost { display: grid; align-content: center; justify-items: center; gap: 14px; text-align: center; padding: 20px; }
+.cv-lost p { margin: 0; max-width: 420px; line-height: 1.5; }
+.cv-lost-btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.cv-lost .cv-go { flex: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; }
+
+/* what a node gives, and the + that adds the next node already wired */
+.cv-gives { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--a-line2); color: var(--a-muted); font-size: 11.5px; line-height: 1.35; }
+.cv-gives b { color: var(--a-fg2); font-weight: 600; }
+.cv-plus { position: absolute; top: 50%; z-index: 3; display: grid; place-items: center; width: 24px; height: 24px; margin-top: -12px; padding: 0; border: 1px solid var(--a-line4); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; box-shadow: 0 2px 8px var(--a-shadow); transition: background .15s, color .15s, border-color .15s; }
+.cv-plus:hover { background: #c00707; border-color: #c00707; color: #fff; }
+.cv-plus-out { right: -38px; } .cv-plus-in { left: -38px; }
+.cv-addmenu { position: absolute; z-index: 20; width: 240px; display: grid; gap: 2px; padding: 8px; border: 1px solid var(--a-line3); border-radius: 14px; background: var(--a-card); box-shadow: 0 12px 32px var(--a-shadow); }
+.cv-addmenu header { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 8px; color: var(--a-fg2); font-size: 12px; }
+.cv-addmenu header button { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 8px; background: transparent; color: var(--a-muted); cursor: pointer; }
+.cv-addmenu header button:hover { background: var(--a-active); }
+.cv-addmenu > button { display: flex; align-items: center; gap: 10px; padding: 8px; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg2); font: inherit; text-align: left; cursor: pointer; }
+.cv-addmenu > button:hover { background: var(--a-active); }
+.cv-addmenu > button span { display: grid; min-width: 0; } .cv-addmenu > button b { font-size: 13px; font-weight: 600; } .cv-addmenu > button small { color: var(--a-muted); font-size: 11px; line-height: 1.3; }
+.react-flow__edge.cv-wire-wait .react-flow__edge-path { stroke-dasharray: 5 5; opacity: .6; }
+
+/* the generator node: Image Studio's prompt box on the canvas */
+.cv-node .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+.cv-recv { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); }
+.cv-recv-head { display: flex; align-items: center; justify-content: space-between; padding: 0; border: 0; background: none; color: var(--a-fg2); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.cv-recv-head svg { transition: transform .15s; } .cv-recv-head svg.is-up { transform: rotate(180deg); }
+.cv-recv ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.cv-recv li { display: grid; gap: 1px; font-size: 12px; line-height: 1.35; }
+.cv-recv-from { display: inline-flex; align-items: center; gap: 6px; color: var(--a-fg2); font-weight: 500; }
+.cv-recv-from svg { color: #2f9e5a; flex: none; }
+.cv-recv li.is-wait .cv-recv-from svg { color: #d98a1a; }
+.cv-recv-what { padding-left: 18px; color: var(--a-muted); overflow-wrap: anywhere; }
+.cv-recv-what q { quotes: "\201C" "\201D"; } .cv-recv-what em { display: block; font-style: normal; color: #d98a1a; }
+.cv-recv-none { margin: 0; color: var(--a-muted); font-size: 12px; line-height: 1.4; }
+.cv-recv-pics { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 2px; }
+.cv-recv-pic { position: relative; width: 38px; height: 38px; border-radius: 8px; overflow: hidden; border: 1px solid var(--a-line3); }
+.cv-recv-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cv-recv-pic i { position: absolute; left: 2px; top: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: #c00707; color: #fff; font-size: 10px; font-style: normal; font-weight: 600; line-height: 15px; text-align: center; }
+.cv-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cv-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 12.5px; font-weight: 500; white-space: nowrap; cursor: pointer; }
+.cv-chip:hover:not(:disabled) { border-color: var(--a-line4); } .cv-chip:disabled { opacity: .55; cursor: not-allowed; }
+.cv-chip.cv-sel { padding: 0 6px 0 9px; } .cv-chip.cv-sel select { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; padding-right: 4px; }
+.cv-chip.cv-sel select:focus { outline: 0; } .cv-chip.cv-sel option { background: var(--a-card); color: var(--a-fg); }
+.cv-chip.cv-seed { cursor: default; padding: 0 10px; }
+.cv-modelbtn { width: 100%; justify-content: flex-start; } .cv-modelbtn b { font-weight: 600; flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; } .cv-muted { color: var(--a-muted); font-weight: 400; }
+.cv-qty { display: inline-flex; align-items: center; height: 32px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 13px; font-weight: 500; }
+.cv-qty button { display: grid; place-items: center; width: 28px; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; } .cv-qty button:disabled { opacity: .35; cursor: default; }
+.cv-qty span { min-width: 16px; text-align: center; }
+.cv-grp { display: inline-flex; align-items: center; gap: 6px; }
+.cv-switch { flex: none; position: relative; width: 36px; height: 20px; padding: 0; border: 0; border-radius: 999px; background: var(--a-line3); cursor: pointer; transition: background .18s; }
+.cv-switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .18s; }
+.cv-switch.is-on { background: #c00707; } .cv-switch.is-on i { transform: translateX(16px); } .cv-switch:disabled { opacity: .4; cursor: not-allowed; }
+.cv-seedfield { display: inline-flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); font-size: 12.5px; color: var(--a-muted); }
+.cv-seedfield input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--a-fg); font: inherit; } .cv-seedfield input:focus { outline: 0; }
+.cv-cost { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; font-size: 12px; opacity: .9; }
+.cv-go { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.cv-nhint { margin: 0; color: var(--a-muted); font-size: 12px; line-height: 1.4; }
+.cv-results { display: grid; gap: 8px; }
+.cv-res { position: relative; overflow: hidden; border-radius: 12px; background: var(--a-input); border: 1px solid var(--a-line3); }
+.cv-res.is-on { border-color: #c00707; box-shadow: 0 0 0 1px #c00707; }
+.cv-res-img { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.cv-res img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cv-res-pick { position: absolute; right: 6px; top: 6px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid rgba(255,255,255,.8); border-radius: 50%; background: rgba(0,0,0,.45); color: transparent; cursor: pointer; }
+.cv-res-pick.is-on { background: #c00707; border-color: #c00707; color: #fff; }
+.cv-gone { display: grid; place-items: center; width: 100%; height: 100%; color: var(--a-muted); font-size: 11px; }
+.cv-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-items: start; }
+.cv-thumbs .cv-res { border-radius: 8px; } .cv-thumbs .cv-res-pick { right: 3px; top: 3px; width: 18px; height: 18px; }

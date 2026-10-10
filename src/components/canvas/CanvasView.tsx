@@ -5,12 +5,18 @@ import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge, Background, BackgroundVariant, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow,
-  type Connection, type Edge, type NodeMouseHandler,
+  type Connection, type Edge, type FinalConnectionState, type NodeMouseHandler,
 } from "@xyflow/react";
-import { Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
-import { deleteTemplate, instantiate, loadCanvas, loadTemplates, newNode, NODE_GROUPS, saveCanvas, saveTemplate, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
+import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
+import ModelPicker, { AUTO } from "@/components/create/ModelPicker";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
-import { CanvasCtx } from "./CanvasContext";
+import RenderDialog from "@/components/library/RenderDialog";
+import { deleteTemplate, instantiate, loadTemplates, newNode, NODE_GROUPS, refFileUrl, saveTemplate, type CanvasNodeData, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
+import { canWire, inputsOf, isGen, NEXT_KINDS, picturesOf, PREV_KINDS, TITLES, wireLabel } from "@/lib/canvas-flow";
+import { renameCanvas, saveCanvasDoc, type CanvasDoc, type CanvasMeta } from "@/lib/canvas-store";
+import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
+import type { Render } from "@/lib/use-renders";
+import { CanvasCtx, type AskRequest } from "./CanvasContext";
 import { nodeTypes } from "./nodes";
 import "./canvas.css";
 
@@ -34,11 +40,23 @@ function useAppDark() {
   return dark;
 }
 
-function Inner({ projectId }: { projectId: string }) {
-  const saved = useMemo(() => loadCanvas(projectId), [projectId]);
-  const initial = useMemo(() => saved ?? { nodes: [] as CNode[], edges: [] as Edge[] }, [saved]);
-  const [nodes, setNodes, onNodesChange] = useNodesState<CNode>(initial.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initial.edges);
+type AddMenu = { nodeId: string; side: "after" | "before"; left: number; top: number; flow?: { x: number; y: number } };
+
+// A spot at (x, y) or just below whatever is already there, so a new node never lands on top of another.
+function freeSpot(nodes: CNode[], x: number, y: number): { x: number; y: number } {
+  let pos = { x, y };
+  for (let i = 0; i < 30; i++) {
+    const hit = nodes.find((n) => Math.abs(n.position.x - pos.x) < 320 && pos.y > n.position.y - 80 && pos.y < n.position.y + (n.measured?.height ?? 320) + 20);
+    if (!hit) return pos;
+    pos = { x: pos.x, y: hit.position.y + (hit.measured?.height ?? 320) + 40 };
+  }
+  return pos;
+}
+
+function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; canvasId: string; meta: CanvasMeta; doc: CanvasDoc; onBack: () => void }) {
+  const saved = doc;
+  const [nodes, setNodes, onNodesChange] = useNodesState<CNode>(doc.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(doc.edges);
   const [panel, setPanel] = useState<null | "nodes" | "templates">(null);
   const [query, setQuery] = useState("");
   const [templates, setTemplates] = useState<CanvasTemplate[]>([]);
@@ -46,19 +64,41 @@ function Inner({ projectId }: { projectId: string }) {
   const [full, setFull] = useState(false);
   const [hint, setHint] = useState(true);
   const [focused, setFocused] = useState<string | null>(null);
-  const [picking, setPicking] = useState<string | null>(null); // the ingredient node that is choosing a Library picture
+  const [ask, setAsk] = useState<AskRequest | null>(null);      // a picker or dialog a node asked for
+  const [detail, setDetail] = useState<Render | null>(null);    // a finished image shown with its details
+  const [addMenu, setAddMenu] = useState<AddMenu | null>(null); // the "add the next node" menu
+  const [name, setName] = useState(meta.name);
+  const [status, setStatus] = useState<"saved" | "saving" | "local">("saved");
   const wrap = useRef<HTMLDivElement>(null);
   const lastTap = useRef({ id: "", t: 0 });
   const dark = useAppDark();
-  const { screenToFlowPosition, getNode, getNodes, getViewport, setViewport } = useReactFlow();
+  const models = useModels({ edit: true });
+  const { screenToFlowPosition, getNode, getNodes, getEdges, getViewport, setViewport } = useReactFlow();
 
-  // Save after changes (nodes, wires, camera), a moment after the last one.
+  // Save after changes (nodes, wires, camera), a moment after the last one, and at once when you leave.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latest = useRef({ nodes, edges, viewport: doc.viewport ?? null as CanvasDoc["viewport"] });
+  latest.current.nodes = nodes; latest.current.edges = edges;
+  const flush = useCallback(() => {
+    timer.current = null;
+    const l = latest.current;
+    setStatus("saving");
+    void saveCanvasDoc(projectId, canvasId, l.nodes, l.edges, l.viewport).then((r) => setStatus(r));
+  }, [projectId, canvasId]);
   const persist = useCallback(() => {
+    try { latest.current.viewport = getViewport(); } catch {}
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => saveCanvas(projectId, nodes, edges, getViewport()), 400);
-  }, [projectId, nodes, edges, getViewport]);
-  useEffect(() => { persist(); return () => { if (timer.current) clearTimeout(timer.current); }; }, [persist]);
+    timer.current = setTimeout(flush, 400);
+  }, [flush, getViewport]);
+  // Save only when something that is kept changed (what is in the nodes, where they sit, the wiring): measuring the nodes on opening, or selecting one, is not an edit.
+  const sigOf = (ns: CNode[], es: Edge[]) => JSON.stringify([ns.map((n) => [n.id, n.type, n.position.x, n.position.y, n.data]), es.map((e) => [e.id, e.source, e.target])]);
+  const lastSig = useRef(sigOf(doc.nodes, doc.edges));
+  useEffect(() => { const sig = sigOf(nodes, edges); if (sig === lastSig.current) return; lastSig.current = sig; persist(); }, [nodes, edges, persist]);
+  useEffect(() => {
+    const leave = () => { if (timer.current) { clearTimeout(timer.current); flush(); } };
+    window.addEventListener("pagehide", leave);
+    return () => { window.removeEventListener("pagehide", leave); leave(); };
+  }, [flush]);
 
   // Fly the camera to fit some nodes. The tween is driven by hand (frame by frame) because a click on a node leaves the library's own
   // animation interrupted before it starts.
@@ -96,19 +136,46 @@ function Inner({ projectId }: { projectId: string }) {
   }, [focused, focus, overview]);
 
   const onPaneClick = useCallback(() => {
-    setPanel(null);
+    setPanel(null); setAddMenu(null);
     const now = Date.now();
     if (lastTap.current.id === "pane" && now - lastTap.current.t < DOUBLE_TAP_MS) { lastTap.current = { id: "", t: 0 }; overview(); }
     else lastTap.current = { id: "pane", t: now };
   }, [overview]);
 
   const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge({ ...c, id: `e-${c.source}-${c.target}-${Date.now().toString(36)}` }, es)), [setEdges]);
-  // Wires only run from an input node into a generator (a full-body generator can also feed the image generator).
-  const isValidConnection = useCallback((c: Connection | Edge) => {
-    const s = getNode(c.source), t = getNode(c.target);
-    const into = t?.type === "generator" || t?.type === "fullbody";
-    return !!s && !!t && s.id !== t.id && into && s.type !== "generator" && s.type !== "note" && !(s.type === "fullbody" && t.type === "fullbody");
-  }, [getNode]);
+  // Wires run into a generator from any node but a note, and from one generator into the next (its picture); never in a loop and never twice.
+  const isValidConnection = useCallback((c: Connection | Edge) => canWire(getNodes() as CNode[], getEdges(), c.source, c.target), [getNodes, getEdges]);
+
+  // A wire dragged out and dropped on empty space opens the same "add the next node" menu, there.
+  const onConnectEnd = useCallback((event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+    if (state.isValid || !state.fromNode || state.toNode || state.toHandle) return;
+    const pt = "changedTouches" in event ? event.changedTouches[0] : event;
+    const box = wrap.current?.getBoundingClientRect();
+    if (!box) return;
+    setAddMenu({ nodeId: state.fromNode.id, side: state.fromHandle?.type === "target" ? "before" : "after", left: pt.clientX - box.left, top: pt.clientY - box.top, flow: screenToFlowPosition({ x: pt.clientX, y: pt.clientY }) });
+  }, [screenToFlowPosition]);
+
+  const openAdd = useCallback((nodeId: string, side: "after" | "before", anchor: DOMRect) => {
+    const box = wrap.current?.getBoundingClientRect();
+    if (!box) return;
+    setPanel(null);
+    setAddMenu({ nodeId, side, left: side === "after" ? anchor.right - box.left + 8 : anchor.left - box.left - 252, top: anchor.top - box.top - 6 });
+  }, []);
+
+  // Make the chosen node next to (and already wired to) the one the menu came from.
+  function addLinked(kind: NodeKind) {
+    const m = addMenu;
+    const from = m ? getNode(m.nodeId) : null;
+    if (!m || !from) { setAddMenu(null); return; }
+    const w = from.measured?.width ?? 300;
+    const at = m.flow ?? (m.side === "after" ? { x: from.position.x + w + 120, y: from.position.y } : { x: from.position.x - 460, y: from.position.y });
+    const n = newNode(kind, freeSpot(getNodes() as CNode[], at.x, at.y));
+    const wire = m.side === "after" ? { source: from.id, target: n.id } : { source: n.id, target: from.id };
+    setNodes((ns) => [...ns.map((x) => ({ ...x, selected: false })), { ...n, selected: true }]);
+    setEdges((es) => [...es, { id: `e-${wire.source}-${wire.target}-${Date.now().toString(36)}`, ...wire }]);
+    setAddMenu(null); setHint(false);
+    setTimeout(() => flyTo([from.id, n.id], 0.2, 1), 120);
+  }
 
   function addNode(kind: NodeKind) {
     const r = wrap.current?.getBoundingClientRect();
@@ -155,21 +222,75 @@ function Inner({ projectId }: { projectId: string }) {
     return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", esc); };
   }, [full]);
 
+  // The wires say what travels along them (text, a picture, a style, an image), run while their source is still making an image, and are dashed while the
+  // source has nothing to give yet.
+  const shownEdges = useMemo(() => edges.map((e) => {
+    const src = nodes.find((n) => n.id === e.source);
+    const label = src ? wireLabel(src) : "";
+    const waiting = label === "empty" || label === "no image yet";
+    const running = !!src && isGen(src.type) && (src.data.pending?.length ?? 0) > 0;
+    return { ...e, label, animated: running, className: waiting ? "cv-wire-wait" : "", labelStyle: { fill: "var(--a-muted)", fontSize: 11 }, labelBgStyle: { fill: "var(--a-card)" }, labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 8 };
+  }), [edges, nodes]);
+
+  // Pickers and dialogs a node asked for.
+  const askNode = ask && "nodeId" in ask ? (nodes.find((n) => n.id === ask.nodeId) as CNode | undefined) : undefined;
+  const modelOf = (d: CanvasNodeData) => (d.model && (d.model === AUTO || models?.some((m) => m.id === d.model)) ? d.model : AUTO);
+  const refsMax = (() => {
+    if (!askNode || ask?.kind !== "refs" || !models) return -1;
+    const wired = picturesOf(inputsOf(nodes, edges, askNode.id)).length;
+    const mid = modelOf(askNode.data);
+    const cap = mid === AUTO ? Math.max(0, ...models.filter((m) => !m.requiresReference).map((m) => m.maxReferences)) : models.find((m) => m.id === mid)?.maxReferences ?? 0;
+    return Math.max(0, cap - wired);
+  })();
+  const patchNode = (id: string, data: Partial<CanvasNodeData>) => setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...data } } : n)));
+  useEffect(() => {
+    // No room for reference pictures (the model takes none, or wired-in nodes already use every place): say so on the node instead of opening an empty picker.
+    if (ask?.kind === "refs" && askNode && refsMax === 0) {
+      patchNode(askNode.id, { note: "This model has no room for more reference pictures: it takes none, or the wired-in nodes already use them all." });
+      setAsk(null);
+    }
+  }, [ask, askNode, refsMax]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (ask?.kind !== "details") return;
+    let live = true;
+    fetch(`/api/generations/${ask.genId}`).then((r) => (r.ok ? r.json() : null)).then((g) => { if (live && g) setDetail(g as Render); }).catch(() => {}).finally(() => { if (live) setAsk(null); });
+    return () => { live = false; };
+  }, [ask]);
+  useEffect(() => {
+    if (!addMenu) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setAddMenu(null); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [addMenu]);
+
+  const renamed = useRef(meta.name);
+  async function commitName() {
+    const nm = name.trim();
+    if (!nm) { setName(renamed.current); return; }
+    if (nm === renamed.current) return;
+    try { await renameCanvas(projectId, canvasId, nm); renamed.current = nm; } catch { setName(renamed.current); }
+  }
+
   const q = query.trim().toLowerCase();
   const groups = NODE_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !q || i.label.toLowerCase().includes(q)) })).filter((g) => g.items.length);
 
   return (
-    <CanvasCtx.Provider value={{ focus, pickPicture: setPicking }}>
+    <CanvasCtx.Provider value={{ focus, ask: setAsk, addAfter: (id, r) => openAdd(id, "after", r), addBefore: (id, r) => openAdd(id, "before", r) }}>
       <div className={`cv-wrap ${full ? "is-full" : ""}`} ref={wrap} onWheelCapture={() => { flight.current++; }} onPointerDownCapture={() => { flight.current++; }}>
         <ReactFlow
-          nodes={nodes} edges={edges} nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection}
+          nodes={nodes} edges={shownEdges} nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={isValidConnection}
           onNodeClick={onNodeClick} onPaneClick={onPaneClick} onMoveEnd={persist}
           defaultViewport={saved?.viewport ?? undefined} fitView={!saved?.viewport} fitViewOptions={{ padding: 0.25 }}
           minZoom={0.15} maxZoom={2.5} zoomOnDoubleClick={false} deleteKeyCode={["Backspace", "Delete"]}
           colorMode={dark ? "dark" : "light"} proOptions={{ hideAttribution: true }}
         >
           <Panel position="top-left" className="cv-panel">
+            <div className="cv-top">
+              <button type="button" className="cv-back" onClick={onBack} aria-label="Back to your canvases" title="All canvases"><ArrowLeft size={16} /></button>
+              <input className="cv-name" value={name} maxLength={60} aria-label="Canvas name" onChange={(e) => setName(e.target.value)} onBlur={commitName} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
+              <span className={`cv-status is-${status}`} aria-live="polite" title={status === "local" ? "Kept in this browser. It will be sent to your account on the next change." : undefined}>{status === "saving" ? "Saving…" : status === "local" ? "Saved on this device" : "Saved"}</span>
+            </div>
             <div className="cv-btns">
               <button type="button" className="cv-add" aria-expanded={panel === "nodes"} aria-haspopup="dialog" onClick={() => openPanel("nodes")}><Plus size={16} /> Add node</button>
               <button type="button" className="cv-add" aria-expanded={panel === "templates"} aria-haspopup="dialog" onClick={() => openPanel("templates")}><LayoutTemplate size={16} /> Templates</button>
@@ -248,19 +369,43 @@ function Inner({ projectId }: { projectId: string }) {
             </Panel>
           )}
         </ReactFlow>
-        {picking && (
-          <ReferencePicker max={1} picked={[]} onClose={() => setPicking(null)}
+        {addMenu && (() => {
+          const kinds = addMenu.side === "after" ? NEXT_KINDS : PREV_KINDS;
+          const w = wrap.current?.clientWidth ?? 800, h = wrap.current?.clientHeight ?? 600;
+          const blurb = (k: NodeKind) => NODE_GROUPS.flatMap((g) => g.items).find((i) => i.kind === k)?.blurb ?? "";
+          return (
+            <div className="cv-addmenu" style={{ left: Math.max(8, Math.min(addMenu.left, w - 250)), top: Math.max(8, Math.min(addMenu.top, h - (kinds.length * 54 + 56))) }} role="menu" aria-label={addMenu.side === "after" ? "Add the next node" : "Add a node that feeds this one"}>
+              <header><b>{addMenu.side === "after" ? "Add the next node" : "Feed this node with"}</b><button type="button" aria-label="Close" onClick={() => setAddMenu(null)}><X size={14} /></button></header>
+              {kinds.map((k) => (
+                <button key={k} type="button" role="menuitem" onClick={() => addLinked(k)}>
+                  {ICONS[k]}<span><b>{TITLES[k]}</b><small>{blurb(k)}</small></span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+        {ask?.kind === "picture" && (
+          <ReferencePicker max={1} picked={[]} onClose={() => setAsk(null)}
             onChange={(next: RefPick[]) => {
               const p = next[0];
-              if (p) setNodes((ns) => ns.map((n) => (n.id === picking ? { ...n, data: { ...n.data, ref: { type: p.type, id: p.id, label: p.label } } } : n)));
-              setPicking(null);
+              if (p) patchNode(ask.nodeId, { ref: { type: p.type, id: p.id, label: p.label } });
+              setAsk(null);
             }} />
         )}
+        {ask?.kind === "refs" && askNode && refsMax > 0 && (
+          <ReferencePicker max={refsMax} picked={(askNode.data.refs ?? []).map((r) => ({ ...r, url: refFileUrl(r) }))} onClose={() => setAsk(null)}
+            onChange={(next: RefPick[]) => patchNode(askNode.id, { refs: next.map((p) => ({ type: p.type, id: p.id, label: p.label })), note: undefined })} />
+        )}
+        {ask?.kind === "model" && askNode && models && (
+          <ModelPicker models={models} value={modelOf(askNode.data)} onClose={() => setAsk(null)}
+            onPick={(id) => { patchNode(askNode.id, { model: id }); try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {} setAsk(null); }} />
+        )}
+        {detail && <RenderDialog g={detail} onClose={() => setDetail(null)} />}
       </div>
     </CanvasCtx.Provider>
   );
 }
 
-export default function CanvasView({ projectId }: { projectId: string }) {
-  return <ReactFlowProvider><Inner projectId={projectId} /></ReactFlowProvider>;
+export default function CanvasView(props: { projectId: string; canvasId: string; meta: CanvasMeta; doc: CanvasDoc; onBack: () => void }) {
+  return <ReactFlowProvider><Inner {...props} /></ReactFlowProvider>;
 }
