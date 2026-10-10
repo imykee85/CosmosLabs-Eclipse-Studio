@@ -9,6 +9,7 @@ import {
 } from "@xyflow/react";
 import { Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
 import { deleteTemplate, instantiate, loadCanvas, loadTemplates, newNode, NODE_GROUPS, saveCanvas, saveTemplate, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
+import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import { CanvasCtx } from "./CanvasContext";
 import { nodeTypes } from "./nodes";
 import "./canvas.css";
@@ -45,6 +46,7 @@ function Inner({ projectId }: { projectId: string }) {
   const [full, setFull] = useState(false);
   const [hint, setHint] = useState(true);
   const [focused, setFocused] = useState<string | null>(null);
+  const [picking, setPicking] = useState<string | null>(null); // the ingredient node that is choosing a Library picture
   const wrap = useRef<HTMLDivElement>(null);
   const lastTap = useRef({ id: "", t: 0 });
   const dark = useAppDark();
@@ -157,7 +159,7 @@ function Inner({ projectId }: { projectId: string }) {
   const groups = NODE_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !q || i.label.toLowerCase().includes(q)) })).filter((g) => g.items.length);
 
   return (
-    <CanvasCtx.Provider value={{ focus }}>
+    <CanvasCtx.Provider value={{ focus, pickPicture: setPicking }}>
       <div className={`cv-wrap ${full ? "is-full" : ""}`} ref={wrap} onWheelCapture={() => { flight.current++; }} onPointerDownCapture={() => { flight.current++; }}>
         <ReactFlow
           nodes={nodes} edges={edges} nodeTypes={nodeTypes}
@@ -246,6 +248,14 @@ function Inner({ projectId }: { projectId: string }) {
             </Panel>
           )}
         </ReactFlow>
+        {picking && (
+          <ReferencePicker max={1} picked={[]} onClose={() => setPicking(null)}
+            onChange={(next: RefPick[]) => {
+              const p = next[0];
+              if (p) setNodes((ns) => ns.map((n) => (n.id === picking ? { ...n, data: { ...n.data, ref: { type: p.type, id: p.id, label: p.label } } } : n)));
+              setPicking(null);
+            }} />
+        )}
       </div>
     </CanvasCtx.Provider>
   );

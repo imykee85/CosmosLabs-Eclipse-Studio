@@ -4,7 +4,7 @@ import SoonTag from "@/components/SoonTag";
 import { useEffect } from "react";
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 import { Coins, Image as ImageIcon, Lightbulb, Loader2, Maximize2, Mountain, Package, Palette, PersonStanding, StickyNote, Type, User, X } from "lucide-react";
-import { buildPrompt, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
+import { buildPrompt, collectReferences, refFileUrl, STYLES, type CNode, type NodeKind } from "@/lib/canvas";
 import { readCurrentProject } from "@/lib/projects";
 import { MODEL_STORAGE_KEY, rememberedModel, useModels } from "@/lib/use-models";
 import { useCanvas } from "./CanvasContext";
@@ -42,14 +42,24 @@ function Shell({ id, kind, selected, className = "", children }: { id: string; k
 
 function Ingredient({ id, data, selected, kind }: NodeProps<CNode> & { kind: "character" | "product" | "scene" }) {
   const { updateNodeData } = useReactFlow();
+  const { pickPicture } = useCanvas();
   const label = META[kind].title.toLowerCase();
   return (
     <Shell id={id} kind={kind} selected={selected}>
       <div className="cv-body">
-        <div className="cv-slot">{META[kind].icon}<span>{data.desc?.trim() ? data.desc : `No ${label} selected`}</span></div>
+        <div className="cv-slot">
+          {data.ref ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="cv-pic" src={refFileUrl(data.ref)} alt={data.ref.label} />
+              <span className="cv-pic-name" title={data.ref.label}>{data.ref.label}</span>
+              <button type="button" className="cv-pic-x nodrag" aria-label="Remove picture" title="Remove picture" onClick={() => updateNodeData(id, { ref: undefined })}><X size={13} /></button>
+            </>
+          ) : <>{META[kind].icon}<span>{data.desc?.trim() ? data.desc : `No ${label} selected`}</span></>}
+        </div>
         <input className="cv-input nodrag" value={data.desc ?? ""} maxLength={200} placeholder={`Describe the ${label}...`} aria-label={`${META[kind].title} description`}
           onChange={(e) => updateNodeData(id, { desc: e.target.value })} />
-        <button type="button" className="cv-btn">Choose from Library <SoonTag /></button>
+        <button type="button" className="cv-btn nodrag" onClick={() => pickPicture(id)}>{data.ref ? "Change picture" : "Choose from Library"}</button>
       </div>
     </Shell>
   );
@@ -143,9 +153,15 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     if (!model) return;
     const prompt = buildPrompt(getNodes() as CNode[], getEdges(), id);
     if (!prompt) { updateNodeData(id, { error: "Wire in a text prompt, or describe an ingredient, first." }); return; }
+    // Pictures chosen in the wired-in ingredient nodes go along as references. A model that cannot take them (or this many) is never silently skipped.
+    const references = collectReferences(getNodes() as CNode[], getEdges(), id);
+    if (references.length > model.maxReferences) {
+      updateNodeData(id, { error: model.maxReferences === 0 ? `${model.label} cannot use reference pictures. Choose another model or remove the pictures from the wired-in nodes.` : `${model.label} takes up to ${model.maxReferences} reference ${model.maxReferences === 1 ? "picture" : "pictures"}, and ${references.length} are wired in.` });
+      return;
+    }
     updateNodeData(id, { error: undefined });
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspectRatio: ratio, model: model?.id, projectId: readCurrentProject()?.id }) });
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspectRatio: ratio, model: model?.id, projectId: readCurrentProject()?.id, ...(references.length ? { references } : {}) }) });
       const out = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(res.status === 503 ? "Generating is switched off in preview mode." : out.error ?? "Something went wrong. Please try again.");
       updateNodeData(id, { pendingId: out.id, genId: undefined });

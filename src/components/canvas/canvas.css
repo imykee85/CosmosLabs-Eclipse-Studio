@@ -124,3 +124,8 @@
 
 .cv-cost { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding-left: 7px; border-left: 1px solid rgba(255,255,255,.4); font-weight: 600; }
 .cv-tile .cv-soon { margin-left: auto; }
+
+.cv-pic { flex: none; width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--a-card); }
+.cv-pic-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--a-fg); }
+.cv-pic-x { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); }
+.cv-pic-x:hover { background: var(--a-hover, rgba(127,127,127,.15)); color: var(--a-fg); }

@@ -7,6 +7,7 @@ export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "f
 export type CanvasNodeData = {
   text?: string;      // text node: the prompt
   desc?: string;      // ingredient nodes: a short description until the Library can supply real ones
+  ref?: { type: "upload" | "render"; id: string; label: string }; // ingredient nodes: a picture chosen from the Library
   style?: string;     // style node
   ratio?: string;     // generator node
   model?: string;     // generator node: image model id
@@ -175,9 +176,11 @@ export function seedFromPrompt(projectId: string, seed: { prompt: string; ratio:
   saveCanvas(projectId, [...existing.nodes, text, gen], [...existing.edges, { id: `e-${text.id}`, source: text.id, target: gen.id }], null);
 }
 
-// The prompt a generator sends: the text nodes, each ingredient description and the style wired into it, and (through a
-// full-body generator) whatever feeds that one too.
-export function buildPrompt(nodes: CNode[], edges: Edge[], generatorId: string): string {
+// The address of a node's chosen picture (our own, so it does not expire).
+export const refFileUrl = (r: NonNullable<CanvasNodeData["ref"]>) => (r.type === "upload" ? `/api/uploads/${r.id}/file` : `/api/generations/${r.id}/file`);
+
+// The inputs wired into a generator, in the order the prompt reads them (a full-body generator's inputs count too).
+function wiredInputs(nodes: CNode[], edges: Edge[], generatorId: string): CNode[] {
   const seen = new Set<string>();
   const inputs: CNode[] = [];
   const collect = (id: string) => {
@@ -192,6 +195,22 @@ export function buildPrompt(nodes: CNode[], edges: Edge[], generatorId: string):
     }
   };
   collect(generatorId);
+  return inputs;
+}
+
+// The pictures chosen in the Character, Product and Scene nodes wired into a generator, in that order (the order the model sees them).
+export function collectReferences(nodes: CNode[], edges: Edge[], generatorId: string): { type: "upload" | "render"; id: string }[] {
+  const inputs = wiredInputs(nodes, edges, generatorId);
+  const out: { type: "upload" | "render"; id: string }[] = [];
+  for (const kind of ["character", "product", "scene"] as const)
+    for (const n of inputs.filter((x) => x.type === kind)) if (n.data.ref && !out.some((o) => o.id === n.data.ref!.id)) out.push({ type: n.data.ref.type, id: n.data.ref.id });
+  return out;
+}
+
+// The prompt a generator sends: the text nodes, each ingredient description and the style wired into it, and (through a
+// full-body generator) whatever feeds that one too.
+export function buildPrompt(nodes: CNode[], edges: Edge[], generatorId: string): string {
+  const inputs = wiredInputs(nodes, edges, generatorId);
   const parts: string[] = [];
   for (const n of inputs.filter((x) => x.type === "text")) if (n.data.text?.trim()) parts.push(n.data.text.trim());
   for (const [kind, label] of [["character", "Character"], ["product", "Product"], ["scene", "Scene"]] as const)
