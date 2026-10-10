@@ -29,3 +29,5 @@ Status: ALL THREE PROVIDERS ARE BUILT AND PUSHED (commits 3af48d6 and 0135c76 on
 3. Keys, all Secrets (Production and Preview, then redeploy): `GEMINI_API_KEY` (billing on), `OPENAI_API_KEY` (check organisation verification for GPT 2.5), `ARK_API_KEY` (activate each model in the BytePlus console).
 4. Config values: `ARK_MODEL_<ID>` per Seedream model, then `ENABLED_MODELS=id,id` only after one cheap live render per model works (suggested first: `nano_banana_2_lite`, `gpt_image_1_mini`, `seedream_4`). Report time, cost and any error text.
 5. Leftovers: Anthropic credit for Orbit, Soul Cinema retry text, live seed tests (Z-Image Turbo, then Soul 2), the remaining Image Studio items.
+
+Owner confirmed on 2026-10-10 that their part (keys and settings in Vercel) is done; a redeploy was pushed so the new variables apply. Next: one cheap live render per model, then ENABLED_MODELS.
