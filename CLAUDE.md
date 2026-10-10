@@ -89,6 +89,7 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 
 ## Parked for the last stage before shipping (user decision 2026-10-10)
 - **Canvas and Agents** (the Canvas editor and library, the floating agent and its chat card, `/api/agent/chat`, the Agents page) are built enough for now: do NOT add features or polish to them until the user says the last stage has begun; revisit them then, together, just before shipping (live check of the agent against the Anthropic API once the account has credit, canvas live generation, Canvas "Polish prompt", the Soon tags on Agents, agent reading pictures for Agent 3, canvas prompt box as chat if still wanted).
+- **Image Studio picture tools** (Upscale, Remove background, Relight, Change camera, and anything beyond the basic Edit and Variations) are parked the same way: leave the Soon tags as they are until the last stage; the Higgsfield endpoints for them need the user's docs pages anyway. Soul ID is also later.
 - Keep working on the Image Studio itself, Dashboard and the rest first.
 
 ## Next
