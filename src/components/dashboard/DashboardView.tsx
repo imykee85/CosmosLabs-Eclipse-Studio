@@ -45,8 +45,8 @@ function Rail({ className, n, children }: { className: string; n: number; childr
       <ul ref={ul} className={className}>{children}</ul>
       {(more.prev || more.next) && (
         <div className="db-rail-nav">
-          <button type="button" aria-label="Earlier projects" disabled={!more.prev} onClick={() => page(-1)}><ChevronLeft size={18} /></button>
-          <button type="button" aria-label="More projects" disabled={!more.next} onClick={() => page(1)}><ChevronRight size={18} /></button>
+          {more.prev && <button type="button" aria-label="Earlier projects" onClick={() => page(-1)}><ChevronLeft size={18} /></button>}
+          {more.next && <button type="button" aria-label="More projects" onClick={() => page(1)}><ChevronRight size={18} /></button>}
         </div>
       )}
     </div>
