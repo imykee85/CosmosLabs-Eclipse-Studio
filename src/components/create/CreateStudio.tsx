@@ -367,11 +367,11 @@ export default function CreateStudio() {
       {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with Ingredients first.</p>}
       {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
       {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}
-      {picking && (model || modelId === AUTO) && <ReferencePicker startAdding={pickUpload} max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
+      {picking && (model || modelId === AUTO) && <ReferencePicker startAdding={pickUpload} max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
