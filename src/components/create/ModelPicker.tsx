@@ -40,7 +40,7 @@ const popularTile = (label: string) => (label.startsWith("Google") ? "Google" : 
 // and do nothing when tapped); add `id` (and `real`) as each one is connected.
 const POPULAR: { label: string; isNew?: boolean; id?: string }[] = [
   { label: "Eclipse DOP V1", isNew: true },
-  { label: "Google Nano Banana 2.1", isNew: true, id: "nano_banana_2_1" },
+  { label: "Google Nano Banana Pro", isNew: true, id: "nano_banana_pro" },
   { label: "GPT 2.5", isNew: true, id: "gpt_image_2_5_sunburst" },
   { label: "Seedream 5 Pro", isNew: true, id: "seedream_5_pro" },
 ];
