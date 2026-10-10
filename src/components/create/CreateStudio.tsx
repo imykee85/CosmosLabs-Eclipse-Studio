@@ -242,7 +242,7 @@ export default function CreateStudio() {
           return earlier.length > 0 && (
             <div className="cr-earlier" aria-label="Your five most recent renders">
               {earlier.map((r) => (
-                <button key={r.id} type="button" className={r.id === latestDone?.id ? "is-on" : ""} aria-pressed={r.id === latestDone?.id} title={r.prompt} onClick={() => setWatched(r.id)}>
+                <button key={r.id} type="button" className={r.id === latestDone?.id ? "is-on" : ""} aria-pressed={r.id === latestDone?.id} title={r.prompt} onClick={() => setWatched(r.id === latestDone?.id ? null : r.id)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={r.imageUrl ?? ""} alt={r.prompt} />
                 </button>
