@@ -10,6 +10,7 @@ import {
 import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
 import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
+import { useAgentHost } from "@/lib/agent-chat";
 import ModelPicker, { AUTO } from "@/components/create/ModelPicker";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import RenderDialog from "@/components/library/RenderDialog";
@@ -80,6 +81,21 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const models = useModels({ edit: true });
   const agent = useAgent();
   const { screenToFlowPosition, getNode, getNodes, getEdges, getViewport, setViewport } = useReactFlow();
+  // The agent works on the selected image generator (else the first one): it can put a prompt in it and, once the user approves, run it.
+  const targetGen = () => { const all = getNodes() as CNode[]; return all.find((n) => n.type === "generator" && n.selected) ?? all.find((n) => n.type === "generator") ?? null; };
+  useAgentHost({
+    page: "canvas",
+    context: () => { const g = targetGen(); return { prompt: g?.data.prompt ?? "", ratio: g?.data.ratio, qty: g?.data.qty }; },
+    setPrompt: (text) => { const g = targetGen(); if (g) setNodes((ns) => ns.map((n) => (n.id === g.id ? { ...n, data: { ...n.data, prompt: text } } : n))); },
+    generate: async ({ prompt, count }) => {
+      const g = targetGen();
+      if (!g) return "There is no image generator on this canvas. Add one first.";
+      setNodes((ns) => ns.map((n) => (n.id === g.id ? { ...n, data: { ...n.data, ...(prompt ? { prompt } : {}), ...(count ? { qty: count } : {}) } } : n)));
+      await new Promise((r) => window.setTimeout(r, 120)); // let the node take the new text before it runs
+      window.dispatchEvent(new CustomEvent("eclipse-node-run", { detail: { id: g.id } }));
+      return "";
+    },
+  });
 
   // Save after changes (nodes, wires, camera), a moment after the last one, and at once when you leave.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

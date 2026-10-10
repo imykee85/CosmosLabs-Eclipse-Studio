@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { ArrowUp, Loader2, Maximize2, Minimize2, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
-import SoonTag from "../SoonTag";
+import { useAgentChat } from "@/lib/agent-chat";
+import { CUE_EVENT, takeCue } from "@/lib/use-agent";
 
 const POS_KEY = "eclipse-agent-widget-pos";
 const SIZE = 64;
@@ -34,6 +35,11 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const [open, setOpen] = useState(false);
   const [hop, setHop] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [bounce, setBounce] = useState(false);
+  const [big, setBig] = useState(false);
+  const [draft, setDraft] = useState("");
+  const chat = useAgentChat(name);
+  const list = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
 
@@ -87,7 +93,34 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     return () => window.clearInterval(id);
   }, [watch]);
 
+  // Switched on: spin and open with an introduction. Switched to another agent: a little bounce and that agent's introduction.
+  const [cue, setCue] = useState(() => takeCue());
+  useEffect(() => {
+    const on = () => { const c = takeCue(); if (c) setCue(c); };
+    window.addEventListener(CUE_EVENT, on);
+    return () => window.removeEventListener(CUE_EVENT, on);
+  }, []);
+  useEffect(() => {
+    if (!cue || cue.agent !== name || !pos) return;
+    setCue(null);
+    setOpen(true);
+    if (cue.kind === "on") { setHop(true); window.setTimeout(() => setHop(false), 1000); }
+    else { setBounce(true); window.setTimeout(() => setBounce(false), 700); }
+    chat.introduce();
+  }, [cue, name, pos]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const o = () => setOpen(true); window.addEventListener("eclipse-agent-open", o); return () => window.removeEventListener("eclipse-agent-open", o); }, []);
+  useEffect(() => { const el = list.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.messages.length, chat.busy, open, big]);
+  useEffect(() => { if (!open) setBig(false); }, [open]);
+
   if (!pos) return null;
+
+  function submit(e?: React.FormEvent) {
+    e?.preventDefault();
+    const t = draft.trim();
+    if (!t || chat.busy) return;
+    setDraft("");
+    void chat.send(t);
+  }
 
   function down(e: React.PointerEvent<HTMLButtonElement>) {
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -99,7 +132,6 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 6) return;
     d.moved = true;
     setDragging(true);
-    setOpen(false);
     setPos(clamp(e.clientX - d.dx, e.clientY - d.dy));
   }
   function up() {
@@ -108,7 +140,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     setDragging(false);
     if (!d) return;
     if (d.moved) { try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch {} }
-    else { setOpen((o) => !o); setHop(true); window.setTimeout(() => setHop(false), 1000); }
+    else { setOpen(true); setHop(true); window.setTimeout(() => setHop(false), 1000); }
   }
 
   // The card opens on the side of the button with more room.
@@ -116,14 +148,36 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const cardTop = pos.y > window.innerHeight / 2 ? pos.y - 8 : pos.y + SIZE + 8;
   return (
     <>
-      {open && <div className="aw-scrim" onPointerDown={() => setOpen(false)} />}
       {open && (
-        <div className="aw-card" role="dialog" aria-label={name} style={{ left: cardLeft, top: cardTop, transform: pos.y > window.innerHeight / 2 ? "translateY(-100%)" : undefined }}>
-          <div className="aw-head"><AgentIcon size={16} /><b>{name}</b><SoonTag /><button type="button" aria-label="Close" onClick={() => setOpen(false)}><X size={15} /></button></div>
-          <p>I&rsquo;ll look over your prompt before you generate, point out anything that could go wrong and suggest a better one. This is coming soon.</p>
+        <div className={`aw-card ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={big ? undefined : { left: cardLeft, top: cardTop, transform: pos.y > window.innerHeight / 2 ? "translateY(-100%)" : undefined }}>
+          <div className="aw-head"><AgentIcon size={16} /><b>{name}</b>
+            {chat.messages.length > 0 && <button type="button" aria-label="Clear the chat" title="Clear the chat" onClick={chat.clear}><Trash2 size={14} /></button>}
+            <button type="button" aria-label={big ? "Make smaller" : "Expand"} title={big ? "Make smaller" : "Expand"} onClick={() => setBig((b) => !b)}>{big ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
+            <button type="button" aria-label="Close" onClick={() => setOpen(false)}><X size={15} /></button></div>
+          <div className="aw-msgs" ref={list} aria-live="polite">
+            {chat.messages.length === 0 && <p className="aw-empty">Say hello, or tell me what you want to make.</p>}
+            {chat.messages.map((m) => (
+              <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""}`}>
+                {m.text && <p>{m.text}</p>}
+                {m.actions && m.actions.length > 0 && (
+                  <div className="aw-acts">
+                    {m.actions.map((a) => (
+                      <button key={a.id} type="button" className={`aw-act is-${a.kind} ${a.used ? "is-used" : ""}`} disabled={a.used || chat.busy} onClick={() => void chat.run(m.id, a.id)}>{a.used ? `${a.label} \u2713` : a.label}</button>
+                    ))}
+                    {m.actions.some((a) => a.prompt) && <blockquote className="aw-prompt">{m.actions.find((a) => a.prompt)?.prompt}</blockquote>}
+                  </div>
+                )}
+              </div>
+            ))}
+            {chat.busy && <div className="aw-msg is-agent"><p className="aw-typing"><Loader2 size={13} className="cr-spin" /> Thinking…</p></div>}
+          </div>
+          <form className="aw-input" onSubmit={submit}>
+            <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} />
+            <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy}><ArrowUp size={16} /></button>
+          </form>
         </div>
       )}
-      <button ref={btn} type="button" className={`aw-btn ${dragging ? "is-drag" : ""} ${hop ? "is-hop" : ""}`} aria-label={`${name} agent. Drag to move, tap to talk.`} style={{ left: pos.x, top: pos.y }}
+      <button ref={btn} type="button" className={`aw-btn ${dragging ? "is-drag" : ""} ${hop ? "is-hop" : ""} ${bounce ? "is-bounce" : ""}`} aria-label={`${name} agent. Drag to move, tap to talk.`} style={{ left: pos.x, top: pos.y }}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { drag.current = null; setDragging(false); }}>
         <Bot />
       </button>
