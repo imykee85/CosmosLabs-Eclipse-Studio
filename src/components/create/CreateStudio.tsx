@@ -15,7 +15,7 @@ import AgentIcon from "../AgentIcon";
 import AgentMenu from "./AgentMenu";
 import AgentWidget from "./AgentWidget";
 import { useAgent } from "@/lib/use-agent";
-import { useAgentChat, useAgentHost } from "@/lib/agent-chat";
+import { useAgentHost } from "@/lib/agent-chat";
 import "./create.css";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
@@ -34,10 +34,8 @@ export default function CreateStudio() {
   const [pickingModel, setPickingModel] = useState(false);
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
   // The agent helping with this work (None when no agent is chosen) and its switch: the same choice the Agents page keeps, shared with every screen that shows an agent.
-  // While an agent is switched on, the prompt box is a chat with it and the Generate button becomes Send; the agent proposes prompts and renders as buttons.
-  const { agent, on: agentOn, active: chatMode, setAgent: pickAgent, setOn: setAgentOn } = useAgent();
-  const chat = useAgentChat(agent);
-  const [message, setMessage] = useState("");
+  // While an agent is switched on, the floating agent's card is the chat; the prompt box stays a normal prompt box (the agent can fill it and start renders after approval).
+  const { agent, on: agentOn, active: agentActive, setAgent: pickAgent, setOn: setAgentOn } = useAgent();
   const [seedOn, setSeedOn] = useState(false);
   useEffect(() => { try { setSeedOn(localStorage.getItem("eclipse-fixed-seed") === "1"); } catch {} }, []);
   function flip(key: string, on: boolean, set: (v: boolean) => void) { set(on); try { localStorage.setItem(key, on ? "1" : "0"); } catch {} }
@@ -174,15 +172,7 @@ export default function CreateStudio() {
     }
   }
 
-  function submitBox() {
-    if (chatMode) {
-      const t = message.trim();
-      if (!t || chat.busy) return;
-      setMessage("");
-      void chat.send(t);
-      window.dispatchEvent(new Event("eclipse-agent-open"));
-    } else void generate();
-  }
+  function submitBox() { void generate(); }
   useAgentHost({
     page: "studio",
     context: () => ({ prompt, ratio, qty, model: modelId === AUTO ? "Auto" : model?.label, ingredients: refs.length }),
@@ -243,19 +233,19 @@ export default function CreateStudio() {
 
       <div className="cr-dock">
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); submitBox(); }}>
-        <label htmlFor="cr-prompt" className="sr-only">{chatMode ? `Message ${agent}` : "Describe the shot you imagine"}</label>
+        <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <div className="cr-field">
           <textarea
             id="cr-prompt"
             ref={box}
             rows={2}
             maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)}
-            placeholder={chatMode ? `Message ${agent}…` : "Describe the shot you imagine…"}
-            value={chatMode ? message : prompt}
-            onChange={(e) => (chatMode ? setMessage(e.target.value) : setPrompt(e.target.value))}
+            placeholder="Describe the shot you imagine…"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={onKeyDown}
           />
-          {!chatMode && (overflowing || prompt.includes("\n")) && (
+          {(overflowing || prompt.includes("\n")) && (
             <button type="button" className="cr-expand" aria-label="Expand the prompt box" title="Expand" onClick={() => setExpanded(true)}><Maximize2 size={15} /></button>
           )}
         </div>
@@ -335,8 +325,8 @@ export default function CreateStudio() {
               <button type="button" className="cr-chip" onClick={randomizeSeed}><Shuffle size={14} /> Randomize</button>
             </div>
           )}
-          <button type="submit" className="cr-go" disabled={chatMode ? !message.trim() || chat.busy : !prompt.trim() || submitting || !model || needsRef || seedBad}>
-            {chatMode ? <>{chat.busy ? <Loader2 size={16} className="cr-spin" /> : null} Send <ArrowUp size={16} /></> : submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
+          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : model?.credits != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>
@@ -348,11 +338,11 @@ export default function CreateStudio() {
       {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
       {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
-      {chatMode ? <p className="cr-hint cr-keys">Chatting with {agent}. It proposes prompts and renders as buttons: nothing is made until you approve. Switch the agent off to write the prompt yourself.{prompt.trim() ? " A prompt from the agent is ready in the box." : ""}</p> : <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>}
+      <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
-      {chatMode && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
+      {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
       {expanded && (
