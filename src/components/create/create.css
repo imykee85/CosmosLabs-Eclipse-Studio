@@ -232,3 +232,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-tray button:hover:not(:disabled) { border-color: var(--a-fg2); } .cr-tray button:disabled { opacity: .5; cursor: default; }
 @media (min-width: 801px) { .cr-tray { justify-content: center; flex-wrap: wrap; } }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cr-wrap:has(.cr-tray.is-open) { padding-bottom: 360px; } }
+/* The + inside the prompt box: upload a picture to use as an ingredient. */
+.cr-field textarea { padding-left: 46px; }
+.cr-plus { position: absolute; top: 8px; left: 8px; z-index: 1; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; transition: border-color .18s; }
+.cr-plus:hover { border-color: var(--a-fg2); }

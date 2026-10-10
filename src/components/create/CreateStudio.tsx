@@ -72,6 +72,7 @@ export default function CreateStudio() {
   }, [model, seedSpec, seedNum]);
   const randomizeSeed = () => { if (seedSpec) { putSeed(String(seedSpec.min + Math.floor(Math.random() * (seedSpec.max - seedSpec.min + 1)))); setSeedNote(""); } };
   const [picking, setPicking] = useState(false);
+  const [pickUpload, setPickUpload] = useState(false); // the + in the prompt box opens the picker straight on "upload a picture"
   const [noRefs, setNoRefs] = useState(false); // the chosen model takes no pictures: say so, with the models that do
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -113,6 +114,10 @@ export default function CreateStudio() {
   const needsRef = !!model?.requiresReference && refs.length === 0;
   useEffect(() => { setNoRefs(false); }, [modelId]);
   const refModels = (models ?? []).filter((m) => m.maxReferences > 0).map((m) => m.label);
+
+  function openIngredients(upload: boolean) {
+    if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPickUpload(upload); setPicking(true); } else setNoRefs(true);
+  }
 
   function pickModel(id: string) {
     setModelId(id);
@@ -260,6 +265,7 @@ export default function CreateStudio() {
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); submitBox(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <div className="cr-field">
+          <button type="button" className="cr-plus" aria-label="Upload a picture" title="Upload a picture to use as an ingredient" onClick={() => openIngredients(true)}><Plus size={18} /></button>
           <textarea
             id="cr-prompt"
             ref={box}
@@ -316,7 +322,7 @@ export default function CreateStudio() {
           </button>
           </div>
           <div className="cr-row cr-row-top">
-          <button type="button" className="cr-chip" onClick={() => { if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true); }} title="Choose ingredients and pictures the model should work from">
+          <button type="button" className="cr-chip" onClick={() => openIngredients(false)} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
           <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas"
@@ -362,7 +368,7 @@ export default function CreateStudio() {
       {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with Ingredients first.</p>}
       {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
       {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}
-      {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
+      {picking && (model || modelId === AUTO) && <ReferencePicker startAdding={pickUpload} max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
       {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}

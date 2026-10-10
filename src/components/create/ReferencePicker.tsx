@@ -15,9 +15,9 @@ type Tab = "ingredients" | "assets" | "images";
 const TABS: { id: Tab; label: string }[] = [{ id: "ingredients", label: "Ingredients" }, { id: "assets", label: "Assets" }, { id: "images", label: "My images" }];
 
 // Dialog for choosing up to `max` pictures to send to the model along with the prompt.
-export default function ReferencePicker({ max, picked, onChange, onClose }: { max: number; picked: RefPick[]; onChange: (next: RefPick[]) => void; onClose: () => void }) {
+export default function ReferencePicker({ max, picked, onChange, onClose, startAdding = false }: { max: number; picked: RefPick[]; onChange: (next: RefPick[]) => void; onClose: () => void; startAdding?: boolean }) {
   const [tab, setTab] = useState<Tab>("ingredients");
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
   const knownIds = useRef<Set<string> | null>(null); // ids present before an upload, to spot the new one
   const ingredients = useUploads("ingredients");
   const assets = useUploads("asset");
