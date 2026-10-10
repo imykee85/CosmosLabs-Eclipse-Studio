@@ -79,3 +79,8 @@
   .tr-chat, .tr-chat.is-hidden-desktop { min-height: calc(100dvh - 240px); }
   .tr-composer { margin-top: auto; }
 }
+
+/* The agent chip and switch sit after the microphone. */
+.tr-agent { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.tr-tool.tr-agentchip { width: auto; gap: 6px; padding: 0 11px; font: inherit; font-size: 13px; font-weight: 500; color: var(--a-fg); white-space: nowrap; }
+@media (max-width: 600px) { .tr-tool.tr-agentchip span { display: none; } .tr-tool.tr-agentchip { width: 40px; padding: 0; } }

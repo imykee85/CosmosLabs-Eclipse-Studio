@@ -2,6 +2,12 @@
 
 import { useRef, useState } from "react";
 import { ArrowRight, FileText, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
+import AgentIcon from "@/components/AgentIcon";
+import AgentMenu from "@/components/create/AgentMenu";
+import AgentWidget from "@/components/create/AgentWidget";
+import { useAgent } from "@/lib/use-agent";
+import { useAgentHost } from "@/lib/agent-chat";
+import "@/components/create/create.css";
 import "./treatment.css";
 
 type Mode = "brief" | "concept" | "guide";
@@ -41,6 +47,16 @@ export default function TreatmentView() {
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
   const [files, setFiles] = useState<File[]>([]);
   const [text, setText] = useState("");
+  // The agent: pick one (chip) and switch it on (switch). On, it floats on the screen like in Image Studio and its card is the chat.
+  const agent = useAgent();
+  const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
+  const agentChip = useRef<HTMLButtonElement>(null);
+  useAgentHost({
+    page: "treatment",
+    context: () => ({ prompt: text }),
+    setPrompt: setText,
+    generate: async () => "Pictures are made in Image Studio. Open it and I can start the render there.",
+  });
   const picker = useRef<HTMLInputElement>(null);
   const addFiles = (list: FileList | null) => { const picked = Array.from(list ?? []); if (picked.length) setFiles((f) => [...f, ...picked]); if (picker.current) picker.current.value = ""; };
 
@@ -126,10 +142,19 @@ export default function TreatmentView() {
             <button type="button" className="tr-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
             <button type="button" className="tr-tool" aria-label="Add a link"><Link2 size={16} /></button>
             <button type="button" className="tr-tool" aria-label="Voice input"><Mic size={16} /></button>
+            <div className="tr-agent">
+              <button ref={agentChip} type="button" className="tr-tool tr-agentchip" aria-label="Choose your agent" aria-haspopup="menu" title="Choose your agent" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
+                <AgentIcon size={14} /> <span>{agent.agent ?? "Agents"}</span>
+              </button>
+              <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
+                onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
+            </div>
             <button type="submit" className="tr-send" aria-label="Send"><Send size={16} /></button>
           </div>
         </form>
       </section>
+      {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
+      {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
     </div>
   );
 }
