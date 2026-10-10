@@ -3,18 +3,201 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Users live in Clerk; userId is the Clerk user id.
 model Generation {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  prompt     String
+  imageUrl   String   @default("") @map("image_url") // where the provider produced it; only a fallback, never shown once the file is in our storage; empty while the render is still running
+  status     String   @default("completed") // pending (running at the provider), saving (being copied into storage), completed, failed
+  statusUrl  String?  @map("status_url") // where to ask the provider how the render is going
+  error      String?  // why a render failed, in words for the user
+  aspectRatio String? @map("aspect_ratio")
+  resolution String?  // the resolution tier that was requested, when the model has one
+  contentType String? @map("content_type") // image/png, image/jpeg or image/webp
+  sizeBytes  Int?     @map("size_bytes")
+  width      Int?
+  height     Int?
+  deletedAt  DateTime? @map("deleted_at") // set when moved to the Bin; the file is only removed when deleted forever
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  storageKey String?  @map("storage_key") // the file in the private R2 bucket; served only through short-lived signed links
+  projectId  String?  @map("project_id") // the project it was made in; the Gallery shows only its own project, the Library shows all
+  model      String?  // registry id of the model that REALLY ran
+  provider   String?  // who made it: higgsfield, google, openai (null on renders from before providers were recorded)
+  providerUsage Json? @map("provider_usage") // the provider's own usage numbers for this render (tokens), kept so real costs can be worked out later
+  requestId  String?  @map("request_id") // Higgsfield's request id
+  seed       Int?     // the seed ACTUALLY sent to the provider; null when the model has no seed
+  seedLocked Boolean  @default(false) @map("seed_locked") // true when the user locked it (Fixed seed on, or a seed named for a re-run)
+  references Json?    // the pictures used as references: [{ type: "upload" | "render", id }]
+  costUsd    Float?   @map("cost_usd") // real cost once measured; blank until then
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, projectId, createdAt(sort: Desc)])
+  @@index([status, updatedAt])
+  @@map("generations")
+}
+
+// One row per user, written when they finish onboarding right after signing up.
+model Onboarding {
+  userId      String   @id @map("user_id")
+  usage       String
+  experience  String
+  audience    String
+  contentType String   @map("content_type")
+  source      String
+  blocker     String[] // multiple challenges can be chosen
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("onboarding")
+}
+
+// A user's project. Deleting moves it to the bin (deletedAt set); it can be restored.
+model Project {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  name      String
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, deletedAt])
+  @@map("projects")
+}
+
+// One saved canvas per project and user (the graph as JSON), so a canvas follows the account across devices.
+model CanvasState {
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  data      Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([userId, projectId])
+  @@map("canvas_states")
+}
+
+// A canvas in a project's canvas library. A project can hold many; deletedAt marks one that is in "Recently deleted" (restorable) until it is deleted for good.
+// `data` is the whole graph (nodes with everything chosen and typed in them, wires, camera), `thumbId` the render shown on its card.
+// The older single CanvasState per project is read once into the first canvas (see GET /api/canvases) and then dropped.
+model Canvas {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  projectId String    @map("project_id")
+  name      String
+  data      Json
+  nodeCount Int       @default(0) @map("node_count")
+  thumbId   String?   @map("thumb_id")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, projectId, deletedAt])
+  @@map("canvases")
+}
+
+// Append-only credit ledger. A user's balance is the sum of delta; credits live here, never in the payment provider.
+// PURCHASE rows carry the provider's payment id, and the unique pair makes a repeated webhook delivery a no-op.
+model CreditLedger {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  delta      Int
+  reason     String // GRANT | PURCHASE | CHARGE | REFUND | ADJUST
+  provider   String?
+  externalId String?  @map("external_id")
+  note       String?  // what it was for, in words (e.g. "Soul 2 image", "Added by the owner")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, externalId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("credit_ledger")
+}
+
+// Connect: one chat with the assistant. Messages are kept exactly as the model produced them, so a thread can be continued later.
+model ConnectChat {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
-  prompt    String
-  imageUrl  String   @map("image_url")
+  projectId String?  @map("project_id")
+  title     String   @default("New chat")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  messages  ConnectMessage[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("connect_chats")
+}
+
+model ConnectMessage {
+  id        String      @id @default(cuid())
+  chatId    String      @map("chat_id")
+  chat      ConnectChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  seq       Int // order inside the chat
+  role      String // user | assistant
+  content   Json // the message's content blocks as sent to / received from the model (text, images, tool calls, tool results)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([chatId, seq])
+  @@map("connect_messages")
+}
+
+// What Eclipse remembers about a user and their work. topic: projects | products | characters | style | tastes.
+model Memory {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  topic     String
+  text      String
+  source    String   @default("user") // user | agent
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId, createdAt(sort: Desc)])
-  @@map("generations")
+  @@map("memories")
+}
+
+// A skill the user wrote themselves (the built-in ones live in code).
+model UserSkill {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  blurb        String   @default("")
+  instructions String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("user_skills")
+}
+
+// A connected app. secret is the credential (a bot token or webhook address), stored encrypted (src/lib/secret-box.ts).
+model ConnectorLink {
+  userId    String   @map("user_id")
+  connector String // registry id, see src/lib/connectors.ts
+  label     String   @default("") // what to show, e.g. the channel name; never the secret
+  secret    String
+  extra     Json? // non-secret settings, e.g. the Telegram chat id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([userId, connector])
+  @@map("connector_links")
+}
+
+// A picture the user uploaded as a reference: an asset (any reference photo) or an ingredient (character, product, scene).
+// The file lives in the private bucket under storageKey; it is shown only through short-lived signed links.
+model Upload {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  kind        String // asset | character | product | scene
+  name        String
+  projectId   String?  @map("project_id") // the project it was added in, if any; uploads are usable from every project
+  storageKey  String   @map("storage_key")
+  contentType String   @map("content_type")
+  sizeBytes   Int      @map("size_bytes")
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId, kind, createdAt(sort: Desc)])
+  @@map("uploads")
 }

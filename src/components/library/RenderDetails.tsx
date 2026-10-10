@@ -1,0 +1,123 @@
+"use client";
+
+import { useState } from "react";
+import { Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2 } from "lucide-react";
+import { trashRender } from "@/lib/render-actions";
+import type { Render } from "@/lib/use-renders";
+import "./library.css";
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+const FORMATS: Record<string, string> = { "image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WebP" };
+
+// The facts about one finished image, with the actions people reach for: copy the prompt, download the file, share it.
+// With `collapsible` (Image Studio) the facts stay hidden until the "i" button in front of Copy prompt is tapped; tap it again to close them.
+export default function RenderDetails({ g, onDeleted, onStarted, collapsible = false }: { g: Render; onDeleted?: () => void; onStarted?: () => void; collapsible?: boolean }) {
+  const [info, setInfo] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [note, setNote] = useState("");
+
+  async function remove() {
+    setNote("");
+    try { await trashRender(g.id); onDeleted?.(); } catch (e) { setNote(e instanceof Error ? e.message : "Could not move this image to the bin."); }
+  }
+
+  const [seedCopied, setSeedCopied] = useState(false);
+  async function copySeed() {
+    try { await navigator.clipboard.writeText(String(g.seed)); setSeedCopied(true); setTimeout(() => setSeedCopied(false), 1800); } catch { setNote("Could not copy. Select the number and copy it by hand."); }
+  }
+  // Same prompt and settings again: with this image's seed (similar result), or with a new random one (a new variation).
+  async function again(sameSeed: boolean) {
+    setNote("");
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: g.prompt, model: g.model, aspectRatio: g.aspectRatio ?? undefined, resolution: g.resolution ?? undefined, projectId: g.projectId ?? undefined, references: g.references ?? [], ...(sameSeed ? { seed: g.seed, lockSeed: true } : {}) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not start this render.");
+      setNote(sameSeed ? "Started with the same seed. It will appear in your Gallery." : "Started a new variation. It will appear in your Gallery.");
+      onStarted?.();
+    } catch (e) { setNote(e instanceof Error ? e.message : "Could not start this render."); }
+  }
+
+  async function copyPrompt() {
+    try { await navigator.clipboard.writeText(g.prompt); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { setNote("Could not copy. Select the text and copy it by hand."); }
+  }
+
+  // Phones and some desktops can share the picture itself; otherwise a link that stops working after a week is copied.
+  async function share() {
+    setNote("");
+    try {
+      const res = await fetch(`/api/generations/${g.id}/file`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const file = new File([blob], g.fileName ?? "image.png", { type: blob.type || "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text: g.prompt });
+          return;
+        }
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return; // closed the share sheet
+    }
+    try {
+      const r = await fetch(`/api/generations/${g.id}/share`, { method: "POST" });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.url) throw new Error();
+      await navigator.clipboard.writeText(data.url);
+      setNote(data.days ? `Link copied. Anyone with it can view this image for ${data.days} days.` : "Link copied.");
+    } catch {
+      setNote("Could not share this image. Please try again.");
+    }
+  }
+
+  const rows: [string, string | null][] = [
+    ["File name", g.fileName],
+    ["Size", g.sizeBytes != null ? fmtBytes(g.sizeBytes) : null],
+    ["Dimensions", g.width && g.height ? `${g.width} × ${g.height} px` : null],
+    ["Format", g.contentType ? (FORMATS[g.contentType] ?? g.contentType) : null],
+    ["Shape", g.aspectRatio],
+    ["Resolution", g.resolution],
+    ["Model", g.modelLabel],
+    ["Created", new Date(g.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" })],
+  ];
+
+  return (
+    <div className="rd">
+      <div className="rd-actions">
+        {collapsible && <button type="button" className={`rd-btn rd-info ${info ? "is-on" : ""}`} aria-expanded={info} aria-label={info ? "Hide image details" : "Show image details"} title="Image details" onClick={() => setInfo((v) => !v)}><Info size={16} /></button>}
+        <button type="button" className="rd-btn" onClick={copyPrompt}>{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy prompt"}</button>
+        <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined}><Download size={15} />Download</a>
+        <button type="button" className="rd-btn" onClick={share}><Share2 size={15} />Share</button>
+        <button type="button" className="rd-btn rd-danger" onClick={remove} title="Move to the bin"><Trash2 size={15} />Delete</button>
+      </div>
+      {note && <p className="rd-note" role="status">{note}</p>}
+      {(!collapsible || info) && <dl className="rd-list">
+        {rows.filter((r): r is [string, string] => Boolean(r[1])).map(([k, v]) => (
+          <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
+        ))}
+        {g.seed != null && (
+          <div className="rd-seed">
+            <dt>Seed</dt>
+            <dd>
+              <span className="rd-seedline"><code>{g.seed}</code><button type="button" className="rd-icon" onClick={copySeed} aria-label="Copy seed" title="Copy seed">{seedCopied ? <Check size={14} /> : <Copy size={14} />}</button></span>
+              <span className="rd-seedbtns">
+                <button type="button" className="rd-btn" onClick={() => again(true)}><RotateCcw size={14} />Re-run with this seed</button>
+                <button type="button" className="rd-btn" onClick={() => again(false)}><Shuffle size={14} />New variation</button>
+              </span>
+              <small>Similar results with the same seed, not identical.</small>
+            </dd>
+          </div>
+        )}
+        <div className="rd-prompt">
+          <dt>Prompt<button type="button" className="rd-icon" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={14} /> : <Copy size={14} />}</button></dt>
+          <dd>{g.prompt}</dd>
+        </div>
+      </dl>}
+    </div>
+  );
+}

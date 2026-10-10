@@ -1,0 +1,36 @@
+/* Skills page: cards with a big preview. Prefix sk- ; the tabs, search and headings reuse the cn- styles from Connectors. */
+.sk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; margin: 0; padding: 0; list-style: none; }
+.sk-card { display: grid; gap: 12px; min-width: 0; }
+.sk-art { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-input); }
+.sk-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; }
+.sk-meta { display: flex; align-items: center; gap: 12px; padding: 0 4px; }
+.sk-ico { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--a-active); color: var(--a-fg); }
+.sk-name { display: grid; flex: 1; min-width: 0; line-height: 1.3; }
+.sk-name b { font-size: 17px; font-weight: 500; }
+.sk-name small { display: none; color: var(--a-muted); font-size: 14px; }
+.sk-tags { display: inline-flex; flex: none; gap: 16px; color: var(--a-muted); font-size: 14px; }
+.sk-tags span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* list view: small preview on the left */
+.sk-list.is-list { grid-template-columns: 1fr; gap: 12px; }
+.sk-list.is-list .sk-card { grid-template-columns: 150px 1fr; align-items: center; gap: 16px; padding: 10px; border: 1px solid var(--a-line); border-radius: 22px; background: var(--a-card); }
+.sk-list.is-list .sk-art { aspect-ratio: 4 / 3; border-radius: 14px; }
+.sk-list.is-list .sk-meta { flex-wrap: wrap; padding: 0; }
+.sk-list.is-list .sk-name small { display: block; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sk-list.is-list .sk-tags { flex: 1 1 100%; }
+
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .sk-list { grid-template-columns: 1fr; }
+  .sk-list.is-list .sk-card { grid-template-columns: 112px 1fr; }
+  .sk-tags { gap: 12px; font-size: 13px; }
+}
+
+.sk-card { cursor: pointer; } .sk-art img { transition: transform .35s ease; } .sk-card:hover .sk-art img { transform: scale(1.04); } .sk-card:hover .sk-art { border-color: var(--a-line4); }
+
+.sk-mine-head { display: flex; justify-content: flex-end; margin-top: 18px; }
+.sk-own { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+.sk-own li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--a-line); border-radius: 22px; background: var(--a-card); }
+.sk-own .cn-btn { white-space: nowrap; }
+.sk-card .tl-open { display: inline-flex; align-items: center; gap: 6px; }
+.sk-card .tl-open { flex: none; padding: 9px 20px; border: 0; border-radius: 12px; background: #c00707; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .18s, transform .12s; }
+.sk-card .tl-open:hover { background: #d90b0b; } .sk-card .tl-open:active { transform: scale(.94); }

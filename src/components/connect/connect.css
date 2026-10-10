@@ -1,0 +1,227 @@
+/* Connect: home (message box, model chip) and connect-apps pages. Prefix cn- . */
+.cn-wrap { max-width: 760px; margin: 0 auto; color: var(--a-fg); }
+.cn-hero { display: grid; justify-items: center; gap: 14px; padding: 9vh 0 0; text-align: center; }
+.cn-dests { display: flex; gap: 10px; margin-bottom: 10px; }
+.cn-dests .cn-logo { box-shadow: 0 4px 14px var(--a-shadow), inset 0 0 0 1px rgba(128,128,128,.18); }
+.cn-hero h1 { margin: 8px 0 0; font-size: clamp(30px, 5vw, 44px); font-weight: 700; letter-spacing: -.03em; line-height: 1.05; }
+.cn-hero p { margin: 0; max-width: 420px; color: var(--a-muted); font-size: 16px; line-height: 1.5; }
+.cn-dock { margin-top: 12vh; }
+.cn-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.cn-chip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: border-color .18s; }
+.cn-chip:hover:not(:disabled) { border-color: var(--a-line4); }
+.cn-chip:disabled { opacity: .6; cursor: default; }
+.cn-chip em { padding: 1px 7px; border: 1px solid var(--a-line3); border-radius: 999px; font-size: 10px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; color: var(--a-muted); }
+.cn-box { display: grid; gap: 8px; padding: 14px 14px 12px 18px; border: 1px solid var(--a-line2); border-radius: 26px; background: var(--a-input); }
+.cn-box:focus-within { border-color: #c00707; }
+.cn-box textarea { width: 100%; min-width: 0; resize: none; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; line-height: 1.5; padding: 4px 0; }
+.cn-box textarea::placeholder { color: var(--a-ph); }
+.cn-tools { display: flex; align-items: center; gap: 8px; }
+.cn-round { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg2); }
+.cn-round:disabled { opacity: .5; cursor: default; }
+.cn-send { margin-left: auto; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #c00707; color: #fff; }
+.cn-send:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
+
+.cn-head { display: flex; align-items: flex-start; gap: 6px; }
+.cn-head h1 { margin: 2px 0 0; font-size: 30px; font-weight: 700; letter-spacing: -.03em; }
+.cn-head p { margin: 8px 0 0; color: var(--a-muted); font-size: 15px; line-height: 1.5; }
+.cn-back { flex: none; display: grid; place-items: center; width: 40px; height: 40px; margin: -2px 0 0 -10px; border-radius: 50%; color: var(--a-fg); }
+.cn-back:hover { background: var(--a-hover); }
+.cn-empty { display: grid; justify-items: center; gap: 10px; margin-top: 22px; padding: 64px 24px; border: 1px solid var(--a-line2); border-radius: 28px; background: var(--a-card); color: var(--a-muted2); text-align: center; }
+.cn-empty h2 { margin: 10px 0 0; color: var(--a-fg); font-size: 20px; font-weight: 600; }
+.cn-empty p { margin: 0 0 6px; color: var(--a-muted); font-size: 15px; }
+.cn-none { margin: 30px 4px; color: var(--a-muted); }
+
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cn-hero { padding-top: 6vh; }
+  /* The box sits just above the bottom tab bar. */
+  .cn-dock { position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; margin: 0; }
+  .cn-head h1 { font-size: 26px; }
+    }
+
+/* Model chip and its sheet */
+.cn-model { position: relative; }
+.cn-agent { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .18s; }
+.cn-agent:hover { border-color: var(--a-line4); }
+.cn-agent svg { color: var(--a-muted); transition: transform .2s; } .cn-agent svg.is-up { transform: rotate(180deg); }
+.cn-sheet-scrim { display: none; }
+.cn-sheet { position: absolute; left: 0; bottom: calc(100% + 10px); z-index: 30; display: grid; gap: 2px; width: min(380px, 80vw); max-height: 60vh; overflow-y: auto; padding: 8px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-card); box-shadow: 0 18px 40px var(--a-shadow); }
+.cn-grab { display: none; }
+.cn-opt { display: flex; align-items: center; gap: 14px; width: 100%; padding: 10px; border: 0; border-radius: 16px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cn-opt:hover, .cn-opt.is-on { background: var(--a-hover); }
+.cn-opt-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--a-input); color: var(--a-fg2); }
+.cn-opt-text { display: grid; flex: 1; min-width: 0; line-height: 1.35; }
+.cn-opt-text b { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+.cn-opt-text em { padding: 1px 8px; border-radius: 999px; background: var(--a-sel); color: var(--a-redtext); font-size: 11px; font-style: normal; font-weight: 500; }
+.cn-opt-text small { color: var(--a-muted); font-size: 13px; }
+.cn-opt-check { flex: none; color: var(--a-redtext); }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cn-sheet-scrim { display: block; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.55); }
+  .cn-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; width: auto; max-height: 72dvh; padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; border-width: 1px 0 0; }
+  .cn-grab { display: block; width: 44px; height: 4px; margin: 4px auto 10px; border-radius: 4px; background: var(--a-line3); }
+}
+/* While the model sheet is open the pinned box rises above the tab bar so the sheet is not clipped. */
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cn-dock:has(.cn-sheet) { z-index: 60; } }
+
+.cn-mono { font-size: 17px; font-weight: 700; }
+.cn-group { margin: 12px 10px 4px; color: var(--a-muted2); font-size: 13px; }
+.cn-opt-text em.is-new { background: rgba(120, 200, 80, .14); color: #8ad65a; }
+html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background: rgba(63,138,31,.12); }
+
+/* Connectors page: Explore / My connectors */
+.cn-apps { max-width: 880px; }
+.cn-bar { position: sticky; top: 0; z-index: 12; margin: 22px -4px 0; padding: 0 4px 12px; background: var(--a-bg); }
+.cn-utabs { display: flex; gap: 6px; border-bottom: 1px solid var(--a-line); }
+.cn-utabs button { position: relative; padding: 12px 12px; border: 0; background: transparent; color: var(--a-muted); font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; transition: color .18s; }
+.cn-utabs button:hover:not(.is-on) { color: var(--a-fg); }
+.cn-utabs button.is-on { color: var(--a-fg); }
+.cn-utabs button.is-on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--a-fg); }
+.cn-find { display: flex; gap: 10px; margin-top: 14px; }
+.cn-search { display: flex; flex: 1; align-items: center; gap: 10px; height: 48px; padding: 0 16px; border: 1px solid var(--a-line); border-radius: 999px; background: var(--a-input); color: var(--a-muted2); }
+.cn-search:focus-within { border-color: var(--a-line4); }
+.cn-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; }
+.cn-search input::placeholder { color: var(--a-ph); }
+.cn-view { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid var(--a-line2); border-radius: 14px; background: transparent; color: var(--a-fg); cursor: pointer; transition: border-color .18s; }
+.cn-view:hover { border-color: var(--a-line4); }
+
+.cn-h2 { display: flex; align-items: center; gap: 12px; margin: 34px 0 16px; font-size: 24px; font-weight: 800; letter-spacing: -.045em; text-transform: uppercase; }
+.cn-h2 svg { flex: none; }
+.cn-badge { color: #c00707; }
+
+/* workflow cards: a row that scrolls sideways */
+.cn-flows { display: flex; gap: 14px; padding: 0 0 4px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+.cn-flows::-webkit-scrollbar { display: none; }
+.cn-flow { flex: none; width: min(300px, 78%); overflow: hidden; scroll-snap-align: start; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-card); }
+.cn-art { position: relative; display: grid; place-items: center; aspect-ratio: 1.14; overflow: hidden; background: linear-gradient(160deg, #b9c9f3, #9db6f0 55%, #c9b5ef); }
+.cn-flow:nth-child(2) .cn-art { background: linear-gradient(160deg, #66c7d9, #7a8fe0 55%, #d96aa8); }
+.cn-flow:nth-child(3) .cn-art { background: linear-gradient(160deg, #f1c9a0, #e79a8f 55%, #c78bd6); }
+.cn-flow:nth-child(4) .cn-art { background: linear-gradient(160deg, #a9dcc0, #86c3b1 55%, #8fa6e0); }
+.cn-phone { display: grid; gap: 7px; align-content: start; width: 52%; height: 86%; margin-top: 14%; padding: 12px 10px; border: 3px solid rgba(20,20,30,.85); border-bottom: 0; border-radius: 22px 22px 0 0; background: rgba(255,255,255,.88); }
+.cn-phone i { display: block; width: 36%; height: 7px; margin: 0 auto 4px; border-radius: 4px; background: rgba(0,0,0,.18); }
+.cn-phone p { margin: 0; height: 9px; border-radius: 5px; background: rgba(0,0,0,.14); }
+.cn-phone p.short { width: 60%; }
+.cn-pic { border-radius: 10px; background: linear-gradient(150deg, #e8a87c, #9b6b8f 60%, #4a5d8a); }
+.cn-phone .cn-pic { height: 46px; }
+.cn-art-post .cn-pic { width: 44%; height: 58%; margin-top: -8%; border-radius: 14px; }
+.cn-pill { position: absolute; top: 12px; left: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(20,20,30,.78); color: #fff; font-size: 11px; font-weight: 500; }
+.cn-prompt { position: absolute; left: 12px; right: 12px; bottom: 12px; display: grid; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(20,20,30,.82); }
+.cn-prompt p { margin: 0; height: 7px; border-radius: 4px; background: rgba(255,255,255,.55); }
+.cn-prompt p.short { width: 55%; background: rgba(255,255,255,.35); }
+.cn-flow-cap { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.cn-flow-cap b { font-size: 16px; font-weight: 500; line-height: 1.3; }
+
+/* app rows */
+.cn-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.cn-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border: 1px solid var(--a-line); border-radius: 22px; background: var(--a-card); }
+.cn-logo { flex: none; display: inline-grid; place-items: center; box-shadow: inset 0 0 0 1px rgba(128,128,128,.18); }
+.cn-text { display: grid; flex: 1; min-width: 0; gap: 3px; line-height: 1.3; }
+.cn-text b { font-size: 17px; font-weight: 500; }
+.cn-text small { color: var(--a-muted); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-plus { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border: 0; border-radius: 50%; background: var(--a-active); color: var(--a-fg); }
+.cn-plus:disabled { opacity: .7; cursor: default; }
+.cn-list.is-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.cn-list.is-grid .cn-row { flex-wrap: wrap; align-content: start; }
+.cn-list.is-grid .cn-text { flex: 1 1 100%; order: 3; }
+.cn-list.is-grid .cn-text small { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cn-list.is-grid .cn-plus { margin-left: auto; }
+.cn-list.is-grid .cn-logo { order: 1; } .cn-list.is-grid .cn-plus { order: 2; }
+
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cn-bar { top: 58px; margin: 18px -18px 0; padding: 0 18px 12px; }
+  .cn-flows { margin: 0 -18px; padding: 0 18px 4px; scroll-padding-left: 18px; }
+  .cn-h2 { font-size: 22px; }
+  .cn-row { gap: 14px; padding: 12px 14px; }
+}
+
+/* overlapping app logos inside the Connectors chip */
+.cn-stack { display: inline-flex; }
+.cn-stack .cn-logo { margin-left: -6px; box-shadow: 0 0 0 2px var(--a-card); }
+.cn-stack .cn-logo:first-child { margin-left: 0; }
+.cn-chip { flex: none; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cn-chips { flex-wrap: nowrap; overflow-x: auto; margin-right: -18px; padding-right: 18px; scrollbar-width: none; }
+  .cn-chips::-webkit-scrollbar { display: none; }
+}
+
+/* everything responds to hover and press, even where it does not navigate yet */
+.cn-plus, .cn-round, .cn-send, .cn-chip, .cn-view { cursor: pointer; transition: background .18s, border-color .18s, transform .12s; }
+.cn-plus:hover { background: var(--a-line3); } .cn-round:hover { border-color: var(--a-line4); } .cn-send:hover { background: #d90b0b; }
+.cn-plus:active, .cn-round:active, .cn-send:active, .cn-view:active { transform: scale(.94); } .cn-chip:active { transform: scale(.97); }
+.cn-row { transition: border-color .18s, background .18s; } .cn-row:hover { border-color: var(--a-line3); }
+.cn-flow { cursor: pointer; transition: border-color .18s, transform .18s; } .cn-flow:hover { border-color: var(--a-line4); transform: translateY(-2px); }
+
+/* Chat */
+@keyframes cn-turn { to { transform: rotate(360deg); } }
+.cn-spin { animation: cn-turn .9s linear infinite; }
+.cn-chat.is-chatting { display: flex; flex-direction: column; min-height: calc(100dvh - 120px); }
+.cn-chat.is-chatting .cn-dock { position: sticky; bottom: 12px; margin-top: auto; padding-top: 12px; background: linear-gradient(to top, var(--a-bg) 70%, transparent); }
+.cn-thread { display: grid; gap: 18px; padding: 60px 0 24px; } /* clears the History / New chat buttons fixed in the top right */
+.cn-msg { display: grid; gap: 10px; justify-items: start; max-width: 100%; }
+.cn-msg.is-user { justify-items: end; }
+.cn-msg.is-user .cn-text-part { padding: 10px 16px; border-radius: 20px 20px 6px 20px; background: var(--a-active); }
+.cn-text-part { margin: 0; max-width: min(640px, 100%); font-size: 16px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cn-tool { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border: 1px solid var(--a-line2); border-radius: 999px; color: var(--a-muted); font-size: 13px; }
+.cn-tool svg:last-child { color: #3f8a1f; }
+.cn-working { display: inline-flex; align-items: center; gap: 7px; color: var(--a-muted); font-size: 14px; }
+.cn-render { display: block; width: min(320px, 100%); overflow: hidden; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); }
+.cn-render img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cn-render.is-note { display: flex; align-items: center; gap: 9px; padding: 12px 14px; color: var(--a-muted); font-size: 14px; line-height: 1.4; }
+.cn-err { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: var(--a-redtext); font-size: 14px; line-height: 1.4; }
+.cn-pop { margin-bottom: 10px; padding: 10px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-card); box-shadow: 0 14px 34px var(--a-shadow); max-height: 40vh; overflow-y: auto; }
+.cn-pop ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.cn-pop li { display: flex; align-items: center; border-radius: 14px; } .cn-pop li:hover, .cn-pop li.is-on { background: var(--a-hover); }
+.cn-pop-main { flex: 1; min-width: 0; display: grid; gap: 2px; padding: 10px 12px; border: 0; background: transparent; color: var(--a-fg); font: inherit; text-align: left; cursor: pointer; }
+.cn-pop-main b { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .cn-pop-main small { color: var(--a-muted); font-size: 12px; }
+.cn-pop-del { flex: none; display: grid; place-items: center; width: 38px; height: 38px; margin-right: 4px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; } .cn-pop-del:hover { background: var(--a-line2); color: var(--a-fg); }
+.cn-pop-note { margin: 6px 8px; color: var(--a-muted); font-size: 14px; }
+.cn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; padding: 4px; }
+.cn-grid button { padding: 0; aspect-ratio: 1; overflow: hidden; border: 2px solid transparent; border-radius: 12px; background: var(--a-input); cursor: pointer; }
+.cn-grid button.is-on { border-color: #c00707; } .cn-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cn-picked { display: flex; gap: 8px; } .cn-picked span { position: relative; width: 52px; height: 52px; } .cn-picked img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+.cn-picked button { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cn-chat.is-chatting { min-height: 0; padding-bottom: 220px; }
+  .cn-chat.is-chatting .cn-dock { position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); margin: 0; background: var(--a-bg); padding-top: 8px; }
+  .cn-chat .cn-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .cn-pop { max-height: 34vh; }
+}
+
+/* Links between the Connect pages */
+.cn-nav { display: flex; gap: 8px; margin: 18px 0 0; overflow-x: auto; scrollbar-width: none; }
+.cn-nav::-webkit-scrollbar { display: none; }
+.cn-navlink { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; color: var(--a-fg); font-size: 14px; font-weight: 500; transition: border-color .18s, background .18s; }
+.cn-navlink:hover { border-color: var(--a-line4); } .cn-navlink.is-on { background: var(--a-active); border-color: var(--a-line3); }
+.cn-navlink .cn-stack .cn-logo { box-shadow: 0 0 0 2px var(--a-card); }
+
+/* Connect dialog and forms */
+.cn-modal-scrim { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.6); }
+.cn-modal { width: min(460px, 100%); max-height: 90dvh; overflow-y: auto; padding: 24px; border: 1px solid var(--a-line2); border-radius: 26px; background: var(--a-card); color: var(--a-fg); }
+.cn-modal h2 { margin: 0 0 6px; font-size: 22px; font-weight: 700; } .cn-modal p { margin: 0 0 14px; color: var(--a-muted); font-size: 14px; line-height: 1.5; }
+.cn-field { display: grid; gap: 6px; margin-bottom: 12px; font-size: 14px; font-weight: 500; }
+.cn-field input, .cn-field textarea, .cn-field select { width: 100%; padding: 12px 14px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 400; resize: vertical; }
+.cn-field input:focus, .cn-field textarea:focus, .cn-field select:focus { outline: none; border-color: #c00707; }
+.cn-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.cn-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 42px; padding: 0 20px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .18s, border-color .18s, transform .12s; }
+.cn-btn:hover:not(:disabled) { border-color: var(--a-line4); } .cn-btn:active:not(:disabled) { transform: scale(.97); }
+.cn-btn.is-red { border-color: transparent; background: #c00707; color: #fff; } .cn-btn.is-red:hover:not(:disabled) { background: #d90b0b; }
+.cn-btn:disabled { opacity: .55; cursor: not-allowed; }
+.cn-on { color: #3f8a1f; font-size: 13px; font-weight: 500; }
+.cn-plus.is-on { background: rgba(63,138,31,.18); color: #3f8a1f; }
+
+/* History and New chat: icon buttons at the top right of the screen, just below the header */
+.cn-corner { position: fixed; z-index: 14; top: 74px; right: 18px; display: flex; align-items: center; gap: 8px; }
+.cn-corner-btn { flex: none; display: grid; color: var(--a-fg); place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; transition: border-color .18s, background .18s, transform .12s; }
+.cn-corner-btn:hover { border-color: var(--a-line4); } .cn-corner-btn:active { transform: scale(.94); }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cn-corner { top: 68px; right: 14px; } }
+
+/* History page */
+.cn-history .cn-head { display: flex; align-items: center; gap: 12px; }
+.cn-history .cn-head h1 { margin: 0; }
+.cn-head-new { margin-left: auto; text-decoration: none; }
+.cn-hist-list { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.cn-hist-list li { display: flex; align-items: center; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); transition: border-color .18s; }
+.cn-hist-list li:hover { border-color: var(--a-line4); }
+.cn-hist-main { flex: 1; min-width: 0; display: grid; gap: 2px; padding: 14px 16px; color: var(--a-fg); text-decoration: none; }
+.cn-hist-main b { overflow: hidden; font-size: 15px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.cn-hist-main small { color: var(--a-muted); font-size: 12px; }
+.cn-hist-list .cn-pop-del { margin-right: 8px; }
+.cn-row .cn-soon { margin-left: auto; align-self: center; }

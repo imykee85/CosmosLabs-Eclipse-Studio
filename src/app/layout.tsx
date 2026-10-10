@@ -1,33 +1,29 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ClerkProvider, SignedIn, UserButton } from "@clerk/nextjs";
+import { Inter } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { clerkEnabled } from "@/lib/clerk-enabled";
 import "./globals.css";
 
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-sans" });
+
 export const metadata: Metadata = {
-  title: "Eclipse",
-  description: "AI image generation by Cosmos Labs",
+  title: "Eclipse — your creative studio",
+  description: "Turn any idea into premium images. By Cosmos Labs AI.",
+  applicationName: "Eclipse",
+  // iPhone "Add to Home Screen": the name under the icon (the icon is src/app/apple-icon.png).
+  appleWebApp: { capable: true, title: "Eclipse", statusBarStyle: "black" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
-          <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Eclipse
-            </Link>
-            <SignedIn>
-              <nav className="flex items-center gap-4 text-sm">
-                <Link href="/" className="text-neutral-300 hover:text-white">Create</Link>
-                <Link href="/gallery" className="text-neutral-300 hover:text-white">Gallery</Link>
-                <UserButton afterSignOutUrl="/sign-in" />
-              </nav>
-            </SignedIn>
-          </header>
-          <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
-        </body>
-      </html>
-    </ClerkProvider>
+  const page = (
+    <html lang="en" className={`${inter.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('eclipse-theme')==='light')document.documentElement.setAttribute('data-app-theme','light')}catch(e){}" }} />
+      </head>
+      <body className="min-h-screen bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
+        {children}
+      </body>
+    </html>
   );
+  return clerkEnabled ? <ClerkProvider>{page}</ClerkProvider> : page;
 }

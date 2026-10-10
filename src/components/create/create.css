@@ -1,0 +1,224 @@
+.cr-wrap { max-width: 760px; margin: 0 auto; padding-top: 24px; padding-bottom: 24px; }
+.cr-intro { text-align: center; }
+.cr-intro h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -.03em; }
+.cr-intro p { max-width: 520px; margin: 12px auto 0; color: var(--a-muted); font-size: 16px; line-height: 1.5; }
+.cr-box { margin-top: 56px; padding: 18px 18px 14px; border: 1px solid var(--a-line2); border-radius: 28px; background: var(--a-input); transition: border-color .2s; }
+.cr-box:focus-within { border-color: #c00707; }
+.cr-box textarea { width: 100%; min-height: 56px; max-height: 220px; resize: none; border: 0; outline: 0; background: transparent; padding: 4px 6px; color: var(--a-fg); font: inherit; font-size: 16px; line-height: 1.5; }
+.cr-box textarea::placeholder { color: var(--a-ph); }
+.cr-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.cr-chip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; }
+.cr-chip:disabled { opacity: .55; cursor: not-allowed; }
+.cr-chip em { padding: 1px 7px; border: 1px solid var(--a-line3); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
+.cr-select { padding: 0; }
+.cr-select select { height: 100%; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.cr-select select option { background: var(--a-card); color: var(--a-fg); }
+.cr-go { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: #c00707; color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .2s, transform .18s; }
+.cr-go:hover:not(:disabled) { background: #d90b0b; transform: translateY(-1px); }
+.cr-go:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
+.cr-hint { margin: 12px 0 0; text-align: center; color: var(--a-ph); font-size: 12px; }
+.cr-error { margin: 18px 0 0; text-align: center; color: var(--a-danger); font-size: 14px; }
+.cr-preview { margin-top: 20px; padding-bottom: 0; text-align: center; }
+.cr-preview h2 { margin: 0 0 20px; color: var(--a-muted); font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
+.cr-stage { display: grid; place-items: center; width: 100%; margin: 0 auto; overflow: hidden; border: 1px dashed var(--a-line3); border-radius: 28px; background: var(--a-card); box-shadow: 0 20px 70px var(--a-shadow); transition: max-width .25s; }
+.cr-stage a { display: block; width: 100%; height: 100%; }
+.cr-stage img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cr-stage:has(img) { border-style: solid; border-color: var(--a-line2); }
+.cr-empty { display: grid; justify-items: center; gap: 12px; padding: 24px; color: var(--a-muted2); }
+.cr-empty p { margin: 0; font-size: 15px; }
+.cr-caption { max-width: 480px; margin: 16px auto 0; color: var(--a-muted); font-size: 14px; line-height: 1.5; }
+.cr-earlier { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 28px; }
+.cr-earlier a { display: block; width: 72px; height: 72px; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 14px; }
+.cr-earlier img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cr-spin { animation: cr-spin 1s linear infinite; }
+@keyframes cr-spin { to { transform: rotate(360deg); } }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+@media (max-width: 800px) { .cr-intro h1 { font-size: 28px; } .cr-box { margin-top: 36px; border-radius: 22px; } .cr-preview { margin-top: 32px; } .cr-stage { border-radius: 22px; } }
+@media (prefers-reduced-motion: reduce) { .cr-spin { animation-duration: 3s; } }
+
+.cr-cost { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.4); font-weight: 600; }
+
+/* Chosen reference pictures, shown inside the prompt box */
+.cr-refs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.cr-ref { position: relative; width: 56px; height: 56px; }
+.cr-ref img { width: 100%; height: 100%; object-fit: cover; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-card); }
+.cr-ref .cr-ref-x { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-bg); color: var(--a-fg); cursor: pointer; }
+.cr-ref .cr-ref-x:hover { border-color: #c00707; }
+.cr-ref { margin-bottom: 14px; }
+.cr-ref-n { position: absolute; left: 4px; top: 4px; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: #c00707; color: #fff; font-size: 11px; font-style: normal; font-weight: 600; }
+.cr-ref-move { position: absolute; left: 50%; bottom: -14px; display: flex; gap: 2px; transform: translateX(-50%); }
+.cr-ref-move button { display: grid; place-items: center; width: 22px; height: 18px; padding: 0; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-bg); color: var(--a-fg); cursor: pointer; }
+.cr-ref-move button:disabled { opacity: .35; cursor: default; } .cr-ref-move button:hover:not(:disabled) { border-color: var(--a-line4); }
+.cr-dock { display: contents; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cr-wrap { padding-top: 0; padding-bottom: 300px; }
+  .cr-intro p { margin-top: 0; }
+  .cr-preview { margin-top: 12px; }
+  .cr-keys { display: none; }
+  /* The prompt box sits just above the bottom tab bar, like Orbit's. */
+  .cr-dock { display: block; position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; max-height: 55dvh; overflow-y: auto; background: var(--a-bg); }
+  .cr-dock .cr-box { margin-top: 0; }
+}
+.cr-stage { border-radius: 20px; }
+.cr-empty { padding: 14px; gap: 8px; }
+.cr-empty p { font-size: 13px; }
+/* The prompt field: two lines tall, no box of its own (the prompt box is the field, like Orbit). */
+.cr-box textarea { height: 48px; min-height: 0; max-height: none; padding: 0 42px 0 14px; border: 0; border-radius: 0; background: transparent; color: var(--a-fg); overflow-y: auto; }
+.cr-box textarea::placeholder { color: var(--a-ph); }
+/* Earlier renders: one fifth of the old area. */
+.cr-earlier { gap: 6px; margin-top: 18px; }
+.cr-earlier a { width: 32px; height: 32px; border-radius: 8px; }
+
+/* Two lines only; the expand button shows once the text needs more. */
+.cr-field { position: relative; padding: 6px 0 4px; }
+.cr-expand { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }
+.cr-expand:hover { background: var(--a-hover); color: var(--a-fg); }
+.cr-full { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--a-card); color: var(--a-fg); padding: env(safe-area-inset-top, 0px) 0 0; }
+.cr-full textarea { flex: 1; width: 100%; min-height: 0; resize: none; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 17px; line-height: 1.6; padding: 64px 20px 90px; }
+.cr-full textarea::placeholder { color: var(--a-ph); }
+.cr-full-x { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg2); cursor: pointer; }
+.cr-done { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; transition: background .2s, transform .18s; }
+.cr-done:hover { background: #d90b0b; }
+/* Under the field: line 1 (shape, count, quality, model), line 2 (Ingredients, canvas, agent, seed), then a full-width Generate. */
+.cr-tools { display: grid; gap: 10px; }
+.cr-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.cr-go { width: 100%; justify-content: center; margin-left: 0; }
+.cr-cost { margin-left: 0; padding-left: 0; border-left: 0; }
+/* How many images to make at once. */
+.cr-qty { display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 14px; font-weight: 500; }
+.cr-qty button { display: grid; place-items: center; width: 34px; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.cr-qty button:disabled { opacity: .35; cursor: default; }
+.cr-qty span { min-width: 18px; text-align: center; color: var(--a-fg); }
+.cr-select select:disabled { cursor: default; opacity: .6; }
+/* Line 2 (Ingredients, Open canvas, the agent and the seed): one line. */
+.cr-row-top { flex-wrap: nowrap; }
+.cr-row-top .cr-chip { padding: 0 11px; font-size: 14px; white-space: nowrap; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cr-box { padding: 12px 6px 10px; }
+  .cr-dock { left: 8px; right: 8px; }
+  .cr-row-top .cr-chip { padding: 0 5px; font-size: 14px; gap: 2px; }
+  .cr-row-top .cr-chip svg { width: 14px; height: 14px; }
+}
+/* Model picker chip and sheet. */
+.cr-modelbtn { cursor: pointer; }
+.mp-scrim { position: fixed; inset: 0; z-index: 300; display: grid; place-items: end center; background: rgba(0,0,0,.55); }
+.mp-sheet { display: flex; flex-direction: column; width: min(560px, 100%); max-height: 88dvh; border: 1px solid var(--a-line2); border-radius: 28px 28px 0 0; background: var(--a-card); color: var(--a-fg); box-shadow: 0 -20px 60px var(--a-shadow); }
+.mp-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 8px; }
+.mp-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.mp-head button { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg); cursor: pointer; }
+.mp-search { display: flex; align-items: center; gap: 10px; margin: 6px 14px 4px; padding: 0 14px; height: 44px; border-radius: 14px; background: var(--a-input); color: var(--a-muted); }
+.mp-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; }
+.mp-body { overflow-y: auto; padding: 4px 10px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.mp-body h3 { margin: 16px 10px 6px; color: var(--a-muted); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.mp-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.mp-row:hover, .mp-gh:hover { background: var(--a-hover); }
+.mp-row.is-on { background: var(--a-active); }
+.mp-name { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.mp-name small { color: var(--a-muted); font-size: 12px; line-height: 1.35; }
+.mp-gh { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; cursor: pointer; }
+.mp-gh > span:not(.mp-ico) { flex: 1; text-align: left; }
+.mp-gh em { color: var(--a-muted); font-size: 13px; font-style: normal; }
+.mp-gh svg { transition: transform .15s; } .mp-gh svg.is-up { transform: rotate(180deg); }
+.mp-list { padding: 0 0 6px 14px; }
+.mp-none { margin: 20px 12px; color: var(--a-muted); font-size: 14px; }
+@media (min-width: 801px) { .mp-scrim { place-items: center; } .mp-sheet { border-radius: 24px; max-height: 80dvh; } }
+.mp-soon .mp-name { color: var(--a-fg2); }
+.mp-new { padding: 2px 9px; border-radius: 999px; background: rgba(192,7,7,.16); color: #ff5a5a; font-size: 11px; font-style: normal; font-weight: 600; }
+html[data-app-theme="light"] .mp-new { color: #c00707; }
+.mp-ico { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; color: var(--a-fg2); }
+.mp-gh .mp-ico { margin: -4px 0; }
+.cr-mlabel { color: var(--a-muted); font-weight: 400; }
+.cr-chip svg, .cr-qty svg { width: 16px; height: 16px; }
+/* Like Orbit: the field is the box itself; the selectors are white (card colour). */
+.cr-box textarea { padding-left: 8px; }
+/* Line 1: ratio, count, quality and the model picker, evenly spaced, the model picker taking the rest of the width up to the right edge.
+   Line 2: Ingredients, Open in canvas and Agents, spread evenly. */
+.cr-row-a { flex-wrap: nowrap; gap: 6px; }
+.cr-row-a .cr-select select { padding: 0 8px; }
+.cr-row-a .cr-qty button { width: 30px; }
+.cr-row-a .cr-modelbtn { flex: 1 1 0; min-width: 0; justify-content: space-between; padding: 0 10px; white-space: nowrap; }
+.cr-row-a .cr-modelbtn .cr-mname { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+.cr-row-a .cr-chip svg, .cr-row-a .cr-qty svg { width: 14px; height: 14px; }
+.cr-tools { grid-template-columns: minmax(0, 1fr); }
+.cr-row-a .cr-modelbtn { overflow: hidden; }
+/* Agents pop-up above the Agents chip. */
+.am-scrim { position: fixed; inset: 0; z-index: 290; }
+.am-menu { position: fixed; z-index: 291; display: grid; gap: 2px; padding: 6px; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); color: var(--a-fg); box-shadow: 0 18px 50px var(--a-shadow); }
+.am-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 12px; background: transparent; color: inherit; font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.am-item:hover { background: var(--a-hover); }
+.am-item span:first-of-type { flex: 1; }
+.am-check { color: #c00707; }
+.cr-aname { white-space: nowrap; }
+/* The agent and the fixed seed, each with an on/off switch. */
+.cr-grp { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.cr-seed { padding: 0 12px; }
+.cr-switch { flex: none; position: relative; width: 38px; height: 22px; padding: 0; border: 0; border-radius: 999px; background: var(--a-line3); cursor: pointer; transition: background .18s; }
+.cr-switch i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .18s; }
+.cr-switch.is-on { background: #c00707; }
+.cr-switch.is-on i { transform: translateX(16px); }
+/* On a phone line 2 scrolls sideways when it is wider than the box (like the chips on Orbit). */
+.cr-row-top { overflow-x: auto; scrollbar-width: none; justify-content: space-between; gap: 8px; }
+.cr-row-top::-webkit-scrollbar { display: none; }
+.cr-row-top > * { flex: none; }
+.cr-row-top .cr-grp .cr-chip { padding: 0 9px; gap: 4px; white-space: nowrap; }
+.cr-row-top .cr-grp .cr-chip svg { width: 14px; height: 14px; }
+/* Floating agent widget: a round button you can drag anywhere on the screen. */
+.aw-btn { --lx: .4; --ly: -.1; position: fixed; z-index: 250; display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.aw-btn:active { cursor: grabbing; }
+.aw-3d { position: relative; width: 64px; height: 64px; perspective: 360px; }
+.aw-float, .aw-spin, .aw-sphere { position: absolute; inset: 0; transform-style: preserve-3d; }
+.aw-float { animation: aw-float 3.4s ease-in-out infinite; }
+.aw-sphere { transform: rotateX(calc(var(--ly) * -20deg)) rotateY(calc(var(--lx) * 26deg)); transition: transform .14s ease-out; }
+.aw-ball { outline: 1px solid transparent; position: absolute; left: 4px; top: 4px; width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #ffffff 0%, #e9e9e9 38%, #b9b9b9 78%, #8e8e8e 100%); box-shadow: inset -5px -7px 12px rgba(0,0,0,.28), 0 1px 0 rgba(255,255,255,.25); }
+html[data-app-theme="light"] .aw-ball { background: radial-gradient(circle at 34% 28%, #5a5a5e 0%, #2b2b2e 40%, #131315 80%, #060607 100%); box-shadow: inset -5px -7px 12px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.12); }
+/* Eyes are drawn at twice the size and shrunk back in 3D, and edged with a hair of blur, so their outline stays smooth on every screen. */
+.aw-eye { position: absolute; left: 50%; top: 50%; width: 16px; height: 34px; margin: -17px 0 0 -8px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.aw-eye b { display: block; width: 100%; height: 100%; border-radius: 10px; background: #0d0d0e; box-shadow: 0 0 1px 1px #0d0d0e; filter: blur(.35px); transform-origin: center; animation: aw-blink 5s infinite; }
+html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1px 1px #f6f3ee; }
+.aw-eye-l { transform: rotateY(-17deg) rotateX(6deg) translateZ(28px) scale(.5); }
+.aw-eye-r { transform: rotateY(17deg) rotateX(6deg) translateZ(28px) scale(.5); }
+.aw-ground { position: absolute; left: 14px; right: 14px; bottom: -6px; height: 8px; border-radius: 50%; background: rgba(0,0,0,.35); filter: blur(4px); animation: aw-ground 3.4s ease-in-out infinite; }
+.aw-btn.is-drag .aw-float { animation: none; transform: translateY(-3px) scale(1.08); }
+.aw-btn.is-hop .aw-spin { animation: aw-spin 1s cubic-bezier(.3, .1, .2, 1); }
+@keyframes aw-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes aw-ground { 0%, 100% { transform: scaleX(1); opacity: .9; } 50% { transform: scaleX(.8); opacity: .6; } }
+@keyframes aw-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+@keyframes aw-spin { 0% { transform: rotateY(0) translateY(0); } 35% { transform: rotateY(220deg) translateY(-10px); } 100% { transform: rotateY(360deg) translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .aw-float, .aw-eye b, .aw-ground, .aw-btn.is-hop .aw-spin { animation: none; } }
+.aw-scrim { position: fixed; inset: 0; z-index: 248; }
+.aw-card { position: fixed; z-index: 251; display: flex; flex-direction: column; width: min(320px, calc(100vw - 16px)); padding: 14px; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); color: var(--a-fg); box-shadow: 0 18px 50px var(--a-shadow); }
+.aw-head { display: flex; align-items: center; gap: 8px; }
+.aw-head b { flex: 1; font-size: 15px; font-weight: 600; }
+.aw-head button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }
+
+/* Seed number and Randomize, shown while Fixed seed is on for a model that has a seed. */
+.cr-seedrow { display: flex; align-items: center; gap: 8px; }
+.cr-seedfield { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-muted); font-size: 14px; font-weight: 500; }
+.cr-seedfield input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; }
+.cr-seedfield input::placeholder { color: var(--a-ph); }
+.cr-switch:disabled { opacity: .4; cursor: not-allowed; }
+
+/* The agent's chat card: messages, the buttons it offers, an input row, and an expanded view for long replies. */
+.aw-card.is-big { left: 50%; top: 50%; width: min(640px, calc(100vw - 24px)); height: min(76dvh, 680px); transform: translate(-50%, -50%); z-index: 252; }
+.aw-msgs { display: grid; align-content: start; gap: 8px; margin: 10px 0; max-height: 280px; min-height: 60px; overflow-y: auto; overscroll-behavior: contain; }
+.aw-card.is-big .aw-msgs { flex: 1; max-height: none; }
+.aw-empty { margin: 0; color: var(--a-muted); font-size: 13px; }
+.aw-msg { max-width: 92%; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; background: var(--a-hover); color: var(--a-fg); }
+.aw-msg p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.aw-msg.is-user { justify-self: end; background: #c00707; color: #fff; }
+.aw-msg.is-note { background: transparent; border: 1px dashed var(--a-line2); color: var(--a-muted); font-size: 12.5px; }
+.aw-msg.is-error { border: 1px solid #c00707; color: var(--a-fg); }
+.aw-typing { display: flex; align-items: center; gap: 6px; color: var(--a-muted); }
+.aw-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.aw-act { padding: 7px 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.aw-act:hover:not(:disabled) { border-color: var(--a-fg2); }
+.aw-act.is-generate { background: #c00707; border-color: #c00707; color: #fff; } .aw-act.is-generate:hover:not(:disabled) { background: #d90b0b; }
+.aw-act:disabled { opacity: .6; cursor: default; }
+.aw-prompt { flex-basis: 100%; margin: 4px 0 0; padding: 8px 10px; border-left: 3px solid #c00707; color: var(--a-muted); font-size: 12.5px; white-space: pre-wrap; }
+.aw-input { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); }
+.aw-input:focus-within { border-color: var(--a-fg2); }
+.aw-input input { flex: 1; min-width: 0; padding: 7px 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; }
+.aw-input button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }
+.aw-input button:disabled { opacity: .4; cursor: default; }
+.aw-btn.is-bounce .aw-float { animation: aw-bounce .7s cubic-bezier(.3, .8, .4, 1); }
+@keyframes aw-bounce { 0% { transform: translateY(0); } 25% { transform: translateY(-22px) scale(.94, 1.06); } 50% { transform: translateY(0) scale(1.1, .88); } 72% { transform: translateY(-8px); } 100% { transform: translateY(0); } }

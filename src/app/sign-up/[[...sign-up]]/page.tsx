@@ -1,9 +1,10 @@
-import { SignUp } from "@clerk/nextjs";
+import AuthShell from "@/components/AuthShell";
+import AuthForm from "@/components/auth/AuthForm";
 
 export default function Page() {
   return (
-    <div className="flex justify-center">
-      <SignUp />
-    </div>
+    <AuthShell>
+      <AuthForm mode="signup" />
+    </AuthShell>
   );
 }
