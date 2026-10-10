@@ -69,7 +69,7 @@ export const google: SyncImageProvider = {
     if (!res.ok) {
       const err = (json as { error?: { message?: string; status?: string } } | null)?.error;
       const why = err?.message ?? text.slice(0, 300);
-      if (res.status === 429) throw new ProviderError("Google is limiting requests right now. Please try again in a minute.", `${res.status}: ${why}`);
+      if (res.status === 429) throw new ProviderError(`Google is limiting requests or has no quota for this model (429): ${why.slice(0, 220)}`, `${res.status}: ${why}`);
       if (res.status === 401 || res.status === 403) throw new ProviderError("Google rejected our request (the key or its billing). The owner needs to check it.", `${res.status}: ${why}`);
       if (/safety|blocked|prohibited|policy/i.test(why)) throw new ProviderError("Google's safety filter blocked this image. Try a different prompt.", `${res.status}: ${why}`);
       throw new ProviderError(`Google could not make this image (${res.status}): ${why.slice(0, 220)}`, `${res.status}: ${why}`);

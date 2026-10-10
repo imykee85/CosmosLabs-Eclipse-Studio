@@ -51,7 +51,7 @@ export const byteplus: SyncImageProvider = {
       const why = err?.message ?? text.slice(0, 300);
       const code = err?.code ?? "";
       if (/sensitive|moderation|content|safety|violat/i.test(code + " " + why)) throw new ProviderError("Seedream's safety filter blocked this image. Try a different prompt.", `${res.status} ${code}: ${why}`);
-      if (res.status === 429) throw new ProviderError("Seedream is limiting requests right now. Please try again in a minute.", `${res.status} ${code}: ${why}`);
+      if (res.status === 429) throw new ProviderError(`Seedream is limiting requests (429${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
       if (res.status === 401 || res.status === 403) throw new ProviderError("Seedream rejected our key or the model is not activated for our account. The owner needs to check it.", `${res.status} ${code}: ${why}`);
       throw new ProviderError(`Seedream could not make this image (${res.status}${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
     }
