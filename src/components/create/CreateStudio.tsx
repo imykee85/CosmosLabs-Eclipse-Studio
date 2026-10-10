@@ -361,7 +361,6 @@ export default function CreateStudio() {
           </button>
         </div>
       </form>
-      {!seedSupported && model && <p className="cr-hint" role="status">This model doesn&rsquo;t support seeds.</p>}
       {seedBad && seedSpec && <p className="cr-error" role="alert">Use a whole number from {seedSpec.min.toLocaleString("en-US")} to {seedSpec.max.toLocaleString("en-US")} for this model.</p>}
       {seedNote && <p className="cr-hint" role="status">{seedNote}</p>}
       {seedLive && <p className="cr-hint">Similar results with the same seed.{qty > 1 ? " With more than one image the seed counts up by one for each." : ""}</p>}

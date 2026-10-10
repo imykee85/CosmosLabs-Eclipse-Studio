@@ -88,12 +88,12 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
 
   return (
     <div className="rd">
-      <div className="rd-actions">
+      <div className={`rd-actions ${collapsible ? "is-icons" : ""}`}>
         {collapsible && <button type="button" className={`rd-btn rd-info ${info ? "is-on" : ""}`} aria-expanded={info} aria-label={info ? "Hide image details" : "Show image details"} title="Image details" onClick={() => setInfo((v) => !v)}><Info size={16} /></button>}
-        <button type="button" className="rd-btn" onClick={copyPrompt}>{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy prompt"}</button>
-        <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined}><Download size={15} />Download</a>
-        <button type="button" className="rd-btn" onClick={share}><Share2 size={15} />Share</button>
-        <button type="button" className="rd-btn rd-danger" onClick={remove} title="Move to the bin"><Trash2 size={15} />Delete</button>
+        <button type="button" className="rd-btn" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={15} /> : <Copy size={15} />}<span className="rd-lbl">{copied ? "Copied" : "Copy prompt"}</span></button>
+        <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined} aria-label="Download" title="Download"><Download size={15} /><span className="rd-lbl">Download</span></a>
+        <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>
+        <button type="button" className="rd-btn rd-danger" onClick={remove} title="Move to the bin" aria-label="Delete"><Trash2 size={15} /><span className="rd-lbl">Delete</span></button>
       </div>
       {note && <p className="rd-note" role="status">{note}</p>}
       {(!collapsible || info) && <dl className="rd-list">

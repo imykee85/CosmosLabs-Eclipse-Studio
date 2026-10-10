@@ -79,3 +79,8 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
 .rd-seedline code { font-size: 15px; font-variant-numeric: tabular-nums; }
 .rd-seedbtns { display: flex; flex-wrap: wrap; gap: 8px; }
 .rd-seed small { color: var(--a-muted); font-size: 12px; }
+
+/* Under the Image Studio preview the actions are small round icon buttons (labels stay in dialogs). */
+.rd-actions.is-icons { justify-content: center; }
+.rd-actions.is-icons .rd-btn { width: 38px; padding: 0; justify-content: center; }
+.rd-actions.is-icons .rd-lbl { display: none; }
