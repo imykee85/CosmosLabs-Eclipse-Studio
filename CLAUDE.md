@@ -87,6 +87,10 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 ## Remove before production
 - Landing strip "Trusted by teams at" shows other companies' logos as a DESIGN MOCKUP (user's private look-and-feel test; they are not Eclipse customers). They show only locally and on preview builds (`NEXT_PUBLIC_MOCK_LOGOS` in `next.config.mjs`, off when `VERCEL_ENV=production`). Before launch delete `src/components/landing/mockLogos.ts`, `public/logos/mock/`, the mock branch in `IndustryStrip.tsx` and that env line. Real customer logos go in `customerLogos.ts` (only with their agreement).
 
+## Parked for the last stage before shipping (user decision 2026-10-10)
+- **Canvas and Agents** (the Canvas editor and library, the floating agent and its chat card, `/api/agent/chat`, the Agents page) are built enough for now: do NOT add features or polish to them until the user says the last stage has begun; revisit them then, together, just before shipping (live check of the agent against the Anthropic API once the account has credit, canvas live generation, Canvas "Polish prompt", the Soon tags on Agents, agent reading pictures for Agent 3, canvas prompt box as chat if still wanted).
+- Keep working on the Image Studio itself, Dashboard and the rest first.
+
 ## Next
 - Finish the Image Studio front end with the user (they will send the remaining items); then edit modes / tools, Soul ID, references in Canvas and Orbit. Push in batches (see Workflow, Deployment storage).
 - Follow the milestone table above: milestone 1 first. Accounts and keys from the user, then backend phases 0 and 1 (`docs/backend-design.md`).
