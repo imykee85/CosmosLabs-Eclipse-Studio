@@ -65,7 +65,9 @@
 
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .ws-main:has(.cv-wrap, .cv-loading) { padding: 12px 12px calc(92px + env(safe-area-inset-bottom, 0px)); }
-  .cv-wrap, .cv-loading { height: calc(100dvh - 58px - 82px - 24px - env(safe-area-inset-bottom, 0px)); min-height: 360px; border-radius: 16px; }
+  /* On a phone the board is pinned between the top bar and the tab bar: the page behind it never scrolls, so the board cannot slide when you pan or pinch. */
+  .cv-wrap:not(.is-full), .cv-loading { position: fixed; top: 58px; left: 0; right: 0; bottom: calc(82px + env(safe-area-inset-bottom, 0px)); z-index: 5; height: auto; min-height: 0; border-radius: 0; border-left: 0; border-right: 0; touch-action: none; overscroll-behavior: none; }
+  html:has(.cv-wrap), body:has(.cv-wrap) { overflow: hidden; overscroll-behavior: none; }
   .cv-minimap.react-flow__minimap { display: none; }
   .cv-handle { width: 20px; height: 20px; }
 }
