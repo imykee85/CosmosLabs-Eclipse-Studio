@@ -72,7 +72,7 @@ export const google: SyncImageProvider = {
       if (res.status === 429) throw new ProviderError("Google is limiting requests right now. Please try again in a minute.", `${res.status}: ${why}`);
       if (res.status === 401 || res.status === 403) throw new ProviderError("Google rejected our request (the key or its billing). The owner needs to check it.", `${res.status}: ${why}`);
       if (/safety|blocked|prohibited|policy/i.test(why)) throw new ProviderError("Google's safety filter blocked this image. Try a different prompt.", `${res.status}: ${why}`);
-      throw new ProviderError("Google could not make this image. Please try again.", `${res.status}: ${why}`);
+      throw new ProviderError(`Google could not make this image (${res.status}): ${why.slice(0, 220)}`, `${res.status}: ${why}`);
     }
     const pic = findPicture(json);
     if (!pic) {

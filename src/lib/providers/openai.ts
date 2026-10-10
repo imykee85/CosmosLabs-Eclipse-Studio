@@ -50,7 +50,7 @@ export const openai: SyncImageProvider = {
       if (res.status === 429) throw new ProviderError("OpenAI is limiting requests right now (or the account is out of credit). Please try again in a minute.", `${res.status} ${code}: ${why}`);
       if (res.status === 401) throw new ProviderError("OpenAI rejected our key. The owner needs to check it.", `${res.status}: ${why}`);
       if (res.status === 403 || /verif/i.test(why)) throw new ProviderError("OpenAI will not run this model for our account yet (it may need the organization verified). The owner needs to check it.", `${res.status} ${code}: ${why}`);
-      throw new ProviderError("OpenAI could not make this image. Please try again.", `${res.status} ${code}: ${why}`);
+      throw new ProviderError(`OpenAI could not make this image (${res.status}${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
     }
     const b64 = json?.data?.[0]?.b64_json;
     if (!b64) throw new ProviderError("OpenAI did not return a picture.", `no b64_json in the reply: ${text.slice(0, 200)}`);
