@@ -100,8 +100,8 @@ a.ws-card .ws-card-cta { color: var(--a-redtext); }
 
   .mb-top { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; align-items: center; height: 58px; padding: 0 10px; background: var(--a-bg); }
   /* No hard line under the top bar or over the tab bar: the page fades softly under each of them, like the logo strip on the home page. */
-  .mb-top::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 16px; background: linear-gradient(to bottom, var(--a-bg), transparent); pointer-events: none; }
-  .mb-tabs::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 22px; background: linear-gradient(to top, var(--a-bg), transparent); pointer-events: none; }
+  .mb-top::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; background: linear-gradient(to bottom, var(--a-bg), color-mix(in srgb, var(--a-bg) 90%, transparent) 20%, color-mix(in srgb, var(--a-bg) 65%, transparent) 40%, color-mix(in srgb, var(--a-bg) 35%, transparent) 60%, color-mix(in srgb, var(--a-bg) 10%, transparent) 80%, transparent); pointer-events: none; }
+  .mb-tabs::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 14px; background: linear-gradient(to top, var(--a-bg), color-mix(in srgb, var(--a-bg) 90%, transparent) 20%, color-mix(in srgb, var(--a-bg) 65%, transparent) 40%, color-mix(in srgb, var(--a-bg) 35%, transparent) 60%, color-mix(in srgb, var(--a-bg) 10%, transparent) 80%, transparent); pointer-events: none; }
   .mb-top .mb-icon { justify-self: start; }
   .mb-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
   .mb-pill { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 11px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font-size: 14px; font-weight: 500; white-space: nowrap; }
