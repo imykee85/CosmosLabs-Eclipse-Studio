@@ -14,7 +14,7 @@ import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
-import { DEFAULT_VIDEO_MODEL, hasMotion, LONGEST_MODEL_LABEL, VIDEO_MODELS, videoModelById, type VideoModel } from "@/lib/video-models";
+import { DEFAULT_VIDEO_MODEL, LONGEST_MODEL_LABEL, VIDEO_MODELS, videoModelById, type VideoModel } from "@/lib/video-models";
 import "../create/create.css";
 import "./generate.css";
 
@@ -163,7 +163,7 @@ export default function VideoStudio() {
               <button type="button" className="cr-chip" disabled={!model.startFrame} title={model.startFrame ? "Choose the first frame of the clip" : `${model.label} has no start frame`} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!model.endFrame} title={model.endFrame ? "Choose the last frame of the clip" : `${model.label} has no end frame`} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={model.refImages === 0} title={model.refImages > 0 ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
-              <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} disabled={!hasMotion(model)} aria-haspopup="menu" aria-pressed={!!motion} title={hasMotion(model) ? "Copy the movement of a reference clip" : `${model.label} has no motion transfer`} onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
+              <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Agents"}</span></button>
                 <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}

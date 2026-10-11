@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { agentEnabled, dailyLimit, runTurn, type AgentEvent } from "@/lib/connect-agent";
 import { apiModelFor } from "@/lib/connect-models";
-import { db } from "@/lib/db";
+import { claimUsage } from "@/lib/usage";
 
 export const maxDuration = 60;
 
@@ -23,9 +23,8 @@ export async function POST(req: Request) {
   const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
   const imageIds: string[] = Array.isArray(body?.images) ? body.images.filter((x: unknown): x is string => typeof x === "string").slice(0, 3) : [];
 
-  const since = new Date(Date.now() - 24 * 3600 * 1000);
-  const used = await db.connectMessage.count({ where: { role: "user", createdAt: { gte: since }, chat: { userId } } });
-  if (used >= dailyLimit()) return NextResponse.json({ error: `You have reached today's limit of ${dailyLimit()} messages. It resets on a rolling 24 hours.` }, { status: 429 });
+  // The daily limit is claimed under a lock, so parallel messages cannot all slip under it.
+  if (!(await claimUsage(userId, "connect", dailyLimit(), 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${dailyLimit()} messages. It resets on a rolling 24 hours.` }, { status: 429 });
 
   const enc = new TextEncoder();
   const stream = new ReadableStream({

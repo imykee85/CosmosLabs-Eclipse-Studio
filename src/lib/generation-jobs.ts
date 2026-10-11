@@ -10,6 +10,7 @@ import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from ".
 
 const GIVE_UP_AFTER_MS = 15 * 60 * 1000;
 const SAVING_STALE_MS = 2 * 60 * 1000;
+const START_GRACE_MS = 2 * 60 * 1000;             // how long a render may be without a provider address while the provider call is being made
 // A failed render is not worth keeping. It stays this long after it failed so whoever is watching still reads why, then it is deleted.
 const FAILED_KEEP_MS = 2 * 60 * 1000;
 export const SYNC_MARK = "sync:";                 // statusUrl of a render that runs inside its own request
@@ -60,7 +61,11 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
     if (g.status === "pending" && Date.now() - g.createdAt.getTime() > SYNC_GIVE_UP_MS) return (await fail(g.id, "This render took too long and was stopped. Please try again.")) ?? g;
     return g;
   }
-  if (!g.statusUrl) return (await fail(g.id, "This render could not be started.")) ?? g;
+  if (!g.statusUrl) {
+    // The row is created before the provider is called (to hold the price), so for a moment it has no address yet: leave it alone.
+    if (Date.now() - g.createdAt.getTime() < START_GRACE_MS) return g;
+    return (await fail(g.id, "This render could not be started.")) ?? g;
+  }
 
   let s;
   try {

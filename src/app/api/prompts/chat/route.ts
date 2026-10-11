@@ -5,6 +5,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { connectModels } from "@/lib/connect-models";
 import { checkPrompt } from "@/lib/moderation";
 import { engineById } from "@/lib/prompt-engines";
+import { claimUsage } from "@/lib/usage";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 
 export const maxDuration = 60;
@@ -12,21 +13,12 @@ export const maxDuration = 60;
 // One turn with a prompt engine (the Prompts page). The engine's own instructions are the system prompt; pictures chosen by the user ride along
 // with their latest message so the model can see them. The chat itself is kept in the browser. Nothing is rendered here: this only writes prompts.
 const MAX_TURNS = 24;
-const hits = new Map<string, number[]>(); // per-instance, per-person limit: 12 messages a minute
-function tooFast(userId: string): boolean {
-  const now = Date.now();
-  const list = (hits.get(userId) ?? []).filter((t) => now - t < 60_000);
-  list.push(now);
-  hits.set(userId, list);
-  return list.length > 12;
-}
-
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the prompt engine can't answer." }, { status: 503 });
   const { userId } = auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The prompt engine isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
-  if (tooFast(userId)) return NextResponse.json({ error: "Slow down a little: try again in a minute." }, { status: 429 });
+  if (!(await claimUsage(userId, "prompts", 12, 60_000))) return NextResponse.json({ error: "Slow down a little: try again in a minute." }, { status: 429 });
 
   const body = await req.json().catch(() => null);
   const engine = engineById(body?.engine);

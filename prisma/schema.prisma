@@ -201,3 +201,14 @@ model Upload {
   @@index([userId, kind, createdAt(sort: Desc)])
   @@map("uploads")
 }
+
+// One row per use of a limited, paid feature (agent chat, prompts chat, Orbit message). Counted per person inside a lock so parallel requests cannot all pass a limit.
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  kind      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, kind, createdAt(sort: Desc)])
+  @@map("usage_events")
+}

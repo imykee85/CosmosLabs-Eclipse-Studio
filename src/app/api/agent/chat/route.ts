@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { personaOf } from "@/lib/agent-personas";
 import { connectModels } from "@/lib/connect-models";
+import { claimUsage } from "@/lib/usage";
 
 export const maxDuration = 60;
 
@@ -50,6 +51,10 @@ export async function POST(req: Request) {
     clip(c.model, 60) ? `Model: ${clip(c.model, 60)}` : "",
     c.ingredients ? `Ingredient pictures attached: ${Math.min(Number(c.ingredients) || 0, 20)}` : "",
   ].filter(Boolean).join("\n");
+
+  // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
+  const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
+  if (!(await claimUsage(userId, "agent", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` }, { status: 429 });
 
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });

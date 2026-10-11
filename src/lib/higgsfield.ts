@@ -66,6 +66,8 @@ export const higgsfield: ImageProvider = {
   },
 
   async status(statusUrl): Promise<ProviderStatus> {
+    // The key goes with this request, so it only ever goes to Higgsfield's own address.
+    if (new URL(statusUrl).origin !== new URL(BASE_URL).origin) throw new Error("Refusing a status address outside the provider's host");
     const res = await fetch(statusUrl, { headers: headers() });
     if (!res.ok) throw new Error(`Higgsfield status check failed (${res.status})`);
     const job = (await res.json()) as JobResponse;

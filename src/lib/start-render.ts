@@ -1,4 +1,4 @@
-import { getBalance } from "@/lib/credits";
+import { createGenerationHeld } from "@/lib/reservations";
 import { db } from "@/lib/db";
 import { completeFromBytes, failRender, SYNC_MARK, toItem, type RenderItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
@@ -75,27 +75,26 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
     }
   }
 
-  // Credits are checked before Higgsfield is called and charged when the render finishes. A model with no credit price yet is free.
+  // Credits are held when the render row is created (see createGenerationHeld) and charged when the render finishes. A model with no credit price yet is free.
   const cost = chargeFor(model);
-  if (cost != null) {
-    const have = await getBalance(userId);
-    if (have < cost) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits and you have ${have}. Ask the owner to add more credits.` };
-  }
 
   const resolved = await resolveReferences(userId, refs);
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
   // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll.
-  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, resolution, refs, items: resolved.items, seedNote });
+  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, resolution, refs, items: resolved.items, seedNote, cost });
 
+  // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
+  const made = await createGenerationHeld(userId, cost, { userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined });
+  if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
+  const pre = made.row;
   try {
     const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: await deliverReferences(resolved.items), seed: seed ?? undefined });
-    const generation = await db.generation.create({
-      data: { userId, projectId, prompt, status: "pending", statusUrl, requestId: requestId || null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined },
-    });
+    const generation = await db.generation.update({ where: { id: pre.id }, data: { statusUrl, requestId: requestId || null } });
     watchRender(generation.id); // saves it in the background even if the person leaves right away
     return { ok: true, item: await toItem(generation), seedNote };
   } catch (err) {
+    await db.generation.delete({ where: { id: pre.id } }).catch(() => {}); // nothing was started, so nothing stays held
     console.error("starting generation failed", model.id, err);
     // Higgsfield's own rejection (bad setting, empty balance, unknown endpoint) is shown so it can be fixed fast.
     const code = err instanceof Error ? ` (${(err as { code?: string }).code ?? err.name})` : "";
@@ -123,16 +122,16 @@ async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
 // A render by a provider that answers in the same call. The row is written BEFORE the provider is called (our own double-submit
 // protection: a retry can see that the job exists, and nothing is re-submitted after a timeout), then the picture is decoded from the
 // reply, copied into private storage and the row completed. A failure marks the row failed with a plain sentence.
-async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string }): Promise<StartRenderResult> {
+async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null }): Promise<StartRenderResult> {
   const { model, userId } = a;
   const provider = syncProvider(model.provider);
   if (!provider || !apiModelOf(model)) return { ok: false, status: 400, error: "That model is not available." };
   // The reply carries the picture itself, so there is no provider link to fall back on: it has to go into our storage.
   if (!storageEnabled) return { ok: false, status: 503, error: "Image storage is not set up yet, so this model cannot be used." };
   const jobId = randomUUID();
-  const row = await db.generation.create({
-    data: { userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined },
-  });
+  const made = await createGenerationHeld(userId, a.cost, { userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined });
+  if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${a.cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
+  const row = made.row;
   try {
     const references = await Promise.all(a.items.map(loadReference));
     const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });

@@ -1,5 +1,6 @@
 "use client";
 
+import { clearAccountData } from "@/lib/clear-account-data";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
@@ -41,7 +42,7 @@ export function AccountName({ children }: { children: Render }) {
 function ClerkSignOut({ className, children }: { className?: string; children?: ReactNode }) {
   const { signOut } = useClerk();
   return (
-    <button className={className} aria-label="Sign out" onClick={() => signOut({ redirectUrl: "/" })}>
+    <button className={className} aria-label="Sign out" onClick={() => { clearAccountData(); void signOut({ redirectUrl: "/" }); }}>
       {children ?? <LogOut size={16} />}
     </button>
   );
