@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Layers, Loader2, Plus, Video, Volume2, VolumeX, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
+import MotionMenu, { type MotionMode } from "./MotionMenu";
 import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import SoonTag from "../SoonTag";
@@ -50,6 +51,8 @@ export default function VideoStudio() {
   // The agent: choose one (chip) and switch it on; its card is the chat.
   const agent = useAgent();
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
+  const [motionAnchor, setMotionAnchor] = useState<DOMRect | null>(null);
+  const [motion, setMotion] = useState<MotionMode | null>(null);
   const agentChip = useRef<HTMLButtonElement>(null);
   useAgentHost({ page: "video", context: () => ({ prompt, ratio, model: model.label }), setPrompt, generate: async () => "Video generation isn't connected yet. Your prompt is ready in the box." });
 
@@ -160,7 +163,7 @@ export default function VideoStudio() {
               <button type="button" className="cr-chip" disabled={!model.startFrame} title={model.startFrame ? "Choose the first frame of the clip" : `${model.label} has no start frame`} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!model.endFrame} title={model.endFrame ? "Choose the last frame of the clip" : `${model.label} has no end frame`} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={model.refImages === 0} title={model.refImages > 0 ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
-              <button type="button" className="cr-chip" disabled={!hasMotion(model)} title={hasMotion(model) ? "Copy the movement of a reference clip (motion transfer)" : `${model.label} has no motion transfer`} onClick={() => setNote("Motion transfer copies the movement of a reference clip. Adding a clip isn't connected yet.")}><Video size={14} /> Motion <SoonTag /></button>
+              <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} disabled={!hasMotion(model)} aria-haspopup="menu" aria-pressed={!!motion} title={hasMotion(model) ? "Copy the movement of a reference clip" : `${model.label} has no motion transfer`} onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Agents"}</span></button>
                 <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
@@ -177,6 +180,7 @@ export default function VideoStudio() {
 
       {target && <ReferencePicker max={target === "refs" ? model.refImages : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
+      {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => { setMotion(m); setNote(m ? "Motion transfer is set up, but adding a reference clip isn't connected yet." : ""); }} onClose={() => setMotionAnchor(null)} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
     </div>

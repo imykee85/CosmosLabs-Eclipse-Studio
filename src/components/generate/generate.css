@@ -35,3 +35,11 @@
 .vs-model .cr-mname > span { grid-area: 1 / 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .vs-model .vs-msizer { visibility: hidden; }
 .cr-chip.vs-sound { flex: 0 0 34px; width: 34px; min-width: 34px; }
+
+/* Motion pop-up: a title and a short line for each choice. */
+.vs-motionmenu .am-item { align-items: flex-start; }
+.vs-motionmenu .am-item svg:first-child { margin-top: 3px; flex: none; }
+.vs-motionmenu .am-item span { flex: 1; display: grid; gap: 2px; }
+.vs-motionmenu .am-item b { font-weight: 600; font-size: 15px; }
+.vs-motionmenu .am-item small { color: var(--a-muted); font-size: 13px; line-height: 1.35; }
+.cr-chip.is-on { border-color: #c00707; }
