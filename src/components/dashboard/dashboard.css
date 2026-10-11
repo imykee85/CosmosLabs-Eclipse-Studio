@@ -1,5 +1,5 @@
 .db-page { min-height: 100vh; background: var(--a-bg); color: var(--a-fg); font-family: var(--font-sans), Inter, sans-serif; }
-.db-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px clamp(16px, 4%, 48px); border-bottom: 1px solid var(--a-line); }
+.db-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: calc(14px + env(safe-area-inset-top, 0px)) clamp(16px, 4%, 48px) 14px; border-bottom: 1px solid var(--a-line); }
 .db-logo { display: inline-flex; line-height: 0; }
 .db-header-right { display: flex; align-items: center; gap: 10px; }
 .db-pill { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font-size: 14px; font-weight: 500; transition: border-color .18s; }

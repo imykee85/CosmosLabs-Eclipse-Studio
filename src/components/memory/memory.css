@@ -34,7 +34,7 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .ws-main:has(.mm-wrap) { padding: 0; }
-  .mm-wrap { height: calc(100dvh - 58px - 74px - env(safe-area-inset-bottom, 0px)); min-height: 440px; }
+  .mm-wrap { height: calc(100dvh - 58px - env(safe-area-inset-top, 0px) - 74px - env(safe-area-inset-bottom, 0px)); min-height: 440px; }
   .mm-stage { inset: 0; }
   .mm-title { display: none; }
   .mm-node { width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 16px; }
@@ -66,7 +66,7 @@ html[data-app-theme="light"] .mm-orb { background: radial-gradient(circle, #ff3b
 .mm-copy { right: 380px; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .mm-stage { inset: 118px 0 36% 0; }
-  .mm-copy { right: 0; top: 58px; }
+  .mm-copy { right: 0; top: calc(58px + env(safe-area-inset-top, 0px)); }
   .mm-copy h1 { font-size: 22px; } .mm-copy p { font-size: 18px; }
   .mm-side { max-height: 34%; }
   .mm-node { width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 14px; } .mm-orb { width: 60px; height: 60px; margin: -30px 0 0 -30px; }

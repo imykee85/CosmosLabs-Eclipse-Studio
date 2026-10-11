@@ -126,7 +126,7 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-list.is-grid .cn-logo { order: 1; } .cn-list.is-grid .cn-plus { order: 2; }
 
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
-  .cn-bar { top: 58px; margin: 18px -18px 0; padding: 0 18px 12px; }
+  .cn-bar { top: calc(58px + env(safe-area-inset-top, 0px)); margin: 18px -18px 0; padding: 0 18px 12px; }
   .cn-flows { margin: 0 -18px; padding: 0 18px 4px; scroll-padding-left: 18px; }
   .cn-h2 { font-size: 22px; }
   .cn-row { gap: 14px; padding: 12px 14px; }
