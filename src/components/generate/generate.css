@@ -21,3 +21,8 @@
 .vs-item small { color: var(--a-muted); font-size: 12.5px; line-height: 1.4; }
 .vs-item em { color: var(--a-muted2); font-size: 12px; font-style: normal; }
 .cr-ref-n.vs-tag { width: auto; min-width: 18px; padding: 0 6px; border-radius: 999px; }
+
+/* Sound is just an icon: tap to mute or unmute. */
+.cr-chip.vs-sound { width: 38px; padding: 0; justify-content: center; }
+.cr-row-top .cr-chip.vs-sound { padding: 0; }
+.cr-chip.vs-sound.is-muted { color: var(--a-muted); }

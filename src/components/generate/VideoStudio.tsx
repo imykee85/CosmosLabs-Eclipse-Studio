@@ -162,12 +162,9 @@ export default function VideoStudio() {
                 <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                   onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
               </div>
-              {model.sound === "toggle" && (
-                <div className="cr-grp">
-                  <span className="cr-chip cr-seed">{sound ? <Volume2 size={14} /> : <VolumeX size={14} />} Sound</span>
-                  <button type="button" role="switch" aria-checked={sound} aria-label="Make sound with the video" className={`cr-switch ${sound ? "is-on" : ""}`} onClick={() => setSound((v) => !v)}><i /></button>
-                </div>
-              )}
+              <button type="button" className={`cr-chip vs-sound ${sound && model.sound === "toggle" ? "" : "is-muted"}`} disabled={model.sound !== "toggle"} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={model.sound !== "toggle" ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
+                {sound && model.sound === "toggle" ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
             </div>
             <button type="submit" className="cr-go" disabled={!prompt.trim()}>Generate <ArrowUp size={16} /> <SoonTag /></button>
           </div>
