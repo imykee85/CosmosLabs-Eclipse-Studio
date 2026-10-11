@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
   const c = body?.context ?? {};
   const ctx = [
-    `Where: ${c.page === "canvas" ? "a canvas generator node" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : "Image Studio"}`,
+    `Where: ${c.page === "canvas" ? "a canvas generator node" : c.page === "video" ? "Video Studio, where the user writes a video prompt (video generation is not connected yet)" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : "Image Studio"}`,
     clip(c.prompt, 1500) ? `${c.page === "treatment" ? "The user has typed" : "Prompt box now"}: ${clip(c.prompt, 1500)}` : c.page === "treatment" ? "Nothing typed yet." : "Prompt box is empty.",
     clip(c.ratio, 12) ? `Ratio: ${clip(c.ratio, 12)}` : "",
     Number.isInteger(c.qty) ? `Images per run: ${c.qty}` : "",

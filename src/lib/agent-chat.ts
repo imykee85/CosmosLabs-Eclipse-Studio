@@ -10,7 +10,7 @@ export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label
 export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; error?: boolean; note?: boolean };
 
 export type AgentHost = {
-  page: "studio" | "canvas" | "treatment";
+  page: "studio" | "canvas" | "treatment" | "video";
   context: () => { prompt: string; ratio?: string; qty?: number; model?: string; ingredients?: number };
   setPrompt: (text: string) => void;
   // Starts the render. Resolves with "" when it started, or a plain reason when it could not.

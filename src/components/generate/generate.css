@@ -8,3 +8,16 @@
   .ws-main:has(.gn-wrap) { padding: 18px 18px calc(96px + env(safe-area-inset-bottom, 0px)); }
   .gn-card { min-height: 280px; border-radius: 30px; }
 }
+
+/* Video Studio's model list and frame tags. */
+.vs-models { width: min(560px, 100%); }
+.vs-list { display: grid; gap: 14px; max-height: min(62dvh, 520px); overflow-y: auto; margin: 4px -6px 0; padding: 0 6px; }
+.vs-group h3 { margin: 0 0 6px; color: var(--a-muted2); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.vs-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 6px; padding: 12px 14px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); color: var(--a-fg); text-align: left; font: inherit; cursor: pointer; }
+.vs-item:hover { border-color: var(--a-fg2); }
+.vs-item.is-on { border-color: #c00707; box-shadow: 0 0 0 1px #c00707 inset; }
+.vs-item span { display: grid; gap: 2px; min-width: 0; }
+.vs-item b { font-size: 15px; font-weight: 600; }
+.vs-item small { color: var(--a-muted); font-size: 12.5px; line-height: 1.4; }
+.vs-item em { color: var(--a-muted2); font-size: 12px; font-style: normal; }
+.cr-ref-n.vs-tag { width: auto; min-width: 18px; padding: 0 6px; border-radius: 999px; }

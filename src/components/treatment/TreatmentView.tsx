@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { ArrowRight, FileText, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
@@ -42,6 +43,7 @@ const MEDIA = [
 ];
 
 export default function TreatmentView() {
+  const router = useRouter();
   // null = the starting-point screen (desktop). Phones have no such screen, so they open on the first tab.
   const [mode, setMode] = useState<Mode | null>(null);
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
@@ -70,7 +72,7 @@ export default function TreatmentView() {
         <div className="tr-actions">
           <span className="tr-pill tr-pill-quiet tr-pill-wide"><Lightbulb size={13} /> No concept yet</span>
           <span className="tr-pill tr-pill-quiet tr-pill-short" aria-label="No concept yet"><Lightbulb size={14} /></span>
-          <button type="button" className="tr-pill tr-pill-go">
+          <button type="button" className="tr-pill tr-pill-go" onClick={() => router.push("/prompts")}>
             <span className="tr-wide">Continue to prompts</span><span className="tr-short">Prompts</span> <ArrowRight size={15} />
           </button>
           <button type="button" className="tr-more" aria-label="More options"><MoreHorizontal size={17} /></button>
