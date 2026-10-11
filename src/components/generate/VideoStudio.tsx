@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronDown, Clapperboard, Layers, Loader2, MessageSquareText, Plus, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Layers, Loader2, Plus, Volume2, VolumeX, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import AgentWidget from "../create/AgentWidget";
@@ -155,10 +154,9 @@ export default function VideoStudio() {
               </button>
             </div>
             <div className="cr-row cr-row-top">
-              {model.startFrame && <button type="button" className="cr-chip" onClick={() => openPicker("start")}><Layers size={14} /> Start frame{start ? " (1)" : ""}</button>}
-              {model.endFrame && <button type="button" className="cr-chip" onClick={() => openPicker("end")}><Layers size={14} /> End frame{end ? " (1)" : ""}</button>}
-              {model.refImages > 0 && <button type="button" className="cr-chip" onClick={() => openPicker("refs")}><Layers size={14} /> Pictures{refs.length ? ` (${refs.length})` : ""}</button>}
-              <Link href="/prompts" className="cr-chip" title="Write a prompt with a prompt engine"><MessageSquareText size={14} /> Prompts</Link>
+              <button type="button" className="cr-chip" disabled={!model.startFrame} title={model.startFrame ? "Choose the first frame of the clip" : `${model.label} has no start frame`} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
+              <button type="button" className="cr-chip" disabled={!model.endFrame} title={model.endFrame ? "Choose the last frame of the clip" : `${model.label} has no end frame`} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
+              <button type="button" className="cr-chip" disabled={model.refImages === 0} title={model.refImages > 0 ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Agents"}</span></button>
                 <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
