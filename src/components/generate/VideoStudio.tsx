@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Layers, Loader2, Plus, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Layers, Loader2, Plus, Video, Volume2, VolumeX, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import AgentWidget from "../create/AgentWidget";
@@ -13,7 +13,7 @@ import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
-import { DEFAULT_VIDEO_MODEL, VIDEO_MODELS, videoModelById, type VideoModel } from "@/lib/video-models";
+import { DEFAULT_VIDEO_MODEL, hasMotion, LONGEST_MODEL_LABEL, VIDEO_MODELS, videoModelById, type VideoModel } from "@/lib/video-models";
 import "../create/create.css";
 import "./generate.css";
 
@@ -152,14 +152,15 @@ export default function VideoStudio() {
                   {model.qualities.length ? model.qualities.map((q) => <option key={q} value={q}>{QUALITY_LABEL(q)}</option>) : <option value="">Fixed</option>}
                 </select>
               </label>
-              <button type="button" className="cr-chip cr-modelbtn" aria-label="Video model" aria-haspopup="dialog" title={model.blurb} onClick={() => setPickingModel(true)}>
-                <span className="cr-mlabel">Model:</span><span className="cr-mname">{model.label}</span><ChevronDown size={14} />
+              <button type="button" className="cr-chip cr-modelbtn vs-model" aria-label="Video model" aria-haspopup="dialog" title={model.blurb} onClick={() => setPickingModel(true)}>
+                <span className="cr-mlabel">Model:</span><span className="cr-mname"><span className="vs-mshown">{model.label}</span><span className="vs-msizer" aria-hidden="true">{LONGEST_MODEL_LABEL}</span></span><ChevronDown size={14} />
               </button>
             </div>
             <div className="cr-row cr-row-top">
               <button type="button" className="cr-chip" disabled={!model.startFrame} title={model.startFrame ? "Choose the first frame of the clip" : `${model.label} has no start frame`} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!model.endFrame} title={model.endFrame ? "Choose the last frame of the clip" : `${model.label} has no end frame`} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={model.refImages === 0} title={model.refImages > 0 ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
+              <button type="button" className="cr-chip" disabled={!hasMotion(model)} title={hasMotion(model) ? "Copy the movement of a reference clip (motion transfer)" : `${model.label} has no motion transfer`} onClick={() => setNote("Motion transfer copies the movement of a reference clip. Adding a clip isn't connected yet.")}><Video size={14} /> Motion <SoonTag /></button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Agents"}</span></button>
                 <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}

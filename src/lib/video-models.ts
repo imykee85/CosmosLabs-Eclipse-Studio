@@ -43,4 +43,11 @@ export const VIDEO_MODELS: VideoModel[] = [
 ];
 
 export const DEFAULT_VIDEO_MODEL = "kling3_0";
+// Models that can copy the movement of a reference clip onto the video (motion transfer). From the catalog: only Kling 3.0 so far.
+export const MOTION_MODEL_IDS = new Set(["kling3_0"]);
+export const hasMotion = (m: VideoModel) => MOTION_MODEL_IDS.has(m.id);
+
+// The longest model name: the model button is always as wide as this, so it keeps one size whichever model is chosen.
+export const LONGEST_MODEL_LABEL = VIDEO_MODELS.reduce((a, m) => (m.label.length > a.length ? m.label : a), "");
+
 export const videoModelById = (id: string | null | undefined): VideoModel => VIDEO_MODELS.find((m) => m.id === id) ?? VIDEO_MODELS[0];

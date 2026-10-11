@@ -27,6 +27,11 @@
 .cr-row-top .cr-chip.vs-sound { padding: 0; }
 .cr-chip.vs-sound.is-muted { color: var(--a-muted); }
 
-/* Video model names are short: the model button only needs its own width. */
-.cr-row-a .cr-modelbtn.vs-model, .cr-row-a .cr-modelbtn { flex: 0 1 auto; max-width: 230px; }
+/* The model button is always as wide as the longest model name (an invisible copy of it sets the size), so it never changes size when the model changes.
+   The chips on that line spread evenly; on a narrow screen the name may shrink with an ellipsis. */
+.cr-row-a { justify-content: space-between; }
+.cr-row-a .cr-modelbtn.vs-model { flex: 0 1 auto; min-width: 0; }
+.vs-model .cr-mname { display: grid; flex: 0 1 auto; min-width: 0; }
+.vs-model .cr-mname > span { grid-area: 1 / 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.vs-model .vs-msizer { visibility: hidden; }
 .cr-chip.vs-sound { flex: 0 0 34px; width: 34px; min-width: 34px; }
