@@ -26,3 +26,7 @@
 .cr-chip.vs-sound { width: 38px; padding: 0; justify-content: center; }
 .cr-row-top .cr-chip.vs-sound { padding: 0; }
 .cr-chip.vs-sound.is-muted { color: var(--a-muted); }
+
+/* Video model names are short: the model button only needs its own width. */
+.cr-row-a .cr-modelbtn.vs-model, .cr-row-a .cr-modelbtn { flex: 0 1 auto; max-width: 230px; }
+.cr-chip.vs-sound { flex: 0 0 34px; width: 34px; min-width: 34px; }

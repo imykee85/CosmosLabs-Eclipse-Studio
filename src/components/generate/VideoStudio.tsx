@@ -138,6 +138,9 @@ export default function VideoStudio() {
           )}
           <div className="cr-tools">
             <div className="cr-row cr-row-a">
+              <button type="button" className={`cr-chip vs-sound ${sound && model.sound === "toggle" ? "" : "is-muted"}`} disabled={model.sound !== "toggle"} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={model.sound !== "toggle" ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
+                {sound && model.sound === "toggle" ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
               <label className="cr-chip cr-select"><span className="sr-only">Aspect ratio</span>
                 <select value={ratio} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio">{model.ratios.map((r) => <option key={r} value={r}>{r === "auto" ? "Auto" : r}</option>)}</select>
               </label>
@@ -154,9 +157,6 @@ export default function VideoStudio() {
               </button>
             </div>
             <div className="cr-row cr-row-top">
-              <button type="button" className={`cr-chip vs-sound ${sound && model.sound === "toggle" ? "" : "is-muted"}`} disabled={model.sound !== "toggle"} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={model.sound !== "toggle" ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
-                {sound && model.sound === "toggle" ? <Volume2 size={16} /> : <VolumeX size={16} />}
-              </button>
               <button type="button" className="cr-chip" disabled={!model.startFrame} title={model.startFrame ? "Choose the first frame of the clip" : `${model.label} has no start frame`} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!model.endFrame} title={model.endFrame ? "Choose the last frame of the clip" : `${model.label} has no end frame`} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={model.refImages === 0} title={model.refImages > 0 ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
