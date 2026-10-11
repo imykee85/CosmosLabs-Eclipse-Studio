@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
+import { claimUsage } from "@/lib/usage";
 import { storageEnabled } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, MAX_UPLOADS_PER_USER, isUploadKind, storeUpload, toUploadItem } from "@/lib/uploads";
 
@@ -35,6 +36,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const u = who();
   if (!u.userId) return u.res;
+  if (!(await claimUsage(u.userId, "upload", 30, 60_000))) return NextResponse.json({ error: "You are uploading very quickly. Wait a moment and try again." }, { status: 429 });
   if (!storageEnabled) return NextResponse.json({ error: "File storage is not set up on this site yet." }, { status: 503 });
 
   const declared = Number(req.headers.get("content-length") ?? 0);

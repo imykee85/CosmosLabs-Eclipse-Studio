@@ -1,3 +1,4 @@
+import { claimUsage } from "@/lib/usage";
 import { createGenerationHeld } from "@/lib/reservations";
 import { db } from "@/lib/db";
 import { completeFromBytes, failRender, SYNC_MARK, toItem, type RenderItem } from "@/lib/generation-jobs";
@@ -74,6 +75,10 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
       seed = randomSeed(spec);
     }
   }
+
+  // A per-person limit on how fast renders can be started (the provider bills us for each): RENDERS_PER_MINUTE, 20 by default. Image Studio sends up to 4 at once.
+  const perMinute = Number(process.env.RENDERS_PER_MINUTE) > 0 ? Math.floor(Number(process.env.RENDERS_PER_MINUTE)) : 20;
+  if (!(await claimUsage(userId, "render", perMinute, 60_000))) return { ok: false, status: 429, error: "You are starting renders very quickly. Wait a moment and try again." };
 
   // Credits are held when the render row is created (see createGenerationHeld) and charged when the render finishes. A model with no credit price yet is free.
   const cost = chargeFor(model);

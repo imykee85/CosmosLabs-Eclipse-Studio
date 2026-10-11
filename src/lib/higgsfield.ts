@@ -2,6 +2,7 @@
 // Confirmed live for Soul 2 only (POST /<endpoint> with `Authorization: Key <key>`, answer carries request_id and
 // status_url, poll GET /requests/<id>/status until "completed" with images[0].url). docs.higgsfield.ai is not
 // reachable from the build sandbox, so the other models' request bodies are unverified.
+import { safeText } from "./safe-text";
 import { endpointFor, referenceBody, type ImageModel } from "./models";
 import type { ImageProvider, ProviderStatus, SubmitResult } from "./providers/types";
 
@@ -20,7 +21,8 @@ type JobResponse = {
 
 // Carries Higgsfield's own reply so the route can tell the user what was rejected.
 export class HiggsfieldError extends Error {
-  constructor(message: string, readonly detail?: string) { super(message); }
+  readonly detail?: string;
+  constructor(message: string, detail?: string) { super(message); this.detail = detail === undefined ? undefined : safeText(detail); } // shown to people, so cleaned (the full text is in `message` for the logs)
 }
 
 function headers(extra: Record<string, string> = {}) {

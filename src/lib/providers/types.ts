@@ -1,3 +1,4 @@
+import { safeText } from "../safe-text";
 // The small surface the app needs from an image provider, so another one can be added later.
 export type SubmitResult = { requestId: string; statusUrl: string };
 export type ProviderStatus =
@@ -35,5 +36,6 @@ export interface SyncImageProvider {
 
 // A provider's refusal or failure, with a sentence a person can read (`message`) and the provider's own words for the logs and for us (`detail`).
 export class ProviderError extends Error {
-  constructor(readonly userMessage: string, readonly detail?: string) { super(userMessage); }
+  readonly userMessage: string;
+  constructor(userMessage: string, readonly detail?: string) { super(userMessage); this.userMessage = safeText(userMessage, 400); } // `detail` is for the logs only; the user-facing sentence is cleaned
 }

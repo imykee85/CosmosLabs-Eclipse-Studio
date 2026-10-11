@@ -1,9 +1,43 @@
 /** @type {import('next').NextConfig} */
+
+// Security headers for every page. The anti-framing and lock-down rules are enforced. The full script and style rules run in REPORT-ONLY mode first:
+// they could not be tried against the real sign-in (Clerk) here, so a mistake must not lock people out. Watch the browser console for
+// "Content-Security-Policy-Report-Only" messages on a preview, fix the list, then switch the second header to enforcing.
+// Debt: Next.js needs 'unsafe-inline' for its own scripts until nonces are added.
+// When you add your own domain, Clerk serves from clerk.<your domain>: add it here (report-only first, so nothing breaks).
+const clerk = "https://*.clerk.accounts.dev https://*.clerk.com";
+const reportOnlyCsp = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline' ${clerk} https://challenges.cloudflare.com`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https://media.prompt-motion.com https://*.r2.cloudflarestorage.com",
+  `connect-src 'self' ${clerk} https://*.r2.cloudflarestorage.com`,
+  `frame-src ${clerk} https://challenges.cloudflare.com`,
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+const securityHeaders = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'" },
+  { key: "Content-Security-Policy-Report-Only", value: reportOnlyCsp },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+];
+
 const nextConfig = {
   // Design-mockup logos on the landing strip: shown locally and on preview deployments, never in production.
   env: { NEXT_PUBLIC_MOCK_LOGOS: process.env.VERCEL_ENV === "production" ? "0" : "1" },
   // Nothing uses next/image, so the image optimizer (an open fetch proxy when it allows every host) is switched off.
   images: { unoptimized: true },
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
 };
 
 export default nextConfig;

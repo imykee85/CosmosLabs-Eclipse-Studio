@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/api-user";
 import { checkFields, sendTo, SendError } from "@/lib/connector-send";
 import { directConnectors } from "@/lib/connectors";
 import { db } from "@/lib/db";
+import { claimUsage } from "@/lib/usage";
 import { seal } from "@/lib/secret-box";
 
 export const maxDuration = 30;
@@ -14,6 +15,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!directConnectors[id]) {
     return NextResponse.json({ error: "Connecting this app needs a sign-in approved by the service, and this server has no app registered with it yet. Telegram and Slack connect today." }, { status: 501 });
   }
+  // Connecting sends a real message to the person's Telegram or Slack, so it is limited: 10 tries every 10 minutes.
+  if (!(await claimUsage(u.userId, "connector", 10, 10 * 60_000))) return NextResponse.json({ error: "Too many connection attempts. Wait a few minutes and try again." }, { status: 429 });
   const body = await req.json().catch(() => null);
   try {
     const values = checkFields(id, body && typeof body === "object" ? body : {});

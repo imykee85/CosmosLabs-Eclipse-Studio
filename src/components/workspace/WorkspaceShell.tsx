@@ -164,7 +164,7 @@ const tabIcon = (icon: React.ReactNode) => (isValidElement(icon) ? cloneElement(
 
 const SLOT_KEY = "eclipse-create-slot";
 // Shortcuts that can take over the Create tab.
-const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo[1], photo[2]];
+const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo[1], photo[2], video[0], video[1], video[2]];
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
