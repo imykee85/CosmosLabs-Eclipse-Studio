@@ -14,7 +14,18 @@ export default function HeroVideo() {
     if (!v) return;
     v.muted = true;
     v.defaultMuted = true;
-    v.play()?.catch(() => {});
+    const go = () => { v.muted = true; v.play()?.catch(() => {}); };
+    go();
+    // Some phones (Low Power Mode, data saver) refuse autoplay until the first touch: start it then, and again when the tab comes back.
+    const first = () => { go(); cleanup(); };
+    const vis = () => { if (!document.hidden) go(); };
+    const cleanup = () => { window.removeEventListener("touchstart", first); window.removeEventListener("pointerdown", first); window.removeEventListener("scroll", first); };
+    window.addEventListener("touchstart", first, { passive: true });
+    window.addEventListener("pointerdown", first, { passive: true });
+    window.addEventListener("scroll", first, { passive: true });
+    document.addEventListener("visibilitychange", vis);
+    v.addEventListener("loadeddata", go);
+    return () => { cleanup(); document.removeEventListener("visibilitychange", vis); v.removeEventListener("loadeddata", go); };
   }, []);
 
   return (
