@@ -13,6 +13,7 @@
 .hf-col { flex: 0 0 min(300px, 78%); }
 .hf-quad { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; aspect-ratio: 1 / .95; border-radius: 18px; overflow: hidden; }
 .hf-quad .hf-empty { border-radius: 0; height: 100%; }
+.hf-pic { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hf-col-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; color: var(--a-fg); }
 .hf-col-meta b { font-size: 16px; font-weight: 500; }
 .hf-col-meta svg { color: var(--a-muted); }
