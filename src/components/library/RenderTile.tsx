@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Play } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
 import RenderDialog from "./RenderDialog";
 
@@ -21,8 +21,19 @@ export default function RenderTile({ g, onChanged }: { g: Render; onChanged?: ()
     return (
       <>
         <button type="button" className="lib-tile" onClick={() => setOpen(true)} title="View details">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={g.imageUrl} alt={g.prompt} loading="lazy" /><Caption g={g} />
+          {g.kind === "video" ? (
+            // A video tile: the first frame (#t=0.1 makes iPhone Safari draw one), playing muted while the pointer is over it. Tapping opens the full player.
+            <span className="lib-video">
+              <video src={`${g.imageUrl}#t=0.1`} muted playsInline preload="metadata" aria-label={g.prompt}
+                onMouseEnter={(e) => { void e.currentTarget.play().catch(() => {}); }} onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0.1; }} />
+              <i className="lib-play" aria-hidden="true"><Play size={14} /></i>
+              {g.durationSec ? <em>{Math.round(g.durationSec)} s</em> : null}
+            </span>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={g.imageUrl} alt={g.prompt} loading="lazy" />
+          )}
+          <Caption g={g} />
         </button>
         {open && <RenderDialog g={g} onClose={() => setOpen(false)} onChanged={onChanged} />}
       </>
@@ -31,7 +42,7 @@ export default function RenderTile({ g, onChanged }: { g: Render; onChanged?: ()
   return (
     <div className="lib-tile" title={g.error ?? undefined}>
       <div className="lib-wait" style={{ aspectRatio: ratio }}>
-        {g.status === "failed" ? <><AlertCircle size={26} strokeWidth={1.5} /><p>{g.error ?? "This image could not be made."}</p></> : <><Loader2 size={26} className="cr-spin" /><p>Creating your image…</p></>}
+        {g.status === "failed" ? <><AlertCircle size={26} strokeWidth={1.5} /><p>{g.error ?? (g.kind === "video" ? "This video could not be made." : "This image could not be made.")}</p></> : <><Loader2 size={26} className="cr-spin" /><p>{g.kind === "video" ? "Making your video…" : "Creating your image…"}</p></>}
       </div>
       <Caption g={g} />
     </div>

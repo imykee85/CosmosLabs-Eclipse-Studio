@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { fileNameFor } from "@/lib/generation-jobs";
-import { openImage } from "@/lib/storage";
+import { openImage, signedMediaUrl, storageEnabled } from "@/lib/storage";
 
 export const maxDuration = 60;
 
@@ -16,6 +16,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   try {
     const g = await db.generation.findFirst({ where: { id: params.id, userId, status: "completed", deletedAt: null } });
     if (!g) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // A video is not streamed through this server (it is large, and seeking needs range requests, which the storage link serves): send the browser to a short-lived signed link.
+    if (g.kind === "video") {
+      if (!g.storageKey || !storageEnabled) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      const download = new URL(req.url).searchParams.get("download");
+      return NextResponse.redirect(await signedMediaUrl(g.storageKey, { ttlSeconds: download ? 300 : 3600, ...(download ? { download: fileNameFor(g) } : {}), contentType: g.contentType ?? "video/mp4" }), 302);
+    }
     const upstream = await openImage(g);
     if (!upstream.ok || !upstream.body) return NextResponse.json({ error: "Could not read the image." }, { status: 502 });
     const headers = new Headers({

@@ -21,11 +21,17 @@ export type Render = {
   status: "pending" | "completed" | "failed";
   error: string | null;
   imageUrl: string | null;
+  kind: "image" | "video";
+  durationSec: number | null;
+  hasAudio: boolean | null;
+  credits: number | null;
+  startedAt: string | null;
   createdAt: string;
   deletedAt: string | null;
 };
 
 const POLL_MS = 3000;
+const VIDEO_POLL_MS = 5000; // a video runs for minutes: ask the provider every few seconds, not every 3
 
 // The signed-in user's renders, newest first (one project's when projectId is given; the ones in the Bin when bin is true). While any render is still
 // running the list is fetched again every few seconds, so a render finishes on screen without a refresh, and one
@@ -48,7 +54,14 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false) 
     if (!live.current) return;
     if (items) setRenders(items); else setRenders((cur) => cur ?? []);
     clearTimeout(timer.current);
-    if (items?.some((g) => g.status === "pending")) timer.current = setTimeout(load, POLL_MS);
+    const videos = items?.filter((g) => g.status === "pending" && g.kind === "video") ?? [];
+    if (videos.length) {
+      // A running video is finished by its own route (the list never starts a long copy): ask it about each running video, then reload the list.
+      timer.current = setTimeout(async () => {
+        await Promise.all(videos.map((v) => fetch(`/api/generations/${v.id}/status`).catch(() => null)));
+        if (live.current) load();
+      }, VIDEO_POLL_MS);
+    } else if (items?.some((g) => g.status === "pending")) timer.current = setTimeout(load, POLL_MS);
   }, [projectId, limit, bin]);
 
   useEffect(() => {

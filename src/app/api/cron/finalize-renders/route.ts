@@ -2,8 +2,9 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { finalizeGeneration, purgeFailed } from "@/lib/generation-jobs";
+import { finalizeVideo } from "@/lib/video-jobs";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 const BATCH = 40;
@@ -25,12 +26,13 @@ export async function GET(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const staleSaving = new Date(Date.now() - 2 * 60 * 1000);
+    const staleVideoSaving = new Date(Date.now() - 10 * 60 * 1000);
     const rows = await db.generation.findMany({
-      where: { OR: [{ status: "pending" }, { status: "saving", updatedAt: { lt: staleSaving } }] },
+      where: { OR: [{ status: "pending" }, { kind: "image", status: "saving", updatedAt: { lt: staleSaving } }, { kind: "video", status: "saving", updatedAt: { lt: staleVideoSaving } }] },
       orderBy: { createdAt: "asc" },
       take: BATCH,
     });
-    const results = await Promise.allSettled(rows.map((g) => finalizeGeneration(g)));
+    const results = await Promise.allSettled(rows.map((g) => (g.kind === "video" ? finalizeVideo(g) : finalizeGeneration(g))));
     const done = results.filter((r) => r.status === "fulfilled" && r.value.status !== "pending" && r.value.status !== "saving").length;
     const cleared = await purgeFailed().catch(() => 0);
     return NextResponse.json({ checked: rows.length, finished: done, clearedFailed: cleared, more: rows.length === BATCH });

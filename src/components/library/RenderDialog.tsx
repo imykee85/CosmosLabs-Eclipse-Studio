@@ -16,11 +16,12 @@ export default function RenderDialog({ g, onClose, onChanged }: { g: Render; onC
 
   return (
     <div className="rd-scrim" onClick={onClose}>
-      <div className="rd-dialog" role="dialog" aria-modal="true" aria-label="Image details" onClick={(e) => e.stopPropagation()}>
+      <div className="rd-dialog" role="dialog" aria-modal="true" aria-label={g.kind === "video" ? "Video details" : "Image details"} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="rd-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         <div className="rd-pic">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {g.imageUrl && <img src={g.imageUrl} alt={g.prompt} />}
+          {g.imageUrl && g.kind === "video" ? <video src={g.imageUrl} controls playsInline autoPlay loop preload="auto" aria-label={g.prompt} />
+            // eslint-disable-next-line @next/next/no-img-element
+            : g.imageUrl && <img src={g.imageUrl} alt={g.prompt} />}
         </div>
         <RenderDetails g={g} onDeleted={() => { onClose(); onChanged?.(); }} onStarted={onChanged} />
       </div>

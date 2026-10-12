@@ -6,6 +6,7 @@ import { spendCredits } from "./credits";
 import { db } from "./db";
 import { higgsfield } from "./higgsfield";
 import { chargeFor, getModelById } from "./models";
+import { findVideoModel } from "./video-models";
 import { safeText } from "./safe-text";
 import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from "./storage";
 
@@ -35,7 +36,12 @@ export type RenderItem = {
   references: { type: string; id: string }[] | null;
   status: "pending" | "completed" | "failed";
   error: string | null;
-  imageUrl: string | null;
+  imageUrl: string | null;    // the picture, or for a video the signed address of the video file
+  kind: "image" | "video";
+  durationSec: number | null; // videos: the requested or finished length
+  hasAudio: boolean | null;
+  credits: number | null;     // videos: the price held while running and charged when it completes
+  startedAt: Date | null;     // videos: when the provider first reported it running
   createdAt: Date;
   deletedAt: Date | null;
 };
@@ -55,6 +61,8 @@ async function fail(id: string, error: string): Promise<Generation | null> {
 // Asks the provider how a running render is going and, if it is done, stores it. Safe to call from many places at once:
 // only one caller wins the claim, so a render is saved and charged exactly once.
 export async function finalizeGeneration(g: Generation): Promise<Generation> {
+  // A video is finished only by its own lazy route (src/lib/video-jobs.ts): the list and the by-id route must stay quick and never start a long copy.
+  if (g.kind === "video") return g;
   const staleSaving = g.status === "saving" && Date.now() - g.updatedAt.getTime() > SAVING_STALE_MS;
   if (g.status !== "pending" && !staleSaving) return g;
   // A render from Google or OpenAI runs inside the request that started it (no job to ask about): leave it alone while it can still be running, and fail it if that request died.
@@ -125,14 +133,14 @@ export async function purgeFailed(userId?: string): Promise<number> {
   return r.count;
 }
 
-const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };
 
 // A readable, unique file name such as soul-2-20261008-153012-a1b2c3.png
 export function fileNameFor(g: Generation): string {
-  const label = getModelById(g.model)?.label ?? g.model ?? "image";
-  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "image";
+  const label = (g.kind === "video" ? findVideoModel(g.model)?.label : getModelById(g.model)?.label) ?? g.model ?? (g.kind === "video" ? "video" : "image");
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || (g.kind === "video" ? "video" : "image");
   const t = g.createdAt.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
-  return `${slug}-${t}-${g.id.slice(-6)}.${EXT[g.contentType ?? ""] ?? "png"}`;
+  return `${slug}-${t}-${g.id.slice(-6)}.${EXT[g.contentType ?? ""] ?? (g.kind === "video" ? "mp4" : "png")}`;
 }
 
 export async function toItem(g: Generation): Promise<RenderItem> {
@@ -141,7 +149,7 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     id: g.id,
     prompt: g.prompt,
     model: g.model,
-    modelLabel: getModelById(g.model)?.label ?? g.model,
+    modelLabel: (g.kind === "video" ? findVideoModel(g.model)?.label : getModelById(g.model)?.label) ?? g.model,
     fileName: done ? fileNameFor(g) : null,
     contentType: g.contentType,
     sizeBytes: g.sizeBytes,
@@ -156,6 +164,11 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     status: g.status === "failed" ? "failed" : done ? "completed" : "pending",
     error: g.status === "failed" ? g.error : null,
     imageUrl: done ? await displayUrl(g) : null,
+    kind: g.kind === "video" ? "video" : "image",
+    durationSec: g.durationSec,
+    hasAudio: g.hasAudio,
+    credits: g.creditsHeld,
+    startedAt: g.startedAt,
     createdAt: g.createdAt,
     deletedAt: g.deletedAt,
   };

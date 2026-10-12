@@ -11,7 +11,7 @@ function fmtBytes(n: number): string {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
-const FORMATS: Record<string, string> = { "image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WebP" };
+const FORMATS: Record<string, string> = { "image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WebP", "video/mp4": "MP4", "video/quicktime": "MOV", "video/webm": "WebM" };
 
 // The facts about one finished image, with the actions people reach for: copy the prompt, download the file, share it.
 // With `collapsible` (Image Studio) the facts stay hidden until the "i" button in front of Copy prompt is tapped; tap it again to close them.
@@ -22,7 +22,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
 
   async function remove() {
     setNote("");
-    try { await trashRender(g.id); onDeleted?.(); } catch (e) { setNote(e instanceof Error ? e.message : "Could not move this image to the bin."); }
+    try { await trashRender(g.id); onDeleted?.(); } catch (e) { setNote(e instanceof Error ? e.message : "Could not move this to the bin."); }
   }
 
   const [seedCopied, setSeedCopied] = useState(false);
@@ -33,13 +33,19 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
   async function again(sameSeed: boolean) {
     setNote("");
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: g.prompt, model: g.model, aspectRatio: g.aspectRatio ?? undefined, resolution: g.resolution ?? undefined, projectId: g.projectId ?? undefined, references: g.references ?? [], ...(sameSeed ? { seed: g.seed, lockSeed: true } : {}) }),
-      });
+      const video = g.kind === "video";
+      // A video is started through its own route, with its own length and sound; its pictures were the start frame (first) and the end frame (second), and their rights were confirmed when it was first made.
+      const body = video
+        ? { prompt: g.prompt, model: g.model, duration: g.durationSec ?? undefined, aspectRatio: g.aspectRatio ?? undefined, resolution: g.resolution ?? undefined, audio: g.hasAudio ?? undefined, projectId: g.projectId ?? undefined, start: g.references?.[0], end: g.references?.[1], rights: g.references?.length ? true : undefined, ...(sameSeed ? { seed: g.seed, lockSeed: true } : {}) }
+        : { prompt: g.prompt, model: g.model, aspectRatio: g.aspectRatio ?? undefined, resolution: g.resolution ?? undefined, projectId: g.projectId ?? undefined, references: g.references ?? [], ...(sameSeed ? { seed: g.seed, lockSeed: true } : {}) };
+      let res = await fetch(video ? "/api/video" : "/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (video && res.status === 409) {
+        const need = await res.clone().json().catch(() => ({}));
+        if (need.needsConfirm && window.confirm(`This video costs ${need.cost} credits. Continue?`)) res = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, confirm: true }) });
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Could not start this render.");
-      setNote(sameSeed ? "Started with the same seed. It will appear in your Gallery." : "Started a new variation. It will appear in your Gallery.");
+      setNote(sameSeed ? `Started with the same seed. It will appear in your Gallery${g.kind === "video" ? " in a few minutes" : ""}.` : `Started a new variation. It will appear in your Gallery${g.kind === "video" ? " in a few minutes" : ""}.`);
       onStarted?.();
     } catch (e) { setNote(e instanceof Error ? e.message : "Could not start this render."); }
   }
@@ -52,8 +58,9 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
   async function share() {
     setNote("");
     try {
-      const res = await fetch(`/api/generations/${g.id}/file`);
-      if (res.ok) {
+      // A video is large: it is shared as a link, never downloaded into the browser first.
+      const res = g.kind === "video" ? null : await fetch(`/api/generations/${g.id}/file`);
+      if (res?.ok) {
         const blob = await res.blob();
         const file = new File([blob], g.fileName ?? "image.png", { type: blob.type || "image/png" });
         if (navigator.canShare?.({ files: [file] })) {
@@ -69,9 +76,9 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data.url) throw new Error();
       await navigator.clipboard.writeText(data.url);
-      setNote(data.days ? `Link copied. Anyone with it can view this image for ${data.days} days.` : "Link copied.");
+      setNote(data.days ? `Link copied. Anyone with it can view this ${g.kind === "video" ? "video" : "image"} for ${data.days} days.` : "Link copied.");
     } catch {
-      setNote("Could not share this image. Please try again.");
+      setNote(`Could not share this ${g.kind === "video" ? "video" : "image"}. Please try again.`);
     }
   }
 
@@ -79,6 +86,8 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
     ["File name", g.fileName],
     ["Size", g.sizeBytes != null ? fmtBytes(g.sizeBytes) : null],
     ["Dimensions", g.width && g.height ? `${g.width} × ${g.height} px` : null],
+    ["Length", g.kind === "video" && g.durationSec ? `${Math.round(g.durationSec)} s` : null],
+    ["Sound", g.kind === "video" && g.hasAudio != null ? (g.hasAudio ? "On" : "Off") : null],
     ["Format", g.contentType ? (FORMATS[g.contentType] ?? g.contentType) : null],
     ["Shape", g.aspectRatio],
     ["Resolution", g.resolution],
@@ -89,7 +98,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
   return (
     <div className="rd">
       <div className={`rd-actions ${collapsible ? "is-icons" : ""}`}>
-        {collapsible && <button type="button" className={`rd-btn rd-info ${info ? "is-on" : ""}`} aria-expanded={info} aria-label={info ? "Hide image details" : "Show image details"} title="Image details" onClick={() => setInfo((v) => !v)}><Info size={16} /></button>}
+        {collapsible && <button type="button" className={`rd-btn rd-info ${info ? "is-on" : ""}`} aria-expanded={info} aria-label={info ? "Hide details" : "Show details"} title="Details" onClick={() => setInfo((v) => !v)}><Info size={16} /></button>}
         <button type="button" className="rd-btn" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={15} /> : <Copy size={15} />}<span className="rd-lbl">{copied ? "Copied" : "Copy prompt"}</span></button>
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined} aria-label="Download" title="Download"><Download size={15} /><span className="rd-lbl">Download</span></a>
         <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>

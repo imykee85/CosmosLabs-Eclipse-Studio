@@ -43,3 +43,33 @@
 .vs-motionmenu .am-item b { font-weight: 600; font-size: 15px; }
 .vs-motionmenu .am-item small { color: var(--a-muted); font-size: 13px; line-height: 1.35; }
 .cr-chip.is-on { border-color: #c00707; }
+
+/* Video Studio, connected (2026-10-12): the stage plays the video, shows a timer while one runs, and a row of earlier videos sits under it. */
+.vs-stage { position: relative; }
+.vs-stage video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.vs-stage:has(video) { border-style: solid; border-color: var(--a-line2); }
+.vs-wait { text-align: center; }
+.vs-wait b { font-variant-numeric: tabular-nums; color: var(--a-fg); }
+.vs-wait small { max-width: 260px; color: var(--a-muted2); font-size: 12.5px; line-height: 1.45; }
+.vs-cancel { margin-top: 4px; padding: 7px 16px; border: 1px solid var(--a-line3); border-radius: 999px; background: none; color: var(--a-muted); font: inherit; font-size: 13px; cursor: pointer; }
+.vs-cancel:hover:not(:disabled) { color: var(--a-fg); border-color: var(--a-fg2); }
+.vs-cancel:disabled { opacity: .6; cursor: default; }
+.vs-thumbs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px auto 0; }
+.vs-thumb { display: grid; place-items: center; width: 56px; height: 56px; padding: 0; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 12px; background: #000; color: var(--a-muted); cursor: pointer; }
+.vs-thumb video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.vs-thumb.is-on { border-color: #c00707; box-shadow: 0 0 0 1px #c00707 inset; }
+.vs-thumb.vs-more { background: var(--a-card); }
+.vs-rights { display: flex; align-items: flex-start; gap: 8px; margin: 8px 6px 0; color: var(--a-muted); font-size: 12.5px; line-height: 1.4; cursor: pointer; }
+.vs-rights input { flex: none; width: 16px; height: 16px; margin-top: 1px; accent-color: #c00707; }
+.cr-chip.vs-seed { gap: 4px; padding: 0 4px 0 0; }
+.cr-chip.vs-seed > button { display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 6px 0 11px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.cr-chip.vs-seed > button:disabled { cursor: not-allowed; }
+.cr-chip.vs-seed.is-muted { opacity: .55; }
+.cr-chip.vs-seed input { width: 92px; height: 26px; padding: 0 8px; border: 1px solid var(--a-line3); border-radius: 999px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 13px; }
+.cr-chip.vs-seed input[aria-invalid="true"] { border-color: var(--a-danger); }
+.vs-adv { display: grid; gap: 10px; margin: 10px 4px 0; }
+.vs-adv label { display: grid; gap: 6px; color: var(--a-muted); font-size: 12.5px; }
+.vs-adv textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; resize: none; }
+.vs-adv input[type="range"] { width: 100%; accent-color: #c00707; }
+.vs-item.is-soon { opacity: .6; }
+.vs-item b .soon-tag { margin-left: 8px; vertical-align: middle; }

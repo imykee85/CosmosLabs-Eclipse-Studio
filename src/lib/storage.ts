@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { Readable, Transform } from "node:stream";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { readImageSize } from "./image-info";
 
@@ -98,8 +100,9 @@ export async function saveImageBytes(userId: string, bytes: Uint8Array, type: st
 }
 
 /** The address to show for a generation: a fresh signed link when the file is in our storage, else the provider's link. */
-export async function displayUrl(generation: { imageUrl: string; storageKey: string | null }): Promise<string> {
-  return generation.storageKey && storageEnabled ? signedGetUrl(generation.storageKey) : generation.imageUrl;
+export async function displayUrl(generation: { imageUrl: string; storageKey: string | null; kind?: string }): Promise<string> {
+  if (generation.storageKey && storageEnabled) return generation.kind === "video" ? signedMediaUrl(generation.storageKey, { ttlSeconds: 3600 }) : signedGetUrl(generation.storageKey);
+  return generation.imageUrl;
 }
 
 /** The stored file itself (or the provider's copy when it never reached our storage), streamed back for download and sharing. */
@@ -107,4 +110,50 @@ export async function openImage(generation: { imageUrl: string; storageKey: stri
   const url = generation.storageKey && storageEnabled ? await signedGetUrl(generation.storageKey, 60) : generation.imageUrl;
   if (new URL(url).protocol !== "https:") throw new Error("Refusing a non-https image address");
   return fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+}
+
+// --- Video ------------------------------------------------------------------------------------------------------------------------------------------------------
+// A finished video is copied from the provider into the private bucket as a STREAM (multipart upload), never held in memory: the address is the provider's
+// own, but still untrusted (https only, also after redirects, video types only, a size cap and a time cap). The key is fixed per render, so a retry after a
+// half-finished copy overwrites the same object instead of leaving strays.
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const VIDEO_COPY_TIMEOUT_MS = 280_000;
+const VIDEO_EXT: Record<string, string> = { "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };
+export type SavedVideo = { key: string; contentType: string; sizeBytes: number };
+
+export async function saveVideoFromUrl(userId: string, generationId: string, sourceUrl: string): Promise<SavedVideo> {
+  const url = new URL(sourceUrl);
+  if (url.protocol !== "https:") throw new Error("Refusing to fetch a non-https video address");
+  const res = await fetch(url, { signal: AbortSignal.timeout(VIDEO_COPY_TIMEOUT_MS) });
+  if (!res.ok || !res.body) throw new Error(`Could not download the video (${res.status})`);
+  if (new URL(res.url).protocol !== "https:") throw new Error("Refusing a video that redirected away from https");
+
+  // Providers sometimes serve a video as application/octet-stream: fall back to the file name's extension.
+  let type = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  if (!VIDEO_EXT[type]) {
+    const byName = new URL(res.url).pathname.toLowerCase().endsWith(".mov") ? "video/quicktime" : new URL(res.url).pathname.toLowerCase().endsWith(".webm") ? "video/webm" : "video/mp4";
+    if (type && type !== "application/octet-stream" && type !== "binary/octet-stream" && !type.startsWith("video/")) throw new Error(`Unsupported video type: ${type}`);
+    type = byName;
+  }
+  const declared = Number(res.headers.get("content-length") ?? 0);
+  if (declared > MAX_VIDEO_BYTES) throw new Error("Video is too large");
+
+  let bytes = 0;
+  const counter = new Transform({
+    transform(chunk: Buffer, _enc, cb) {
+      bytes += chunk.length;
+      if (bytes > MAX_VIDEO_BYTES) cb(new Error("Video is too large"));
+      else cb(null, chunk);
+    },
+  });
+  const key = `video/${userId}/${generationId}.${VIDEO_EXT[type]}`;
+  const upload = new Upload({ client: r2(), params: { Bucket: bucket(), Key: key, Body: Readable.fromWeb(res.body as never).pipe(counter), ContentType: type }, queueSize: 3, partSize: 8 * 1024 * 1024, leavePartsOnError: false });
+  await upload.done();
+  if (bytes === 0) { await deleteObject(key).catch(() => {}); throw new Error("Video is empty"); }
+  return { key, contentType: type, sizeBytes: bytes };
+}
+
+/** A signed link for a stored media file. Videos get a longer life so a long watch or a seek does not hit an expired link; R2 serves ranges, so seeking works on iPhone. `download` makes the browser save it under that name. */
+export function signedMediaUrl(key: string, opts: { ttlSeconds?: number; download?: string; contentType?: string } = {}): Promise<string> {
+  return getSignedUrl(r2(), new GetObjectCommand({ Bucket: bucket(), Key: key, ...(opts.download ? { ResponseContentDisposition: `attachment; filename="${opts.download.replace(/"/g, "")}"` } : {}), ...(opts.contentType ? { ResponseContentType: opts.contentType } : {}) }), { expiresIn: opts.ttlSeconds ?? 3600 });
 }

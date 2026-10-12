@@ -1,52 +1,88 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Layers, Loader2, Plus, Video, Volume2, VolumeX, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Coins, Image as ImageIcon, Layers, Loader2, Plus, SlidersHorizontal, Sprout, Video, Volume2, VolumeX, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import MotionMenu, { type MotionMode } from "./MotionMenu";
 import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
+import RenderDetails from "../library/RenderDetails";
 import SoonTag from "../SoonTag";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
+import { useRenders, type Render } from "@/lib/use-renders";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
-import { DEFAULT_VIDEO_MODEL, LONGEST_MODEL_LABEL, VIDEO_MODELS, videoModelById, type VideoModel } from "@/lib/video-models";
+import { DEFAULT_VIDEO_MODEL, LONGEST_MODEL_LABEL, VIDEO_MODELS, capsFor, isLive, videoModelById, videoPrice, workflowOf, type VideoModel } from "@/lib/video-models";
 import "../create/create.css";
 import "./generate.css";
 
 // Video Studio (VIDEO step 3): the same layout as Image Studio, for video. A preview above, and below it a prompt box with the shape, length and quality of the clip,
-// the model, an optional start frame and end frame (or reference pictures for the models that take them), sound, and the agent.
-// Generation is NOT connected yet (see src/lib/video-models.ts): Generate explains that and the page keeps your settings.
+// the model, an optional start frame and end frame, sound, a fixed seed, and the agent. EVERY control comes from the model registry (src/lib/video-models.ts):
+// one the chosen model (or the chosen way of using it) cannot take is greyed out, never hidden. Models not connected yet are listed greyed with a Soon tag.
+// A video takes minutes: Generate starts it and the video keeps running at the provider; this page (and the Gallery) asks how it is going every few seconds.
 const MODEL_KEY = "eclipse-video-model";
 const PREVIEW_WIDTH: Record<string, number> = { "16:9": 304, "9:16": 134, "1:1": 215, "4:3": 262, "3:4": 168, "21:9": 340, "3:2": 280, "2:3": 160, "2:1": 330, auto: 304 };
-const QUALITY_LABEL = (q: string) => q;
 const secs = (n: number) => `${n} s`;
 const frameUrl = (p: RefPick) => (p.type === "upload" ? `/api/uploads/${p.id}/file` : `/api/generations/${p.id}/file`);
+const clock = (ms: number) => { const t = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
 
 type Target = "start" | "end" | "refs";
+type Config = { creditsOn: boolean; paused: boolean; ready: boolean };
 
 export default function VideoStudio() {
   const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
   const [modelId, setModelId] = useState(DEFAULT_VIDEO_MODEL);
   const model = videoModelById(modelId);
+  const live = isLive(model);
   const [ratio, setRatio] = useState("16:9");
   const [duration, setDuration] = useState(5);
   const [quality, setQuality] = useState("");
   const [sound, setSound] = useState(true);
+  const [seedLocked, setSeedLocked] = useState(false);
+  const [seedText, setSeedText] = useState("");
+  const [negative, setNegative] = useState("");
+  const [creative, setCreative] = useState<number | null>(null);
+  const [advanced, setAdvanced] = useState(false);
   const [start, setStart] = useState<RefPick | null>(null);
   const [end, setEnd] = useState<RefPick | null>(null);
   const [refs, setRefs] = useState<RefPick[]>([]);
+  const [rights, setRights] = useState(false);
   const [target, setTarget] = useState<Target | null>(null);
   const [pickingModel, setPickingModel] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [natural, setNatural] = useState<{ id: string; ratio: string } | null>(null);
+  const [config, setConfig] = useState<Config | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+
+  // The way the model is used decides what it offers: a start frame makes it image-to-video (its own length range, no shape choice, an end frame on some models).
+  const wf = workflowOf(!!start);
+  const caps = capsFor(model, wf);
+
+  // This project's videos. A running one is followed (the list asks the status route every few seconds and fills the video in when it is done).
+  const [projectId, setProjectId] = useState<string | null | undefined>(undefined);
+  useEffect(() => { setProjectId(readCurrentProject()?.id ?? null); }, []);
+  const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 40);
+  const videos = (renders ?? []).filter((g) => g.kind === "video");
+  const active: Render | null = (activeId ? videos.find((g) => g.id === activeId) : videos.find((g) => g.status === "pending")) ?? null;
+  const done = videos.filter((g) => g.status === "completed" && !g.deletedAt).slice(0, 8);
+
+  // The "being made" note is only true while it runs.
+  const activeStatus = active?.status;
+  useEffect(() => { if (activeStatus === "completed" || activeStatus === "failed") setNote((n) => (n.startsWith("Your video is being made") ? "" : n)); }, [activeStatus]);
+  useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => c && setConfig(c)).catch(() => {}); }, []);
+  useEffect(() => { if (active?.status !== "pending") return; const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, [active?.status]);
 
   // The agent: choose one (chip) and switch it on; its card is the chat.
   const agent = useAgent();
@@ -54,22 +90,27 @@ export default function VideoStudio() {
   const [motionAnchor, setMotionAnchor] = useState<DOMRect | null>(null);
   const [motion, setMotion] = useState<MotionMode | null>(null);
   const agentChip = useRef<HTMLButtonElement>(null);
-  useAgentHost({ page: "video", context: () => ({ prompt, ratio, model: model.label }), setPrompt, generate: async () => "Video generation isn't connected yet. Your prompt is ready in the box." });
+  useAgentHost({ page: "video", context: () => ({ prompt, ratio, model: model.label }), setPrompt, generate: async () => "Your prompt is ready in the box. Press Generate when the settings look right." });
 
   useEffect(() => { try { const m = localStorage.getItem(MODEL_KEY); if (m && VIDEO_MODELS.some((x) => x.id === m)) setModelId(m); } catch {} }, []);
-  // Keep every setting one the chosen model accepts.
+  // Keep every setting one the chosen model accepts in this way of using it.
   useEffect(() => {
-    if (!model.ratios.includes(ratio)) setRatio(model.ratios.includes("16:9") ? "16:9" : model.ratios[0]);
-    if (!model.durations.includes(duration)) setDuration(model.durations.includes(5) ? 5 : model.durations[0]);
-    if (model.qualities.length ? !model.qualities.includes(quality) : quality !== "") setQuality(model.qualities.length ? model.qualities[Math.min(1, model.qualities.length - 1)] : "");
+    if (caps.ratios.length && !caps.ratios.includes(ratio)) setRatio(caps.defaultRatio);
+    if (!caps.durations.includes(duration)) setDuration(caps.defaultDuration);
+    if (caps.qualities.length ? !caps.qualities.includes(quality) : quality !== "") setQuality(caps.defaultQuality);
+    if (!caps.endFrame) setEnd(null);
+    if (!caps.seed) { setSeedLocked(false); setSeedText(""); }
+    if (caps.negativePrompt == null) setNegative("");
+    if (!caps.cfgScale) setCreative(null);
     if (!model.startFrame) setStart(null);
-    if (!model.endFrame) setEnd(null);
     if (model.refImages === 0) setRefs([]); else setRefs((r) => r.slice(0, model.refImages));
-  }, [model]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!start && !end) setRights(false);
+  }, [model, wf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pickModel(m: VideoModel) {
     setModelId(m.id);
     setPickingModel(false);
+    setNote("");
     try { localStorage.setItem(MODEL_KEY, m.id); } catch {}
   }
 
@@ -101,15 +142,67 @@ export default function VideoStudio() {
     else setRefs(next);
   }
 
-  function generate() {
-    if (!prompt.trim()) return;
-    setError("");
-    setNote("Video generation isn't connected yet. Your prompt and settings are ready, and Generate switches on as soon as the video models are connected.");
+  const seedNumber = seedText.trim() === "" ? undefined : Number(seedText);
+  const seedBad = seedLocked && !!caps.seed && seedNumber != null && (!Number.isInteger(seedNumber) || seedNumber < caps.seed.min || seedNumber > caps.seed.max);
+  const needsRights = !!start || !!end;
+  const hasSound = live && caps.audio && sound;
+  const price = live && config?.creditsOn ? videoPrice(model, caps.qualities.length ? quality : undefined, duration, hasSound) : null;
+  const canGo = !!prompt.trim() || (live && !caps.promptRequired);
+
+  const generate = useCallback(async (confirm = false): Promise<void> => {
+    setError(""); setNote("");
+    if (!live) { setNote(`${model.label} isn't connected yet. Pick one of the models without a Soon tag.`); return; }
+    if (config?.paused) { setError("Video generation is paused right now. Please try again later."); return; }
+    if (caps.promptRequired && !prompt.trim()) { setError("Describe the clip first."); return; }
+    if (needsRights && !rights) { setError("Please confirm you have the right to use these pictures."); return; }
+    if (seedBad) { setError(`The seed must be a whole number from ${caps.seed!.min.toLocaleString("en-US")} to ${caps.seed!.max.toLocaleString("en-US")}.`); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/video", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt.trim(), model: modelId, duration, projectId: readCurrentProject()?.id ?? undefined,
+          resolution: caps.qualities.length ? quality : undefined, aspectRatio: caps.ratios.length ? ratio : undefined, audio: caps.audio ? sound : undefined,
+          ...(caps.seed && seedLocked ? { lockSeed: true, ...(seedNumber != null ? { seed: seedNumber } : {}) } : {}),
+          negativePrompt: caps.negativePrompt != null && negative.trim() ? negative.trim() : undefined, cfgScale: caps.cfgScale && creative != null ? creative : undefined,
+          start: start ? { type: start.type, id: start.id } : undefined, end: end ? { type: end.type, id: end.id } : undefined, rights: needsRights ? rights : undefined, confirm: confirm || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.needsConfirm) {
+        // A dear render asks first (the server enforces this too).
+        if (window.confirm(`This video costs ${data.cost} credits. Start it?`)) { setSubmitting(false); return generate(true); }
+        return;
+      }
+      if (!res.ok) { setError(data.error ?? "Could not start the video. Please try again."); return; }
+      setActiveId(data.id);
+      setNote(data.seedNote ?? "Your video is being made. This usually takes a few minutes. You can leave this page: it keeps running and lands in your Gallery.");
+      if (config?.creditsOn) fetch("/api/credits").catch(() => {}); // the held price shows in the balance
+      await reload();
+    } catch { setError("Could not reach the server. Check your connection and try again."); }
+    finally { setSubmitting(false); }
+  }, [live, model.label, config?.paused, config?.creditsOn, caps, prompt, needsRights, rights, seedBad, modelId, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, reload]);
+
+  async function cancel(g: Render) {
+    setCancelling(g.id); setError("");
+    try {
+      const res = await fetch(`/api/generations/${g.id}/cancel`, { method: "POST" });
+      if (res.ok) {
+        const item = await res.json().catch(() => null);
+        setNote(item?.status === "failed" ? "Canceled. No credits were used." : "Cancel requested. If the video is still made, it will appear in your Gallery.");
+      } else setError("Could not cancel this video.");
+      await reload();
+    } finally { setCancelling(null); }
   }
 
-  const width = PREVIEW_WIDTH[ratio] ?? 304;
-  const stageRatio = (ratio === "auto" ? "16:9" : ratio).replace(":", " / ");
+  const known = active?.status === "completed" && natural?.id === active.id ? natural.ratio : null;
+  const stageShape = known ?? active?.aspectRatio ?? (caps.ratios.length ? ratio : "16:9");
+  const stageRatio = (stageShape === "auto" ? "16:9" : stageShape).replace(":", " / ");
+  const width = known ? Math.min(340, Math.round(304 * (Number(known.split(":")[0]) / Number(known.split(":")[1])))) : PREVIEW_WIDTH[stageShape] ?? 304;
   const framesShown = !!start || !!end || refs.length > 0;
+  const aspectLocked = live && caps.ratios.length === 0;
+  const advancedOk = caps.negativePrompt != null || caps.cfgScale;
+
   return (
     <div className="cr-wrap">
       <header className="cr-intro">
@@ -118,19 +211,44 @@ export default function VideoStudio() {
       </header>
 
       <section className="cr-preview" aria-label="Preview">
-        <div className="cr-stage" style={{ aspectRatio: stageRatio, maxWidth: width }}>
-          <div className="cr-empty"><Clapperboard size={34} strokeWidth={1.4} /><p>Your video appears here</p></div>
+        <div className="cr-stage vs-stage" style={{ aspectRatio: stageRatio, maxWidth: Math.max(width, 240) }}>
+          {!active ? (
+            <div className="cr-empty"><Clapperboard size={34} strokeWidth={1.4} /><p>Your video appears here</p></div>
+          ) : active.status === "pending" ? (
+            <div className="cr-empty vs-wait" role="status" aria-live="polite">
+              <Loader2 size={30} className="cr-spin" />
+              <p>Making your video… <b>{clock(now - new Date(active.createdAt).getTime())}</b></p>
+              <small>Usually a few minutes. You can leave: it keeps running and lands in your Gallery.</small>
+              <button type="button" className="vs-cancel" disabled={cancelling === active.id} onClick={() => cancel(active)}>{cancelling === active.id ? "Canceling…" : "Cancel"}</button>
+            </div>
+          ) : active.status === "failed" ? (
+            <div className="cr-empty vs-wait" role="alert"><AlertCircle size={30} strokeWidth={1.5} /><p>{active.error ?? "This video could not be made."}</p></div>
+          ) : active.imageUrl ? (
+            <video key={active.id} src={active.imageUrl} controls playsInline loop preload="auto" aria-label={active.prompt}
+              onLoadedMetadata={(e) => { const v = e.currentTarget; if (v.videoWidth && v.videoHeight) setNatural({ id: active.id, ratio: `${v.videoWidth}:${v.videoHeight}` }); }} />
+          ) : null}
         </div>
+        {done.length > 0 && (
+          <div className="cr-thumbs vs-thumbs" aria-label="Your earlier videos">
+            {done.map((g) => (
+              <button key={g.id} type="button" className={`vs-thumb ${active?.id === g.id ? "is-on" : ""}`} onClick={() => setActiveId(g.id)} title={g.prompt}>
+                <video src={`${g.imageUrl}#t=0.1`} muted playsInline preload="metadata" />
+              </button>
+            ))}
+            <Link className="vs-thumb vs-more" href="/gallery" aria-label="Open the Gallery" title="Open the Gallery"><ArrowRight size={16} /></Link>
+          </div>
+        )}
+        {active?.status === "completed" && <RenderDetails g={active} collapsible onDeleted={() => { setActiveId(null); void reload(); }} onStarted={() => void reload()} />}
       </section>
 
       <div className="cr-dock">
-        <form className="cr-box" onSubmit={(e) => { e.preventDefault(); generate(); }}>
+        <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>
           <label htmlFor="vs-prompt" className="sr-only">Describe the clip you imagine</label>
           <div className="cr-field">
             <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
             <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
-            <textarea id="vs-prompt" ref={box} rows={2} maxLength={5000} placeholder="Describe the clip you imagine…" value={prompt} onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); generate(); } }} />
+            <textarea id="vs-prompt" ref={box} rows={2} maxLength={caps.promptMax} placeholder={wf === "i2v" && !caps.promptRequired ? "Optional: describe how the picture should move…" : "Describe the clip you imagine…"} value={prompt} onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }} />
           </div>
           {framesShown && (
             <div className="cr-refs" aria-label="Pictures for this clip">
@@ -139,20 +257,28 @@ export default function VideoStudio() {
               {refs.map((r, i) => <FrameThumb key={`${r.type}-${r.id}`} pic={r} tag={String(i + 1)} onRemove={() => setRefs((l) => l.filter((x) => !(x.type === r.type && x.id === r.id)))} />)}
             </div>
           )}
+          {needsRights && (
+            <label className="vs-rights">
+              <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />
+              <span>I have the right to use {start && end ? "these pictures" : "this picture"}, and the consent of anyone shown in {start && end ? "them" : "it"}.</span>
+            </label>
+          )}
           <div className="cr-tools">
             <div className="cr-row cr-row-a">
-              <button type="button" className={`cr-chip vs-sound ${sound && model.sound === "toggle" ? "" : "is-muted"}`} disabled={model.sound !== "toggle"} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={model.sound !== "toggle" ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
-                {sound && model.sound === "toggle" ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              <button type="button" className={`cr-chip vs-sound ${sound && caps.audio ? "" : "is-muted"}`} disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={!caps.audio ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
+                {sound && caps.audio ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
-              <label className="cr-chip cr-select"><span className="sr-only">Aspect ratio</span>
-                <select value={ratio} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio">{model.ratios.map((r) => <option key={r} value={r}>{r === "auto" ? "Auto" : r}</option>)}</select>
+              <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the shape follows your picture" : "Shape of the clip"}><span className="sr-only">Aspect ratio</span>
+                <select value={caps.ratios.length ? ratio : ""} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio" disabled={!caps.ratios.length}>
+                  {caps.ratios.length ? caps.ratios.map((r) => <option key={r} value={r}>{r === "auto" ? "Auto" : r}</option>) : <option value="">Follows picture</option>}
+                </select>
               </label>
               <label className="cr-chip cr-select"><span className="sr-only">Length</span>
-                <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} aria-label="Length of the clip">{model.durations.map((d) => <option key={d} value={d}>{secs(d)}</option>)}</select>
+                <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} aria-label="Length of the clip">{caps.durations.map((d) => <option key={d} value={d}>{secs(d)}</option>)}</select>
               </label>
-              <label className="cr-chip cr-select" title={model.qualities.length ? "Video quality" : "This model has one fixed quality"}><span className="sr-only">Quality</span>
-                <select value={quality} onChange={(e) => setQuality(e.target.value)} aria-label="Video quality" disabled={!model.qualities.length}>
-                  {model.qualities.length ? model.qualities.map((q) => <option key={q} value={q}>{QUALITY_LABEL(q)}</option>) : <option value="">Fixed</option>}
+              <label className="cr-chip cr-select" title={caps.qualities.length ? "Video quality" : "This model has one fixed quality"}><span className="sr-only">Quality</span>
+                <select value={quality} onChange={(e) => setQuality(e.target.value)} aria-label="Video quality" disabled={!caps.qualities.length}>
+                  {caps.qualities.length ? caps.qualities.map((q) => <option key={q} value={q}>{q}</option>) : <option value="">Fixed</option>}
                 </select>
               </label>
               <button type="button" className="cr-chip cr-modelbtn vs-model" aria-label="Video model" aria-haspopup="dialog" title={model.blurb} onClick={() => setPickingModel(true)}>
@@ -161,16 +287,33 @@ export default function VideoStudio() {
             </div>
             <div className="cr-row cr-row-top">
               <button type="button" className="cr-chip" disabled={!model.startFrame} title={model.startFrame ? "Choose the first frame of the clip" : `${model.label} has no start frame`} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
-              <button type="button" className="cr-chip" disabled={!model.endFrame} title={model.endFrame ? "Choose the last frame of the clip" : `${model.label} has no end frame`} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
-              <button type="button" className="cr-chip" disabled={model.refImages === 0} title={model.refImages > 0 ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
+              <button type="button" className="cr-chip" disabled={!caps.endFrame} title={caps.endFrame ? "Choose the last frame of the clip" : start ? `${model.label} has no end frame` : "An end frame needs a start frame first"} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
+              <button type="button" className="cr-chip" disabled={model.refImages === 0 || live} title={model.refImages > 0 && !live ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures yet`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
+              <span className={`cr-chip vs-seed ${seedLocked ? "is-on" : ""} ${caps.seed ? "" : "is-muted"}`} title={caps.seed ? "Fix the seed to get a similar result again" : `${model.label} has no seed`}>
+                <button type="button" role="switch" aria-checked={seedLocked} disabled={!caps.seed} aria-label="Fixed seed" onClick={() => setSeedLocked((v) => !v)}><Sprout size={14} /> Seed</button>
+                {seedLocked && caps.seed && <input inputMode="numeric" aria-label="Seed number" placeholder="random" value={seedText} onChange={(e) => setSeedText(e.target.value.replace(/[^0-9]/g, "").slice(0, 10))} aria-invalid={seedBad} />}
+              </span>
+              <button type="button" className={`cr-chip ${advanced ? "is-on" : ""}`} disabled={!advancedOk} aria-expanded={advanced} title={advancedOk ? "More settings" : `${model.label} has no extra settings`} onClick={() => setAdvanced((v) => !v)}><SlidersHorizontal size={14} /> Advanced</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Agents"}</span></button>
                 <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                   onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
               </div>
             </div>
-            <button type="submit" className="cr-go" disabled={!prompt.trim()}>Generate <ArrowUp size={16} /> <SoonTag /></button>
+            {advanced && advancedOk && (
+              <div className="vs-adv">
+                {caps.negativePrompt != null && (
+                  <label><span>Leave out</span><textarea rows={2} maxLength={caps.negativePrompt} placeholder="What the video should not show…" value={negative} onChange={(e) => setNegative(e.target.value)} /></label>
+                )}
+                {caps.cfgScale && (
+                  <label><span>Prompt strength: {creative == null ? "default" : creative.toFixed(2)}</span><input type="range" min={0} max={1} step={0.05} value={creative ?? 0.5} onChange={(e) => setCreative(Number(e.target.value))} aria-label="Prompt strength" /></label>
+                )}
+              </div>
+            )}
+            <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad}>
+              {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : <>Generate {price != null ? <span className="cr-cost" title={`About ${price} credits (provisional price)`}><Coins size={14} />{price}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
+            </button>
           </div>
         </form>
         {note && <p className="cr-hint" role="status">{note}</p>}
@@ -198,7 +341,7 @@ function FrameThumb({ pic, tag, onRemove }: { pic: RefPick; tag: string; onRemov
   );
 }
 
-// The list of video models, grouped by maker. Drawn outside the prompt box so it covers the tab bar.
+// The list of video models, grouped by maker. Models not connected yet are listed greyed with a Soon tag. Drawn outside the prompt box so it covers the tab bar.
 function VideoModelPicker({ value, onPick, onClose }: { value: string; onPick: (m: VideoModel) => void; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -216,8 +359,8 @@ function VideoModelPicker({ value, onPick, onClose }: { value: string; onPick: (
             <div key={mk} className="vs-group">
               <h3>{mk}</h3>
               {VIDEO_MODELS.filter((m) => m.maker === mk).map((m) => (
-                <button key={m.id} type="button" className={`vs-item ${m.id === value ? "is-on" : ""}`} aria-pressed={m.id === value} onClick={() => onPick(m)}>
-                  <span><b>{m.label}</b><small>{m.blurb}</small><em>{m.durations[0]} to {m.durations[m.durations.length - 1]} s{m.qualities.length ? ` · ${m.qualities[0]} to ${m.qualities[m.qualities.length - 1]}` : ""}{m.sound === "toggle" ? " · sound" : ""}</em></span>
+                <button key={m.id} type="button" className={`vs-item ${m.id === value ? "is-on" : ""} ${isLive(m) ? "" : "is-soon"}`} aria-pressed={m.id === value} onClick={() => onPick(m)}>
+                  <span><b>{m.label}{!isLive(m) && <SoonTag />}</b><small>{m.blurb}</small><em>{m.durations[0]} to {m.durations[m.durations.length - 1]} s{m.qualities.length ? ` · ${m.qualities[0]} to ${m.qualities[m.qualities.length - 1]}` : ""}{m.sound === "toggle" ? " · sound" : ""}</em></span>
                   {m.id === value && <Check size={16} />}
                 </button>
               ))}

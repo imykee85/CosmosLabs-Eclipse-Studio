@@ -33,8 +33,9 @@ export default function BinImages({ projects, projectFilter, query, onClearFilte
             return (
               <li key={g.id} className="bi-card">
                 <div className="bi-pic" style={{ aspectRatio: (g.aspectRatio ?? "1:1").replace(":", " / ") }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {g.imageUrl ? <img src={g.imageUrl} alt={g.prompt} loading="lazy" /> : <span>{g.status === "failed" ? "Failed render" : "No preview"}</span>}
+                  {g.imageUrl && g.kind === "video" ? <video src={`${g.imageUrl}#t=0.1`} muted playsInline preload="metadata" aria-label={g.prompt} />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : g.imageUrl ? <img src={g.imageUrl} alt={g.prompt} loading="lazy" /> : <span>{g.status === "failed" ? "Failed render" : "No preview"}</span>}
                 </div>
                 <p className="bi-prompt" title={g.prompt}>{g.prompt}</p>
                 <p className="db-meta"><Clock size={13} /> Deleted {g.deletedAt ? timeAgo(g.deletedAt) : ""}</p>
@@ -53,8 +54,8 @@ export default function BinImages({ projects, projectFilter, query, onClearFilte
         </ul>
       ) : (
         <section className="db-empty" aria-live="polite">
-          <h1>{q ? "No matches" : "No deleted images"}</h1>
-          <p>{q ? "Nothing in the bin matches your search." : "Images you delete from a Gallery or the Library show up here."}</p>
+          <h1>{q ? "No matches" : "No deleted images or videos"}</h1>
+          <p>{q ? "Nothing in the bin matches your search." : "Images and videos you delete from a Gallery or the Library show up here."}</p>
         </section>
       )}
     </>

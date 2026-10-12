@@ -19,7 +19,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
   const [role, setRole] = useState<(typeof INGREDIENT_ROLES)[number]>("All");
 
   const q = query.trim().toLowerCase();
-  const shown = renders.filter((g) => !q || g.prompt.toLowerCase().includes(q));
+  const shown = renders.filter((g) => (!q || g.prompt.toLowerCase().includes(q)) && (kind === "Videos" ? g.kind === "video" : kind === "Images" ? g.kind !== "video" : true));
 
   return (
     <div className="ws-ing lib">
@@ -28,7 +28,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
 
       <div className="lib-tabs" role="tablist" aria-label="Filter by type">
         {LIBRARY_KINDS.map((k) => (
-          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}{(k === "Videos" || k === "Audio") && <SoonTag className="lib-soon" />}</button>
+          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}{k === "Audio" && <SoonTag className="lib-soon" />}</button>
         ))}
       </div>
 
@@ -47,7 +47,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
 
       {kind === "Ingredients" ? (
         <UploadPanel show="ingredients" addKinds={["character", "product", "scene"]} addLabel="Add ingredient" role={role === "All" ? "all" : (role.toLowerCase() as "character" | "product" | "scene")} empty={{ title: "No ingredients yet", copy: "Characters, products and scenes you add appear here, ready to reuse in any project." }} />
-      ) : (kind === "All" || kind === "Images") && shown.length > 0 ? (
+      ) : (kind === "All" || kind === "Images" || kind === "Videos") && shown.length > 0 ? (
         <div className="lib-grid">
           {shown.map((g) => (
             <RenderTile key={g.id} g={g} onChanged={reload} />
@@ -56,8 +56,8 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
       ) : (
       <div className="lib-empty">
         <FolderOpen size={46} strokeWidth={1.4} aria-hidden="true" />
-        <h2>Nothing saved yet</h2>
-        <p>Items you save inside a project appear here, so you can reuse them across all your projects.</p>
+        <h2>{kind === "Videos" ? "No videos yet" : "Nothing saved yet"}</h2>
+        <p>{kind === "Videos" ? "Videos you make in Video Studio appear here, ready to open in any project." : "Items you save inside a project appear here, so you can reuse them across all your projects."}</p>
       </div>
       )}
     </div>

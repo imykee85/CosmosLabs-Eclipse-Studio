@@ -11,8 +11,9 @@ export async function createGenerationHeld(userId: string, cost: number | null, 
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`; // the same lock spendCredits takes
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
     const have = sum._sum.delta ?? 0;
-    const running = await tx.generation.findMany({ where: { userId, status: { in: ["pending", "saving"] } }, select: { model: true } });
-    const held = running.reduce((n, r) => n + (chargeFor(getModelById(r.model)) ?? 0), 0);
+    const running = await tx.generation.findMany({ where: { userId, status: { in: ["pending", "saving"] } }, select: { model: true, creditsHeld: true } });
+    // A video row carries its own price (it depends on length, quality and sound); an image row uses its model's.
+    const held = running.reduce((n, r) => n + (r.creditsHeld ?? chargeFor(getModelById(r.model)) ?? 0), 0);
     if (have - held < cost) return { have, held };
     return { row: await tx.generation.create({ data }) };
   });

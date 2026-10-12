@@ -6,7 +6,7 @@ import { safeText } from "./safe-text";
 import { endpointFor, referenceBody, type ImageModel } from "./models";
 import type { ImageProvider, ProviderStatus, SubmitResult } from "./providers/types";
 
-const BASE_URL = process.env.HIGGSFIELD_BASE_URL ?? "https://platform.higgsfield.ai";
+export const BASE_URL = process.env.HIGGSFIELD_BASE_URL ?? "https://platform.higgsfield.ai";
 const MAX_CONCURRENT = 20; // the key allows about 20 in flight; extra renders wait their turn instead of failing
 
 type JobResponse = {
@@ -22,10 +22,11 @@ type JobResponse = {
 // Carries Higgsfield's own reply so the route can tell the user what was rejected.
 export class HiggsfieldError extends Error {
   readonly detail?: string;
-  constructor(message: string, detail?: string) { super(message); this.detail = detail === undefined ? undefined : safeText(detail); } // shown to people, so cleaned (the full text is in `message` for the logs)
+  readonly status?: number; // the HTTP status when Higgsfield answered (a 4xx never succeeds on retry)
+  constructor(message: string, detail?: string, status?: number) { super(message); this.detail = detail === undefined ? undefined : safeText(detail); this.status = status; } // shown to people, so cleaned (the full text is in `message` for the logs)
 }
 
-function headers(extra: Record<string, string> = {}) {
+export function headers(extra: Record<string, string> = {}) {
   const key = process.env.HIGGSFIELD_API_KEY;
   if (!key) throw new Error("HIGGSFIELD_API_KEY is not set");
   return { "Content-Type": "application/json", Accept: "application/json", Authorization: `Key ${key}`, ...extra };
@@ -57,7 +58,7 @@ export const higgsfield: ImageProvider = {
     if (res.status >= 500) res = await attempt();
     if (!res.ok) {
       const text = await res.text();
-      throw new HiggsfieldError(`Higgsfield request failed (${res.status}) for ${endpoint}: ${text}`, `${res.status}: ${text.slice(0, 200)}`);
+      throw new HiggsfieldError(`Higgsfield request failed (${res.status}) for ${endpoint}: ${text}`, `${res.status}: ${text.slice(0, 200)}`, res.status);
     }
     const text = await res.text();
     let job: JobResponse | null = null;

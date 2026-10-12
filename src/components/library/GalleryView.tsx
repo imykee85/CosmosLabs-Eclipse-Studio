@@ -28,7 +28,7 @@ export default function GalleryView() {
         <div className="lib-empty">
           <ImageIcon size={46} strokeWidth={1.4} aria-hidden="true" />
           <h2>Nothing here yet</h2>
-          <p>Images you generate in this project appear here. Renders from all projects are in the Library.</p>
+          <p>Images and videos you generate in this project appear here. Renders from all projects are in the Library.</p>
         </div>
       ) : null}
     </div>
