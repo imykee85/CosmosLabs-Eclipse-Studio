@@ -12,6 +12,7 @@ const withClerk = clerkMiddleware((auth, req) => {
 // No keys: preview mode, let everything through.
 export default clerkEnabled ? withClerk : () => NextResponse.next();
 
+// Static files are never sign-in pages: videos and audio are on the skip list too (they were missing, so a signed-out visitor's request for /hero/hero.mp4 was redirected to sign-in and the video never loaded).
 export const config = {
-  matcher: ["/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)", "/(api|trpc)(.*)", "/__clerk/:path*"],
+  matcher: ["/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp4|webm|mov|m4v|mp3|ogg|wav|avif)).*)", "/(api|trpc)(.*)", "/__clerk/:path*"],
 };
