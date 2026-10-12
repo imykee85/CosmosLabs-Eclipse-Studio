@@ -7,7 +7,7 @@ import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results, steps, wowTiles } from "./data";
 import { plans } from "@/lib/plans";
-import HomeMediaCarousel from "./HomeMediaCarousel";
+import HeroVideo from "./HeroVideo";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
@@ -76,6 +76,7 @@ export default function Landing() {
       </header>
 
       <section id="top" className="hero section-pad">
+        <HeroVideo />
         <div className="hero-copy">
           <h1>Eclipse Studio</h1>
           <h2 className="hero-sub">AI Creative Suite</h2>
@@ -85,7 +86,6 @@ export default function Landing() {
           </p>
           <Cta glint />
         </div>
-        <HomeMediaCarousel />
         <IndustryStrip />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
       </section>
