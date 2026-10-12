@@ -5,8 +5,8 @@ import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 
-// App screens only: stops iPhone Safari zooming the page in when a text box is tapped (it also pushed the prompt box out of view). The marketing site keeps pinch zoom.
-export const viewport = { width: "device-width", initialScale: 1, maximumScale: 1, viewportFit: "cover" } as const;
+// App screens use the same viewport as every other page (the phone layout width is set by PHONE_LAYOUT_SCRIPT in the root layout). A maximum-scale here broke the phone layout (2026-10-12), so iPhone Safari is stopped from zooming into a tapped text box by keeping text boxes at 16px or more instead.
+export const viewport = { viewportFit: "cover" } as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // New accounts answer the onboarding questions first; if the database can't be reached, let them in.
