@@ -5,12 +5,26 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
-import { audience, faqs, results, steps, wowTiles } from "./data";
+import { audience, faqs, results, steps } from "./data";
 import { plans } from "@/lib/plans";
 import HeroVideo from "./HeroVideo";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
+
+// The "One canvas" cloud: Eclipse's own sample pictures (public/canvas, small copies of the stills in public/carousel) with a label under each.
+const canvasCards = [
+  ["Automotive", "A model in a leather jacket sitting on a classic car at dusk"],
+  ["Jewelry", "A model with a statement necklace against a cloudy sky, reflected in glass"],
+  ["Menswear", "A man in a black jacket with a watch and sunglasses"],
+  ["Editorial", "A model in a red dress between sculpted hedges"],
+  ["Interiors", "A white boucle armchair in a calm, minimal room"],
+  ["Fashion", "A model in black evening wear in front of a red curtain"],
+  ["Beauty", "A model with braids and shell jewelry in still water"],
+  ["Eyewear", "A man in a green jacket putting on orange sport sunglasses"],
+  ["Products", "A stack of four leather handbags in different colours"],
+  ["Portrait", "A woman in a black high-collar top against warm linen"],
+] as const;
 
 function Cta({ dark = false, glint = false, children = "Start Creating" }: { dark?: boolean; glint?: boolean; children?: React.ReactNode }) {
   const cls = `pill-btn ${dark ? "pill-btn-dark" : ""} ${glint ? "glint-btn" : ""}`;
@@ -91,15 +105,18 @@ export default function Landing() {
       </section>
 
       <section id="examples" className="wow-section section-pad">
-        <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
-        <div className="wow-grid">
-          {wowTiles.map(([title, sub], i) => (
-            <article className={`wow-card wow-${i + 1}`} key={title}>
-              <div className={`tile tone-${i}`} />
-              <div className="image-wash" />
-              <div className="wow-label"><b>{title}</b><span>{sub}</span></div>
-            </article>
+        <div className="canvas-cloud">
+          {canvasCards.map(([label, alt], i) => (
+            <figure className={`cc-card cc-${i + 1}`} key={label}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/canvas/c${i + 1}.jpg`} alt={alt} loading="lazy" decoding="async" />
+              <figcaption>{label}</figcaption>
+            </figure>
           ))}
+          <div className="cc-center">
+            <h2 className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></h2>
+            <p>Portraits, products, interiors and campaigns, made and kept together in one studio.</p>
+          </div>
         </div>
         <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
       </section>
