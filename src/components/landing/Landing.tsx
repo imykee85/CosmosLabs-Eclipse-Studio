@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
-import { audience, faqs, results, steps } from "./data";
+import { audience, faqs, results, steps, wowTiles } from "./data";
 import { plans } from "@/lib/plans";
-import CanvasCloud from "./CanvasCloud";
 import HeroVideo from "./HeroVideo";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
@@ -92,7 +91,16 @@ export default function Landing() {
       </section>
 
       <section id="examples" className="wow-section section-pad">
-        <CanvasCloud />
+        <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
+        <div className="wow-grid">
+          {wowTiles.map(([title, sub], i) => (
+            <article className={`wow-card wow-${i + 1}`} key={title}>
+              <div className={`tile tone-${i}`} />
+              <div className="image-wash" />
+              <div className="wow-label"><b>{title}</b><span>{sub}</span></div>
+            </article>
+          ))}
+        </div>
         <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
       </section>
 

@@ -486,32 +486,3 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .hero .strip-label { color: rgba(176,212,218,.72); }
 .hero .strip-set li { color: rgba(176,212,218,.72); }
 .hero .strip-logo img { filter: brightness(0) invert(1) sepia(1) saturate(2.4) hue-rotate(128deg) brightness(.95); opacity: .78; }
-
-/* "One canvas" cloud (2026-10-12, after the user's reference): each card is a picture mapped onto the four corners measured from the reference (see CanvasCloud.tsx), on a 2000 x 1500 stage scaled to fit. */
-.canvas-cloud { --s: .62; position: relative; max-width: 1240px; margin: 0 auto 8px; aspect-ratio: 4 / 3; }
-.cc-stage { position: absolute; left: 0; top: 0; width: 2000px; height: 1500px; transform-origin: 0 0; transform: scale(var(--s)); }
-.cc-card { position: absolute; left: 0; top: 0; margin: 0; width: var(--w); height: var(--h); transform-origin: 0 0; transform: var(--m); }
-.cc-card figcaption { display: none; }
-.cc-pic { width: 100%; height: 100%; overflow: hidden; border-radius: 26px; background: #1a0b0d; box-shadow: 0 46px 80px -34px rgba(0,0,0,.32), 0 6px 18px rgba(0,0,0,.07); }
-.cc-pic .tile { width: 100%; height: 100%; border-radius: 0; transition: transform .6s var(--ease); }
-.cc-card:hover .cc-pic .tile { transform: scale(1.05); }
-.cc-label { position: absolute; transform-origin: 50% 0; display: grid; gap: 4px; justify-items: center; white-space: nowrap; }
-.cc-label b { color: #3b3834; font-size: 30px; font-weight: 600; letter-spacing: -.01em; }
-.cc-label span { color: #8a857e; font-size: 19px; font-weight: 500; letter-spacing: .18em; }
-.cc-center { position: absolute; left: 1000px; top: 735px; width: 960px; transform: translate(-50%, -50%); text-align: center; z-index: 2; }
-.cc-center .section-kicker { font-size: 96px; line-height: .95; letter-spacing: -.035em; max-width: none; margin: 0 auto; }
-.cc-center p { margin: 30px auto 0; max-width: 780px; color: #6a665f; font-size: 31px; line-height: 1.5; }
-@media (max-width: 640px) {
-  .canvas-cloud { aspect-ratio: auto; }
-  .cc-stage { position: static; width: auto; height: auto; transform: none; display: grid; grid-template-columns: 1fr 1fr; gap: 26px 14px; }
-  .cc-label { display: none; }
-  .cc-center { position: static; transform: none; width: auto; grid-column: 1 / -1; order: -1; margin-bottom: 14px; }
-  .cc-center .section-kicker { font-size: 38px; }
-  .cc-center p { font-size: 15px; margin-top: 16px; }
-  .cc-card { position: static; width: auto; height: auto; transform: none; }
-  .cc-pic { height: auto; aspect-ratio: .85; border-radius: 14px; }
-  .cc-card figcaption { display: grid; gap: 2px; margin-top: 10px; text-align: center; }
-  .cc-card figcaption b { color: #3b3834; font-size: 14px; font-weight: 600; }
-  .cc-card figcaption span { color: #8a857e; font-size: 9px; letter-spacing: .16em; }
-}
-@media (prefers-reduced-motion: reduce) { .cc-pic .tile { transition: none; } }
