@@ -39,10 +39,3 @@ html[data-app-theme="light"]:has(.db-page, .ws-root) { background: #faf8f5; colo
 
 /* "Soon" pill for unfinished features (see SoonTag) */
 .soon-tag { flex: none; display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--a-line3); border-radius: 999px; color: var(--a-muted); font-size: 10px; font-style: normal; font-weight: 600; letter-spacing: .06em; line-height: 1.4; text-transform: uppercase; white-space: nowrap; }
-
-/* iPhone Safari zooms the page into any text box smaller than 16px when it is tapped. Keep every text entry at 16px or more on phones (no maximum-scale needed, so pinch zoom stays free). */
-@media (pointer: coarse), (max-width: 800px) {
-  .ws-root textarea,
-  .ws-root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]),
-  .db-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]) { font-size: max(16px, 1em) !important; }
-}
