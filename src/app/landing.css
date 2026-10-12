@@ -474,7 +474,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 
 /* Hero background video (replaced the carousel, 2026-10-12): fills the whole hero, a dark wash keeps the text readable and the bottom melts into the black page. */
 .hero { overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 1317px; }
-.hero-video { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #000; }
+.hero-video { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #000; border-radius: 0 0 var(--curve) var(--curve); -webkit-clip-path: inset(0 round 0 0 var(--curve) var(--curve)); clip-path: inset(0 round 0 0 var(--curve) var(--curve)); isolation: isolate; transform: translateZ(0); }
+/* Safari does not clip a playing <video> to its parent's rounded corners (the hero's curved bottom went square): the video layer carries its own rounded clip. */
 .hero-video-still, .hero-video-el { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
 .hero-video-wash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.38) 38%, rgba(0,0,0,.5) 68%, #000 100%); }
 .hero > .hero-copy { margin-top: 0; }
