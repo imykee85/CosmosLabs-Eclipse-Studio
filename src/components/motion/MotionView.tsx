@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Pause, Play } from "lucide-react";
-import { MOTION_TAGS, motionPrompts, postUrl, tagCount, type MotionPrompt } from "@/lib/motion";
+import { MOTION_TAGS, motionPrompts, tagCount, type MotionPrompt } from "@/lib/motion";
 import MotionMedia from "./MotionMedia";
 import "./motion.css";
 
@@ -19,7 +19,6 @@ function Card({ p, paused }: { p: MotionPrompt; paused: boolean }) {
     <li className="mo-item">
       <Link href={`/motion/${p.id}`} className="mo-media-link" aria-label={`Open ${p.title}`}><MotionMedia item={p} paused={paused} /></Link>
       <div className="mo-meta">
-        <span><a className="mo-handle" href={postUrl(p)} target="_blank" rel="noopener noreferrer" title="Open the original post on X">@{p.handle}</a></span>
         <Link href={`/motion/${p.id}`} className="mo-kind" aria-label={`Open the prompt for ${p.title}`}>Prompt</Link>
       </div>
     </li>
