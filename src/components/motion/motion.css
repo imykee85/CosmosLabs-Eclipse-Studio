@@ -61,7 +61,7 @@
 @media (max-width: 520px) { .mo-filter-right .mo-sort { height: 34px; padding: 0 10px; font-size: 13px; } }
 .mo-meta > span { min-width: 0; overflow: hidden; }
 .mo-meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mo-kind { flex: none; }
+.mo-kind { flex: none; margin-left: auto; }
 
 .mo-tags button i { margin-left: 4px; color: var(--a-muted2); font-size: 12px; font-style: normal; }
 .mo-tags button[aria-pressed="true"] i { color: var(--a-muted); }
