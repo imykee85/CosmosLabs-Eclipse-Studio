@@ -6,7 +6,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 
 // App screens only: stops iPhone Safari zooming the page in when a text box is tapped (it also pushed the prompt box out of view). The marketing site keeps pinch zoom.
-export const viewport = { width: "device-width", initialScale: 1, maximumScale: 1, viewportFit: "cover" } as const;
+export const viewport = { viewportFit: "cover" } as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // New accounts answer the onboarding questions first; if the database can't be reached, let them in.
