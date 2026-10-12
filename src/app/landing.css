@@ -492,10 +492,12 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .cc-stage { position: absolute; left: 0; top: 0; width: 2000px; height: 1500px; transform-origin: 0 0; transform: scale(var(--s)); }
 .cc-card { position: absolute; left: 0; top: 0; margin: 0; width: var(--w); height: var(--h); transform-origin: 0 0; transform: var(--m); }
 .cc-card figcaption { display: none; }
-.cc-pic { width: 100%; height: 100%; overflow: hidden; border-radius: 26px; background: #d9d4cc; box-shadow: 0 46px 80px -34px rgba(0,0,0,.32), 0 6px 18px rgba(0,0,0,.07); }
-.cc-pic img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 28%; transition: transform .6s var(--ease); }
-.cc-card:hover .cc-pic img { transform: scale(1.05); }
-.cc-label { position: absolute; transform-origin: 50% 0; color: #77736e; font-size: 28px; font-weight: 500; white-space: nowrap; }
+.cc-pic { width: 100%; height: 100%; overflow: hidden; border-radius: 26px; background: #1a0b0d; box-shadow: 0 46px 80px -34px rgba(0,0,0,.32), 0 6px 18px rgba(0,0,0,.07); }
+.cc-pic .tile { width: 100%; height: 100%; border-radius: 0; transition: transform .6s var(--ease); }
+.cc-card:hover .cc-pic .tile { transform: scale(1.05); }
+.cc-label { position: absolute; transform-origin: 50% 0; display: grid; gap: 4px; justify-items: center; white-space: nowrap; }
+.cc-label b { color: #3b3834; font-size: 30px; font-weight: 600; letter-spacing: -.01em; }
+.cc-label span { color: #8a857e; font-size: 19px; font-weight: 500; letter-spacing: .18em; }
 .cc-center { position: absolute; left: 1000px; top: 735px; width: 960px; transform: translate(-50%, -50%); text-align: center; z-index: 2; }
 .cc-center .section-kicker { font-size: 96px; line-height: .95; letter-spacing: -.035em; max-width: none; margin: 0 auto; }
 .cc-center p { margin: 30px auto 0; max-width: 780px; color: #6a665f; font-size: 31px; line-height: 1.5; }
@@ -508,6 +510,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
   .cc-center p { font-size: 15px; margin-top: 16px; }
   .cc-card { position: static; width: auto; height: auto; transform: none; }
   .cc-pic { height: auto; aspect-ratio: .85; border-radius: 14px; }
-  .cc-card figcaption { display: block; margin-top: 10px; text-align: center; color: #77736e; font-size: 12px; font-weight: 500; }
+  .cc-card figcaption { display: grid; gap: 2px; margin-top: 10px; text-align: center; }
+  .cc-card figcaption b { color: #3b3834; font-size: 14px; font-weight: 600; }
+  .cc-card figcaption span { color: #8a857e; font-size: 9px; letter-spacing: .16em; }
 }
-@media (prefers-reduced-motion: reduce) { .cc-pic img { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .cc-pic .tile { transition: none; } }

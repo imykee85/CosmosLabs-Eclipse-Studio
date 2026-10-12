@@ -1,24 +1,23 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { wowTiles } from "./data";
 
 // The "One canvas" cloud. Each card is a flat picture mapped onto the four corners measured from the user's reference screenshot (a 2000 x 1500 stage),
 // so the cards get the same skewed, perspective look: a homography turned into a CSS matrix3d. The stage is scaled to fit its box by a ResizeObserver.
 type Pt = [number, number];
-type Card = { label: string; alt: string; q: [Pt, Pt, Pt, Pt] }; // corners: top-left, top-right, bottom-right, bottom-left
+type Card = { title: string; sub: string; q: [Pt, Pt, Pt, Pt] }; // corners: top-left, top-right, bottom-right, bottom-left
 
-const cards: Card[] = [
-  { label: "Automotive", alt: "A model in a leather jacket sitting on a classic car at dusk", q: [[50, 167], [642, 193], [678, 520], [118, 570]] },
-  { label: "Jewelry", alt: "A model with a statement necklace against a cloudy sky, reflected in glass", q: [[724, 72], [966, 54], [998, 375], [755, 399]] },
-  { label: "Menswear", alt: "A man in a black jacket with a watch and sunglasses", q: [[1172, 135], [1435, 140], [1405, 408], [1153, 392]] },
-  { label: "Editorial", alt: "A model in a red dress between sculpted hedges", q: [[1450, 250], [1968, 195], [1925, 615], [1420, 580]] },
-  { label: "Interiors", alt: "A white boucle armchair in a calm, minimal room", q: [[145, 620], [373, 625], [373, 803], [147, 808]] },
-  { label: "Fashion", alt: "A model in black evening wear in front of a red curtain", q: [[1615, 692], [1858, 672], [1868, 873], [1620, 878]] },
-  { label: "Beauty", alt: "A model with braids and shell jewelry in still water", q: [[100, 845], [510, 885], [480, 1220], [25, 1230]] },
-  { label: "Eyewear", alt: "A man in a green jacket putting on orange sport sunglasses", q: [[635, 982], [882, 1005], [843, 1350], [566, 1332]] },
-  { label: "Products", alt: "A stack of four leather handbags in different colours", q: [[1057, 1040], [1250, 1025], [1275, 1292], [1080, 1305]] },
-  { label: "Portrait", alt: "A woman in a black high-collar top against warm linen", q: [[1445, 950], [1790, 918], [1905, 1340], [1510, 1364]] },
+// The six plain cards of the section (wowTiles), placed on six of the reference's ten card shapes.
+const quads: Card["q"][] = [
+  [[50, 167], [642, 193], [678, 520], [118, 570]], // big, top left
+  [[724, 72], [966, 54], [998, 375], [755, 399]], // small portrait, top middle
+  [[1450, 250], [1968, 195], [1925, 615], [1420, 580]], // big, top right
+  [[100, 845], [510, 885], [480, 1220], [25, 1230]], // big, bottom left
+  [[1057, 1040], [1250, 1025], [1275, 1292], [1080, 1305]], // small portrait, bottom middle
+  [[1445, 950], [1790, 918], [1905, 1340], [1510, 1364]], // big, bottom right
 ];
+const cards: Card[] = wowTiles.map(([title, sub], i) => ({ title, sub, q: quads[i] }));
 
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -73,16 +72,13 @@ export default function CanvasCloud() {
     <div className="canvas-cloud" ref={box}>
       <div className="cc-stage">
         {laid.map((c) => (
-          <figure className="cc-card" key={c.label} style={{ ["--w" as string]: `${c.w}px`, ["--h" as string]: `${c.h}px`, ["--m" as string]: c.m }}>
-            <div className="cc-pic">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/canvas/c${c.i + 1}.jpg`} alt={c.alt} loading="lazy" decoding="async" />
-            </div>
-            <figcaption>{c.label}</figcaption>
+          <figure className="cc-card" key={c.title} style={{ ["--w" as string]: `${c.w}px`, ["--h" as string]: `${c.h}px`, ["--m" as string]: c.m }}>
+            <div className="cc-pic"><div className={`tile tone-${c.i}`} /></div>
+            <figcaption><b>{c.title}</b><span>{c.sub}</span></figcaption>
           </figure>
         ))}
         {laid.map((c) => (
-          <span className="cc-label" aria-hidden="true" key={c.label} style={{ left: c.lx, top: c.ly, transform: `translate(-50%, 0) rotate(${c.angle}deg)` }}>{c.label}</span>
+          <span className="cc-label" aria-hidden="true" key={c.title} style={{ left: c.lx, top: c.ly, transform: `translate(-50%, 0) rotate(${c.angle}deg)` }}><b>{c.title}</b><span>{c.sub}</span></span>
         ))}
         <div className="cc-center">
           <h2 className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></h2>
