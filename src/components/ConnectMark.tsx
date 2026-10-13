@@ -1,4 +1,4 @@
-// The Orbit icon: the Cosmos Labs mark at small size. Same layout as the full logo: a hub with nine nodes in an even ring
+// The Core icon: the Cosmos Labs mark at small size. Same layout as the full logo: a hub with nine nodes in an even ring
 // (40 degrees apart, the first at 280 degrees, exactly as in the logo) joined to it by faint lines. The "C" of the full
 // logo is left out because it blurs below about 24 px. One colour (currentColor), so it follows the theme.
 const NODE_ANGLES = [280, 320, 0, 40, 80, 120, 160, 200, 240];

@@ -13,7 +13,7 @@ import "./home-feed.css";
 const FAQ: [string, string][] = [
   ["What can I create?", "Images today, with video and more creative tools on the roadmap. Anything tagged Soon is not ready yet."],
   ["Where do my creations go?", "Each image is saved to your private Library, and to the Gallery of the project you made it in."],
-  ["What is Orbit?", "Your creative computer: a chat that can make images, follow skills, remember your style and send finished work to Telegram or Slack."],
+  ["What is Core?", "Your creative computer: a chat that can make images, follow skills, remember your style and send finished work to Telegram or Slack."],
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
 ];
 
