@@ -10,7 +10,7 @@ export type VideoLive = {
   endpoints: Partial<Record<Workflow, string>>;     // path after the API base address
   promptMax: number;                                // longer prompts are refused here (some endpoints truncate silently)
   promptRequired: Record<Workflow, boolean>;
-  durations: Record<Workflow, { min: number; max: number }>;
+  durations: Record<Workflow, { min: number; max: number; values?: number[] }>;  // `values` = only these lengths (e.g. 5 or 10)
   durationDefault: number;
   resolution?: { values: string[]; default: string };
   aspect?: { values: string[]; default: string };   // text-to-video only; with a start frame the shape follows the picture
@@ -47,7 +47,7 @@ const RWIDE = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"];
 const SLOW = 20; // minutes
 
 // --- Connected models (Phase 1) ---------------------------------------------------------------------------------------------------------------------------------
-const kling3 = (tier: "std" | "pro"): VideoLive => ({
+const kling3 = (tier: "std" | "pro" | "4k"): VideoLive => ({
   endpoints: { t2v: `kling-video/v3.0/${tier}/text-to-video`, i2v: `kling-video/v3.0/${tier}/image-to-video` },
   promptMax: 2500,
   promptRequired: { t2v: true, i2v: true },
@@ -57,7 +57,47 @@ const kling3 = (tier: "std" | "pro"): VideoLive => ({
   audio: { field: "sound", kind: "onoff", default: true },
   cfgScale: true,
   endFrameField: "last_image_url",
-  price: { perSecond: { default: tier === "pro" ? 22 : 14 }, audioFactor: 1.5 },
+  price: { perSecond: { default: tier === "4k" ? 40 : tier === "pro" ? 22 : 14 }, audioFactor: 1.5 },
+  timeoutMinutes: SLOW,
+});
+
+// Kling 3.0 Turbo: no sound, cfg or end frame; resolution 720p or 1080p (the path is the tier, `v3.0-turbo`). Text prompt up to 3,072 characters, image prompt 2,500.
+const kling3Turbo: VideoLive = {
+  endpoints: { t2v: "kling-video/v3.0-turbo/text-to-video", i2v: "kling-video/v3.0-turbo/image-to-video" },
+  promptMax: 2500,
+  promptRequired: { t2v: true, i2v: true },
+  durations: { t2v: { min: 3, max: 15 }, i2v: { min: 3, max: 15 } },
+  durationDefault: 5,
+  resolution: { values: ["720p", "1080p"], default: "720p" },
+  aspect: { values: R3, default: "16:9" },
+  price: { perSecond: { "720p": 10, "1080p": 18 } },
+  timeoutMinutes: SLOW,
+};
+
+// Kling 2.6 Pro: 5 or 10 s, sound, cfg; the image endpoint also lists an aspect ratio, which is not sent (the shape follows the picture).
+const kling26: VideoLive = {
+  endpoints: { t2v: "kling-video/v2.6/pro/text-to-video", i2v: "kling-video/v2.6/pro/image-to-video" },
+  promptMax: 2500,
+  promptRequired: { t2v: true, i2v: true },
+  durations: { t2v: { min: 5, max: 10, values: [5, 10] }, i2v: { min: 5, max: 10, values: [5, 10] } },
+  durationDefault: 5,
+  aspect: { values: R3, default: "16:9" },
+  audio: { field: "sound", kind: "onoff", default: true },
+  cfgScale: true,
+  price: { perSecond: { default: 22 }, audioFactor: 1.5 },
+  timeoutMinutes: SLOW,
+};
+
+// Kling 2.5 Turbo (Pro: text and image; Standard: image only, folder `standard`): 5 or 10 s, no sound, aspect or resolution; cfg and negative prompt.
+const kling25t = (tier: "pro" | "standard"): VideoLive => ({
+  endpoints: { ...(tier === "pro" ? { t2v: "kling-video/v2.5-turbo/pro/text-to-video" } : {}), i2v: `kling-video/v2.5-turbo/${tier}/image-to-video` },
+  promptMax: 2500, // the pages state no limit; kept at the app-wide cap
+  promptRequired: { t2v: true, i2v: true },
+  durations: { t2v: { min: 5, max: 10, values: [5, 10] }, i2v: { min: 5, max: 10, values: [5, 10] } },
+  durationDefault: 5,
+  negativePrompt: { max: 2500 },
+  cfgScale: true,
+  price: { perSecond: { default: tier === "pro" ? 14 : 8 } },
   timeoutMinutes: SLOW,
 });
 
@@ -127,15 +167,18 @@ const pixverse6: VideoLive = {
 export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling_3_pro", label: "Kling 3.0 Pro", maker: "Kling", blurb: "Multi-shot, sound and the best general motion. Pro tier.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("pro") },
   { id: "kling_3_std", label: "Kling 3.0 Standard", maker: "Kling", blurb: "The same model at the lower, cheaper tier.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("std") },
+  { id: "kling_3_4k", label: "Kling 3.0 4K", maker: "Kling", blurb: "The 3.0 model at 4K, with sound.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("4k") },
+  { id: "kling3_0_turbo", label: "Kling 3.0 Turbo", maker: "Kling", blurb: "Fast text-to-video and start-frame animation, 720p or 1080p.", ratios: R3, durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling3Turbo },
+  { id: "kling2_6", label: "Kling 2.6 Pro", maker: "Kling", blurb: "Cinematic motion and physics, with sound.", ratios: R3, durations: [5, 10], qualities: [], sound: "toggle", startFrame: true, endFrame: false, refImages: 0, live: kling26 },
+  { id: "kling_2_5_turbo_pro", label: "Kling 2.5 Turbo Pro", maker: "Kling", blurb: "Fast text and start-frame video, 5 or 10 seconds, no sound.", ratios: [], durations: [5, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling25t("pro") },
+  { id: "kling_2_5_turbo_std", label: "Kling 2.5 Turbo Standard", maker: "Kling", blurb: "Start-frame animation only (needs a start frame), 5 or 10 seconds.", ratios: [], durations: [5, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling25t("standard") },
   { id: "seedance_2_0", label: "Seedance 2.0", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 4K.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: SEEDANCE_RES, sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: seedance2 },
   { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 30 seconds.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: seedance25 },
   { id: "happy_horse_1_1", label: "Happy Horse 1.1", maker: "Happy Horse", blurb: "Text-to-video and start-frame animation, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: happyHorse11 },
   { id: "pixverse_v6", label: "PixVerse V6", maker: "PixVerse", blurb: "Fast clips from 1 to 15 seconds, with sound and a seed.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(1, 15), qualities: ["360p", "540p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: pixverse6 },
 
   // Listed with the settings the catalog gives; not connected yet (greyed out, Soon).
-  { id: "kling3_0_turbo", label: "Kling 3.0 Turbo", maker: "Kling", blurb: "Fast text-to-video and start-frame animation.", ratios: R3, durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0 },
   { id: "kling_o3_image_reference", label: "Kling 3.0 Omni", maker: "Kling", blurb: "Video from text and several reference pictures.", ratios: R3, durations: range(3, 15), qualities: ["Standard", "Pro", "4K"], sound: "toggle", startFrame: false, endFrame: false, refImages: 7 },
-  { id: "kling2_6", label: "Kling 2.6", maker: "Kling", blurb: "Cinematic motion and physics.", ratios: R3, durations: [5, 10], qualities: [], sound: "toggle", startFrame: true, endFrame: false, refImages: 0 },
   { id: "seedance_2_0_mini", label: "Seedance 2.0 Mini", maker: "Bytedance", blurb: "Fast, budget Seedance 2.0.", ratios: RWIDE, durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
   { id: "seedance1_5", label: "Seedance 1.5 Pro", maker: "Bytedance", blurb: "Reliable motion, improved quality.", ratios: RWIDE, durations: [4, 8, 12], qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "cinematic_studio_3_0", label: "Cinema Studio Video 3.0", maker: "Higgsfield", blurb: "Cinema-grade video, the most advanced.", ratios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(4, 15), qualities: ["480p", "720p", "1080p", "4K"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
@@ -192,8 +235,8 @@ export function capsFor(m: VideoModel, wf: Workflow): Caps {
   const d = l.durations[wf];
   const hasAspect = !!l.aspect && wf === "t2v";
   return {
-    durations: range(d.min, d.max),
-    defaultDuration: Math.min(Math.max(l.durationDefault, d.min), d.max),
+    durations: d.values ?? range(d.min, d.max),
+    defaultDuration: d.values ? (d.values.includes(l.durationDefault) ? l.durationDefault : d.values[0]) : Math.min(Math.max(l.durationDefault, d.min), d.max),
     qualities: l.resolution?.values ?? [],
     defaultQuality: l.resolution?.default ?? "",
     ratios: hasAspect ? l.aspect!.values : [],
@@ -251,7 +294,7 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   const prompt = input.prompt.trim();
   if (caps.promptRequired && !prompt) return { ok: false, error: `${m.label} needs a prompt${wf === "i2v" ? " (even with a start frame)" : ""}.` };
   if (prompt.length > caps.promptMax) return { ok: false, error: `${m.label} accepts prompts up to ${caps.promptMax} characters (yours is ${prompt.length}).` };
-  if (!Number.isInteger(input.duration) || !caps.durations.includes(input.duration)) return { ok: false, error: `${m.label} makes clips of ${caps.durations[0]} to ${caps.durations[caps.durations.length - 1]} seconds.` };
+  if (!Number.isInteger(input.duration) || !caps.durations.includes(input.duration)) return { ok: false, error: caps.durations.length === 2 && caps.durations[1] - caps.durations[0] > 1 ? `${m.label} makes clips of ${caps.durations[0]} or ${caps.durations[1]} seconds.` : `${m.label} makes clips of ${caps.durations[0]} to ${caps.durations[caps.durations.length - 1]} seconds.` };
 
   const body: Record<string, unknown> = {};
   if (prompt || caps.promptRequired) body.prompt = prompt;

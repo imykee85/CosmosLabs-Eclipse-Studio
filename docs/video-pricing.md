@@ -6,6 +6,10 @@ Higgsfield's video pages publish no prices, so every number below is a deliberat
 | --- | --- | --- |
 | Kling 3.0 Standard | 14 | x1.5 |
 | Kling 3.0 Pro | 22 | x1.5 |
+| Kling 3.0 4K | 40 | x1.5 |
+| Kling 3.0 Turbo | 720p 10, 1080p 18 | no sound |
+| Kling 2.6 Pro | 22 | x1.5 |
+| Kling 2.5 Turbo Pro / Standard | 14 / 8 | no sound |
 | Seedance 2.0 | 480p 10, 720p 20, 1080p 40, 4k 90 | x1.25 |
 | Seedance 2.5 | 480p 10, 720p 20, 1080p 40 (same placeholder as 2.0, up to 30 s, so a 30 s 1080p clip with sound is 1500) | x1.25 |
 | Happy Horse 1.1 | 720p 14, 1080p 26 | none |
