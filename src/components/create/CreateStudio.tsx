@@ -91,6 +91,8 @@ export default function CreateStudio() {
   const [watched, setWatched] = useState<string | null>(null);
   useEffect(() => { if (pending) setWatched(pending.id); }, [pending]);
   const latestDone = list.find((g) => g.id === watched && g.status === "completed" && g.imageUrl) ?? null;
+  // GPT, Google and Seedream renders run inside the one request, so there is no pending row to see until they finish: the preview also shows "working" while the request is out.
+  const busy = Boolean(pending) || submitting;
   const lastFailed = list[0]?.status === "failed" ? list[0] : null;
 
   useEffect(() => {
@@ -189,6 +191,8 @@ export default function CreateStudio() {
       if (failed && results.every((r) => !r.ok)) throw new Error(failed.error);
       if (failed) setError(`${results.filter((r) => !r.ok).length} of ${count} images could not be started: ${failed.error}`);
       if (!over?.prompt) setPrompt("");
+      const firstId = results.find((r) => r.ok && r.id)?.id;
+      if (firstId) setWatched(firstId); // a render that finished inside the request never shows as pending, so point the preview at it now
       await reload();
       return "";
     } catch (e) {
@@ -216,7 +220,7 @@ export default function CreateStudio() {
   }
 
   // The tools for the picture in the preview. They sit tucked behind the prompt box and slide up when a picture is showing.
-  const toolPic = pending ? null : latestDone;
+  const toolPic = busy ? null : latestDone;
   function editPicture() {
     if (!toolPic?.imageUrl) return;
     setRefs([{ type: "render", id: toolPic.id, url: toolPic.imageUrl, label: toolPic.prompt }]);
@@ -239,11 +243,11 @@ export default function CreateStudio() {
 
       <section className="cr-preview" aria-label="Preview">
         {(() => {
-          const shown = pending ? null : latestDone;
+          const shown = busy ? null : latestDone;
           const r = pending?.aspectRatio ?? shown?.aspectRatio ?? ratio;
           return (
             <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: previewWidth(r) }} aria-live="polite">
-              {pending ? (
+              {busy ? (
                 <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Creating your image…</p></div>
               ) : shown?.imageUrl ? (
                 <a href={shown.imageUrl} target="_blank" rel="noreferrer" title="Open full size">
@@ -256,7 +260,7 @@ export default function CreateStudio() {
             </div>
           );
         })()}
-        {pending ? <p className="cr-caption">{pending.prompt}</p> : latestDone && (
+        {busy ? <p className="cr-caption">{pending?.prompt ?? prompt}</p> : latestDone && (
           <div className="cr-details"><RenderDetails g={latestDone} onDeleted={reload} onStarted={reload} collapsible /></div>
         )}
         {(() => {
