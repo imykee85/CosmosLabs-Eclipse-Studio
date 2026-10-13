@@ -382,7 +382,7 @@ export default function VideoStudio() {
               <button type="button" className={`cr-chip vs-sound ${sound && caps.audio ? "" : "is-muted"}`} disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={!caps.audio ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
                 {sound && caps.audio ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
-              <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the shape follows your picture" : "Shape of the clip"}><span className="sr-only">Aspect ratio</span>
+              <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the aspect ratio follows your picture" : "Aspect ratio of the clip"}><span className="sr-only">Aspect ratio</span>
                 <select value={caps.ratios.length ? ratio : ""} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio" disabled={!caps.ratios.length}>
                   {caps.ratios.length ? caps.ratios.map((r) => <option key={r} value={r}>{r === "auto" ? "Auto" : r}</option>) : <option value="">Follows picture</option>}
                 </select>

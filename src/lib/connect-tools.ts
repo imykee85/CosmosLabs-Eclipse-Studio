@@ -18,7 +18,7 @@ export type ToolOutcome = { text: string; isError?: boolean; image?: { mediaType
 export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
   {
     name: "list_image_models",
-    description: "List the image models that can be used with generate_image, with the shapes each supports. Call it when the user asks about models or when you need a shape a model supports.",
+    description: "List the image models that can be used with generate_image, with the aspect ratios each supports. Call it when the user asks about models or when you need an aspect ratio a model supports.",
     input_schema: { type: "object", properties: {} },
   },
   {
@@ -116,7 +116,7 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
   try {
     switch (name) {
       case "list_image_models":
-        return { text: JSON.stringify(enabledModels().filter((m) => m.references.min === 0 && m.provider === "higgsfield").map((m) => ({ id: m.id, name: m.label, about: m.blurb, shapes: m.ratios, max_prompt_chars: m.maxPrompt }))) };
+        return { text: JSON.stringify(enabledModels().filter((m) => m.references.min === 0 && m.provider === "higgsfield").map((m) => ({ id: m.id, name: m.label, about: m.blurb, aspect_ratios: m.ratios, max_prompt_chars: m.maxPrompt }))) };
 
       case "generate_image": {
         const target = str(args.project_id, 64);
@@ -143,7 +143,7 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
         const pid = str(args.project_id, 64);
         const rows = await db.generation.findMany({ where: { userId: ctx.userId, deletedAt: null, status: "completed", ...(pid ? { projectId: pid } : {}), ...(q ? { prompt: { contains: q, mode: "insensitive" as const } } : {}) }, orderBy: { createdAt: "desc" }, take });
         const names = new Map((await db.project.findMany({ where: { userId: ctx.userId, id: { in: rows.map((r) => r.projectId).filter((x): x is string => !!x) } } })).map((p) => [p.id, p.name]));
-        return { text: JSON.stringify(rows.map((g) => ({ generation_id: g.id, prompt: g.prompt.slice(0, 240), model: g.model, shape: g.aspectRatio, project: g.projectId ? names.get(g.projectId) ?? g.projectId : null, made: g.createdAt.toISOString() }))) };
+        return { text: JSON.stringify(rows.map((g) => ({ generation_id: g.id, prompt: g.prompt.slice(0, 240), model: g.model, aspect_ratio: g.aspectRatio, project: g.projectId ? names.get(g.projectId) ?? g.projectId : null, made: g.createdAt.toISOString() }))) };
       }
 
       case "view_render": {

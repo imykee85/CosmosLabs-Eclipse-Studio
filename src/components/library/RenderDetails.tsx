@@ -89,7 +89,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
     ["Length", g.kind === "video" && g.durationSec ? `${Math.round(g.durationSec)} s` : null],
     ["Sound", g.kind === "video" && g.hasAudio != null ? (g.hasAudio ? "On" : "Off") : null],
     ["Format", g.contentType ? (FORMATS[g.contentType] ?? g.contentType) : null],
-    ["Shape", g.aspectRatio],
+    ["Aspect ratio", g.aspectRatio],
     ["Resolution", g.resolution],
     ["Model", g.modelLabel],
     ["Created", new Date(g.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" })],

@@ -37,6 +37,6 @@ export type Lesson = { title: string; video?: string };
 // Add a `video` path (files go in public/tutorial/) to switch a lesson's Watch button on.
 export const lessons: Lesson[] = [
   { title: "Write your first prompt and create an image" },
-  { title: "Pick a shape and refine your result" },
+  { title: "Pick an aspect ratio and refine your result" },
   { title: "Keep your work organised in projects" },
 ];

@@ -47,7 +47,7 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
 
   const aspectRatio = typeof input.aspectRatio === "string" ? input.aspectRatio : undefined;
   if (aspectRatio && !model.ratios.includes(aspectRatio)) {
-    return { ok: false, status: 400, error: `${model.label} does not support the ${aspectRatio} shape. Choose one of: ${model.ratios.join(", ")}.` };
+    return { ok: false, status: 400, error: `${model.label} does not support the ${aspectRatio} aspect ratio. Choose one of: ${model.ratios.join(", ")}.` };
   }
   const resolution = typeof input.resolution === "string" ? input.resolution : undefined;
   if (resolution && !model.resolutions.includes(resolution)) {

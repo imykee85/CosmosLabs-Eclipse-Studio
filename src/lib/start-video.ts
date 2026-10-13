@@ -114,7 +114,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     if (clip.durationSec > motion.maxSec && !motion.trimsAbove) return { ok: false, status: 400, error: `${model.label} takes a motion clip of up to ${motion.maxSec} seconds (this one is ${clip.durationSec}).` };
     duration = Math.min(Math.ceil(clip.durationSec), motion.maxSec); // longer clips are cut to the first 30 s by the provider
     if (motion.kind === "kling" && start) {
-      // Kling's limits for the subject picture: up to 10 MB, 300 to 65,536 px a side, a shape between 2:5 and 5:2. Checked here so a paid render is not refused later.
+      // Kling's limits for the subject picture: up to 10 MB, 300 to 65,536 px a side, an aspect ratio between 2:5 and 5:2. Checked here so a paid render is not refused later.
       const facts = start.type === "upload"
         ? await db.upload.findFirst({ where: { id: start.id, userId }, select: { width: true, height: true, sizeBytes: true } })
         : await db.generation.findFirst({ where: { id: start.id, userId, kind: "image" }, select: { width: true, height: true, sizeBytes: true } });
@@ -122,7 +122,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
       if (facts?.width && facts.height) {
         const ratio = facts.width / facts.height;
         if (Math.min(facts.width, facts.height) < 300 || Math.max(facts.width, facts.height) > 65536) return { ok: false, status: 400, error: "The subject picture must be between 300 and 65,536 pixels on each side." };
-        if (ratio < 0.4 || ratio > 2.5) return { ok: false, status: 400, error: "The subject picture is too narrow or too wide (its shape must be between 2:5 and 5:2)." };
+        if (ratio < 0.4 || ratio > 2.5) return { ok: false, status: 400, error: "The subject picture is too narrow or too wide (its aspect ratio must be between 2:5 and 5:2)." };
       }
     }
   }

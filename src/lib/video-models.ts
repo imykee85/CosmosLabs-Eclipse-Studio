@@ -544,7 +544,7 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   }
   if (caps.ratios.length) {
     const ratio = input.aspectRatio ?? caps.defaultRatio;
-    if (!caps.ratios.includes(ratio)) return { ok: false, error: `${m.label} does not support the ${ratio} shape.` };
+    if (!caps.ratios.includes(ratio)) return { ok: false, error: `${m.label} does not support the ${ratio} aspect ratio.` };
     body.aspect_ratio = ratio;
   }
   const e = eff(l, wf);
