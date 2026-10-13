@@ -8,12 +8,12 @@ import { connectModels } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
+import { buildReply } from "@/lib/agent-reply";
 
 export const maxDuration = 60;
 
 // One turn of the conversation with a studio agent. The agent answers in words and may PROPOSE actions (generate, use a prompt, ask for approval); the browser shows them as
 // buttons and nothing happens until the user presses one. Replies are not stored on the server: the browser keeps the chat.
-type Action = { kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number };
 
 const TOOLS: Anthropic.Tool[] = [
   { name: "propose_generation", description: "Ask the user to approve making picture(s) from a finished prompt. Shows a Generate button.", input_schema: { type: "object", properties: { prompt: { type: "string", description: "The full prompt to render." }, count: { type: "integer", minimum: 1, maximum: 4, description: "How many images (default: the user's setting)." } }, required: ["prompt"] } },
@@ -73,23 +73,8 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 1500, system: `${persona.system}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`, tools: TOOLS, messages });
-    let text = "";
-    const actions: Action[] = [];
-    for (const b of res.content) {
-      if (b.type === "text") text += b.text;
-      else if (b.type === "tool_use") {
-        const i = (b.input ?? {}) as Record<string, unknown>;
-        const prompt = clip(i.prompt, 2000);
-        if (b.name === "propose_generation" && prompt) {
-          const n = Number.isInteger(i.count) ? Math.min(4, Math.max(1, i.count as number)) : undefined;
-          actions.push({ kind: "generate", label: n && n > 1 ? `Generate ${n}` : "Generate", prompt, count: n });
-        } else if (b.name === "suggest_prompt" && prompt) actions.push({ kind: "use_prompt", label: "Use this prompt", prompt });
-        else if (b.name === "ask_approval" && Array.isArray(i.options)) for (const o of i.options.slice(0, 4)) { const l = clip(o, 40); if (l) actions.push({ kind: "reply", label: l }); }
-      }
-    }
-    text = text.trim();
-    if (!text && !actions.length) text = "I don't have anything to add yet. Tell me a bit more.";
+    const res = await client.messages.create({ model, max_tokens: 4096, system: `${persona.system}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`, tools: TOOLS, messages });
+    const { text, actions } = buildReply(res.content, res.stop_reason);
     return NextResponse.json({ text, actions });
   } catch (err) {
     console.error("agent chat failed", err);
