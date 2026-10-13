@@ -8,7 +8,7 @@ export type Workflow = "t2v" | "i2v" | "ref"; // text, start frame(s), or refere
 
 export type VideoLive = {
   endpoints: Partial<Record<Workflow, string>>;
-  refs?: { max: number };                           // reference pictures (reference-to-video); needs endpoints.ref     // path after the API base address
+  refs?: { max: number; videos?: { max: number } }; // reference pictures, and reference clips (the user's own finished videos)                           // reference pictures (reference-to-video); needs endpoints.ref     // path after the API base address
   promptMax: number;                                // longer prompts are refused here (some endpoints truncate silently)
   promptRequired: Record<"t2v" | "i2v", boolean> & { ref?: boolean };
   durations: Record<"t2v" | "i2v", { min: number; max: number; values?: number[] }> & { ref?: { min: number; max: number; values?: number[] } };  // `values` = only these lengths (e.g. 5 or 10)
@@ -105,7 +105,7 @@ const kling25t = (tier: "pro" | "standard"): VideoLive => ({
 const SEEDANCE_RES = ["480p", "720p", "1080p", "4k"];
 const seedance2: VideoLive = {
   endpoints: { t2v: "bytedance/seedance-2.0/text-to-video", i2v: "bytedance/seedance-2.0/image-to-video", ref: "bytedance/seedance-2.0/reference-to-video" },
-  refs: { max: 9 },
+  refs: { max: 9, videos: { max: 3 } },
   promptMax: 5000, // the pages state no limit; kept at the app-wide cap
   promptRequired: { t2v: true, i2v: false, ref: false },
   durations: { t2v: { min: 4, max: 15 }, i2v: { min: 4, max: 15 }, ref: { min: 4, max: 15 } },
@@ -123,7 +123,7 @@ const seedance2: VideoLive = {
 // no 4k, no seed, negative prompt or cfg. `bitrate_mode` (default "high") and `output_format` (default "mp4", text-to-video only) are left to their defaults.
 const seedance25: VideoLive = {
   endpoints: { t2v: "bytedance/seedance-2.5/text-to-video", i2v: "bytedance/seedance-2.5/image-to-video", ref: "bytedance/seedance-2.5/reference-to-video" },
-  refs: { max: 30 },
+  refs: { max: 30, videos: { max: 10 } },
   promptMax: 5000, // the pages state no limit; kept at the app-wide cap
   promptRequired: { t2v: true, i2v: false, ref: false },
   durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 }, ref: { min: 4, max: 30 } },
@@ -227,6 +227,7 @@ export type Caps = {
   cfgScale: boolean;
   endFrame: boolean;
   refMax: number;            // reference pictures the model takes (0 = none, or not connected)
+  refVideoMax: number;       // reference clips the model takes (0 = none)
   promptRequired: boolean;
   promptMax: number;
 };
@@ -235,7 +236,7 @@ export type Caps = {
 export function capsFor(m: VideoModel, wf: Workflow): Caps {
   const l = m.live;
   if (!l) {
-    return { durations: m.durations, defaultDuration: m.durations.includes(5) ? 5 : m.durations[0], qualities: m.qualities, defaultQuality: m.qualities.length ? m.qualities[Math.min(1, m.qualities.length - 1)] : "", ratios: m.ratios, defaultRatio: m.ratios.includes("16:9") ? "16:9" : m.ratios[0], audio: m.sound === "toggle", audioDefault: true, seed: null, negativePrompt: null, cfgScale: false, endFrame: m.endFrame, refMax: 0, promptRequired: true, promptMax: 5000 };
+    return { durations: m.durations, defaultDuration: m.durations.includes(5) ? 5 : m.durations[0], qualities: m.qualities, defaultQuality: m.qualities.length ? m.qualities[Math.min(1, m.qualities.length - 1)] : "", ratios: m.ratios, defaultRatio: m.ratios.includes("16:9") ? "16:9" : m.ratios[0], audio: m.sound === "toggle", audioDefault: true, seed: null, negativePrompt: null, cfgScale: false, endFrame: m.endFrame, refMax: 0, refVideoMax: 0, promptRequired: true, promptMax: 5000 };
   }
   const d = (wf === "ref" ? l.durations.ref : undefined) ?? l.durations[wf === "i2v" ? "i2v" : "t2v"];
   const hasAspect = !!l.aspect && wf !== "i2v"; // with a start frame the shape follows the picture
@@ -253,6 +254,7 @@ export function capsFor(m: VideoModel, wf: Workflow): Caps {
     cfgScale: !!l.cfgScale,
     endFrame: wf === "i2v" && !!l.endFrameField,
     refMax: l.endpoints.ref ? l.refs?.max ?? 0 : 0,
+    refVideoMax: l.endpoints.ref ? l.refs?.videos?.max ?? 0 : 0,
     promptRequired: (wf === "ref" ? l.promptRequired.ref : l.promptRequired[wf === "i2v" ? "i2v" : "t2v"]) ?? false,
     promptMax: l.promptMax,
   };
@@ -287,6 +289,7 @@ export type VideoInput = {
   startUrl?: string;   // public https address of the start frame (makes it image-to-video)
   endUrl?: string;     // last frame
   refUrls?: string[];  // reference pictures, in order (makes it reference-to-video; not together with a start frame)
+  refVideoUrls?: string[]; // reference clips, in order (also reference-to-video)
 };
 export type BuildResult = { ok: true; workflow: Workflow; endpoint: string; body: Record<string, unknown> } | { ok: false; error: string };
 
@@ -295,10 +298,12 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   const l = m.live;
   if (!l) return { ok: false, error: `${m.label} is not connected yet.` };
   const refs = input.refUrls ?? [];
-  if (refs.length && (input.startUrl || input.endUrl)) return { ok: false, error: "Use either a start frame or reference pictures, not both." };
-  const wf = workflowOf(!!input.startUrl, refs.length > 0);
+  const refVideos = input.refVideoUrls ?? [];
+  if ((refs.length || refVideos.length) && (input.startUrl || input.endUrl)) return { ok: false, error: "Use either a start frame or reference pictures, not both." };
+  const wf = workflowOf(!!input.startUrl, refs.length > 0 || refVideos.length > 0);
   const endpoint = l.endpoints[wf];
   if (!endpoint) return { ok: false, error: wf === "ref" ? `${m.label} takes no reference pictures yet.` : `${m.label} has no ${wf === "i2v" ? "start-frame" : "text-to-video"} mode connected.` };
+  if (wf === "ref" && refVideos.length > (l.refs?.videos?.max ?? 0)) return { ok: false, error: l.refs?.videos ? `${m.label} takes up to ${l.refs.videos.max} reference clips (you chose ${refVideos.length}).` : `${m.label} takes no reference clips.` };
   if (wf === "ref" && refs.length > (l.refs?.max ?? 0)) return { ok: false, error: `${m.label} takes up to ${l.refs?.max ?? 0} reference pictures (you chose ${refs.length}).` };
   const caps = capsFor(m, wf);
   const prompt = input.prompt.trim();
@@ -336,7 +341,8 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
     body.cfg_scale = Math.round(input.cfgScale * 100) / 100;
   }
   if (wf === "ref") {
-    body.image_urls = refs;
+    if (refs.length) body.image_urls = refs;
+    if (refVideos.length) body.video_urls = refVideos;
   } else if (wf === "i2v") {
     body.image_url = input.startUrl;
     if (input.endUrl) {

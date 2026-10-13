@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const b = await req.json().catch(() => null);
   const result = await startVideoRender({
     userId, prompt: b?.prompt, model: b?.model, duration: b?.duration, resolution: b?.resolution, aspectRatio: b?.aspectRatio, audio: b?.audio, seed: b?.seed, lockSeed: b?.lockSeed,
-    negativePrompt: b?.negativePrompt, cfgScale: b?.cfgScale, start: b?.start, end: b?.end, refs: b?.refs, rights: b?.rights, confirm: b?.confirm, projectId: b?.projectId,
+    negativePrompt: b?.negativePrompt, cfgScale: b?.cfgScale, start: b?.start, end: b?.end, refs: b?.refs, videoRefs: b?.videoRefs, rights: b?.rights, confirm: b?.confirm, projectId: b?.projectId,
   });
   if (!result.ok) return NextResponse.json({ error: result.error, ...(result.needsConfirm ? { needsConfirm: true, cost: result.cost } : {}) }, { status: result.status });
   return NextResponse.json(result.seedNote ? { ...result.item, seedNote: result.seedNote } : result.item);

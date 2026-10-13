@@ -27,6 +27,31 @@ export function parseReferenceRefs(input: unknown, max = MAX_REFERENCES): Refere
   return refs;
 }
 
+// The user's own finished video renders, as links the provider can fetch (reference clips). Ids only; owner, kind and state are checked here.
+export async function resolveVideoReferences(userId: string, ids: string[]): Promise<{ ok: true; urls: string[] } | { ok: false; error: string }> {
+  if (!storageEnabled) return { ok: false, error: "Video storage is not set up, so reference clips cannot be used." };
+  const urls: string[] = [];
+  for (const id of ids) {
+    const g = await db.generation.findFirst({ where: { id, userId, kind: "video", status: "completed", deletedAt: null }, select: { storageKey: true } });
+    if (!g?.storageKey) return { ok: false, error: "One of your reference clips could not be found. It may have been deleted." };
+    urls.push(await signedGetUrl(g.storageKey, REFERENCE_LINK_SECONDS));
+  }
+  return { ok: true, urls };
+}
+
+// Reference clips arrive as [{ id }] (finished video renders only). Returns null when the list is not understood.
+export function parseVideoRefIds(input: unknown, max: number): string[] | null {
+  if (input == null) return [];
+  if (!Array.isArray(input) || input.length > max) return null;
+  const ids: string[] = [];
+  for (const r of input) {
+    const id = r && typeof r === "object" ? (r as { id?: unknown }).id : null;
+    if (typeof id !== "string" || id.length === 0 || id.length > 64) return null;
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
 export async function resolveReferences(userId: string, refs: ReferenceRef[]): Promise<ResolvedReferences> {
   const items: ReferenceItem[] = [];
   for (const r of refs) {
