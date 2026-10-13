@@ -44,8 +44,8 @@ export async function POST(req: Request) {
 
   const c = body?.context ?? {};
   const ctx = [
-    `Where: ${c.page === "canvas" ? "a canvas generator node" : c.page === "video" ? "Video Studio, where the user writes a video prompt (video generation is not connected yet)" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : "Image Studio"}`,
-    clip(c.prompt, 1500) ? `${c.page === "treatment" ? "The user has typed" : "Prompt box now"}: ${clip(c.prompt, 1500)}` : c.page === "treatment" ? "Nothing typed yet." : "Prompt box is empty.",
+    `Where: ${c.page === "canvas" ? "a canvas generator node" : c.page === "video" ? "Video Studio, where the user writes a video prompt (video generation is not connected yet)" : c.page === "core" ? "Core, the user's creative computer: a chat that can make pictures, run skills, use memory and send finished work to apps" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : "Image Studio"}`,
+    clip(c.prompt, 1500) ? `${c.page === "treatment" ? "The user has typed" : c.page === "core" ? "Message box now" : "Prompt box now"}: ${clip(c.prompt, 1500)}` : c.page === "treatment" ? "Nothing typed yet." : c.page === "core" ? "Message box is empty." : "Prompt box is empty.",
     clip(c.ratio, 12) ? `Ratio: ${clip(c.ratio, 12)}` : "",
     Number.isInteger(c.qty) ? `Images per run: ${c.qty}` : "",
     clip(c.model, 60) ? `Model: ${clip(c.model, 60)}` : "",

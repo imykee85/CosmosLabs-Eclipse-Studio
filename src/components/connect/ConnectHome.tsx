@@ -6,13 +6,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, Brain, Clock, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
+import AgentWidget from "../create/AgentWidget";
 import { MODEL_KEY } from "@/lib/connect-models";
 import { useAgent } from "@/lib/use-agent";
+import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
 import BrandLogo from "./brands";
 import ChatThread, { type Line } from "./ChatThread";
 import ModelPicker from "./ModelPicker";
+import "@/components/create/create.css"; // the Atlas widget and its menu are styled there (Treatment does the same)
 import "./connect.css";
 
 
@@ -21,7 +24,7 @@ function ConnectChat() {
   const router = useRouter();
   const params = useSearchParams();
   const [text, setText] = useState("");
-  // Atlas: the same shared agent choice and switch as every other prompt box (nothing in this chat reads it yet).
+  // Atlas: the same shared agent choice and switch as every other prompt box; switched on, the floating Atlas appears and its card is the chat.
   const agent = useAgent();
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
   const agentChip = useRef<HTMLButtonElement>(null);
@@ -110,6 +113,8 @@ function ConnectChat() {
     else if (s) { router.replace("/connect"); send(s); }
   }, [params, open, router, send]);
 
+  // Atlas can fill the message box ("Use this prompt") and, when you press Generate on its card, send that message to the Core chat.
+  useAgentHost({ page: "core", context: () => ({ prompt: text }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; } });
   const scrollEnd = useCallback(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, []);
   useEffect(() => { scrollEnd(); }, [lines, scrollEnd]);
   useEffect(() => {
@@ -207,6 +212,7 @@ function ConnectChat() {
           </div>
         </form>
       </div>
+      {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       <div ref={end} />
     </div>

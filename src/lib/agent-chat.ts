@@ -10,7 +10,7 @@ export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label
 export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; error?: boolean; note?: boolean };
 
 export type AgentHost = {
-  page: "studio" | "canvas" | "treatment" | "video";
+  page: "studio" | "canvas" | "treatment" | "video" | "core";
   context: () => { prompt: string; ratio?: string; qty?: number; model?: string; ingredients?: number };
   setPrompt: (text: string) => void;
   // Starts the render. Resolves with "" when it started, or a plain reason when it could not.
@@ -97,11 +97,11 @@ export function useAgentChat(agent: string | null) {
     const mark = () => write(agent, read(agent).map((m) => (m.id === msgId ? { ...m, actions: m.actions?.map((a) => (a.id === actId ? { ...a, used: true } : a)) } : m)));
     if (act.kind === "reply") { mark(); await send(act.label); return; }
     if (!host) { add({ role: "agent", text: "Open Image Studio or a canvas generator and I can do that there.", note: true }); return; }
-    if (act.kind === "use_prompt") { host.setPrompt(act.prompt ?? ""); mark(); add({ role: "agent", text: "Done. The prompt is in your prompt box.", note: true }); return; }
+    if (act.kind === "use_prompt") { host.setPrompt(act.prompt ?? ""); mark(); add({ role: "agent", text: host.page === "core" ? "Done. It's in your message box." : "Done. The prompt is in your prompt box.", note: true }); return; }
     mark();
     add({ role: "agent", text: "Approved. Starting it now.", note: true });
     const why = await host.generate({ prompt: act.prompt, count: act.count });
-    add({ role: "agent", text: why ? `I couldn't start it: ${why}` : "It's rendering. Watch the preview; it keeps going if you leave.", note: true, error: !!why });
+    add({ role: "agent", text: why ? `I couldn't start it: ${why}` : host.page === "core" ? "Sent to Core." : "It's rendering. Watch the preview; it keeps going if you leave.", note: true, error: !!why });
   }, [agent, add, send]);
 
   const clear = useCallback(() => { if (agent) write(agent, []); }, [agent]);
