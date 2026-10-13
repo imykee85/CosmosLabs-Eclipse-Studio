@@ -12,6 +12,7 @@ import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type ClipPick, type RefPick } from "../create/ReferencePicker";
 import RenderDetails from "../library/RenderDetails";
 import OrderedRefs, { type RefItem } from "./OrderedRefs";
+import StyleLibrary from "./StyleLibrary";
 import SoonTag from "../SoonTag";
 import VideoModelPicker from "./VideoModelPicker";
 import { useAgent } from "@/lib/use-agent";
@@ -47,6 +48,7 @@ export default function VideoStudio() {
   const [mcTier, setMcTier] = useState<"pro" | "std">("pro");
   const [mcOrient, setMcOrient] = useState<"video" | "image">("video");
   const [mcSound, setMcSound] = useState(true);
+  const [styleOpen, setStyleOpen] = useState(false);
   const [mcScene, setMcScene] = useState(false);          // Scene control: not sent anywhere yet (its API field is not in our reference)
   const [mcSceneFrom, setMcSceneFrom] = useState<"video" | "image">("video");
   const mc = motion === "subject";
@@ -296,6 +298,11 @@ export default function VideoStudio() {
                   <option value="genjutsu">Genjutsu Motion transfer</option>
                 </select>
               </label>
+              {mcEngine === "genjutsu" && (
+                <button type="button" className="vs-style-row" onClick={() => setStyleOpen(true)}>
+                  <span>Style <SoonTag /></span><em>None</em><ChevronDown size={14} style={{ transform: "rotate(-90deg)" }} />
+                </button>
+              )}
               {mcEngine !== "genjutsu" && (
                 <>
                   <div className="vs-opt" role="group" aria-label="Scene control">
@@ -392,6 +399,7 @@ export default function VideoStudio() {
       }} onClose={() => setMotionAnchor(null)} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} onClose={() => setSettingsAnchor(null)} />}
+      {styleOpen && <StyleLibrary onClose={() => setStyleOpen(false)} />}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
     </div>
   );
