@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Camera, Clapperboard } from "lucide-react";
-import SoonTag from "@/components/SoonTag";
 
 export default function ProjectHome() {
   return (
@@ -14,12 +13,12 @@ export default function ProjectHome() {
           <p>Premium stills from a single prompt. Write it, generate it, keep it in your gallery.</p>
           <span className="ws-card-cta">Start <ArrowRight size={15} /></span>
         </Link>
-        <button type="button" className="ws-card ws-card-btn">
+        <Link href="/generate" className="ws-card">
           <span className="ws-card-icon"><Clapperboard size={20} /></span>
-          <h2>Video <SoonTag /></h2>
+          <h2>Video</h2>
           <p>Plan scenes, write prompts, generate clips and export a finished video.</p>
           <span className="ws-card-cta">Start <ArrowRight size={15} /></span>
-        </button>
+        </Link>
       </div>
     </div>
   );
