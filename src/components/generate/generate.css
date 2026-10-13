@@ -61,3 +61,10 @@
 .vs-adv label { display: grid; gap: 6px; color: var(--a-muted); font-size: 12.5px; }
 .vs-adv textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; resize: none; }
 .vs-adv input[type="range"] { width: 100%; accent-color: #c00707; }
+.vs-motion { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 10px 4px 0; padding: 12px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); }
+.vs-motion label { display: grid; gap: 6px; color: var(--a-muted); font-size: 12.5px; }
+.vs-motion select { height: 36px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; }
+.vs-motion .vs-motion-check { display: flex; align-items: center; gap: 8px; align-self: end; height: 36px; cursor: pointer; }
+.vs-motion .vs-motion-check input { width: 16px; height: 16px; accent-color: #c00707; }
+.vs-motion p { grid-column: 1 / -1; margin: 0; color: var(--a-muted); font-size: 12.5px; line-height: 1.45; }
+.cr-modelbtn:disabled { opacity: .55; cursor: not-allowed; }

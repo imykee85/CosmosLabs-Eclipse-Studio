@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { ModelIcon } from "../create/ModelPicker";
 import SoonTag from "../SoonTag";
-import { VIDEO_MODELS, isLive, type VideoModel } from "@/lib/video-models";
+import { PICKER_MODELS as VIDEO_MODELS, isLive, type VideoModel } from "@/lib/video-models";
 
 // The video model sheet, the same design as Image Studio's (`ModelPicker`, `mp-` styles from create.css): a search box, Popular (the models that
 // work today) and All models by maker. Models not connected yet are listed with the Soon tag; choosing one still selects it so the controls show its
 // settings greyed, but Generate says it is not connected.
+// The models most people reach for first; every connected model is also under its maker below.
+const POPULAR = ["kling_3_pro", "seedance_2_5", "seedance_2_0", "happy_horse_1_1", "wan3_0", "pixverse_v6"];
 const range = (m: VideoModel) => `${m.durations[0]} to ${m.durations[m.durations.length - 1]} s${m.qualities.length ? ` · ${m.qualities[0]} to ${m.qualities[m.qualities.length - 1]}` : ""}${m.sound === "toggle" ? " · sound" : ""}`;
 
 export default function VideoModelPicker({ value, onPick, onClose }: { value: string; onPick: (m: VideoModel) => void; onClose: () => void }) {
@@ -19,7 +21,7 @@ export default function VideoModelPicker({ value, onPick, onClose }: { value: st
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  const popular = useMemo(() => VIDEO_MODELS.filter(isLive), []);
+  const popular = useMemo(() => POPULAR.map((id) => VIDEO_MODELS.find((m) => m.id === id)).filter((m): m is VideoModel => !!m), []);
   const makers = useMemo(() => [...new Set(VIDEO_MODELS.map((m) => m.maker))], []);
   const term = q.trim().toLowerCase();
   const found = term ? VIDEO_MODELS.filter((m) => `${m.label} ${m.maker} ${m.blurb}`.toLowerCase().includes(term)) : [];

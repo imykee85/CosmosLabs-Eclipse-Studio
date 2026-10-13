@@ -7,7 +7,7 @@ import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, parseVideoRefIds, resolveReferences, resolveVideoReferences, type ReferenceRef } from "@/lib/references";
 import { createGenerationHeld } from "@/lib/reservations";
 import { claimUsage } from "@/lib/usage";
-import { buildVideoBody, capsFor, findVideoModel, videoPrice, workflowOf } from "@/lib/video-models";
+import { buildVideoBody, capsFor, findVideoModel, videoPrice, workflowFor } from "@/lib/video-models";
 
 // Settings (all Config values, none are secrets). Defaults are deliberately tight; raise them in Vercel when real costs are known (docs/video-pricing.md).
 const num = (name: string, fallback: number) => (Number(process.env[name]) > 0 ? Math.floor(Number(process.env[name])) : fallback);
@@ -23,7 +23,7 @@ export const videoSettings = () => ({
 
 export type StartVideoInput = {
   userId: string; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
-  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; rights?: unknown; confirm?: unknown; projectId?: unknown;
+  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; rights?: unknown; confirm?: unknown; projectId?: unknown;
 };
 export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number };
 
@@ -54,7 +54,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     if (!m.ok) { console.warn("prompt refused", m.category); return { ok: false, status: 422, error: m.reason }; }
   }
 
-  const duration = typeof input.duration === "number" ? input.duration : NaN;
+  let duration = typeof input.duration === "number" ? input.duration : NaN;
   const projectId = typeof input.projectId === "string" && input.projectId.length <= 64 ? input.projectId : null;
 
   // Start and end frames: ids of the person's own pictures, never addresses.
@@ -68,8 +68,12 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const videoRefIds = parseVideoRefIds(input.videoRefs, 64); // the model's own limit (up to 10) is checked next
   if (videoRefIds === null) return { ok: false, status: 400, error: "The reference clips were not understood." };
   const anyRefs = refs.length + videoRefIds.length > 0;
-  if (anyRefs && (start || end)) return { ok: false, status: 400, error: "Use either a start frame or reference pictures and clips, not both." };
-  const wf = workflowOf(!!start, anyRefs);
+  const motion = live.motion;
+  if (motion) {
+    // Motion transfer (the Motion chip): ONE subject picture (the start frame) and ONE motion clip, nothing else.
+    if (!start || videoRefIds.length !== 1 || refs.length > 0 || end) return { ok: false, status: 400, error: "Motion transfer needs one subject picture (Start frame) and one motion clip." };
+  } else if (anyRefs && (start || end)) return { ok: false, status: 400, error: "Use either a start frame or reference pictures and clips, not both." };
+  const wf = workflowFor(model, !!start, anyRefs);
   const caps = capsFor(model, wf);
   if (refs.length && !caps.refMax) return { ok: false, status: 400, error: `${model.label} takes no reference pictures yet.` };
   if (videoRefIds.length && !caps.refVideoMax) return { ok: false, status: 400, error: `${model.label} takes no reference clips.` };
@@ -87,24 +91,50 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   let seed: number | null = null;
   let seedLocked = false;
   let seedNote: string | undefined;
-  if (!live.seed) {
+  const seedSpec = caps.seed;
+  if (!seedSpec) {
     if (input.seed != null || input.lockSeed === true) seedNote = `${model.label} does not support seeds, so none was used.`;
   } else {
-    if (input.seed != null && (typeof input.seed !== "number" || !Number.isInteger(input.seed) || input.seed < live.seed.min || input.seed > live.seed.max)) {
-      return { ok: false, status: 400, error: `The seed must be a whole number from ${live.seed.min.toLocaleString("en-US")} to ${live.seed.max.toLocaleString("en-US")} for ${model.label}.` };
+    if (input.seed != null && (typeof input.seed !== "number" || !Number.isInteger(input.seed) || input.seed < seedSpec.min || input.seed > seedSpec.max)) {
+      return { ok: false, status: 400, error: `The seed must be a whole number from ${seedSpec.min.toLocaleString("en-US")} to ${seedSpec.max.toLocaleString("en-US")} for ${model.label}.` };
     }
     if (input.seed != null || input.lockSeed === true) {
       seedLocked = true;
-      seed = (input.seed as number | null | undefined) ?? (await db.generation.findFirst({ where: { userId, model: model.id, kind: "video", seed: { not: null } }, orderBy: { createdAt: "desc" }, select: { seed: true } }))?.seed ?? randomInt(live.seed.min, live.seed.max + 1);
-    } else seed = randomInt(live.seed.min, live.seed.max + 1);
+      seed = (input.seed as number | null | undefined) ?? (await db.generation.findFirst({ where: { userId, model: model.id, kind: "video", seed: { not: null } }, orderBy: { createdAt: "desc" }, select: { seed: true } }))?.seed ?? randomInt(seedSpec.min, seedSpec.max + 1);
+    } else seed = randomInt(seedSpec.min, seedSpec.max + 1);
+  }
+
+  // Motion transfer: the length of the result follows the motion clip, so the price and the stored length come from the clip's recorded length.
+  const keepSound = input.motion?.keepSound === false ? false : true;
+  const orientation = input.motion?.orientation === "image" ? "image" : "video";
+  if (motion) {
+    const clip = await db.generation.findFirst({ where: { id: videoRefIds[0], userId, kind: "video", status: "completed", deletedAt: null }, select: { durationSec: true } });
+    if (!clip) return { ok: false, status: 400, error: "That motion clip could not be found. It may have been deleted." };
+    if (clip.durationSec == null) return { ok: false, status: 400, error: "The length of that clip was not recorded, so it cannot be used as a motion clip." };
+    if (clip.durationSec < motion.minSec) return { ok: false, status: 400, error: `${model.label} needs a motion clip of at least ${motion.minSec} seconds (this one is ${clip.durationSec}).` };
+    if (clip.durationSec > motion.maxSec && !motion.trimsAbove) return { ok: false, status: 400, error: `${model.label} takes a motion clip of up to ${motion.maxSec} seconds (this one is ${clip.durationSec}).` };
+    duration = Math.min(Math.ceil(clip.durationSec), motion.maxSec); // longer clips are cut to the first 30 s by the provider
+    if (motion.kind === "kling" && start) {
+      // Kling's limits for the subject picture: up to 10 MB, 300 to 65,536 px a side, a shape between 2:5 and 5:2. Checked here so a paid render is not refused later.
+      const facts = start.type === "upload"
+        ? await db.upload.findFirst({ where: { id: start.id, userId }, select: { width: true, height: true, sizeBytes: true } })
+        : await db.generation.findFirst({ where: { id: start.id, userId, kind: "image" }, select: { width: true, height: true, sizeBytes: true } });
+      if (facts?.sizeBytes && facts.sizeBytes > 10 * 1024 * 1024) return { ok: false, status: 400, error: "The subject picture is larger than 10 MB. Please use a smaller one." };
+      if (facts?.width && facts.height) {
+        const ratio = facts.width / facts.height;
+        if (Math.min(facts.width, facts.height) < 300 || Math.max(facts.width, facts.height) > 65536) return { ok: false, status: 400, error: "The subject picture must be between 300 and 65,536 pixels on each side." };
+        if (ratio < 0.4 || ratio > 2.5) return { ok: false, status: 400, error: "The subject picture is too narrow or too wide (its shape must be between 2:5 and 5:2)." };
+      }
+    }
   }
 
   // Check the request against the model BEFORE anything is held or limited (placeholder addresses stand in for the pictures).
-  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: typeof input.aspectRatio === "string" ? input.aspectRatio : undefined, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined });
+  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: typeof input.aspectRatio === "string" ? input.aspectRatio : undefined, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined });
   if (!probe.ok) return { ok: false, status: 400, error: probe.error };
 
   const resolutionUsed = typeof probe.body.resolution === "string" ? probe.body.resolution : undefined;
-  const audioUsed = live.audio ? (audio ?? live.audio.default) : false;
+  const audioCfg = caps.audio ? (audio ?? caps.audioDefault) : false;
+  const audioUsed = motion ? motion.kind === "kling" && keepSound : audioCfg;
   const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed) : null;
   if (cost != null) {
     const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });
@@ -134,7 +164,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     if (!clips.ok) return { ok: false, status: 400, error: clips.error };
     refVideoUrls = clips.urls;
   }
-  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: typeof input.aspectRatio === "string" ? input.aspectRatio : undefined, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, startUrl, endUrl, refUrls, refVideoUrls });
+  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: typeof input.aspectRatio === "string" ? input.aspectRatio : undefined, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl, endUrl, refUrls, refVideoUrls });
   if (!built.ok) return { ok: false, status: 400, error: built.error };
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel starts cannot all pass the balance check.
@@ -142,9 +172,9 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const aspect = typeof built.body.aspect_ratio === "string" ? built.body.aspect_ratio : null;
   const made = await createGenerationHeld(userId, cost, {
     userId, projectId, kind: "video", prompt, status: "pending", statusUrl: null, requestId: null, provider: "higgsfield", model: model.id,
-    aspectRatio: aspect, resolution: resolutionUsed ?? null, seed, seedLocked, durationSec: duration, hasAudio: live.audio ? audioUsed : null,
+    aspectRatio: aspect, resolution: resolutionUsed ?? null, seed, seedLocked, durationSec: duration, hasAudio: motion ? (motion.kind === "kling" ? keepSound : null) : caps.audio ? audioUsed : null,
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
-    params: { workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, rights: pictures.length || videoRefIds.length ? true : undefined, videoRefs: videoRefIds.length ? videoRefIds : undefined, negativePrompt: negativePrompt || undefined },
+    params: { workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, rights: pictures.length || videoRefIds.length ? true : undefined, videoRefs: videoRefIds.length ? videoRefIds : undefined, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
   });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
 

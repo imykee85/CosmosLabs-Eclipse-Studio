@@ -4,22 +4,33 @@
 // the model lists (several endpoints reject unknown fields), applies defaults, clamps nothing silently (a bad value is an error) and never switches to another model.
 // Shared by the browser (controls, price estimate) and the server (validation, request body, price).
 
-export type Workflow = "t2v" | "i2v" | "ref"; // text, start frame(s), or reference pictures
+export type Workflow = "t2v" | "i2v" | "ref" | "motion"; // text, start frame(s), reference pictures/clips, or motion transfer (Motion chip)
+
+type ResSpec = { values: string[]; default: string };
+type AspectSpec = { values: string[]; default: string };
+type AudioSpec = { field: "generate_audio" | "sound"; kind: "bool" | "onoff"; default: boolean };
+// What one workflow does differently from the model's base settings (null = the field does not exist in that workflow).
+type WfOverride = { resolution?: ResSpec | null; aspect?: AspectSpec | null; seed?: { min: number; max: number } | null; negativePrompt?: { max: number } | null; audio?: AudioSpec | null };
 
 export type VideoLive = {
-  endpoints: Partial<Record<Workflow, string>>;
-  refs?: { max: number; videos?: { max: number } }; // reference pictures, and reference clips (the user's own finished videos)                           // reference pictures (reference-to-video); needs endpoints.ref     // path after the API base address
+  endpoints: Partial<Record<Workflow, string>>;     // path after the API base address
+  refs?: { max: number; videos?: { max: number }; total?: number }; // reference pictures, reference clips (the user's own finished videos), and the most of both together
   promptMax: number;                                // longer prompts are refused here (some endpoints truncate silently)
   promptRequired: Record<"t2v" | "i2v", boolean> & { ref?: boolean };
   durations: Record<"t2v" | "i2v", { min: number; max: number; values?: number[] }> & { ref?: { min: number; max: number; values?: number[] } };  // `values` = only these lengths (e.g. 5 or 10)
   durationDefault: number;
-  resolution?: { values: string[]; default: string };
-  aspect?: { values: string[]; default: string };   // text-to-video only; with a start frame the shape follows the picture
-  audio?: { field: "generate_audio" | "sound"; kind: "bool" | "onoff"; default: boolean };
+  resolution?: ResSpec;
+  aspect?: AspectSpec;                              // text and reference; with a start frame the shape follows the picture unless aspectOnI2v
+  aspectOnI2v?: boolean;
+  audio?: AudioSpec;
   seed?: { min: number; max: number };
   negativePrompt?: { max: number };
   cfgScale?: boolean;
+  byWf?: Partial<Record<"t2v" | "i2v" | "ref", WfOverride>>;
+  fixed?: Record<string, unknown>;                  // always sent as is (e.g. a watermark switch the API wants off)
   endFrameField?: string;                           // name of the last-frame field on the image-to-video endpoint; absent = no end frame
+  // Motion transfer (the Motion chip): the subject picture is the start frame, the motion clip is the one reference clip; the length follows the clip.
+  motion?: { kind: "kling" | "genjutsu"; minSec: number; maxSec: number; trimsAbove?: boolean };
   // PROVISIONAL credit price (the video docs publish no prices): credits per second by resolution ("default" when there is no resolution field),
   // multiplied by audioFactor when sound is on. Deliberately high until real costs are measured (docs/video-pricing.md).
   price: { perSecond: Record<string, number>; audioFactor?: number };
@@ -40,6 +51,7 @@ export type VideoModel = {
   endFrame: boolean;
   refImages: number;           // reference pictures (0 = none); not connected yet for any model
   live?: VideoLive;            // present = connected to Higgsfield and generating
+  hidden?: boolean;            // not in the model picker (the Motion chip's engines)
 };
 
 const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
@@ -138,10 +150,12 @@ const seedance25: VideoLive = {
 };
 
 const happyHorse11: VideoLive = {
-  endpoints: { t2v: "alibaba/happy-horse/v1.1/text-to-video", i2v: "alibaba/happy-horse/v1.1/image-to-video" },
+  endpoints: { t2v: "alibaba/happy-horse/v1.1/text-to-video", i2v: "alibaba/happy-horse/v1.1/image-to-video", ref: "alibaba/happy-horse/v1.1/reference-to-video" },
+  refs: { max: 9 },
+  byWf: { ref: { aspect: null } },
   promptMax: 5000, // not stated on the page
-  promptRequired: { t2v: true, i2v: false },
-  durations: { t2v: { min: 3, max: 15 }, i2v: { min: 2, max: 15 } },
+  promptRequired: { t2v: true, i2v: false, ref: true },
+  durations: { t2v: { min: 3, max: 15 }, i2v: { min: 2, max: 15 }, ref: { min: 2, max: 15 } },
   durationDefault: 5,
   resolution: { values: ["720p", "1080p"], default: "1080p" },
   aspect: { values: ["16:9", "9:16", "1:1", "4:3", "3:4"], default: "16:9" },
@@ -166,6 +180,182 @@ const pixverse6: VideoLive = {
   timeoutMinutes: SLOW,
 };
 
+
+// --- The other connected families (Higgsfield API reference of 2026-10-13; fields per workflow, see docs/video-api-appendix.md) ------------------------------------
+const happyHorse10: VideoLive = {
+  endpoints: { t2v: "alibaba/happy-horse/text-to-video", i2v: "alibaba/happy-horse/image-to-video", ref: "alibaba/happy-horse/reference-to-video" },
+  refs: { max: 9 },
+  byWf: { ref: { aspect: null } },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: false, ref: true },
+  durations: { t2v: { min: 3, max: 15 }, i2v: { min: 2, max: 15 }, ref: { min: 2, max: 15 } },
+  durationDefault: 5,
+  resolution: { values: ["720p", "1080p"], default: "720p" },
+  aspect: { values: ["16:9", "9:16", "1:1", "4:3", "3:4"], default: "16:9" },
+  seed: { min: 1, max: 2147483646 },
+  price: { perSecond: { "720p": 12, "1080p": 22 } },
+  timeoutMinutes: SLOW,
+};
+
+// Wan 3.0 and Wan 3.0 Prime share their fields (2 to 30 s, sound, an "adaptive" shape, seed from 1 because 0 is not forwarded). Document and web-page references
+// and "deep thinking" are not offered.
+const wan3 = (prime: boolean): VideoLive => ({
+  endpoints: prime
+    ? { t2v: "alibaba/wan-3.0-prime/text-to-video", i2v: "alibaba/wan-3.0-prime/image-to-video", ref: "alibaba/wan-3.0-prime/reference-to-video" }
+    : { t2v: "alibaba/wan-3.0/text-to-video", i2v: "alibaba/wan-3.0/image-to-video", ref: "alibaba/wan-3.0/reference-to-video" },
+  refs: { max: 10, videos: { max: 5 } },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: true, ref: true },
+  durations: { t2v: { min: 2, max: 30 }, i2v: { min: 2, max: 30 }, ref: { min: 2, max: 30 } },
+  durationDefault: 5,
+  resolution: { values: ["480p", "720p", "1080p"], default: "1080p" },
+  aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "adaptive"], default: "adaptive" },
+  aspectOnI2v: true,
+  audio: { field: "generate_audio", kind: "bool", default: true },
+  seed: { min: 1, max: 2147483647 },
+  endFrameField: "end_image_url",
+  price: { perSecond: prime ? { "480p": 12, "720p": 20, "1080p": 34 } : { "480p": 8, "720p": 14, "1080p": 24 }, audioFactor: 1.25 },
+  timeoutMinutes: SLOW,
+});
+
+const wan27: VideoLive = {
+  endpoints: { t2v: "wan/v2.7/text-to-video", i2v: "wan/v2.7/image-to-video", ref: "wan/v2.7/reference-to-video" },
+  refs: { max: 5, videos: { max: 5 }, total: 5 },
+  byWf: { ref: { aspect: { values: ["16:9", "9:16"], default: "16:9" } } },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: false, ref: true },
+  durations: { t2v: { min: 2, max: 15 }, i2v: { min: 2, max: 15 }, ref: { min: 2, max: 10 } },
+  durationDefault: 5,
+  resolution: { values: ["720p", "1080p"], default: "720p" },
+  aspect: { values: ["16:9", "9:16", "1:1", "4:3", "3:4"], default: "16:9" },
+  seed: { min: 1, max: 2147483646 },
+  negativePrompt: { max: 2000 },
+  endFrameField: "end_image_url",
+  price: { perSecond: { "720p": 10, "1080p": 18 } },
+  timeoutMinutes: SLOW,
+};
+
+// Wan 2.6: lengths of 5, 10 or 15 s; no shape on text and image; reference-to-video takes reference CLIPS only (1 to 3), 5 or 10 s, no seed.
+const wan26: VideoLive = {
+  endpoints: { t2v: "wan/v2.6/text-to-video", i2v: "wan/v2.6/image-to-video", ref: "wan/v2.6/reference-to-video" },
+  refs: { max: 0, videos: { max: 3 } },
+  byWf: {
+    i2v: { resolution: { values: ["480p", "720p", "1080p"], default: "720p" }, negativePrompt: { max: 2000 } },
+    ref: { aspect: { values: ["16:9", "9:16", "1:1", "4:3", "3:4"], default: "16:9" }, seed: null },
+  },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: true, ref: true },
+  durations: { t2v: { min: 5, max: 15, values: [5, 10, 15] }, i2v: { min: 5, max: 15, values: [5, 10, 15] }, ref: { min: 5, max: 10, values: [5, 10] } },
+  durationDefault: 5,
+  resolution: { values: ["720p", "1080p"], default: "720p" },
+  seed: { min: 0, max: 10000000 },
+  price: { perSecond: { "480p": 6, "720p": 9, "1080p": 16 } },
+  timeoutMinutes: SLOW,
+};
+
+// MiniMax H3: 2K only, 5 to 15 s, no sound switch; the watermark switch is always sent off. The shape follows the picture on image-to-video.
+const minimaxH3: VideoLive = {
+  endpoints: { t2v: "minimax/h3/text-to-video", i2v: "minimax/h3/image-to-video", ref: "minimax/h3/reference-to-video" },
+  refs: { max: 9, videos: { max: 3 } },
+  promptMax: 7000,
+  promptRequired: { t2v: true, i2v: true, ref: true },
+  durations: { t2v: { min: 5, max: 15 }, i2v: { min: 5, max: 15 }, ref: { min: 5, max: 15 } },
+  durationDefault: 5,
+  resolution: { values: ["2K"], default: "2K" },
+  aspect: { values: ["auto", "adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], default: "auto" },
+  fixed: { aigc_watermark: false },
+  endFrameField: "end_image_url",
+  price: { perSecond: { "2K": 20 } },
+  timeoutMinutes: SLOW,
+};
+
+// Hailuo 2.3 Standard: 6 or 10 s at a fixed 768P; no shape, seed or sound switch.
+const hailuo23: VideoLive = {
+  endpoints: { t2v: "minimax/hailuo-2.3/standard/text-to-video", i2v: "minimax/hailuo-2.3/standard/image-to-video" },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: true },
+  durations: { t2v: { min: 6, max: 10, values: [6, 10] }, i2v: { min: 6, max: 10, values: [6, 10] } },
+  durationDefault: 6,
+  price: { perSecond: { default: 8 } },
+  timeoutMinutes: SLOW,
+};
+
+// LTX-2.5 Fast and Pro (the tier is the last part of the path): 6, 8 or 10 s, 16:9 or 9:16, sound. Frame rate and camera moves are left to their defaults.
+const ltx25 = (tier: "fast" | "pro"): VideoLive => ({
+  endpoints: { t2v: `lightricks/ltx-2.5/text-to-video/${tier}`, i2v: `lightricks/ltx-2.5/image-to-video/${tier}` },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: true },
+  durations: { t2v: { min: 6, max: 10, values: [6, 8, 10] }, i2v: { min: 6, max: 10, values: [6, 8, 10] } },
+  durationDefault: 6,
+  resolution: tier === "fast" ? { values: ["720p", "1080p", "2k", "4k"], default: "720p" } : { values: ["720p", "1080p"], default: "720p" },
+  aspect: { values: ["16:9", "9:16"], default: "16:9" },
+  aspectOnI2v: true,
+  audio: { field: "generate_audio", kind: "bool", default: true },
+  endFrameField: "end_image_url",
+  price: { perSecond: tier === "fast" ? { "720p": 6, "1080p": 10, "2k": 16, "4k": 28 } : { "720p": 10, "1080p": 16 }, audioFactor: 1.2 },
+  timeoutMinutes: SLOW,
+});
+
+// Grok Imagine Video 1.5: one endpoint for everything (text only, a first-frame picture, or up to 7 reference pictures); no sound switch or seed. Reference pictures
+// allow only 480p or 720p.
+const grok15: VideoLive = {
+  endpoints: { t2v: "xai/grok-imagine-video/v1.5/reference-to-video", i2v: "xai/grok-imagine-video/v1.5/reference-to-video", ref: "xai/grok-imagine-video/v1.5/reference-to-video" },
+  refs: { max: 7 },
+  byWf: { ref: { resolution: { values: ["480p", "720p"], default: "480p" } } },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: true, ref: true },
+  durations: { t2v: { min: 1, max: 15 }, i2v: { min: 1, max: 15 }, ref: { min: 1, max: 15 } },
+  durationDefault: 5,
+  resolution: { values: ["480p", "720p", "1080p"], default: "480p" },
+  aspect: { values: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], default: "auto" },
+  aspectOnI2v: true,
+  price: { perSecond: { "480p": 8, "720p": 14, "1080p": 26 } },
+  timeoutMinutes: SLOW,
+};
+
+// Cinema Studio 4.0: text or references (no start frame); 4 to 30 s at 480p or 720p, with sound. The director controls (era, genre, light, camera...) are not offered yet.
+const cinema40: VideoLive = {
+  endpoints: { t2v: "higgsfield/cinema-studio/4.0", ref: "higgsfield/cinema-studio/4.0" },
+  refs: { max: 30, videos: { max: 10 }, total: 50 },
+  promptMax: 5000,
+  promptRequired: { t2v: true, i2v: true, ref: true },
+  durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 }, ref: { min: 4, max: 30 } },
+  durationDefault: 5,
+  resolution: { values: ["480p", "720p"], default: "720p" },
+  aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
+  audio: { field: "generate_audio", kind: "bool", default: true },
+  price: { perSecond: { "480p": 16, "720p": 28 }, audioFactor: 1.25 },
+  timeoutMinutes: SLOW,
+};
+
+// --- Motion transfer engines (the Motion chip, not the model picker) -------------------------------------------------------------------------------------------
+// Kling Motion Control (2.6 and 3.0, Standard and Pro): a subject picture and a 3 to 30 s motion clip; the output follows the clip's length. Genjutsu motion transfer:
+// the same idea (4 s or longer, trimmed to 30 s) at 480p, 720p or 1080p. The only published price is Genjutsu Restyle's (per source second: about $0.318 at 480p,
+// $0.681 at 720p, $1.632 at 1080p); motion transfer's own price is NOT published, so these placeholders reuse that scale at about $0.008 a credit.
+const klingMotion = (ver: "3" | "26", tier: "std" | "pro"): VideoLive => ({
+  endpoints: { motion: ver === "3" ? `kling-video/v3/motion-control/${tier}` : `kling-video/motion-control/${tier}` },
+  refs: { max: 0, videos: { max: 1 } },
+  motion: { kind: "kling", minSec: 3, maxSec: 30 },
+  promptMax: 5000,
+  promptRequired: { t2v: false, i2v: false },
+  durations: { t2v: { min: 3, max: 30 }, i2v: { min: 3, max: 30 } },
+  durationDefault: 5,
+  price: { perSecond: { default: tier === "pro" ? 22 : 14 } },
+  timeoutMinutes: SLOW,
+});
+const genjutsuMotion: VideoLive = {
+  endpoints: { motion: "higgsfield/genjutsu/motion-transfer/v1.0" },
+  refs: { max: 0, videos: { max: 1 } },
+  motion: { kind: "genjutsu", minSec: 4, maxSec: 30, trimsAbove: true },
+  promptMax: 5000,
+  promptRequired: { t2v: false, i2v: false },
+  durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 } },
+  durationDefault: 5,
+  resolution: { values: ["480p", "720p", "1080p"], default: "720p" },
+  price: { perSecond: { "480p": 40, "720p": 85, "1080p": 204 } },
+  timeoutMinutes: SLOW,
+};
+
 // --- The list ---------------------------------------------------------------------------------------------------------------------------------------------------
 export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling_3_pro", label: "Kling 3.0 Pro", maker: "Kling", blurb: "Multi-shot, sound and the best general motion. Pro tier.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("pro") },
@@ -177,23 +367,31 @@ export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling_2_5_turbo_std", label: "Kling 2.5 Turbo Standard", maker: "Kling", blurb: "Start-frame animation only (needs a start frame), 5 or 10 seconds.", ratios: [], durations: [5, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling25t("standard") },
   { id: "seedance_2_0", label: "Seedance 2.0", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 4K.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: SEEDANCE_RES, sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2 },
   { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 30 seconds.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 30, live: seedance25 },
-  { id: "happy_horse_1_1", label: "Happy Horse 1.1", maker: "Happy Horse", blurb: "Text-to-video and start-frame animation, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: happyHorse11 },
+  { id: "happy_horse_1_1", label: "Happy Horse 1.1", maker: "Happy Horse", blurb: "Text, start frame and reference pictures, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 9, live: happyHorse11 },
   { id: "pixverse_v6", label: "PixVerse V6", maker: "PixVerse", blurb: "Fast clips from 1 to 15 seconds, with sound and a seed.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(1, 15), qualities: ["360p", "540p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: pixverse6 },
+  { id: "happy_horse_video", label: "Happy Horse 1.0", maker: "Happy Horse", blurb: "Text, start frame and reference pictures, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 9, live: happyHorse10 },
+  { id: "wan3_0", label: "Wan 3.0", maker: "Wan", blurb: "Long clips up to 30 s, pictures and clips as references, with sound.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "adaptive"], durations: range(2, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 10, live: wan3(false) },
+  { id: "wan3_0_prime", label: "Wan 3.0 Prime", maker: "Wan", blurb: "The higher tier of Wan 3.0, up to 30 s, with sound.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "adaptive"], durations: range(2, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 10, live: wan3(true) },
+  { id: "wan2_7", label: "Wan 2.7", maker: "Wan", blurb: "Text, start and end frame, references, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(2, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: true, refImages: 5, live: wan27 },
+  { id: "wan2_6", label: "Wan 2.6", maker: "Wan", blurb: "Stylised clips of 5, 10 or 15 s; references are clips only.", ratios: [], durations: [5, 10, 15], qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: wan26 },
+  { id: "minimax_h3", label: "MiniMax H3", maker: "MiniMax", blurb: "2K video from text, keyframes or references.", ratios: ["auto", "adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(5, 15), qualities: ["2K"], sound: "none", startFrame: true, endFrame: true, refImages: 9, live: minimaxH3 },
+  { id: "minimax_hailuo", label: "Hailuo 2.3 Standard", maker: "MiniMax", blurb: "Natural physics and facial emotion, 6 or 10 s.", ratios: [], durations: [6, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: hailuo23 },
+  { id: "ltx_2_5", label: "LTX-2.5 Fast", maker: "Lightricks", blurb: "Fast clips up to 4K, with sound.", ratios: ["16:9", "9:16"], durations: [6, 8, 10], qualities: ["720p", "1080p", "2k", "4k"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: ltx25("fast") },
+  { id: "ltx_2_5_pro", label: "LTX-2.5 Pro", maker: "Lightricks", blurb: "The higher-quality tier, 720p or 1080p, with sound.", ratios: ["16:9", "9:16"], durations: [6, 8, 10], qualities: ["720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: ltx25("pro") },
+  { id: "grok_video_v15", label: "Grok Video 1.5", maker: "xAI", blurb: "Text, a first-frame picture, or up to 7 reference pictures.", ratios: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], durations: range(1, 15), qualities: ["480p", "720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 7, live: grok15 },
+  { id: "cinematic_studio_video_4_0", label: "Cinema Studio 4.0", maker: "Higgsfield", blurb: "Cinema-grade video from text or references, up to 30 s.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p"], sound: "toggle", startFrame: false, endFrame: false, refImages: 30, live: cinema40 },
+  // Motion engines: only the Motion chip uses these (hidden from the model picker).
+  { id: "kling_mc_3_pro", label: "Kling 3.0 Motion Control Pro", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("3", "pro") },
+  { id: "kling_mc_3_std", label: "Kling 3.0 Motion Control Standard", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("3", "std") },
+  { id: "kling_mc_26_pro", label: "Kling 2.6 Motion Control Pro", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("26", "pro") },
+  { id: "kling_mc_26_std", label: "Kling 2.6 Motion Control Standard", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("26", "std") },
+  { id: "genjutsu_motion", label: "Genjutsu Motion transfer", maker: "Higgsfield", blurb: "Moves your subject like the person in a clip.", ratios: [], durations: [], qualities: ["480p", "720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: genjutsuMotion },
 
   // Listed with the settings the catalog gives; not connected yet (greyed out, Soon).
   { id: "kling_o3_image_reference", label: "Kling 3.0 Omni", maker: "Kling", blurb: "Video from text and several reference pictures.", ratios: R3, durations: range(3, 15), qualities: ["Standard", "Pro", "4K"], sound: "toggle", startFrame: false, endFrame: false, refImages: 7 },
   { id: "seedance_2_0_mini", label: "Seedance 2.0 Mini", maker: "Bytedance", blurb: "Fast, budget Seedance 2.0.", ratios: RWIDE, durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
   { id: "seedance1_5", label: "Seedance 1.5 Pro", maker: "Bytedance", blurb: "Reliable motion, improved quality.", ratios: RWIDE, durations: [4, 8, 12], qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "cinematic_studio_3_0", label: "Cinema Studio Video 3.0", maker: "Higgsfield", blurb: "Cinema-grade video, the most advanced.", ratios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(4, 15), qualities: ["480p", "720p", "1080p", "4K"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
-  { id: "cinematic_studio_video_4_0", label: "Cinema Studio 4.0", maker: "Higgsfield", blurb: "Automatic direction with camera, lighting and genre.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
-  { id: "grok_video_v15", label: "Grok Video 1.5", maker: "xAI", blurb: "Text, a start picture, or picture and audio references.", ratios: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], durations: range(1, 15), qualities: ["480p", "720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 7 },
-  { id: "minimax_h3", label: "MiniMax H3", maker: "MiniMax", blurb: "Keyframes or references, 2K.", ratios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(5, 15), qualities: ["2K"], sound: "none", startFrame: true, endFrame: true, refImages: 4 },
-  { id: "minimax_hailuo", label: "Hailuo 2.3", maker: "MiniMax", blurb: "Natural physics and facial emotion.", ratios: ["auto"], durations: [6, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0 },
-  { id: "wan3_0", label: "Wan 3.0", maker: "Wan", blurb: "Long clips and reference media, with sound.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(2, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 10 },
-  { id: "wan2_7", label: "Wan 2.7", maker: "Wan", blurb: "Text, start and end frame, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(2, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: true, refImages: 5 },
-  { id: "wan2_6", label: "Wan 2.6", maker: "Wan", blurb: "Stylised, experimental and creative.", ratios: R3, durations: [5, 10, 15], qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 3 },
-  { id: "happy_horse_video", label: "Happy Horse 1.0", maker: "Happy Horse", blurb: "Text-to-video and start-frame animation.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 9 },
-  { id: "ltx_2_5", label: "LTX-2.5", maker: "Lightricks", blurb: "Fast and Pro, up to 4K, with camera moves.", ratios: ["16:9", "9:16"], durations: [6, 8, 10], qualities: ["720p", "1080p", "2k", "4k"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "flux_3_video", label: "FLUX 3 Video", maker: "Black Forest Labs", blurb: "Text, multi-frame and continuation, with sound.", ratios: ["auto", "21:9", "2:1", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(5, 20), qualities: ["720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
 ];
 
@@ -203,15 +401,32 @@ export const MOTION_MODEL_IDS = new Set(["kling_3_pro", "kling_3_std"]);
 export const hasMotion = (m: VideoModel) => MOTION_MODEL_IDS.has(m.id);
 
 // The longest model name: the model button is always as wide as this, so it keeps one size whichever model is chosen.
-export const LONGEST_MODEL_LABEL = VIDEO_MODELS.reduce((a, m) => (m.label.length > a.length ? m.label : a), "");
+export const LONGEST_MODEL_LABEL = VIDEO_MODELS.filter((m) => !m.hidden).reduce((a, m) => (m.label.length > a.length ? m.label : a), "");
 
 export const videoModelById = (id: string | null | undefined): VideoModel => VIDEO_MODELS.find((m) => m.id === id) ?? VIDEO_MODELS[0];
+// What the model picker lists (the motion engines belong to the Motion chip).
+export const PICKER_MODELS = VIDEO_MODELS.filter((m) => !m.hidden);
 export const findVideoModel = (id: unknown): VideoModel | undefined => (typeof id === "string" ? VIDEO_MODELS.find((m) => m.id === id) : undefined);
 export const isLive = (m: VideoModel): m is VideoModel & { live: VideoLive } => !!m.live;
 
 // --- What a model offers for the way it is used ----------------------------------------------------------------------------------------------------------------
 // A start frame makes it image-to-video; reference pictures (with no start frame) make it reference-to-video; otherwise text-to-video.
 export const workflowOf = (hasStartFrame: boolean, hasRefs = false): Workflow => (hasStartFrame ? "i2v" : hasRefs ? "ref" : "t2v");
+// The same, for a given model: a motion engine always works as motion transfer.
+export const workflowFor = (m: VideoModel, hasStartFrame: boolean, hasRefs = false): Workflow => (m.live?.motion ? "motion" : workflowOf(hasStartFrame, hasRefs));
+
+// The settings a workflow really has: the model's base settings with that workflow's differences applied.
+function eff(l: VideoLive, wf: Workflow) {
+  const o = wf === "motion" ? undefined : l.byWf?.[wf];
+  const pick = <K extends keyof WfOverride>(k: K, base: WfOverride[K]) => (o && k in o ? (o[k] ?? undefined) : base);
+  return {
+    resolution: pick("resolution", l.resolution) as ResSpec | undefined,
+    aspect: pick("aspect", wf === "i2v" && !l.aspectOnI2v ? undefined : l.aspect) as AspectSpec | undefined,
+    seed: pick("seed", l.seed) as { min: number; max: number } | undefined,
+    negativePrompt: pick("negativePrompt", l.negativePrompt) as { max: number } | undefined,
+    audio: pick("audio", l.audio) as AudioSpec | undefined,
+  };
+}
 
 export type Caps = {
   durations: number[];
@@ -238,19 +453,23 @@ export function capsFor(m: VideoModel, wf: Workflow): Caps {
   if (!l) {
     return { durations: m.durations, defaultDuration: m.durations.includes(5) ? 5 : m.durations[0], qualities: m.qualities, defaultQuality: m.qualities.length ? m.qualities[Math.min(1, m.qualities.length - 1)] : "", ratios: m.ratios, defaultRatio: m.ratios.includes("16:9") ? "16:9" : m.ratios[0], audio: m.sound === "toggle", audioDefault: true, seed: null, negativePrompt: null, cfgScale: false, endFrame: m.endFrame, refMax: 0, refVideoMax: 0, promptRequired: true, promptMax: 5000 };
   }
+  if (wf === "motion") {
+    const e = eff(l, wf);
+    return { durations: [], defaultDuration: 5, qualities: e.resolution?.values ?? [], defaultQuality: e.resolution?.default ?? "", ratios: [], defaultRatio: "", audio: false, audioDefault: false, seed: null, negativePrompt: null, cfgScale: false, endFrame: false, refMax: 0, refVideoMax: l.refs?.videos?.max ?? 0, promptRequired: false, promptMax: l.promptMax };
+  }
   const d = (wf === "ref" ? l.durations.ref : undefined) ?? l.durations[wf === "i2v" ? "i2v" : "t2v"];
-  const hasAspect = !!l.aspect && wf !== "i2v"; // with a start frame the shape follows the picture
+  const e = eff(l, wf);
   return {
     durations: d.values ?? range(d.min, d.max),
     defaultDuration: d.values ? (d.values.includes(l.durationDefault) ? l.durationDefault : d.values[0]) : Math.min(Math.max(l.durationDefault, d.min), d.max),
-    qualities: l.resolution?.values ?? [],
-    defaultQuality: l.resolution?.default ?? "",
-    ratios: hasAspect ? l.aspect!.values : [],
-    defaultRatio: hasAspect ? l.aspect!.default : "",
-    audio: !!l.audio,
-    audioDefault: l.audio?.default ?? false,
-    seed: l.seed ?? null,
-    negativePrompt: l.negativePrompt?.max ?? null,
+    qualities: e.resolution?.values ?? [],
+    defaultQuality: e.resolution?.default ?? "",
+    ratios: e.aspect?.values ?? [],
+    defaultRatio: e.aspect?.default ?? "",
+    audio: !!e.audio,
+    audioDefault: e.audio?.default ?? false,
+    seed: e.seed ?? null,
+    negativePrompt: e.negativePrompt?.max ?? null,
     cfgScale: !!l.cfgScale,
     endFrame: wf === "i2v" && !!l.endFrameField,
     refMax: l.endpoints.ref ? l.refs?.max ?? 0 : 0,
@@ -290,6 +509,8 @@ export type VideoInput = {
   endUrl?: string;     // last frame
   refUrls?: string[];  // reference pictures, in order (makes it reference-to-video; not together with a start frame)
   refVideoUrls?: string[]; // reference clips, in order (also reference-to-video)
+  keepSound?: boolean;     // motion transfer (Kling): keep the sound of the motion clip
+  orientation?: "image" | "video"; // motion transfer (Kling): whose facing direction the result follows
 };
 export type BuildResult = { ok: true; workflow: Workflow; endpoint: string; body: Record<string, unknown> } | { ok: false; error: string };
 
@@ -299,11 +520,13 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   if (!l) return { ok: false, error: `${m.label} is not connected yet.` };
   const refs = input.refUrls ?? [];
   const refVideos = input.refVideoUrls ?? [];
+  if (l.motion) return buildMotionBody(m, l, input);
   if ((refs.length || refVideos.length) && (input.startUrl || input.endUrl)) return { ok: false, error: "Use either a start frame or reference pictures, not both." };
   const wf = workflowOf(!!input.startUrl, refs.length > 0 || refVideos.length > 0);
   const endpoint = l.endpoints[wf];
   if (!endpoint) return { ok: false, error: wf === "ref" ? `${m.label} takes no reference pictures yet.` : `${m.label} has no ${wf === "i2v" ? "start-frame" : "text-to-video"} mode connected.` };
   if (wf === "ref" && refVideos.length > (l.refs?.videos?.max ?? 0)) return { ok: false, error: l.refs?.videos ? `${m.label} takes up to ${l.refs.videos.max} reference clips (you chose ${refVideos.length}).` : `${m.label} takes no reference clips.` };
+  if (wf === "ref" && l.refs?.total != null && refs.length + refVideos.length > l.refs.total) return { ok: false, error: `${m.label} takes up to ${l.refs.total} reference pictures and clips in all (you chose ${refs.length + refVideos.length}).` };
   if (wf === "ref" && refs.length > (l.refs?.max ?? 0)) return { ok: false, error: `${m.label} takes up to ${l.refs?.max ?? 0} reference pictures (you chose ${refs.length}).` };
   const caps = capsFor(m, wf);
   const prompt = input.prompt.trim();
@@ -324,14 +547,16 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
     if (!caps.ratios.includes(ratio)) return { ok: false, error: `${m.label} does not support the ${ratio} shape.` };
     body.aspect_ratio = ratio;
   }
-  if (l.audio) {
-    const on = input.audio ?? l.audio.default;
-    body[l.audio.field] = l.audio.kind === "onoff" ? (on ? "on" : "off") : on;
+  const e = eff(l, wf);
+  if (e.audio) {
+    const on = input.audio ?? e.audio.default;
+    body[e.audio.field] = e.audio.kind === "onoff" ? (on ? "on" : "off") : on;
   }
-  if (l.seed && input.seed != null) {
-    if (!Number.isInteger(input.seed) || input.seed < l.seed.min || input.seed > l.seed.max) return { ok: false, error: `The seed must be a whole number from ${l.seed.min.toLocaleString("en-US")} to ${l.seed.max.toLocaleString("en-US")} for ${m.label}.` };
+  if (e.seed && input.seed != null) {
+    if (!Number.isInteger(input.seed) || input.seed < e.seed.min || input.seed > e.seed.max) return { ok: false, error: `The seed must be a whole number from ${e.seed.min.toLocaleString("en-US")} to ${e.seed.max.toLocaleString("en-US")} for ${m.label}.` };
     body.seed = input.seed;
   }
+  if (l.fixed) Object.assign(body, l.fixed);
   if (caps.negativePrompt != null && input.negativePrompt?.trim()) {
     if (input.negativePrompt.length > caps.negativePrompt) return { ok: false, error: `The negative prompt can be up to ${caps.negativePrompt} characters.` };
     body.negative_prompt = input.negativePrompt.trim();
@@ -353,4 +578,37 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
     return { ok: false, error: "An end frame needs a start frame too." };
   }
   return { ok: true, workflow: wf, endpoint, body };
+}
+
+// Motion transfer (the Motion chip): a subject picture and ONE motion clip. The length follows the clip, so no duration is sent.
+function buildMotionBody(m: VideoModel, l: VideoLive, input: VideoInput): BuildResult {
+  const motion = l.motion;
+  if (!motion) return { ok: false, error: `${m.label} has no motion mode connected.` };
+  const endpoint = l.endpoints.motion;
+  if (!endpoint) return { ok: false, error: `${m.label} has no motion mode connected.` };
+  const clips = input.refVideoUrls ?? [];
+  if (!input.startUrl) return { ok: false, error: "Choose the subject picture (Start frame) first." };
+  if (clips.length !== 1) return { ok: false, error: "Choose one motion clip." };
+  if (input.endUrl || (input.refUrls?.length ?? 0) > 0) return { ok: false, error: "Motion transfer takes one subject picture and one motion clip." };
+  const prompt = input.prompt.trim();
+  if (prompt.length > l.promptMax) return { ok: false, error: `${m.label} accepts prompts up to ${l.promptMax} characters (yours is ${prompt.length}).` };
+  const body: Record<string, unknown> = {};
+  if (motion.kind === "kling") {
+    if (prompt) body.prompt = prompt;
+    body.image_url = input.startUrl;
+    body.video_url = clips[0];
+    body.keep_original_sound = (input.keepSound ?? true) ? "yes" : "no"; // a word, not a boolean
+    const orient = input.orientation ?? "video";
+    if (orient !== "image" && orient !== "video") return { ok: false, error: "The facing direction must follow the picture or the video." };
+    body.character_orientation = orient;
+  } else {
+    body.video_url = clips[0];
+    body.image_urls = [input.startUrl];
+    if (prompt) body.prompt = prompt;
+    const caps = capsFor(m, "motion");
+    const res = input.resolution ?? caps.defaultQuality;
+    if (!caps.qualities.includes(res)) return { ok: false, error: `${m.label} does not support the ${res} quality.` };
+    body.resolution = res;
+  }
+  return { ok: true, workflow: "motion", endpoint, body };
 }
