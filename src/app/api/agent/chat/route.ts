@@ -6,6 +6,8 @@ import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
+import { loadPromptImages } from "@/lib/prompt-images";
+import { attachPictures, parsePictures } from "@/lib/agent-pictures";
 
 export const maxDuration = 60;
 
@@ -56,7 +58,13 @@ export async function POST(req: Request) {
     Number.isInteger(c.qty) ? `Images per run: ${c.qty}` : "",
     clip(c.model, 60) ? `Model: ${clip(c.model, 60)}` : "",
     c.ingredients ? `Ingredient pictures attached: ${Math.min(Number(c.ingredients) || 0, 20)}` : "",
+    ...(Array.isArray(c.settings) ? (c.settings as unknown[]).slice(0, 16).map((l) => clip(l, 140)).filter(Boolean).map((l) => `Setting: ${l}`) : []),
+    Array.isArray(c.clips) && c.clips.length ? `Video clips attached: ${(c.clips as unknown[]).slice(0, 10).map((l) => clip(l, 60)).filter(Boolean).join("; ")}` : "",
+    clip(c.message, 400) ? `Message showing on the top edge of the box right now: ${clip(c.message, 400)}` : "",
   ].filter(Boolean).join("\n");
+
+  // The pictures attached to the box are shown to the agent (up to 4, ids only, owner-checked, read from our own storage).
+  const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
 
   // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
   const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
@@ -65,7 +73,7 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 1500, system: `${persona.system}\n\n<studio>\n${ctx}\n</studio>`, tools: TOOLS, messages });
+    const res = await client.messages.create({ model, max_tokens: 1500, system: `${persona.system}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`, tools: TOOLS, messages });
     let text = "";
     const actions: Action[] = [];
     for (const b of res.content) {

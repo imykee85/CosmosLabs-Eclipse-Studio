@@ -114,7 +114,7 @@ function ConnectChat() {
   }, [params, open, router, send]);
 
   // Atlas can fill the message box ("Use this prompt") and, when you press Generate on its card, send that message to the Core chat.
-  useAgentHost({ page: "core", context: () => ({ prompt: text }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; } });
+  useAgentHost({ page: "core", context: () => ({ prompt: text, message: notice || undefined, pictures: picked.map((id) => ({ type: "render" as const, id, role: "attached from the Library" })) }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; } });
   const scrollEnd = useCallback(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, []);
   useEffect(() => { scrollEnd(); }, [lines, scrollEnd]);
   useEffect(() => {

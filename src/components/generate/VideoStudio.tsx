@@ -10,6 +10,7 @@ import MotionMenu, { type MotionMode } from "./MotionMenu";
 import VideoSettingsMenu from "./VideoSettingsMenu";
 import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type ClipPick, type RefPick } from "../create/ReferencePicker";
+import PromptEdge, { type EdgeMessage } from "../create/PromptEdge";
 import RenderDetails from "../library/RenderDetails";
 import OrderedRefs, { type RefItem } from "./OrderedRefs";
 import StyleLibrary from "./StyleLibrary";
@@ -104,7 +105,30 @@ export default function VideoStudio() {
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
   const [motionAnchor, setMotionAnchor] = useState<DOMRect | null>(null);
   const agentChip = useRef<HTMLButtonElement>(null);
-  useAgentHost({ page: "video", context: () => ({ prompt, ratio, model: model.label }), setPrompt, generate: async () => "Your prompt is ready in the box. Press Generate when the settings look right." });
+  // The one message on the top edge of the prompt box (an error, else a notice); it is also what the agent sees there.
+  const edge: EdgeMessage = error ? { kind: "error", text: error } : note ? { kind: "note", text: note } : null;
+  useAgentHost({
+    page: "video",
+    context: () => ({
+      prompt, ratio, model: model.label,
+      settings: [
+        mc ? `Motion transfer (${mcEngine}), orientation from the ${mcOrient}` : "",
+        `Length: ${duration} s`,
+        quality ? `Quality: ${quality}` : "",
+        `Sound: ${mc ? (mcSound ? "kept from the clip" : "off") : sound ? "on" : "off"}`,
+        seedLocked ? `Fixed seed on${seedText ? `: ${seedText}` : ""}` : "",
+        negative.trim() ? `Leave out: ${negative.trim().slice(0, 100)}` : "",
+        `Agent: ${agent.agent ?? "none"}${agent.agent ? (agent.on ? " (on)" : " (off)") : ""}`,
+      ].filter(Boolean),
+      message: edge?.text,
+      pictures: [
+        ...(start ? [{ type: start.type, id: start.id, role: "start frame" }] : []),
+        ...(end ? [{ type: end.type, id: end.id, role: "end frame" }] : []),
+        ...refs.map((r, i) => ({ type: r.type, id: r.id, role: mc ? "subject picture" : `reference ${i + 1}` })),
+      ],
+      clips: vrefs.map((v, i) => `${mc ? "motion clip" : `reference clip ${i + 1}`}: ${v.label}${v.sec ? ` (${Math.round(v.sec)} s)` : ""}`),
+    }),
+    setPrompt, generate: async () => "Your prompt is ready in the box. Press Generate when the settings look right." });
 
   useEffect(() => { try { const m = localStorage.getItem(MODEL_KEY); if (m && VIDEO_MODELS.some((x) => x.id === m && !x.hidden)) setModelId(m); } catch {} }, []);
   // Keep every setting one the chosen model accepts in this way of using it.
@@ -280,6 +304,7 @@ export default function VideoStudio() {
       </section>
 
       <div className="cr-dock">
+        <PromptEdge message={edge} />
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>
           <label htmlFor="vs-prompt" className="sr-only">Describe the clip you imagine</label>
           <div className="cr-field">
@@ -375,9 +400,6 @@ export default function VideoStudio() {
             </button>
           </div>
         </form>
-        {note && <p className="cr-hint" role="status">{note}</p>}
-        {error && <p className="cr-error" role="alert">{error}</p>}
-        <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       </div>
 
       {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : caps.refMax) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? caps.refVideoMax : 0} pickedVideos={vrefs} onVideosChange={setVrefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose a picture (who or what appears in the result) and one of your finished videos (its movement is copied). One of each, in either order." : undefined} />}

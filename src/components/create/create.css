@@ -60,6 +60,7 @@
   /* The prompt box sits just above the bottom tab bar, like Orbit's. */
   .cr-dock { display: block; position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; max-height: 55dvh; overflow-y: auto; background: var(--a-bg); }
   .cr-dock .cr-box { margin-top: 0; }
+  .cr-dock .cr-edge { margin-top: 0; }
 }
 .cr-stage { border-radius: 20px; }
 .cr-empty { padding: 14px; gap: 8px; }
@@ -252,3 +253,9 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-past-row > button:first-child b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; }
 .aw-past-row > button:first-child span { font-size: 11px; color: var(--a-fg2); }
 .aw-past-del { display: grid; place-items: center; width: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }
+
+/* The message on the top edge of a prompt box: sits on the box like a tab, so an error is right where the person is looking. */
+.cr-edge { position: relative; z-index: 1; margin: 56px 30px -1px; padding: 9px 14px 11px; border: 1px solid var(--a-danger); border-bottom: 0; border-radius: 16px 16px 0 0; background: color-mix(in srgb, var(--a-danger) 12%, var(--a-bg)); color: var(--a-danger); font-size: 13px; line-height: 1.35; }
+.cr-edge.is-note { border-color: var(--a-line2); background: var(--a-input); color: var(--a-fg2); }
+.cr-edge + .cr-box { margin-top: 0; }
+@media (max-width: 800px) { .cr-edge { margin: 36px 24px -1px; } }

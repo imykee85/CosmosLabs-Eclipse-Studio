@@ -13,6 +13,7 @@ import { uploadPicture } from "@/lib/use-uploads";
 import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
+import PromptEdge, { type EdgeMessage } from "./PromptEdge";
 import ModelPicker, { AUTO } from "./ModelPicker";
 import AgentIcon from "../AgentIcon";
 import SoonTag from "../SoonTag";
@@ -204,10 +205,28 @@ export default function CreateStudio() {
     }
   }
 
+  // The one message shown on the top edge of the prompt box (errors first, then notices). It is also what the agent sees there.
+  const edge: EdgeMessage =
+    error || lastFailed ? { kind: "error", text: error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}` }
+    : seedBad && seedSpec ? { kind: "error", text: `Use a whole number from ${seedSpec.min.toLocaleString("en-US")} to ${seedSpec.max.toLocaleString("en-US")} for this model.` }
+    : needsRef ? { kind: "note", text: `${model?.label} edits a picture. Choose one with Ingredients first.` }
+    : noRefs ? { kind: "note", text: `${model?.label} does not use reference pictures. Choose a model that does${refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.` }
+    : seedNote ? { kind: "note", text: seedNote }
+    : null;
+
   function submitBox() { void generate(); }
   useAgentHost({
     page: "studio",
-    context: () => ({ prompt, ratio, qty, model: modelId === AUTO ? "Auto" : model?.label, ingredients: refs.length }),
+    context: () => ({
+      prompt, ratio, qty, model: modelId === AUTO ? "Auto" : model?.label, ingredients: refs.length,
+      settings: [
+        model?.resolutions.length ? `Quality: ${tier.toUpperCase()}` : "",
+        seedSupported ? (seedOn ? `Fixed seed on${seedNum != null ? `: ${seedNum}` : ""}` : "Fixed seed off") : "Fixed seed: not available for this model",
+        `Agent: ${agent ?? "none"}${agent ? (agentOn ? " (on)" : " (off)") : ""}`,
+      ].filter(Boolean),
+      message: edge?.text,
+      pictures: refs.map((r, i) => ({ type: r.type, id: r.id, role: `ingredient ${i + 1}` })),
+    }),
     setPrompt,
     generate: (o) => generate(o),
   });
@@ -289,6 +308,7 @@ export default function CreateStudio() {
         <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Change camera")}><Camera size={14} /> Change camera <SoonTag /></button>
       </div>
       {toolNote && toolPic && <p className="cr-hint" role="status">{toolNote}</p>}
+      <PromptEdge message={edge} />
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); submitBox(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <div className="cr-field">
@@ -389,15 +409,6 @@ export default function CreateStudio() {
           </button>
         </div>
       </form>
-      {seedBad && seedSpec && <p className="cr-error" role="alert">Use a whole number from {seedSpec.min.toLocaleString("en-US")} to {seedSpec.max.toLocaleString("en-US")} for this model.</p>}
-      {seedNote && <p className="cr-hint" role="status">{seedNote}</p>}
-      {seedLive && <p className="cr-hint">Similar results with the same seed.{qty > 1 ? " With more than one image the seed counts up by one for each." : ""}</p>}
-      {needsRef && <p className="cr-hint">{model?.label} edits a picture. Choose one with Ingredients first.</p>}
-      {refs.length > 0 && <p className="cr-hint">The model reads your pictures in this order. Say what each one is for, for example &ldquo;use the person from image 1 and the jacket from image 2&rdquo;.</p>}
-      {noRefs && <p className="cr-hint" role="status">{model?.label} does not use reference pictures. Choose a model that does{refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.</p>}
-      <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
-      {pending && <p className="cr-hint">Your image keeps rendering if you leave this page. It will be in your Gallery when it is done.</p>}
-      {(error || lastFailed) && <p className="cr-error" role="alert">{error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}`}</p>}
       </div>
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}

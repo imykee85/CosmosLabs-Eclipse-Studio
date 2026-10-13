@@ -111,6 +111,35 @@ test.describe("agents", () => {
   });
 });
 
+test.describe("prompt box messages", () => {
+  test("an error sits on the top edge of the Image Studio prompt box and Atlas is told about it", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+      localStorage.setItem("eclipse-agent", "Atlas");
+      localStorage.setItem("eclipse-agent-on", "1");
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [{ id: "m", label: "Model", blurb: "x", ratios: ["1:1"], resolutions: [], maxBatch: 4, maxPrompt: 2000, verified: true, autoPick: true, seed: { supported: false }, maxReferences: 0, requiresReference: false, credits: null }] } }));
+    await page.route("**/api/generate", (r) => r.fulfill({ status: 400, json: { error: "The provider said no." } }));
+    let sent: { context?: { message?: string } } | null = null;
+    await page.route("**/api/agent/chat", (r) => { sent = r.request().postDataJSON(); return r.fulfill({ json: { text: "ok", actions: [] } }); });
+    await page.goto("/create");
+    await page.fill("textarea", "a red square");
+    await page.click(".cr-go");
+    const edge = page.locator(".cr-edge");
+    await expect(edge).toHaveText("The provider said no.");
+    const e = (await edge.boundingBox())!;
+    const f = (await page.locator("form.cr-box").boundingBox())!;
+    expect(Math.abs(e.y + e.height - f.y)).toBeLessThanOrEqual(2);
+    await expect(page.locator(".cr-hint")).toHaveCount(0);
+    await page.click(".aw-btn");
+    await page.fill(".aw-input input", "what went wrong?");
+    await page.click('.aw-input button[type="submit"]');
+    await expect.poll(() => sent?.context?.message).toBe("The provider said no.");
+  });
+});
+
 test.describe("phone layout", () => {
   test.use({ viewport: { width: 520, height: 900 }, isMobile: true, hasTouch: true, screen: { width: 390, height: 844 } });
   test("the app fills a phone at 520 px with no sideways scroll", async ({ page }) => {
