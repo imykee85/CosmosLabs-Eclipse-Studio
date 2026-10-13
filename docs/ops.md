@@ -35,3 +35,5 @@ Where each setting lives: **Secret** = Vercel Environment Variables, marked Sens
 ## Launch checklist
 
 1. Anthropic credit. 2. Settings above. 3. One live image and one live video. 4. Grant credits, then `CREDITS_ENABLED=1`. 5. iPhone check. 6. Web Analytics switched on in the Vercel project. 7. Clerk production instance and domain; add `clerk.<domain>` to the content security policy and enforce it. 8. Lawyer review of Terms and Privacy. 9. Remove the mock logo strip (see CLAUDE.md).
+
+The Anthropic key was replaced on 2026-10-13 (Secret, Production and Preview); a push is needed for it to reach a new deployment.
