@@ -203,9 +203,11 @@ function ConnectChat() {
           <div className="cn-tools">
             <button type="button" className="cn-round" aria-label="Attach pictures from your Library" aria-expanded={attachOpen} onClick={() => setAttachOpen(!attachOpen)}><Plus size={18} /></button>
             <ModelPicker />
-            <div className="cn-grp">
-              <button ref={agentChip} type="button" className="cn-chip cn-agentchip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={15} /> {agent.agent ?? "Atlas"}</button>
-              <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cn-switch ${agent.active ? "is-on" : ""}`}
+            <div className="cr-grp">
+              <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
+                <AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Atlas"}</span>
+              </button>
+              <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                 onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
             </div>
             <button type="submit" className="cn-send" aria-label="Send" disabled={busy || !text.trim()}><ArrowUp size={18} /></button>

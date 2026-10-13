@@ -225,10 +225,3 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-hist-main small { color: var(--a-muted); font-size: 12px; }
 .cn-hist-list .cn-pop-del { margin-right: 8px; }
 .cn-row .cn-soon { margin-left: auto; align-self: center; }
-
-/* Atlas in the message box: the agent chip and its on/off switch */
-.cn-grp { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-.cn-agentchip { height: 40px; padding: 0 12px; font-size: 14px; white-space: nowrap; }
-.cn-switch { flex: none; position: relative; width: 38px; height: 22px; padding: 0; border: 0; border-radius: 999px; background: var(--a-line3); cursor: pointer; transition: background .18s; }
-.cn-switch i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .18s; }
-.cn-switch.is-on { background: #c00707; } .cn-switch.is-on i { transform: translateX(16px); }
