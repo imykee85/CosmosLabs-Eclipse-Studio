@@ -8,8 +8,7 @@ import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import MotionMenu, { type MotionMode } from "./MotionMenu";
 import AgentWidget from "../create/AgentWidget";
-import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
-import VideoRefPicker, { type ClipPick } from "./VideoRefPicker";
+import ReferencePicker, { type ClipPick, type RefPick } from "../create/ReferencePicker";
 import RenderDetails from "../library/RenderDetails";
 import SoonTag from "../SoonTag";
 import VideoModelPicker from "./VideoModelPicker";
@@ -65,7 +64,6 @@ export default function VideoStudio() {
   const [target, setTarget] = useState<Target | null>(null);
   const [pickingModel, setPickingModel] = useState(false);
   const [vrefs, setVrefs] = useState<ClipPick[]>([]);        // reference clips: the person's own finished videos
-  const [pickingClips, setPickingClips] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
@@ -302,7 +300,7 @@ export default function VideoStudio() {
                   <label className="vs-motion-check"><input type="checkbox" checked={mcSound} onChange={(e) => setMcSound(e.target.checked)} /><span>Keep the clip&rsquo;s sound</span></label>
                 </>
               )}
-              <p>Start frame is the subject that moves; Motion clip is one of your finished videos ({mcEngine === "genjutsu" ? "4 to 30 seconds, longer ones are cut to 30" : "3 to 30 seconds"}). The result is as long as the clip{clipSec != null ? ` (${clipSec} s)` : ""}.</p>
+              <p>Start frame is the subject that moves; Motion video is one of your finished videos ({mcEngine === "genjutsu" ? "4 to 30 seconds, longer ones are cut to 30" : "3 to 30 seconds"}). The result is as long as the clip{clipSec != null ? ` (${clipSec} s)` : ""}.</p>
             </div>
           )}
           {needsRights && (
@@ -336,8 +334,7 @@ export default function VideoStudio() {
             <div className="cr-row cr-row-top">
               <button type="button" className="cr-chip" disabled={!model.startFrame || (!mc && (refs.length > 0 || vrefs.length > 0))} title={!model.startFrame ? `${model.label} has no start frame` : mc ? "Choose the subject picture that should move" : refs.length > 0 || vrefs.length > 0 ? "Use either a start frame or Ingredients, not both" : "Choose the first frame of the clip"} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!caps.endFrame} title={caps.endFrame ? "Choose the last frame of the clip" : start ? `${model.label} has no end frame` : "An end frame needs a start frame first"} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
-              <button type="button" className="cr-chip" disabled={!caps.refMax || !!start || !!end} title={!caps.refMax ? `${model.label} takes no reference pictures yet` : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
-              <button type="button" className="cr-chip" disabled={!caps.refVideoMax || (!mc && (!!start || !!end))} title={!caps.refVideoMax ? `${model.label} takes no reference clips` : mc ? "Choose the clip whose movement should be copied (3 to 30 seconds)" : start || end ? "Use either a start frame or reference clips, not both" : `Choose up to ${caps.refVideoMax} of your videos for the model to follow`} onClick={() => { setNote(""); setPickingClips(true); }}><Film size={14} /> {mc ? "Motion clip" : "Clips"}{vrefs.length ? ` (${vrefs.length})` : ""}</button>
+              <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose the video whose movement should be copied (3 to 30 seconds)" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> {mc ? "Motion video" : "Ingredients"}{refs.length + vrefs.length ? ` (${refs.length + vrefs.length})` : ""}</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <span className={`cr-chip vs-seed ${seedLocked ? "is-on" : ""} ${caps.seed ? "" : "is-muted"}`} title={caps.seed ? "Fix the seed to get a similar result again" : `${model.label} has no seed`}>
                 <button type="button" role="switch" aria-checked={seedLocked} disabled={!caps.seed} aria-label="Fixed seed" onClick={() => setSeedLocked((v) => !v)}><Sprout size={14} /> Seed</button>
@@ -370,15 +367,14 @@ export default function VideoStudio() {
         <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       </div>
 
-      {target && <ReferencePicker max={target === "refs" ? caps.refMax : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} />}
+      {target && <ReferencePicker max={target === "refs" ? caps.refMax : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? caps.refVideoMax : 0} pickedVideos={vrefs} onVideosChange={setVrefs} videosOnly={target === "refs" && (mc || !caps.refMax)} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => {
         if (m === "scene") { setMotion(null); setNote("3D scene isn't connected yet."); return; }
         setMotion(m); setVrefs([]); setStart(null);
-        setNote(m ? "Motion transfer: choose a subject picture (Start frame) and one of your videos as the Motion clip. The length follows the clip." : "");
+        setNote(m ? "Motion transfer: choose a subject picture (Start frame) and one of your videos as the Motion video. The length follows the clip." : "");
       }} onClose={() => setMotionAnchor(null)} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
-      {pickingClips && <VideoRefPicker max={caps.refVideoMax} picked={vrefs} onChange={setVrefs} onClose={() => setPickingClips(false)} title={mc ? "a motion clip" : "reference clips"} />}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
     </div>
   );
