@@ -26,9 +26,19 @@ const DRAWN: Record<string, React.ReactNode> = {
   Grok: <Stroke><circle cx="12" cy="12" r="8" /><path d="M7 17.5L17.5 7" /></Stroke>,
   Recraft: <Letter c="R" size={18} y={18} />,
   Krea: <Letter c="K" size={18} y={18} />,
+  Kling: <Letter c="K" size={18} y={18} />,
+  Bytedance: <g fill="currentColor"><rect x="3" y="10" width="3" height="8" rx="1.2" /><rect x="8" y="5" width="3" height="14" rx="1.2" /><rect x="13" y="8" width="3" height="11" rx="1.2" /><rect x="18" y="12" width="3" height="6" rx="1.2" /></g>,
+  "Happy Horse": <Letter c="H" size={18} y={18} />,
+  PixVerse: <Stroke><path d="M12 3l8 5v8l-8 5-8-5V8z" /></Stroke>,
+  Higgsfield: <Letter c="H" size={18} y={18} />,
+  xAI: <Stroke><circle cx="12" cy="12" r="8" /><path d="M7 17.5L17.5 7" /></Stroke>,
+  MiniMax: <Letter c="M" size={18} y={18} />,
+  Wan: <Letter c="W" size={18} y={18} />,
+  Lightricks: <Letter c="L" size={18} y={18} />,
+  "Black Forest Labs": <Stroke><path d="M2.5 19L9 6l6.5 13M9.5 19l4-8 4 8" /></Stroke>,
   Microsoft: <g fill="currentColor"><rect x="3.5" y="3.5" width="8" height="8" rx="1" /><rect x="12.5" y="3.5" width="8" height="8" rx="1" /><rect x="3.5" y="12.5" width="8" height="8" rx="1" /><rect x="12.5" y="12.5" width="8" height="8" rx="1" /></g>,
 };
-function ModelIcon({ name }: { name: string }) {
+export function ModelIcon({ name }: { name: string }) {
   const L = LUCIDE[name];
   if (L) return <span className="mp-ico"><L size={20} strokeWidth={1.8} /></span>;
   return <span className="mp-ico"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">{DRAWN[name] ?? <Stroke><circle cx="12" cy="12" r="8" /></Stroke>}</svg></span>;

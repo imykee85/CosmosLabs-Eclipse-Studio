@@ -11,6 +11,7 @@ import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import RenderDetails from "../library/RenderDetails";
 import SoonTag from "../SoonTag";
+import VideoModelPicker from "./VideoModelPicker";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
@@ -338,36 +339,5 @@ function FrameThumb({ pic, tag, onRemove }: { pic: RefPick; tag: string; onRemov
       <i className={`cr-ref-n ${tag.length > 1 ? "vs-tag" : ""}`}>{tag}</i>
       <button type="button" className="cr-ref-x" aria-label={`Remove ${pic.label}`} onClick={onRemove}><X size={12} /></button>
     </span>
-  );
-}
-
-// The list of video models, grouped by maker. Models not connected yet are listed greyed with a Soon tag. Drawn outside the prompt box so it covers the tab bar.
-function VideoModelPicker({ value, onPick, onClose }: { value: string; onPick: (m: VideoModel) => void; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  const makers = [...new Set(VIDEO_MODELS.map((m) => m.maker))];
-  return (
-    <div className="rd-scrim" onClick={onClose}>
-      <div className="up-dialog vs-models" role="dialog" aria-modal="true" aria-label="Choose a video model" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="rd-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
-        <h2>Video models</h2>
-        <div className="vs-list">
-          {makers.map((mk) => (
-            <div key={mk} className="vs-group">
-              <h3>{mk}</h3>
-              {VIDEO_MODELS.filter((m) => m.maker === mk).map((m) => (
-                <button key={m.id} type="button" className={`vs-item ${m.id === value ? "is-on" : ""} ${isLive(m) ? "" : "is-soon"}`} aria-pressed={m.id === value} onClick={() => onPick(m)}>
-                  <span><b>{m.label}{!isLive(m) && <SoonTag />}</b><small>{m.blurb}</small><em>{m.durations[0]} to {m.durations[m.durations.length - 1]} s{m.qualities.length ? ` · ${m.qualities[0]} to ${m.qualities[m.qualities.length - 1]}` : ""}{m.sound === "toggle" ? " · sound" : ""}</em></span>
-                  {m.id === value && <Check size={16} />}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
