@@ -8,7 +8,7 @@ Estimates, not measurements. Quickest first.
 |---|---|---|---|---|
 | 1 | Add credit to the Anthropic account | Account | 5 min | Core, Atlas, Prompts, upload scan (the `ANTHROPIC_API_KEY` Secret is already set) |
 | 2 | In Vercel, switch on Web Analytics for the project | Setting | 2 min | Visitor numbers |
-| 3 | Look in the Vercel build log of this push for `db-push: applying` | Check | 2 min | Confirms the new `user_agents` table exists |
+| 3 | Open `/admin/health` on the live site (signed in as an admin) and tap Copy report, then paste it to me | Check | 1 min | Shows tables, missing settings and whether the Anthropic key has credit, all in one go |
 | 4 | Vercel settings: `NEXT_PUBLIC_CONTACT_EMAIL` (Config), `NEXT_PUBLIC_SITE_URL` (Config, your final address), `ADMIN_EMAILS` (Config), `CRON_SECRET` (Secret); confirm `GEMINI_API_KEY` also has a Preview value | Settings | 20 min | Legal pages show a contact, sharing links, owner pages, the daily finishing job |
 | 5 | Decide: hide the empty dashboard home-feed sections, or fill them; add a desktop link to Library; Treatment start for the Video card | Decision | 15 min | Removes the "unfinished" look |
 | 6 | iPhone check: Library square tiles and video autoplay, no outline, hero video, Atlas, Motion panel, drag order, Agents create dialog | Test | 30 min | Tells me what Safari breaks (I cannot test Safari here) |

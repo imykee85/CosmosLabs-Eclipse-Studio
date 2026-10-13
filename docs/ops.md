@@ -30,6 +30,7 @@ Where each setting lives: **Secret** = Vercel Environment Variables, marked Sens
 ## Owner tools
 
 - `/admin/credits`: add credits to an account by e-mail.
+- `/admin/health`: one report (tables created, settings set or missing, Anthropic key and credit, failed renders) with a Copy report button; no keys or secrets in it. Open it after every deploy instead of reading Vercel logs.
 - `/admin/jobs`: the 100 most recent renders and videos with status, error text, held credits and length. Use it first when someone reports a stuck or failed render.
 
 ## Launch checklist
