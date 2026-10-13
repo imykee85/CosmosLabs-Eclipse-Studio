@@ -140,6 +140,48 @@ test.describe("prompt box messages", () => {
   });
 });
 
+test.describe("prompt box drafts", () => {
+  const seed = async (page: import("@playwright/test").Page) => {
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem("seeded")) return;
+      sessionStorage.setItem("seeded", "1");
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [{ id: "m", label: "Model", blurb: "x", ratios: ["1:1", "9:16"], resolutions: [], maxBatch: 4, maxPrompt: 2000, verified: true, autoPick: true, seed: { supported: false }, maxReferences: 3, requiresReference: false, credits: null }] } }));
+  };
+
+  test("Image Studio keeps the text and the attached pictures through a refresh", async ({ page }) => {
+    await seed(page);
+    await page.goto("/create");
+    await page.fill("textarea", "a red square on a table");
+    await page.evaluate(() => {
+      const d = JSON.parse(localStorage.getItem("eclipse-draft-create") ?? "{}");
+      localStorage.setItem("eclipse-draft-create", JSON.stringify({ ...d, refs: [{ type: "upload", id: "u1", label: "jacket" }, { type: "render", id: "r1", label: "face" }] }));
+    });
+    await page.reload();
+    await expect(page.locator("textarea")).toHaveValue("a red square on a table");
+    await expect(page.locator(".cr-refs img, .cr-ref img")).toHaveCount(2);
+  });
+
+  test("Video Studio keeps the text through a refresh", async ({ page }) => {
+    await seed(page);
+    await page.goto("/generate");
+    await page.fill("textarea", "a slow dolly shot");
+    await page.reload();
+    await expect(page.locator("textarea")).toHaveValue("a slow dolly shot");
+  });
+
+  test("a prompt sent from another page wins over the saved draft", async ({ page }) => {
+    await seed(page);
+    await page.goto("/create");
+    await page.fill("textarea", "old draft");
+    await page.goto("/create?prompt=from%20Prompts");
+    await expect(page.locator("textarea")).toHaveValue("from Prompts");
+  });
+});
+
 test.describe("phone layout", () => {
   test.use({ viewport: { width: 520, height: 900 }, isMobile: true, hasTouch: true, screen: { width: 390, height: 844 } });
   test("the app fills a phone at 520 px with no sideways scroll", async ({ page }) => {

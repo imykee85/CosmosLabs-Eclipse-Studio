@@ -14,6 +14,7 @@ import { useRenders } from "@/lib/use-renders";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import PromptEdge, { type EdgeMessage } from "./PromptEdge";
+import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
 import ModelPicker, { AUTO } from "./ModelPicker";
 import AgentIcon from "../AgentIcon";
 import SoonTag from "../SoonTag";
@@ -29,12 +30,30 @@ const previewWidth = (r: string) => PREVIEW_WIDTH[r] ?? 215;
 
 export default function CreateStudio() {
   const router = useRouter();
-  const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
+  const urlPrompt = useSearchParams().get("prompt");
+  const [prompt, setPrompt] = useState(urlPrompt ?? "");
   const [ratio, setRatio] = useState("1:1");
   const [qty, setQty] = useState(1);
   const [tier, setTier] = useState("1k");
   const models = useModels({ edit: true });
   const [refs, setRefs] = useState<RefPick[]>([]);
+  // The box survives a refresh: text, shape, count, quality and the attached ingredients are kept as they change and put back on the next visit.
+  const [draftReady, setDraftReady] = useState(false);
+  useEffect(() => {
+    const d = readDraft<{ prompt: string; ratio: string; qty: number; tier: string; refs: unknown }>("create");
+    if (d) {
+      if (!urlPrompt && typeof d.prompt === "string") setPrompt(d.prompt);
+      if (typeof d.ratio === "string") setRatio(d.ratio);
+      if (Number.isInteger(d.qty) && (d.qty as number) >= 1 && (d.qty as number) <= 4) setQty(d.qty as number);
+      if (typeof d.tier === "string") setTier(d.tier);
+      const picks = cleanPicks(d.refs, 10);
+      if (picks.length) setRefs(picks.map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r) })));
+    }
+    setDraftReady(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (draftReady) writeDraft("create", { prompt, ratio, qty, tier, refs: refs.map(({ type, id, label }) => ({ type, id, label })) });
+  }, [draftReady, prompt, ratio, qty, tier, refs]);
   const [modelId, setModelId] = useState("");
   const [pickingModel, setPickingModel] = useState(false);
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);

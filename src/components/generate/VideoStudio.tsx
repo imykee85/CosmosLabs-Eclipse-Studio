@@ -11,6 +11,7 @@ import VideoSettingsMenu from "./VideoSettingsMenu";
 import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type ClipPick, type RefPick } from "../create/ReferencePicker";
 import PromptEdge, { type EdgeMessage } from "../create/PromptEdge";
+import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
 import RenderDetails from "../library/RenderDetails";
 import OrderedRefs, { type RefItem } from "./OrderedRefs";
 import StyleLibrary from "./StyleLibrary";
@@ -40,7 +41,8 @@ type Target = "start" | "end" | "refs";
 type Config = { creditsOn: boolean; paused: boolean; ready: boolean };
 
 export default function VideoStudio() {
-  const [prompt, setPrompt] = useState(useSearchParams().get("prompt") ?? "");
+  const urlPrompt = useSearchParams().get("prompt");
+  const [prompt, setPrompt] = useState(urlPrompt ?? "");
   const [modelId, setModelId] = useState(DEFAULT_VIDEO_MODEL);
   const pickerModel = videoModelById(modelId);
   // Motion transfer (the Motion chip) has its own engines, kept out of the model picker: Kling Motion Control (2.6 or 3.0, Standard or Pro) or Genjutsu.
@@ -70,6 +72,39 @@ export default function VideoStudio() {
   const [target, setTarget] = useState<Target | null>(null);
   const [pickingModel, setPickingModel] = useState(false);
   const [vrefs, setVrefs] = useState<ClipPick[]>([]);        // reference clips: the person's own finished videos
+  // The box survives a refresh: text, settings, start and end frames, pictures, clips and the Motion choice are kept as they change and put back on the next visit.
+  const [draftReady, setDraftReady] = useState(false);
+  useEffect(() => {
+    const d = readDraft<{ prompt: string; ratio: string; duration: number; quality: string; sound: boolean; start: unknown; end: unknown; refs: unknown; vrefs: unknown; motion: MotionMode | null; mcEngine: "kling3" | "kling26" | "genjutsu"; mcTier: "pro" | "std"; mcOrient: "video" | "image"; mcSound: boolean }>("generate");
+    if (d) {
+      if (!urlPrompt && typeof d.prompt === "string") setPrompt(d.prompt);
+      if (typeof d.ratio === "string") setRatio(d.ratio);
+      if (typeof d.duration === "number" && d.duration > 0 && d.duration <= 60) setDuration(d.duration);
+      if (typeof d.quality === "string") setQuality(d.quality);
+      if (typeof d.sound === "boolean") setSound(d.sound);
+      const one = (v: unknown) => cleanPicks(v ? [v] : [], 1)[0];
+      const st = one(d.start), en = one(d.end);
+      if (st) setStart({ type: st.type, id: st.id, label: st.label, url: pickUrl(st) });
+      if (en) setEnd({ type: en.type, id: en.id, label: en.label, url: pickUrl(en) });
+      setRefs(cleanPicks(d.refs, 30).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r) })));
+      setVrefs(cleanPicks(d.vrefs, 10).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r), sec: r.sec ?? null })));
+      if (d.motion === "subject" || d.motion === "scene") setMotion(d.motion);
+      if (d.mcEngine === "kling3" || d.mcEngine === "kling26" || d.mcEngine === "genjutsu") setMcEngine(d.mcEngine);
+      if (d.mcTier === "pro" || d.mcTier === "std") setMcTier(d.mcTier);
+      if (d.mcOrient === "video" || d.mcOrient === "image") setMcOrient(d.mcOrient);
+      if (typeof d.mcSound === "boolean") setMcSound(d.mcSound);
+    }
+    setDraftReady(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!draftReady) return;
+    const pick = (p: RefPick | null) => (p ? { type: p.type, id: p.id, label: p.label } : null);
+    writeDraft("generate", {
+      prompt, ratio, duration, quality, sound, start: pick(start), end: pick(end),
+      refs: refs.map(pick), vrefs: vrefs.map((v) => ({ type: v.type, id: v.id, label: v.label, sec: v.sec ?? null })),
+      motion, mcEngine, mcTier, mcOrient, mcSound,
+    });
+  }, [draftReady, prompt, ratio, duration, quality, sound, start, end, refs, vrefs, motion, mcEngine, mcTier, mcOrient, mcSound]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
