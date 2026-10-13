@@ -359,15 +359,15 @@ export default function CreateStudio() {
             <Workflow size={14} /> Open canvas
           </button>
             <div className="cr-grp">
+              <span className="cr-chip cr-seed"><Sprout size={14} /> Fixed seed</span>
+              <button type="button" role="switch" aria-checked={seedLive} aria-label="Fixed seed" disabled={!seedSupported} title={seedSupported ? "Fixed seed: similar results with the same seed" : "This model doesn't support seeds"} className={`cr-switch ${seedLive ? "is-on" : ""}`} onClick={() => flip("eclipse-fixed-seed", !seedOn, setSeedOn)}><i /></button>
+            </div>
+            <div className="cr-grp">
             <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
             <AgentIcon size={14} /> <span className="cr-aname">{agent ?? "Agents"}</span>
           </button>
               <button type="button" role="switch" aria-checked={agentOn && !!agent} aria-label="Let the agent help with this prompt" title={agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agentOn && agent ? "is-on" : ""}`}
                 onClick={() => { if (!agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } setAgentOn(!agentOn); }}><i /></button>
-            </div>
-            <div className="cr-grp">
-              <span className="cr-chip cr-seed"><Sprout size={14} /> Fixed seed</span>
-              <button type="button" role="switch" aria-checked={seedLive} aria-label="Fixed seed" disabled={!seedSupported} title={seedSupported ? "Fixed seed: similar results with the same seed" : "This model doesn't support seeds"} className={`cr-switch ${seedLive ? "is-on" : ""}`} onClick={() => flip("eclipse-fixed-seed", !seedOn, setSeedOn)}><i /></button>
             </div>
           </div>
           {seedLive && seedSpec && (
