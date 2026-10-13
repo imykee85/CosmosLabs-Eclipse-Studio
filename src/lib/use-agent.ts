@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AGENT_KEY, AGENTS, DEFAULT_AGENT } from "@/components/workspace/AgentPicker";
+import { readCustomAgents } from "@/lib/custom-agents";
 
 export const AGENT_ON_KEY = "eclipse-agent-on";
 const EVENT = "eclipse-agent-change";
@@ -22,14 +23,15 @@ export function useAgent() {
     const read = () => {
       try {
         const a = localStorage.getItem(AGENT_KEY);
-        setAgentState(a && AGENTS.includes(a) ? a : DEFAULT_AGENT);
+        setAgentState(a && (AGENTS.includes(a) || readCustomAgents().some((c) => c.name === a)) ? a : DEFAULT_AGENT);
         setOnState(localStorage.getItem(AGENT_ON_KEY) === "1");
       } catch {}
     };
     read();
     window.addEventListener(EVENT, read);
     window.addEventListener("storage", read);
-    return () => { window.removeEventListener(EVENT, read); window.removeEventListener("storage", read); };
+    window.addEventListener("eclipse-custom-agents-change", read);
+    return () => { window.removeEventListener("eclipse-custom-agents-change", read); window.removeEventListener(EVENT, read); window.removeEventListener("storage", read); };
   }, []);
   const setAgent = useCallback((name: string | null) => {
     let was: string | null = null, isOn = false;

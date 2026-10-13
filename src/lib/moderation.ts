@@ -42,9 +42,17 @@ function variants(text: string): string[] {
   return [...new Set([...all, ...all.map(stretch), ...all.map(squeeze)])];
 }
 
+// A long run of single letters ("n a k e d c h i l d") is one disguised stretch of text with no word edges to find: each run is joined and the word lists are looked for inside it.
+function joinedRuns(text: string): string[] {
+  const base = text.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return (base.match(/\b[a-z](?:[\s.\-_*]+[a-z]\b){5,}/g) ?? []).map((r) => r.replace(/[^a-z]/g, ""));
+}
+const loose = (r: RegExp) => new RegExp(r.source.replace(/\\b/g, ""), r.flags);
+
 export function checkPrompt(prompt: string): ModerationResult {
   const forms = variants(prompt);
-  const any = (r: RegExp) => forms.some((t) => r.test(t));
+  const runs = joinedRuns(prompt);
+  const any = (r: RegExp) => forms.some((t) => r.test(t)) || runs.some((j) => loose(r).test(j));
   const sexual = any(SEXUAL); // each kind of word is looked for in every form, so a stretched word and a spelled-out word can sit in one prompt
   if (sexual && any(MINOR)) return { ok: false, reason: REFUSALS.minors, category: "minors" };
   if (sexual && any(REAL_PERSON)) return { ok: false, reason: REFUSALS["real-person"], category: "real-person" };

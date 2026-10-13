@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Eclipse Studio",
     short_name: "Eclipse",
-    description: "Turn any idea into premium images. By Cosmos Labs AI.",
+    description: "Eclipse is an AI creative suite by Cosmos Labs AI. Turn any idea into premium images, with video on the way.",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",

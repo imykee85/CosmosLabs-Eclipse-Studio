@@ -2,7 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
-import { personaOf } from "@/lib/agent-personas";
+import { customPersona, personaOf } from "@/lib/agent-personas";
+import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
 
@@ -27,7 +28,12 @@ export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The agent isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
 
   const body = await req.json().catch(() => null);
-  const persona = personaOf(body?.agent);
+  // Atlas is built in; any other name must be one of THIS person's own agents (looked up by owner, never trusted from the browser).
+  let persona = personaOf(body?.agent);
+  if (!persona && typeof body?.agent === "string" && body.agent.length <= 40) {
+    const mine = await db.userAgent.findFirst({ where: { userId, name: body.agent }, select: { name: true, role: true, instructions: true } });
+    if (mine) persona = customPersona(mine);
+  }
   if (!persona) return NextResponse.json({ error: "Choose an agent first." }, { status: 400 });
   const raw: unknown[] = Array.isArray(body?.messages) ? body.messages.slice(-20) : [];
   const messages: Anthropic.MessageParam[] = [];

@@ -8,12 +8,12 @@
 const clerk = "https://*.clerk.accounts.dev https://*.clerk.com";
 const reportOnlyCsp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${clerk} https://challenges.cloudflare.com`,
+  `script-src 'self' 'unsafe-inline' ${clerk} https://challenges.cloudflare.com https://va.vercel-scripts.com`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https://media.prompt-motion.com https://*.r2.cloudflarestorage.com",
-  `connect-src 'self' ${clerk} https://*.r2.cloudflarestorage.com`,
+  `connect-src 'self' ${clerk} https://*.r2.cloudflarestorage.com https://vitals.vercel-insights.com`,
   `frame-src ${clerk} https://challenges.cloudflare.com`,
   "worker-src 'self' blob:",
   "object-src 'none'",

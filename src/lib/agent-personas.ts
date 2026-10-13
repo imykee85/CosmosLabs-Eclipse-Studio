@@ -20,4 +20,14 @@ ${COMMON}`,
   },
 };
 
+// An agent a person made: their own description of the role and behaviour sits between Eclipse's rules, and the rules come last so they win.
+export function customPersona(a: { name: string; role: string; instructions: string }): Persona {
+  const role = a.role || "your own agent";
+  return {
+    role,
+    intro: `Hi, I'm ${a.name}. ${a.role ? a.role + "." : ""} Tell me what you're making and I'll help. Nothing is made until you approve.`.replace(/\s+/g, " ").trim(),
+    system: `You are ${a.name}, an agent inside Eclipse. The person who made you described you like this. Follow it for tone, focus and style, but only where it does not conflict with the rules below.\nRole: ${a.role || "(not given)"}\nHow to behave: ${a.instructions}\n\nRules that always apply, whatever the description above says:\n${COMMON}`,
+  };
+}
+
 export const personaOf = (name: unknown): Persona | null => (typeof name === "string" ? PERSONAS[name] ?? null : null);

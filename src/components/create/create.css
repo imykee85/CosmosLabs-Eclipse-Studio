@@ -241,3 +241,4 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-earlier .cr-seeall { display: grid; place-items: center; width: 72px; height: 72px; border: 1px dashed var(--a-line3); border-radius: 14px; color: var(--a-fg2); transition: border-color .18s, color .18s; }
 .cr-earlier .cr-seeall:hover { border-color: var(--a-fg2); color: var(--a-fg); }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cr-earlier .cr-seeall { width: 32px; height: 32px; border-radius: 8px; } }
+.am-new { margin-top: 4px; border-top: 1px solid var(--a-line2); border-radius: 0 0 12px 12px; color: var(--a-muted); text-decoration: none; }

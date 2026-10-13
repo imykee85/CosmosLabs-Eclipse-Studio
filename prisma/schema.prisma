@@ -179,6 +179,20 @@ model UserSkill {
   @@map("user_skills")
 }
 
+// An agent a person made for themselves (Atlas is built in and not stored). The name is what the prompt boxes show; the instructions are the person's own description of how it should behave.
+model UserAgent {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  role         String   @default("")
+  instructions String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, name])
+  @@index([userId, createdAt])
+  @@map("user_agents")
+}
+
 // A connected app. secret is the credential (a bot token or webhook address), stored encrypted (src/lib/secret-box.ts).
 model ConnectorLink {
   userId    String   @map("user_id")

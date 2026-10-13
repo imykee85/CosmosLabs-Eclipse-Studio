@@ -33,7 +33,7 @@ const photo: Item[] = [
   { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
   { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> },
 ];
-const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} />, soon: true };
+const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} /> };
 // The four tools that work across Photo, Audio and Video, shown together under one heading at the top.
 const utilities: Item[] = [connectItem, agentsItem, canvasItem, ingredients];
 const video: Item[] = [

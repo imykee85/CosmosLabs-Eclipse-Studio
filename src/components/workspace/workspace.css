@@ -166,3 +166,22 @@ a.ws-account:hover, a.ws-account.is-active { background: var(--a-hover); }
 .mb-shortcuts button.ws-item { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; color: inherit; }
 .mb-shortcuts button.ws-item:hover, .mb-shortcuts button.ws-item.is-active { background: var(--a-hover); }
 .mb-sc-empty { margin: 4px 12px 8px; color: var(--a-muted2); font-size: 14px; }
+
+/* Your own agents: the card wrapper (for its delete button) and the create dialog */
+.ag-wrap { position: relative; display: grid; }
+.ag-wrap .ws-kind { width: 100%; }
+.ag-del { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-bg); color: var(--a-muted); cursor: pointer; }
+.ag-del:hover { border-color: #c00707; color: var(--a-fg); }
+.ag-new { border-style: dashed; cursor: pointer; }
+.ag-scrim { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.66); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.ag-dialog { position: relative; display: grid; gap: 14px; width: min(460px, 100%); max-height: calc(100dvh - 40px); overflow: auto; padding: 24px; border: 1px solid var(--a-line2); border-radius: 28px; background: var(--a-bg); color: var(--a-fg); box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 1px var(--a-line3); }
+.ag-dialog h2 { margin: 0; padding-right: 36px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.ag-dialog label { display: grid; gap: 6px; color: var(--a-muted); font-size: 13px; }
+.ag-dialog input, .ag-dialog textarea { width: 100%; padding: 11px 14px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 16px; outline: none; resize: vertical; }
+.ag-dialog input:focus, .ag-dialog textarea:focus { border-color: var(--a-line4); }
+.ag-note { margin: 0; color: var(--a-muted); font-size: 12.5px; line-height: 1.45; }
+.ag-err { margin: 0; color: #ff6b6b; font-size: 13.5px; }
+.ag-x { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg2); cursor: pointer; }
+.ag-save { height: 44px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; }
+.ag-save:hover:not(:disabled) { background: #d90b0b; } .ag-save:disabled { opacity: .5; cursor: default; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ag-scrim { align-items: end; padding: 10px; } }

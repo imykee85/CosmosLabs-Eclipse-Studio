@@ -1,15 +1,23 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/react"; // page views; sends nothing until Web Analytics is switched on in the Vercel project
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-sans" });
 
+// The address people share and search engines index: NEXT_PUBLIC_SITE_URL (Config value, the real domain once there is one), else Vercel's production address, else local.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+const description = "Eclipse is an AI creative suite by Cosmos Labs AI. Turn any idea into premium images, with video on the way.";
+
 export const metadata: Metadata = {
-  title: "Eclipse — your creative studio",
-  description: "Turn any idea into premium images. By Cosmos Labs AI.",
+  metadataBase: new URL(siteUrl),
+  title: { default: "Eclipse Studio: your AI creative suite", template: "%s | Eclipse Studio" },
+  description,
   applicationName: "Eclipse",
+  openGraph: { type: "website", siteName: "Eclipse Studio", title: "Eclipse Studio: your AI creative suite", description }, // the picture comes from opengraph-image.tsx
+  twitter: { card: "summary_large_image", title: "Eclipse Studio: your AI creative suite", description },
   // iPhone "Add to Home Screen": the name under the icon (the icon is src/app/apple-icon.png).
   appleWebApp: { capable: true, title: "Eclipse" }, // the status bar style is set by the script below, so it can follow the theme
 };
@@ -38,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   );
