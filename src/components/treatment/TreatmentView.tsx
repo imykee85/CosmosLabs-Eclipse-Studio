@@ -146,7 +146,7 @@ export default function TreatmentView() {
             <button type="button" className="tr-tool" aria-label="Voice input"><Mic size={16} /></button>
             <div className="tr-agent">
               <button ref={agentChip} type="button" className="tr-tool tr-agentchip" aria-label="Choose your agent" aria-haspopup="menu" title="Choose your agent" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
-                <AgentIcon size={14} /> <span>{agent.agent ?? "Agents"}</span>
+                <AgentIcon size={14} /> <span>{agent.agent ?? "Atlas"}</span>
               </button>
               <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                 onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>

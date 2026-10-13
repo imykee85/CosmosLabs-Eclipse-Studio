@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AGENT_KEY, AGENTS } from "@/components/workspace/AgentPicker";
+import { AGENT_KEY, AGENTS, DEFAULT_AGENT } from "@/components/workspace/AgentPicker";
 
 export const AGENT_ON_KEY = "eclipse-agent-on";
 const EVENT = "eclipse-agent-change";
@@ -16,13 +16,13 @@ const sendCue = (c: AgentCue) => { pendingCue = c; window.dispatchEvent(new Even
 // The chosen agent and its on/off switch: one choice for the whole app, remembered in this browser, and shared live between everything that shows it
 // (Image Studio, every canvas generator, the floating agent).
 export function useAgent() {
-  const [agent, setAgentState] = useState<string | null>(null);
+  const [agent, setAgentState] = useState<string | null>(DEFAULT_AGENT); // Atlas is the default agent: the chips always show it
   const [on, setOnState] = useState(false);
   useEffect(() => {
     const read = () => {
       try {
         const a = localStorage.getItem(AGENT_KEY);
-        setAgentState(a && AGENTS.includes(a) ? a : null);
+        setAgentState(a && AGENTS.includes(a) ? a : DEFAULT_AGENT);
         setOnState(localStorage.getItem(AGENT_ON_KEY) === "1");
       } catch {}
     };

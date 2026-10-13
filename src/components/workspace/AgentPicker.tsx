@@ -5,7 +5,9 @@ import { Check } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
 import SoonTag from "@/components/SoonTag";
 
-export const AGENTS = ["Agent 1", "Agent 2", "Agent 3"];
+// Atlas is the one built-in agent (user 2026-10-13); people will be able to create their own extra agents later.
+export const AGENTS = ["Atlas"];
+export const DEFAULT_AGENT = "Atlas";
 export const AGENT_KEY = "eclipse-agent";
 
 // Pick one agent; the choice is remembered in this browser. Select it again to clear.

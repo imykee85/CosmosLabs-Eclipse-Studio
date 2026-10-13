@@ -80,6 +80,7 @@ Estimates assume steady work like the sessions so far and that the user sets up 
 - Never claim real companies as customers: the mock logo strip is preview-only (see "Remove before production").
 
 ## Product vision: Agents (user-specified, keep wording faithful)
+- **Decision 2026-10-13: ONE built-in agent called Atlas** (it covers the three roles below: brainstorming, prompt craft, screening); people will later be able to CREATE their own extra agents (NOT built). Every prompt box shows "Atlas" next to the agent icon (`AGENTS`/`DEFAULT_AGENT` in `AgentPicker.tsx`, default applied in `useAgent`, persona in `agent-personas.ts`); the Treatment chat box stays icon-only on phones as before. Old saved choices "Agent 1/2/3" fall back to Atlas, and chats kept under those names stay in the browser unused. The text below is the earlier three-agent plan.
 Agents are skilled creative partners the user picks on the Agents page (currently placeholder cards "Agent 1/2/3"; names and artwork not final).
 - **Agent 1, the brainstorming partner.** Understands all of the user's ideas and concepts, offers perspective, and challenges ideas. Fits the Treatment (Brief/Concept/Guide) stage.
 - **Agent 2, the creative partner.** Assists with real-time asset generation. Masters prompt engineering and is up to date on JSON prompting. Has custom plugins/tools for prompt writing, JSON image breakdown, Seedance prompting, storyboarding and similar. Goal: make the work "10x easier" by writing prompts so detailed you would question if it was AI.

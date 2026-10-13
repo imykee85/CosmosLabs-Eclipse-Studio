@@ -364,7 +364,7 @@ export default function CreateStudio() {
             </div>
             <div className="cr-grp">
             <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
-            <AgentIcon size={14} /> <span className="cr-aname">{agent ?? "Agents"}</span>
+            <AgentIcon size={14} /> <span className="cr-aname">{agent ?? "Atlas"}</span>
           </button>
               <button type="button" role="switch" aria-checked={agentOn && !!agent} aria-label="Let the agent help with this prompt" title={agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agentOn && agent ? "is-on" : ""}`}
                 onClick={() => { if (!agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } setAgentOn(!agentOn); }}><i /></button>

@@ -331,7 +331,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
           </div>
           <div className="cv-controls nodrag">
             <span className="cv-grp">
-              <button ref={agentChip} type="button" className="cv-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => ask({ kind: "agent", anchor: e.currentTarget.getBoundingClientRect() })}><AgentIcon size={13} /> <span>{agent.agent ?? "Agents"}</span></button>
+              <button ref={agentChip} type="button" className="cv-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => ask({ kind: "agent", anchor: e.currentTarget.getBoundingClientRect() })}><AgentIcon size={13} /> <span>{agent.agent ?? "Atlas"}</span></button>
               <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this node" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cv-switch ${agent.active ? "is-on" : ""}`}
                 onClick={() => { if (!agent.agent) { if (agentChip.current) ask({ kind: "agent", anchor: agentChip.current.getBoundingClientRect() }); return; } agent.setOn(!agent.on); }}><i /></button>
             </span>
