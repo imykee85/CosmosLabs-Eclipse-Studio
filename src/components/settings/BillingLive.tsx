@@ -21,7 +21,7 @@ export function CreditNotes() {
   return (
     <>
       {!credits.charging && <p className="st-meta">Credits are not charged yet, so images are free for now.</p>}
-      {credits.isAdmin && <p className="st-meta"><Link href="/admin/credits" className="bl-link">Add credits to an account</Link></p>}
+      {credits.isAdmin && <p className="st-meta"><Link href="/admin/credits" className="bl-link">Add credits to an account</Link> · <Link href="/admin/health" className="bl-link">Health check</Link> · <Link href="/admin/jobs" className="bl-link">Recent renders</Link></p>}
     </>
   );
 }

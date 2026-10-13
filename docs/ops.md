@@ -39,3 +39,5 @@ Where each setting lives: **Secret** = Vercel Environment Variables, marked Sens
 
 The Anthropic key was replaced on 2026-10-13 (Secret, Production and Preview); a push is needed for it to reach a new deployment.
 Credit was added to the Anthropic and OpenAI accounts on 2026-10-13 (provider side, no setting change needed).
+
+The owner pages are linked from Settings, Billing (shown only to the owner), under the balance.
