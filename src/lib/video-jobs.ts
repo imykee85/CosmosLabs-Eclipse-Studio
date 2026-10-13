@@ -17,8 +17,8 @@ const MAX_COPY_TRIES = 4;                   // after this many failed copies the
 
 export const REFUSED = "The model refused this. Try a different prompt or picture.";
 export const FAILED = "The video could not be made. No credits were used.";
-export const CANCELED = "This video was canceled. No credits were used.";
-export const TIMED_OUT = "This video took too long and was stopped. No credits were used.";
+export const CANCELED = "This video was canceled. No Eclipse credits were used. Higgsfield decides whether it refunds its own.";
+export const TIMED_OUT = "We stopped waiting for this video: it took longer than our wait limit. No Eclipse credits were used. It may still finish at Higgsfield, which may already have used some of its own credits.";
 
 type Params = { workflow?: string; endpoint?: string; resolution?: string; duration?: number; copyTries?: number; cancelRequested?: boolean };
 const paramsOf = (g: Generation): Params => (g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Params) : {});
@@ -59,7 +59,8 @@ export async function finalizeVideo(g: Generation): Promise<Generation> {
       // Keep what the provider last said, so the owner can tell "still waiting in its queue" from "running" from "an answer we misread".
       const base = g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Record<string, unknown>) : {};
       await db.generation.update({ where: { id: g.id }, data: { params: { ...base, providerStatusAtTimeout: s.raw ?? s.state, startedAtProvider: Boolean(g.startedAt) } as object } }).catch(() => {});
-      if (g.cancelUrl) await cancelVideo(g.cancelUrl).catch(() => {});
+      // We only stop WAITING. The provider is not told to cancel: a job that is really running keeps its credits and may still finish, so cancelling it
+      // could cost the person both the credits and the video. Only the person's own Cancel button asks the provider to stop.
       return failVideo(g, TIMED_OUT);
     }
     return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
