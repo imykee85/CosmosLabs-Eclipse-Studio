@@ -305,21 +305,16 @@ export default function VideoStudio() {
               )}
               {mcEngine !== "genjutsu" && (
                 <>
-                  <div className="vs-opt" role="group" aria-label="Scene control">
+                  <div className="vs-opt" role="group" aria-label="Scene control" title="Where the background comes from: the picture or the motion video">
                     <div className="vs-opt-head">
                       <span>Scene control <SoonTag /></span>
                       <button type="button" role="switch" aria-checked={mcScene} aria-label="Scene control" className={`cr-switch ${mcScene ? "is-on" : ""}`} onClick={() => { setMcScene((v) => !v); setNote("Scene control isn't connected yet, so it changes nothing for now."); }}><i /></button>
                     </div>
-                    {mcScene && (
-                      <select value={mcSceneFrom} onChange={(e) => setMcSceneFrom(e.target.value as "video" | "image")} aria-label="Where the background comes from"><option value="video">From the video</option><option value="image">From the picture</option></select>
-                    )}
-                    <small>Choose where the background should come from: the picture or the motion video.</small>
+                    <select value={mcSceneFrom} disabled={!mcScene} onChange={(e) => setMcSceneFrom(e.target.value as "video" | "image")} aria-label="Where the background comes from"><option value="video">From the video</option><option value="image">From the picture</option></select>
                   </div>
-                  <div className="vs-opt" role="group" aria-label="Orientation">
-                    <div className="vs-opt-head"><span>Orientation</span></div>
-                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")} aria-label="Orientation" title="character_orientation"><option value="video">From the video</option><option value="image">From the picture</option></select>
-                    <small>Video suits complex movements. Image supports camera moves better.</small>
-                  </div>
+                  <label title="character_orientation. From the video suits complex movements; from the picture supports camera moves better."><span>Orientation</span>
+                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")}><option value="video">From the video</option><option value="image">From the picture</option></select>
+                  </label>
                   <label className="vs-motion-check"><input type="checkbox" checked={mcSound} onChange={(e) => setMcSound(e.target.checked)} /><span>Keep the clip&rsquo;s sound</span></label>
                 </>
               )}

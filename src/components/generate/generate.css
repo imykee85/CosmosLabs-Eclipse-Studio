@@ -61,7 +61,7 @@
 .vs-adv label { display: grid; gap: 6px; color: var(--a-muted); font-size: 12.5px; }
 .vs-adv textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; resize: none; }
 .vs-adv input[type="range"] { width: 100%; accent-color: #c00707; }
-.vs-motion { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 10px 4px 0; padding: 12px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); }
+.vs-motion { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 4px 0; padding: 12px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); }
 .vs-motion label { display: grid; gap: 6px; color: var(--a-muted); font-size: 12.5px; }
 .vs-motion select { height: 36px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; }
 .vs-motion .vs-motion-check { display: flex; align-items: center; gap: 8px; align-self: end; height: 36px; cursor: pointer; }
@@ -95,13 +95,22 @@
 .vs-ref .cr-ref-n.vs-tag { max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Motion panel options: a title row (with an optional switch) and a Video / Image choice */
-.vs-motion .vs-opt { display: grid; gap: 8px; }
-.vs-motion .vs-opt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--a-fg); font-size: 14px; font-weight: 500; }
+.vs-motion .vs-opt { display: grid; gap: 6px; align-content: start; color: var(--a-muted); font-size: 12.5px; }
+.vs-motion .vs-opt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
 .vs-motion .vs-opt-head span { display: inline-flex; align-items: center; gap: 8px; }
-.vs-motion .vs-opt small { color: var(--a-muted); font-size: 12.5px; line-height: 1.4; }
 
-.vs-style-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.vs-style-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
 .vs-style-row span { display: inline-flex; align-items: center; gap: 8px; flex: 1; text-align: left; }
 .vs-style-row em { color: var(--a-muted); font-style: normal; font-weight: 400; }
 .vs-style-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-muted); }
 .vs-style-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; outline: none; }
+
+.vs-motion > * { min-width: 0; }
+@media (max-width: 400px) { .vs-motion { grid-template-columns: minmax(0, 1fr); } }
+
+/* On a phone (layout about 520 px) the default row must END with the agent switch, so the chips are a little tighter and the agent chip is its icon alone */
+@media (max-width: 575px) {
+  .cr-row-top .vs-main { gap: 5px; }
+  .cr-row-top .vs-main .cr-chip { padding: 0 8px; gap: 4px; font-size: 13px; }
+  .cr-row-top .vs-main .cr-aname { display: none; }
+}
