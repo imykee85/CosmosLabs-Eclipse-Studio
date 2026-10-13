@@ -14,9 +14,9 @@ export type ReferenceRef = { type: "upload" | "render"; id: string };
 export type ReferenceItem = { signedUrl: string; storageKey?: string; contentType?: string };
 export type ResolvedReferences = { ok: true; items: ReferenceItem[]; refs: ReferenceRef[] } | { ok: false; error: string };
 
-export function parseReferenceRefs(input: unknown): ReferenceRef[] | null {
+export function parseReferenceRefs(input: unknown, max = MAX_REFERENCES): ReferenceRef[] | null {
   if (input == null) return [];
-  if (!Array.isArray(input) || input.length > MAX_REFERENCES) return null;
+  if (!Array.isArray(input) || input.length > max) return null;
   const refs: ReferenceRef[] = [];
   for (const r of input) {
     if (!r || typeof r !== "object") return null;
@@ -35,7 +35,7 @@ export async function resolveReferences(userId: string, refs: ReferenceRef[]): P
       if (!u || !storageEnabled) return { ok: false, error: "One of your reference pictures could not be found. It may have been deleted." };
       items.push({ signedUrl: await signedGetUrl(u.storageKey, REFERENCE_LINK_SECONDS), storageKey: u.storageKey, contentType: u.contentType });
     } else {
-      const g = await db.generation.findFirst({ where: { id: r.id, userId, status: "completed", deletedAt: null }, select: { storageKey: true, imageUrl: true, contentType: true } });
+      const g = await db.generation.findFirst({ where: { id: r.id, userId, status: "completed", deletedAt: null, kind: "image" }, select: { storageKey: true, imageUrl: true, contentType: true } });
       if (!g) return { ok: false, error: "One of your reference images could not be found. It may have been deleted." };
       // A render that never reached our storage can still be used through the provider's own (https) link.
       if (g.storageKey && storageEnabled) items.push({ signedUrl: await signedGetUrl(g.storageKey, REFERENCE_LINK_SECONDS), storageKey: g.storageKey, contentType: g.contentType ?? "image/png" });

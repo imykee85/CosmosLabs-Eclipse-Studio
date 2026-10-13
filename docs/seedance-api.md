@@ -6,10 +6,10 @@ Base `https://api.higgsfield.ai`, all `POST`, version in the path has a DOT (`se
 | --- | --- | --- | --- |
 | 2.0 | text to video | `bytedance/seedance-2.0/text-to-video` | yes |
 | 2.0 | image to video | `bytedance/seedance-2.0/image-to-video` | yes |
-| 2.0 | reference to video | `bytedance/seedance-2.0/reference-to-video` | no |
+| 2.0 | reference to video | `bytedance/seedance-2.0/reference-to-video` | pictures only (1 to 9), 2026-10-13 |
 | 2.5 | text to video | `bytedance/seedance-2.5/text-to-video` | yes (2026-10-13) |
 | 2.5 | image to video | `bytedance/seedance-2.5/image-to-video` | yes (2026-10-13) |
-| 2.5 | reference to video | `bytedance/seedance-2.5/reference-to-video` | no |
+| 2.5 | reference to video | `bytedance/seedance-2.5/reference-to-video` | pictures only (1 to 30), 2026-10-13; reference videos and audio not built |
 | 2.5 | video edit | `bytedance/seedance-2.5/video-edit` | no |
 | 2.5 | video extend | `bytedance/seedance-2.5/video-extend` | no |
 

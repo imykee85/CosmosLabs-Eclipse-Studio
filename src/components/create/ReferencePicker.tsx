@@ -37,7 +37,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose }: { ma
 
   const items: (RefPick & { sub: string })[] =
     tab === "images"
-      ? (renders ?? []).filter((g) => g.status === "completed" && g.imageUrl).map((g) => ({ type: "render" as const, id: g.id, url: g.imageUrl ?? "", label: g.prompt, sub: g.modelLabel ?? "Image" }))
+      ? (renders ?? []).filter((g) => g.status === "completed" && g.imageUrl && g.kind !== "video").map((g) => ({ type: "render" as const, id: g.id, url: g.imageUrl ?? "", label: g.prompt, sub: g.modelLabel ?? "Image" }))
       : ((tab === "ingredients" ? ingredients.items : assets.items) ?? []).map((u) => ({ type: "upload" as const, id: u.id, url: u.imageUrl, label: u.name, sub: u.kind === "asset" ? "Asset" : u.kind[0].toUpperCase() + u.kind.slice(1) }));
   // After a new upload, tick the new picture (the first one that was not in the list before) if there is room.
   useEffect(() => {

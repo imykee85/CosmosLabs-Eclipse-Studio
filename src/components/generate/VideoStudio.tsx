@@ -68,7 +68,7 @@ export default function VideoStudio() {
   const box = useRef<HTMLTextAreaElement>(null);
 
   // The way the model is used decides what it offers: a start frame makes it image-to-video (its own length range, no shape choice, an end frame on some models).
-  const wf = workflowOf(!!start);
+  const wf = workflowOf(!!start, refs.length > 0);
   const caps = capsFor(model, wf);
 
   // This project's videos. A running one is followed (the list asks the status route every few seconds and fills the video in when it is done).
@@ -104,8 +104,8 @@ export default function VideoStudio() {
     if (caps.negativePrompt == null) setNegative("");
     if (!caps.cfgScale) setCreative(null);
     if (!model.startFrame) setStart(null);
-    if (model.refImages === 0) setRefs([]); else setRefs((r) => r.slice(0, model.refImages));
-    if (!start && !end) setRights(false);
+    if (!caps.refMax) setRefs([]); else setRefs((r) => r.slice(0, caps.refMax));
+    if (!start && !end && !refs.length) setRights(false);
   }, [model, wf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pickModel(m: VideoModel) {
@@ -128,9 +128,10 @@ export default function VideoStudio() {
       if (!r.ok) { setError(r.error); return; }
       if (!r.item) return;
       const pic: RefPick = { type: "upload", id: r.item.id, url: r.item.imageUrl, label: r.item.name };
-      // The + gives a start frame; a model with no start frame takes it as a reference picture; one with neither says so.
-      if (model.startFrame) setStart(pic);
-      else if (model.refImages > 0) setRefs((l) => [...l, pic].slice(0, model.refImages));
+      // The + adds to the reference pictures once there are some; otherwise it gives a start frame; a model with no start frame takes it as a reference picture; one with neither says so.
+      if (refs.length > 0 && caps.refMax) setRefs((l) => [...l, pic].slice(0, caps.refMax));
+      else if (model.startFrame) setStart(pic);
+      else if (caps.refMax > 0) setRefs((l) => [...l, pic].slice(0, caps.refMax));
       else setNote(`${model.label} makes video from text only. Choose a model that takes a start frame or pictures.`);
     } finally { setUploading(false); }
   }
@@ -145,7 +146,7 @@ export default function VideoStudio() {
 
   const seedNumber = seedText.trim() === "" ? undefined : Number(seedText);
   const seedBad = seedLocked && !!caps.seed && seedNumber != null && (!Number.isInteger(seedNumber) || seedNumber < caps.seed.min || seedNumber > caps.seed.max);
-  const needsRights = !!start || !!end;
+  const needsRights = !!start || !!end || refs.length > 0;
   const hasSound = live && caps.audio && sound;
   const price = live && config?.creditsOn ? videoPrice(model, caps.qualities.length ? quality : undefined, duration, hasSound) : null;
   const canGo = !!prompt.trim() || (live && !caps.promptRequired);
@@ -166,7 +167,7 @@ export default function VideoStudio() {
           resolution: caps.qualities.length ? quality : undefined, aspectRatio: caps.ratios.length ? ratio : undefined, audio: caps.audio ? sound : undefined,
           ...(caps.seed && seedLocked ? { lockSeed: true, ...(seedNumber != null ? { seed: seedNumber } : {}) } : {}),
           negativePrompt: caps.negativePrompt != null && negative.trim() ? negative.trim() : undefined, cfgScale: caps.cfgScale && creative != null ? creative : undefined,
-          start: start ? { type: start.type, id: start.id } : undefined, end: end ? { type: end.type, id: end.id } : undefined, rights: needsRights ? rights : undefined, confirm: confirm || undefined,
+          start: start ? { type: start.type, id: start.id } : undefined, end: end ? { type: end.type, id: end.id } : undefined, refs: refs.length ? refs.map((r) => ({ type: r.type, id: r.id })) : undefined, rights: needsRights ? rights : undefined, confirm: confirm || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -182,7 +183,7 @@ export default function VideoStudio() {
       await reload();
     } catch { setError("Could not reach the server. Check your connection and try again."); }
     finally { setSubmitting(false); }
-  }, [live, model.label, config?.paused, config?.creditsOn, caps, prompt, needsRights, rights, seedBad, modelId, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, reload]);
+  }, [live, model.label, config?.paused, config?.creditsOn, caps, prompt, needsRights, rights, seedBad, modelId, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, refs, reload]);
 
   async function cancel(g: Render) {
     setCancelling(g.id); setError("");
@@ -248,7 +249,7 @@ export default function VideoStudio() {
           <div className="cr-field">
             <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
             <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
-            <textarea id="vs-prompt" ref={box} rows={2} maxLength={caps.promptMax} placeholder={wf === "i2v" && !caps.promptRequired ? "Optional: describe how the picture should move…" : "Describe the clip you imagine…"} value={prompt} onChange={(e) => setPrompt(e.target.value)}
+            <textarea id="vs-prompt" ref={box} rows={2} maxLength={caps.promptMax} placeholder={(wf === "i2v" || wf === "ref") && !caps.promptRequired ? (wf === "ref" ? "Optional: describe how to use the pictures, e.g. picture 1 walks into the room…" : "Optional: describe how the picture should move…") : "Describe the clip you imagine…"} value={prompt} onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }} />
           </div>
           {framesShown && (
@@ -287,9 +288,9 @@ export default function VideoStudio() {
               </button>
             </div>
             <div className="cr-row cr-row-top">
-              <button type="button" className="cr-chip" disabled={!model.startFrame} title={model.startFrame ? "Choose the first frame of the clip" : `${model.label} has no start frame`} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
+              <button type="button" className="cr-chip" disabled={!model.startFrame || refs.length > 0} title={!model.startFrame ? `${model.label} has no start frame` : refs.length > 0 ? "Use either a start frame or Ingredients, not both" : "Choose the first frame of the clip"} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!caps.endFrame} title={caps.endFrame ? "Choose the last frame of the clip" : start ? `${model.label} has no end frame` : "An end frame needs a start frame first"} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
-              <button type="button" className="cr-chip" disabled={model.refImages === 0 || live} title={model.refImages > 0 && !live ? "Choose pictures the model should work from" : `${model.label} takes no reference pictures yet`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
+              <button type="button" className="cr-chip" disabled={!caps.refMax || !!start || !!end} title={!caps.refMax ? `${model.label} takes no reference pictures yet` : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length ? ` (${refs.length})` : ""}</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <span className={`cr-chip vs-seed ${seedLocked ? "is-on" : ""} ${caps.seed ? "" : "is-muted"}`} title={caps.seed ? "Fix the seed to get a similar result again" : `${model.label} has no seed`}>
                 <button type="button" role="switch" aria-checked={seedLocked} disabled={!caps.seed} aria-label="Fixed seed" onClick={() => setSeedLocked((v) => !v)}><Sprout size={14} /> Seed</button>
@@ -322,7 +323,7 @@ export default function VideoStudio() {
         <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       </div>
 
-      {target && <ReferencePicker max={target === "refs" ? model.refImages : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} />}
+      {target && <ReferencePicker max={target === "refs" ? caps.refMax : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => { setMotion(m); setNote(m ? "Motion transfer is set up, but adding a reference clip isn't connected yet." : ""); }} onClose={() => setMotionAnchor(null)} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}

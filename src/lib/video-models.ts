@@ -4,13 +4,14 @@
 // the model lists (several endpoints reject unknown fields), applies defaults, clamps nothing silently (a bad value is an error) and never switches to another model.
 // Shared by the browser (controls, price estimate) and the server (validation, request body, price).
 
-export type Workflow = "t2v" | "i2v";
+export type Workflow = "t2v" | "i2v" | "ref"; // text, start frame(s), or reference pictures
 
 export type VideoLive = {
-  endpoints: Partial<Record<Workflow, string>>;     // path after the API base address
+  endpoints: Partial<Record<Workflow, string>>;
+  refs?: { max: number };                           // reference pictures (reference-to-video); needs endpoints.ref     // path after the API base address
   promptMax: number;                                // longer prompts are refused here (some endpoints truncate silently)
-  promptRequired: Record<Workflow, boolean>;
-  durations: Record<Workflow, { min: number; max: number; values?: number[] }>;  // `values` = only these lengths (e.g. 5 or 10)
+  promptRequired: Record<"t2v" | "i2v", boolean> & { ref?: boolean };
+  durations: Record<"t2v" | "i2v", { min: number; max: number; values?: number[] }> & { ref?: { min: number; max: number; values?: number[] } };  // `values` = only these lengths (e.g. 5 or 10)
   durationDefault: number;
   resolution?: { values: string[]; default: string };
   aspect?: { values: string[]; default: string };   // text-to-video only; with a start frame the shape follows the picture
@@ -103,10 +104,11 @@ const kling25t = (tier: "pro" | "standard"): VideoLive => ({
 
 const SEEDANCE_RES = ["480p", "720p", "1080p", "4k"];
 const seedance2: VideoLive = {
-  endpoints: { t2v: "bytedance/seedance-2.0/text-to-video", i2v: "bytedance/seedance-2.0/image-to-video" },
+  endpoints: { t2v: "bytedance/seedance-2.0/text-to-video", i2v: "bytedance/seedance-2.0/image-to-video", ref: "bytedance/seedance-2.0/reference-to-video" },
+  refs: { max: 9 },
   promptMax: 5000, // the pages state no limit; kept at the app-wide cap
-  promptRequired: { t2v: true, i2v: false },
-  durations: { t2v: { min: 4, max: 15 }, i2v: { min: 4, max: 15 } },
+  promptRequired: { t2v: true, i2v: false, ref: false },
+  durations: { t2v: { min: 4, max: 15 }, i2v: { min: 4, max: 15 }, ref: { min: 4, max: 15 } },
   durationDefault: 5,
   resolution: { values: SEEDANCE_RES, default: "720p" },
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
@@ -120,10 +122,11 @@ const seedance2: VideoLive = {
 // Seedance 2.5 (text-to-video and image-to-video; the reference, edit and extend endpoints are not built yet, see docs/seedance-api.md). Longer clips (4 to 30 s),
 // no 4k, no seed, negative prompt or cfg. `bitrate_mode` (default "high") and `output_format` (default "mp4", text-to-video only) are left to their defaults.
 const seedance25: VideoLive = {
-  endpoints: { t2v: "bytedance/seedance-2.5/text-to-video", i2v: "bytedance/seedance-2.5/image-to-video" },
+  endpoints: { t2v: "bytedance/seedance-2.5/text-to-video", i2v: "bytedance/seedance-2.5/image-to-video", ref: "bytedance/seedance-2.5/reference-to-video" },
+  refs: { max: 30 },
   promptMax: 5000, // the pages state no limit; kept at the app-wide cap
-  promptRequired: { t2v: true, i2v: false },
-  durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 } },
+  promptRequired: { t2v: true, i2v: false, ref: false },
+  durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 }, ref: { min: 4, max: 30 } },
   durationDefault: 5,
   resolution: { values: ["480p", "720p", "1080p"], default: "720p" },
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
@@ -172,8 +175,8 @@ export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling2_6", label: "Kling 2.6 Pro", maker: "Kling", blurb: "Cinematic motion and physics, with sound.", ratios: R3, durations: [5, 10], qualities: [], sound: "toggle", startFrame: true, endFrame: false, refImages: 0, live: kling26 },
   { id: "kling_2_5_turbo_pro", label: "Kling 2.5 Turbo Pro", maker: "Kling", blurb: "Fast text and start-frame video, 5 or 10 seconds, no sound.", ratios: [], durations: [5, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling25t("pro") },
   { id: "kling_2_5_turbo_std", label: "Kling 2.5 Turbo Standard", maker: "Kling", blurb: "Start-frame animation only (needs a start frame), 5 or 10 seconds.", ratios: [], durations: [5, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling25t("standard") },
-  { id: "seedance_2_0", label: "Seedance 2.0", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 4K.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: SEEDANCE_RES, sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: seedance2 },
-  { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 30 seconds.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: seedance25 },
+  { id: "seedance_2_0", label: "Seedance 2.0", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 4K.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: SEEDANCE_RES, sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2 },
+  { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 30 seconds.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 30, live: seedance25 },
   { id: "happy_horse_1_1", label: "Happy Horse 1.1", maker: "Happy Horse", blurb: "Text-to-video and start-frame animation, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: happyHorse11 },
   { id: "pixverse_v6", label: "PixVerse V6", maker: "PixVerse", blurb: "Fast clips from 1 to 15 seconds, with sound and a seed.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(1, 15), qualities: ["360p", "540p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: pixverse6 },
 
@@ -207,7 +210,8 @@ export const findVideoModel = (id: unknown): VideoModel | undefined => (typeof i
 export const isLive = (m: VideoModel): m is VideoModel & { live: VideoLive } => !!m.live;
 
 // --- What a model offers for the way it is used ----------------------------------------------------------------------------------------------------------------
-export const workflowOf = (hasStartFrame: boolean): Workflow => (hasStartFrame ? "i2v" : "t2v");
+// A start frame makes it image-to-video; reference pictures (with no start frame) make it reference-to-video; otherwise text-to-video.
+export const workflowOf = (hasStartFrame: boolean, hasRefs = false): Workflow => (hasStartFrame ? "i2v" : hasRefs ? "ref" : "t2v");
 
 export type Caps = {
   durations: number[];
@@ -222,6 +226,7 @@ export type Caps = {
   negativePrompt: number | null; // max length, or null when the model has none
   cfgScale: boolean;
   endFrame: boolean;
+  refMax: number;            // reference pictures the model takes (0 = none, or not connected)
   promptRequired: boolean;
   promptMax: number;
 };
@@ -230,10 +235,10 @@ export type Caps = {
 export function capsFor(m: VideoModel, wf: Workflow): Caps {
   const l = m.live;
   if (!l) {
-    return { durations: m.durations, defaultDuration: m.durations.includes(5) ? 5 : m.durations[0], qualities: m.qualities, defaultQuality: m.qualities.length ? m.qualities[Math.min(1, m.qualities.length - 1)] : "", ratios: m.ratios, defaultRatio: m.ratios.includes("16:9") ? "16:9" : m.ratios[0], audio: m.sound === "toggle", audioDefault: true, seed: null, negativePrompt: null, cfgScale: false, endFrame: m.endFrame, promptRequired: true, promptMax: 5000 };
+    return { durations: m.durations, defaultDuration: m.durations.includes(5) ? 5 : m.durations[0], qualities: m.qualities, defaultQuality: m.qualities.length ? m.qualities[Math.min(1, m.qualities.length - 1)] : "", ratios: m.ratios, defaultRatio: m.ratios.includes("16:9") ? "16:9" : m.ratios[0], audio: m.sound === "toggle", audioDefault: true, seed: null, negativePrompt: null, cfgScale: false, endFrame: m.endFrame, refMax: 0, promptRequired: true, promptMax: 5000 };
   }
-  const d = l.durations[wf];
-  const hasAspect = !!l.aspect && wf === "t2v";
+  const d = (wf === "ref" ? l.durations.ref : undefined) ?? l.durations[wf === "i2v" ? "i2v" : "t2v"];
+  const hasAspect = !!l.aspect && wf !== "i2v"; // with a start frame the shape follows the picture
   return {
     durations: d.values ?? range(d.min, d.max),
     defaultDuration: d.values ? (d.values.includes(l.durationDefault) ? l.durationDefault : d.values[0]) : Math.min(Math.max(l.durationDefault, d.min), d.max),
@@ -247,7 +252,8 @@ export function capsFor(m: VideoModel, wf: Workflow): Caps {
     negativePrompt: l.negativePrompt?.max ?? null,
     cfgScale: !!l.cfgScale,
     endFrame: wf === "i2v" && !!l.endFrameField,
-    promptRequired: l.promptRequired[wf],
+    refMax: l.endpoints.ref ? l.refs?.max ?? 0 : 0,
+    promptRequired: (wf === "ref" ? l.promptRequired.ref : l.promptRequired[wf === "i2v" ? "i2v" : "t2v"]) ?? false,
     promptMax: l.promptMax,
   };
 }
@@ -280,6 +286,7 @@ export type VideoInput = {
   cfgScale?: number;
   startUrl?: string;   // public https address of the start frame (makes it image-to-video)
   endUrl?: string;     // last frame
+  refUrls?: string[];  // reference pictures, in order (makes it reference-to-video; not together with a start frame)
 };
 export type BuildResult = { ok: true; workflow: Workflow; endpoint: string; body: Record<string, unknown> } | { ok: false; error: string };
 
@@ -287,9 +294,12 @@ export type BuildResult = { ok: true; workflow: Workflow; endpoint: string; body
 export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   const l = m.live;
   if (!l) return { ok: false, error: `${m.label} is not connected yet.` };
-  const wf = workflowOf(!!input.startUrl);
+  const refs = input.refUrls ?? [];
+  if (refs.length && (input.startUrl || input.endUrl)) return { ok: false, error: "Use either a start frame or reference pictures, not both." };
+  const wf = workflowOf(!!input.startUrl, refs.length > 0);
   const endpoint = l.endpoints[wf];
-  if (!endpoint) return { ok: false, error: `${m.label} has no ${wf === "i2v" ? "start-frame" : "text-to-video"} mode connected.` };
+  if (!endpoint) return { ok: false, error: wf === "ref" ? `${m.label} takes no reference pictures yet.` : `${m.label} has no ${wf === "i2v" ? "start-frame" : "text-to-video"} mode connected.` };
+  if (wf === "ref" && refs.length > (l.refs?.max ?? 0)) return { ok: false, error: `${m.label} takes up to ${l.refs?.max ?? 0} reference pictures (you chose ${refs.length}).` };
   const caps = capsFor(m, wf);
   const prompt = input.prompt.trim();
   if (caps.promptRequired && !prompt) return { ok: false, error: `${m.label} needs a prompt${wf === "i2v" ? " (even with a start frame)" : ""}.` };
@@ -325,7 +335,9 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
     if (typeof input.cfgScale !== "number" || input.cfgScale < 0 || input.cfgScale > 1) return { ok: false, error: "The creativity setting must be between 0 and 1." };
     body.cfg_scale = Math.round(input.cfgScale * 100) / 100;
   }
-  if (wf === "i2v") {
+  if (wf === "ref") {
+    body.image_urls = refs;
+  } else if (wf === "i2v") {
     body.image_url = input.startUrl;
     if (input.endUrl) {
       if (!l.endFrameField) return { ok: false, error: `${m.label} has no end frame.` };
