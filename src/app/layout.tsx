@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/react"; // page views; sends nothing until Web Analytics is switched on in the Vercel project
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-sans" });
+// Inter is kept in the repo (src/app/fonts) instead of downloaded from Google at build time: a failed download once broke a Vercel build.
+const inter = localFont({ src: "./fonts/Inter-latin.woff2", weight: "100 900", display: "swap", variable: "--font-sans" });
 
 // The address people share and search engines index: NEXT_PUBLIC_SITE_URL (Config value, the real domain once there is one), else Vercel's production address, else local.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
