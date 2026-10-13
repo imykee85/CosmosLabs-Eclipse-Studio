@@ -77,6 +77,23 @@ const seedance2: VideoLive = {
   note: "4k can take twice as long.",
 };
 
+// Seedance 2.5 (text-to-video and image-to-video; the reference, edit and extend endpoints are not built yet, see docs/seedance-api.md). Longer clips (4 to 30 s),
+// no 4k, no seed, negative prompt or cfg. `bitrate_mode` (default "high") and `output_format` (default "mp4", text-to-video only) are left to their defaults.
+const seedance25: VideoLive = {
+  endpoints: { t2v: "bytedance/seedance-2.5/text-to-video", i2v: "bytedance/seedance-2.5/image-to-video" },
+  promptMax: 5000, // the pages state no limit; kept at the app-wide cap
+  promptRequired: { t2v: true, i2v: false },
+  durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 } },
+  durationDefault: 5,
+  resolution: { values: ["480p", "720p", "1080p"], default: "720p" },
+  aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
+  audio: { field: "generate_audio", kind: "bool", default: true },
+  endFrameField: "end_image_url",
+  price: { perSecond: { "480p": 10, "720p": 20, "1080p": 40 }, audioFactor: 1.25 },
+  timeoutMinutes: SLOW,
+  note: "Clips over 20 seconds can take twice as long.",
+};
+
 const happyHorse11: VideoLive = {
   endpoints: { t2v: "alibaba/happy-horse/v1.1/text-to-video", i2v: "alibaba/happy-horse/v1.1/image-to-video" },
   promptMax: 5000, // not stated on the page
@@ -111,6 +128,7 @@ export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling_3_pro", label: "Kling 3.0 Pro", maker: "Kling", blurb: "Multi-shot, sound and the best general motion. Pro tier.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("pro") },
   { id: "kling_3_std", label: "Kling 3.0 Standard", maker: "Kling", blurb: "The same model at the lower, cheaper tier.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("std") },
   { id: "seedance_2_0", label: "Seedance 2.0", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 4K.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: SEEDANCE_RES, sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: seedance2 },
+  { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 30 seconds.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: seedance25 },
   { id: "happy_horse_1_1", label: "Happy Horse 1.1", maker: "Happy Horse", blurb: "Text-to-video and start-frame animation, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: happyHorse11 },
   { id: "pixverse_v6", label: "PixVerse V6", maker: "PixVerse", blurb: "Fast clips from 1 to 15 seconds, with sound and a seed.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(1, 15), qualities: ["360p", "540p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: pixverse6 },
 
@@ -119,7 +137,6 @@ export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling_o3_image_reference", label: "Kling 3.0 Omni", maker: "Kling", blurb: "Video from text and several reference pictures.", ratios: R3, durations: range(3, 15), qualities: ["Standard", "Pro", "4K"], sound: "toggle", startFrame: false, endFrame: false, refImages: 7 },
   { id: "kling2_6", label: "Kling 2.6", maker: "Kling", blurb: "Cinematic motion and physics.", ratios: R3, durations: [5, 10], qualities: [], sound: "toggle", startFrame: true, endFrame: false, refImages: 0 },
   { id: "seedance_2_0_mini", label: "Seedance 2.0 Mini", maker: "Bytedance", blurb: "Fast, budget Seedance 2.0.", ratios: RWIDE, durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
-  { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text-to-video and references, up to 30 seconds.", ratios: RWIDE, durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
   { id: "seedance1_5", label: "Seedance 1.5 Pro", maker: "Bytedance", blurb: "Reliable motion, improved quality.", ratios: RWIDE, durations: [4, 8, 12], qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "cinematic_studio_3_0", label: "Cinema Studio Video 3.0", maker: "Higgsfield", blurb: "Cinema-grade video, the most advanced.", ratios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(4, 15), qualities: ["480p", "720p", "1080p", "4K"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "cinematic_studio_video_4_0", label: "Cinema Studio 4.0", maker: "Higgsfield", blurb: "Automatic direction with camera, lighting and genre.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
