@@ -318,7 +318,6 @@ export default function VideoStudio() {
                   <label className="vs-motion-check"><input type="checkbox" checked={mcSound} onChange={(e) => setMcSound(e.target.checked)} /><span>Keep the clip&rsquo;s sound</span></label>
                 </>
               )}
-              <p>In Ingredients choose a picture (who or what appears in the result) and one of your finished videos ({mcEngine === "genjutsu" ? "4 to 30 seconds, longer ones are cut to 30" : "3 to 30 seconds"}) whose movement is copied, in whichever order you like. The result is as long as the video{clipSec != null ? ` (${clipSec} s)` : ""}.</p>
             </div>
           )}
           <div className="cr-tools">
