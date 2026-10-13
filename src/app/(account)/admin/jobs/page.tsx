@@ -12,7 +12,7 @@ export default async function AdminJobsPage() {
   const rows = await db.generation.findMany({
     orderBy: { createdAt: "desc" },
     take: 100,
-    select: { id: true, kind: true, model: true, provider: true, status: true, error: true, creditsHeld: true, durationSec: true, createdAt: true, finishedAt: true, userId: true },
+    select: { id: true, kind: true, model: true, provider: true, status: true, error: true, creditsHeld: true, durationSec: true, createdAt: true, finishedAt: true, userId: true, requestId: true, startedAt: true, params: true },
   });
   const counts = rows.reduce<Record<string, number>>((m, r) => ((m[r.status] = (m[r.status] ?? 0) + 1), m), {});
   return (
@@ -24,7 +24,7 @@ export default async function AdminJobsPage() {
       <div style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%" }}>
           <thead>
-            <tr>{["When", "Kind", "Model", "Status", "Held", "Seconds", "Error", "Account"].map((h) => <th key={h} style={cell}>{h}</th>)}</tr>
+            <tr>{["When", "Kind", "Model", "Status", "Held", "Seconds", "Provider said", "Request", "Error", "Account"].map((h) => <th key={h} style={cell}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -35,6 +35,8 @@ export default async function AdminJobsPage() {
                 <td style={cell}>{r.status}</td>
                 <td style={cell}>{r.creditsHeld ?? "-"}</td>
                 <td style={cell}>{r.durationSec ?? "-"}</td>
+                <td style={cell}>{(() => { const p = r.params && typeof r.params === "object" && !Array.isArray(r.params) ? (r.params as Record<string, unknown>) : {}; const said = typeof p.providerStatusAtTimeout === "string" ? p.providerStatusAtTimeout : ""; return said ? `${said}${p.startedAtProvider ? ", had started" : ", never started"}` : r.startedAt ? "started" : ""; })()}</td>
+                <td style={{ ...cell, wordBreak: "break-all", maxWidth: 160 }}>{r.requestId ?? ""}</td>
                 <td style={{ ...cell, maxWidth: 380, wordBreak: "break-word" }}>{r.error ?? ""}</td>
                 <td style={cell}>{r.userId.slice(-8)}</td>
               </tr>

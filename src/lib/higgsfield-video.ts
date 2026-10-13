@@ -17,8 +17,8 @@ function checked(url: string): string {
 
 export type VideoSubmit = { requestId: string; statusUrl: string; cancelUrl: string | null };
 export type VideoStatus =
-  | { state: "queued" }
-  | { state: "in_progress" }
+  | { state: "queued"; raw?: string }
+  | { state: "in_progress"; raw?: string }
   | { state: "completed"; videoUrl: string }
   | { state: "failed"; detail?: string }
   | { state: "nsfw"; detail?: string }
@@ -57,8 +57,10 @@ export async function videoStatus(statusUrl: string): Promise<VideoStatus> {
   if (status === "failed") return { state: "failed", detail: typeof job.error === "string" ? job.error : undefined };
   if (status === "nsfw") return { state: "nsfw" };
   if (status === "canceled" || status === "cancelled") return { state: "canceled" };
-  if (status === "in_progress") return { state: "in_progress" };
-  return { state: "queued" };
+  if (status === "in_progress") return { state: "in_progress", raw: status };
+  // Anything not recognised is treated as still waiting, but its exact word is kept (and logged) so a status we misread shows up instead of looking like a stuck job.
+  if (status !== "queued") console.warn("video status not recognised, treated as queued:", JSON.stringify(status));
+  return { state: "queued", raw: status || "(empty)" };
 }
 
 // What cancel really does is NOT VERIFIED (the pages list the address but not its behavior): best effort. Returns whether Higgsfield accepted the call.

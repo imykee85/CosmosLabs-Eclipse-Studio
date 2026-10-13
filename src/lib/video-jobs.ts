@@ -56,6 +56,9 @@ export async function finalizeVideo(g: Generation): Promise<Generation> {
   if (s.state === "queued" || s.state === "in_progress") {
     if (s.state === "in_progress" && !g.startedAt) await db.generation.updateMany({ where: { id: g.id, startedAt: null }, data: { startedAt: new Date() } });
     if (age > timeoutMs) {
+      // Keep what the provider last said, so the owner can tell "still waiting in its queue" from "running" from "an answer we misread".
+      const base = g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Record<string, unknown>) : {};
+      await db.generation.update({ where: { id: g.id }, data: { params: { ...base, providerStatusAtTimeout: s.raw ?? s.state, startedAtProvider: Boolean(g.startedAt) } as object } }).catch(() => {});
       if (g.cancelUrl) await cancelVideo(g.cancelUrl).catch(() => {});
       return failVideo(g, TIMED_OUT);
     }
