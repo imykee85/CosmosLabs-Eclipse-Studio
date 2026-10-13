@@ -47,6 +47,8 @@ export default function VideoStudio() {
   const [mcTier, setMcTier] = useState<"pro" | "std">("pro");
   const [mcOrient, setMcOrient] = useState<"video" | "image">("video");
   const [mcSound, setMcSound] = useState(true);
+  const [mcScene, setMcScene] = useState(false);          // Scene control: not sent anywhere yet (its API field is not in our reference)
+  const [mcSceneFrom, setMcSceneFrom] = useState<"video" | "image">("video");
   const mc = motion === "subject";
   const model = mc ? videoModelById(mcEngine === "genjutsu" ? "genjutsu_motion" : `kling_mc_${mcEngine === "kling3" ? "3" : "26"}_${mcTier}`) : pickerModel;
   const live = isLive(model);
@@ -296,9 +298,25 @@ export default function VideoStudio() {
               </label>
               {mcEngine !== "genjutsu" && (
                 <>
-                  <label title="character_orientation: take the orientation from the video or from the picture"><span>Orientation</span>
-                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")}><option value="video">From the video</option><option value="image">From the picture</option></select>
-                  </label>
+                  <div className="vs-opt" role="group" aria-label="Scene control">
+                    <div className="vs-opt-head">
+                      <span>Scene control <SoonTag /></span>
+                      <button type="button" role="switch" aria-checked={mcScene} aria-label="Scene control" className={`cr-switch ${mcScene ? "is-on" : ""}`} onClick={() => { setMcScene((v) => !v); setNote("Scene control isn't connected yet, so it changes nothing for now."); }}><i /></button>
+                    </div>
+                    {mcScene && (
+                      <div className="vs-seg" role="radiogroup" aria-label="Where the background comes from">
+                        {(["video", "image"] as const).map((v) => <button key={v} type="button" role="radio" aria-checked={mcSceneFrom === v} className={mcSceneFrom === v ? "is-on" : ""} onClick={() => setMcSceneFrom(v)}>{v === "video" ? "Video" : "Image"}</button>)}
+                      </div>
+                    )}
+                    <small>Choose where the background should come from: the picture or the motion video.</small>
+                  </div>
+                  <div className="vs-opt" role="group" aria-label="Orientation">
+                    <div className="vs-opt-head"><span>Orientation</span></div>
+                    <div className="vs-seg" role="radiogroup" aria-label="Orientation" title="character_orientation">
+                      {(["video", "image"] as const).map((v) => <button key={v} type="button" role="radio" aria-checked={mcOrient === v} className={mcOrient === v ? "is-on" : ""} onClick={() => setMcOrient(v)}>{v === "video" ? "Video" : "Image"}</button>)}
+                    </div>
+                    <small>Video suits complex movements. Image supports camera moves better.</small>
+                  </div>
                   <label className="vs-motion-check"><input type="checkbox" checked={mcSound} onChange={(e) => setMcSound(e.target.checked)} /><span>Keep the clip&rsquo;s sound</span></label>
                 </>
               )}
