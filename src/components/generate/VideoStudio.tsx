@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Coins, Image as ImageIcon, Film, Layers, Loader2, Plus, SlidersHorizontal, Sprout, Video, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Coins, Image as ImageIcon, Film, Layers, Loader2, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import MotionMenu, { type MotionMode } from "./MotionMenu";
+import VideoSettingsMenu from "./VideoSettingsMenu";
 import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type ClipPick, type RefPick } from "../create/ReferencePicker";
 import RenderDetails from "../library/RenderDetails";
@@ -56,7 +57,7 @@ export default function VideoStudio() {
   const [seedText, setSeedText] = useState("");
   const [negative, setNegative] = useState("");
   const [creative, setCreative] = useState<number | null>(null);
-  const [advanced, setAdvanced] = useState(false);
+  const [settingsAnchor, setSettingsAnchor] = useState<DOMRect | null>(null);
   const [start, setStart] = useState<RefPick | null>(null);
   const [end, setEnd] = useState<RefPick | null>(null);
   const [refs, setRefs] = useState<RefPick[]>([]);
@@ -217,7 +218,8 @@ export default function VideoStudio() {
   const width = known ? Math.min(340, Math.round(304 * (Number(known.split(":")[0]) / Number(known.split(":")[1])))) : PREVIEW_WIDTH[stageShape] ?? 304;
   const framesShown = !!start || !!end || refs.length > 0 || vrefs.length > 0;
   const aspectLocked = live && caps.ratios.length === 0;
-  const advancedOk = caps.negativePrompt != null || caps.cfgScale;
+  // The settings icon shows a dot when a setting inside it is in use.
+  const settingsInUse = (seedLocked && !!caps.seed) || (caps.negativePrompt != null && !!negative.trim()) || (caps.cfgScale && creative != null);
 
   return (
     <div className="cr-wrap">
@@ -332,31 +334,19 @@ export default function VideoStudio() {
               </button>
             </div>
             <div className="cr-row cr-row-top">
+              <div className="vs-main">
               <button type="button" className="cr-chip" disabled={!model.startFrame || (!mc && (refs.length > 0 || vrefs.length > 0))} title={!model.startFrame ? `${model.label} has no start frame` : mc ? "Choose the subject picture that should move" : refs.length > 0 || vrefs.length > 0 ? "Use either a start frame or Ingredients, not both" : "Choose the first frame of the clip"} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!caps.endFrame} title={caps.endFrame ? "Choose the last frame of the clip" : start ? `${model.label} has no end frame` : "An end frame needs a start frame first"} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose the video whose movement should be copied (3 to 30 seconds)" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> {mc ? "Motion video" : "Ingredients"}{refs.length + vrefs.length ? ` (${refs.length + vrefs.length})` : ""}</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
-              <span className={`cr-chip vs-seed ${seedLocked ? "is-on" : ""} ${caps.seed ? "" : "is-muted"}`} title={caps.seed ? "Fix the seed to get a similar result again" : `${model.label} has no seed`}>
-                <button type="button" role="switch" aria-checked={seedLocked} disabled={!caps.seed} aria-label="Fixed seed" onClick={() => setSeedLocked((v) => !v)}><Sprout size={14} /> Seed</button>
-                {seedLocked && caps.seed && <input inputMode="numeric" aria-label="Seed number" placeholder="random" value={seedText} onChange={(e) => setSeedText(e.target.value.replace(/[^0-9]/g, "").slice(0, 10))} aria-invalid={seedBad} />}
-              </span>
-              <button type="button" className={`cr-chip ${advanced ? "is-on" : ""}`} disabled={!advancedOk} aria-expanded={advanced} title={advancedOk ? "More settings" : `${model.label} has no extra settings`} onClick={() => setAdvanced((v) => !v)}><SlidersHorizontal size={14} /> Advanced</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Agents"}</span></button>
                 <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                   onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
               </div>
-            </div>
-            {advanced && advancedOk && (
-              <div className="vs-adv">
-                {caps.negativePrompt != null && (
-                  <label><span>Leave out</span><textarea rows={2} maxLength={caps.negativePrompt} placeholder="What the video should not show…" value={negative} onChange={(e) => setNegative(e.target.value)} /></label>
-                )}
-                {caps.cfgScale && (
-                  <label><span>Prompt strength: {creative == null ? "default" : creative.toFixed(2)}</span><input type="range" min={0} max={1} step={0.05} value={creative ?? 0.5} onChange={(e) => setCreative(Number(e.target.value))} aria-label="Prompt strength" /></label>
-                )}
               </div>
-            )}
+              <button type="button" className={`cr-chip vs-gear ${settingsInUse ? "is-on" : ""}`} aria-label="Settings" aria-haspopup="dialog" title="Seed, leave out and prompt strength" onClick={(e) => setSettingsAnchor(e.currentTarget.getBoundingClientRect())}><Settings size={16} />{settingsInUse && <i className="vs-dot" />}</button>
+            </div>
             <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad}>
               {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : <>Generate {price != null ? <span className="cr-cost" title={`About ${price} credits (provisional price)`}><Coins size={14} />{price}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
             </button>
@@ -375,6 +365,7 @@ export default function VideoStudio() {
         setNote(m ? "Motion transfer: choose a subject picture (Start frame) and one of your videos as the Motion video. The length follows the clip." : "");
       }} onClose={() => setMotionAnchor(null)} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
+      {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} onClose={() => setSettingsAnchor(null)} />}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
     </div>
   );

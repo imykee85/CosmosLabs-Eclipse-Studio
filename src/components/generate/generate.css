@@ -68,3 +68,20 @@
 .vs-motion .vs-motion-check input { width: 16px; height: 16px; accent-color: #c00707; }
 .vs-motion p { grid-column: 1 / -1; margin: 0; color: var(--a-muted); font-size: 12.5px; line-height: 1.45; }
 .cr-modelbtn:disabled { opacity: .55; cursor: not-allowed; }
+/* The chip row: the everyday chips end with the agent toggle (they fill the row's width); the settings icon sits one row-width further on, so it only shows
+   after swiping the row left. */
+.cr-row-top { scroll-snap-type: x proximity; }
+.cr-row-top .vs-main { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 100%; scroll-snap-align: start; }
+.cr-row-top .vs-gear { position: relative; width: 36px; padding: 0; justify-content: center; margin-left: 4px; scroll-snap-align: end; }
+.vs-gear .vs-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: #c00707; }
+.vm-menu { gap: 12px; padding: 14px; }
+.vm-menu section { display: grid; gap: 8px; }
+.vm-menu section.is-off { opacity: .55; }
+.vm-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vm-head b { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+.vm-head em { color: var(--a-muted); font-size: 12.5px; font-style: normal; }
+.vm-menu small { color: var(--a-muted); font-size: 12.5px; line-height: 1.4; }
+.vm-menu input[type="text"], .vm-menu input[inputmode="numeric"] { height: 36px; padding: 0 10px; border: 1px solid var(--a-line3); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; }
+.vm-menu input[aria-invalid="true"] { border-color: var(--a-danger); }
+.vm-menu textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; resize: none; }
+.vm-menu input[type="range"] { width: 100%; accent-color: #c00707; }
