@@ -191,6 +191,8 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-card { position: fixed; z-index: 251; display: flex; flex-direction: column; width: min(320px, calc(100vw - 16px)); padding: 14px; border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); color: var(--a-fg); box-shadow: 0 18px 50px var(--a-shadow); }
 .aw-head { display: flex; align-items: center; gap: 8px; }
 .aw-head b { flex: 1; font-size: 15px; font-weight: 600; }
+.aw-head button.is-on { background: var(--a-card); color: var(--a-fg); }
+.aw-head button:disabled { opacity: 0.4; cursor: default; }
 .aw-head button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }
 
 /* Seed number and Randomize, shown while Fixed seed is on for a model that has a seed. */
@@ -242,3 +244,11 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-earlier .cr-seeall:hover { border-color: var(--a-fg2); color: var(--a-fg); }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cr-earlier .cr-seeall { width: 32px; height: 32px; border-radius: 8px; } }
 .am-new { margin-top: 4px; border-top: 1px solid var(--a-line2); border-radius: 0 0 12px 12px; color: var(--a-muted); text-decoration: none; }
+
+/* Atlas card: earlier chats */
+.aw-past { display: flex; flex-direction: column; gap: 6px; }
+.aw-past-row { display: flex; align-items: stretch; gap: 6px; }
+.aw-past-row > button:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--a-line); border-radius: 10px; background: var(--a-card); color: var(--a-fg); text-align: left; cursor: pointer; }
+.aw-past-row > button:first-child b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; }
+.aw-past-row > button:first-child span { font-size: 11px; color: var(--a-fg2); }
+.aw-past-del { display: grid; place-items: center; width: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--a-fg2); cursor: pointer; }

@@ -47,6 +47,26 @@ function write(agent: string, list: Msg[]) {
   window.dispatchEvent(new CustomEvent(EVENT, { detail: agent }));
 }
 
+// Earlier chats with an agent: "New chat" files the current one here, History lists them and opens one again. Kept in this browser like the chat itself.
+export type PastChat = { id: string; at: number; title: string; messages: Msg[] };
+const HKEY = (agent: string) => `eclipse-agent-history-${agent}`;
+const MAX_PAST = 30;
+function readPast(agent: string): PastChat[] {
+  try { const raw = JSON.parse(localStorage.getItem(HKEY(agent)) ?? "[]"); if (Array.isArray(raw)) return raw.filter((c) => c && typeof c.id === "string" && Array.isArray(c.messages)); } catch {}
+  return [];
+}
+function writePast(agent: string, list: PastChat[]) {
+  try { localStorage.setItem(HKEY(agent), JSON.stringify(list.slice(0, MAX_PAST))); } catch {}
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: agent }));
+}
+// Files the current chat (when it has something in it) at the top of the history.
+function archive(agent: string) {
+  const cur = read(agent);
+  if (!cur.some((m) => m.role === "user")) return;
+  const first = cur.find((m) => m.role === "user")?.text ?? "Chat";
+  writePast(agent, [{ id: uid(), at: Date.now(), title: first.replace(/\s+/g, " ").slice(0, 48), messages: cur }, ...readPast(agent)]);
+}
+
 let busyAgents = new Set<string>();
 
 export function useAgentChat(agent: string | null) {
@@ -105,5 +125,18 @@ export function useAgentChat(agent: string | null) {
   }, [agent, add, send]);
 
   const clear = useCallback(() => { if (agent) write(agent, []); }, [agent]);
-  return { messages, busy, send, run, introduce, clear };
+  const past = agent ? readPast(agent) : [];
+  // A fresh chat: the current one is kept in the history first.
+  const newChat = useCallback(() => { if (!agent || busyAgents.has(agent)) return; archive(agent); write(agent, []); }, [agent]);
+  const openPast = useCallback((id: string) => {
+    if (!agent || busyAgents.has(agent)) return;
+    const hit = readPast(agent).find((c) => c.id === id);
+    if (!hit) return;
+    const rest = readPast(agent).filter((c) => c.id !== id);
+    writePast(agent, rest);
+    archive(agent);
+    write(agent, hit.messages);
+  }, [agent]);
+  const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
+  return { messages, busy, send, run, introduce, clear, past, newChat, openPast, deletePast };
 }

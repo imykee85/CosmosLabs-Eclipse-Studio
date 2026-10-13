@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Loader2, Maximize2, Minimize2, Trash2, X } from "lucide-react";
+import { ArrowUp, History, Loader2, Maximize2, Minimize2, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import { useAgentChat } from "@/lib/agent-chat";
 import { CUE_EVENT, takeCue } from "@/lib/use-agent";
@@ -37,6 +37,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const [dragging, setDragging] = useState(false);
   const [bounce, setBounce] = useState(false);
   const [big, setBig] = useState(false);
+  const [showPast, setShowPast] = useState(false);
   const [draft, setDraft] = useState("");
   const chat = useAgentChat(name);
   const list = useRef<HTMLDivElement>(null);
@@ -108,7 +109,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   }, [cue, name, pos]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const o = () => setOpen(true); window.addEventListener("eclipse-agent-open", o); return () => window.removeEventListener("eclipse-agent-open", o); }, []);
   useEffect(() => { const el = list.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.messages.length, chat.busy, open, big]);
-  useEffect(() => { if (!open) setBig(false); }, [open]);
+  useEffect(() => { if (!open) { setBig(false); setShowPast(false); } }, [open]);
 
   if (!pos) return null;
 
@@ -149,9 +150,22 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
       {open && (
         <div className={`aw-card ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={big ? undefined : { left: cardLeft, top: cardTop, transform: pos.y > window.innerHeight / 2 ? "translateY(-100%)" : undefined }}>
           <div className="aw-head"><AgentIcon size={16} /><b>{name}</b>
+            <button type="button" aria-label="Chat history" title="Chat history" className={showPast ? "is-on" : ""} onClick={() => setShowPast((v) => !v)}><History size={15} /></button>
+            <button type="button" aria-label="New chat" title="New chat" disabled={chat.busy} onClick={() => { chat.newChat(); setShowPast(false); }}><SquarePen size={14} /></button>
             {chat.messages.length > 0 && <button type="button" aria-label="Clear the chat" title="Clear the chat" onClick={chat.clear}><Trash2 size={14} /></button>}
             <button type="button" aria-label={big ? "Make smaller" : "Expand"} title={big ? "Make smaller" : "Expand"} onClick={() => setBig((b) => !b)}>{big ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
             <button type="button" aria-label="Close" onClick={() => setOpen(false)}><X size={15} /></button></div>
+          {showPast ? (
+            <div className="aw-msgs aw-past">
+              {chat.past.length === 0 && <p className="aw-empty">No earlier chats yet. Press New chat to keep this one and start another.</p>}
+              {chat.past.map((c) => (
+                <div key={c.id} className="aw-past-row">
+                  <button type="button" onClick={() => { chat.openPast(c.id); setShowPast(false); }}><b>{c.title}</b><span>{new Date(c.at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {c.messages.length} messages</span></button>
+                  <button type="button" className="aw-past-del" aria-label="Delete this chat" title="Delete this chat" onClick={() => chat.deletePast(c.id)}><Trash2 size={13} /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div className="aw-msgs" ref={list} aria-live="polite">
             {chat.messages.length === 0 && <p className="aw-empty">Say hello, or tell me what you want to make.</p>}
             {chat.messages.map((m) => (
@@ -169,6 +183,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             ))}
             {chat.busy && <div className="aw-msg is-agent"><p className="aw-typing"><Loader2 size={13} className="cr-spin" /> Thinking…</p></div>}
           </div>
+          )}
           <form className="aw-input" onSubmit={submit}>
             <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} />
             <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy}><ArrowUp size={16} /></button>
