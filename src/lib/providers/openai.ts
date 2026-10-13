@@ -46,7 +46,13 @@ export const openai: SyncImageProvider = {
     if (!res.ok) {
       const why = json?.error?.message ?? text.slice(0, 300);
       const code = json?.error?.code ?? "";
-      if (/moderation|content_policy|safety/i.test(code + " " + why)) throw new ProviderError("OpenAI's safety filter blocked this image. Try a different prompt.", `${res.status} ${code}: ${why}`);
+      if (/moderation|content_policy|safety/i.test(code + " " + why)) {
+        // OpenAI often names the categories it flagged ("safety_violations=[sexual]"); show them, and say the pictures are checked too, because a blocked
+        // picture-edit is usually about the pictures (real people's faces and bodies) and not the words.
+        const cats = /safety_violations\s*=\s*\[([^\]]{1,80})\]/i.exec(why)?.[1]?.trim();
+        const withPictures = input.references.length > 0;
+        throw new ProviderError(`OpenAI's safety filter blocked this${cats ? ` (flagged: ${cats})` : ""}. ${withPictures ? "It checks your pictures as well as your words, so try different pictures, fewer pictures, or another model." : "Try different words or another model."}`, `${res.status} ${code}: ${why}`);
+      }
       if (res.status === 429) throw new ProviderError(`OpenAI is limiting requests or the account is out of credit (429${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
       if (res.status === 401) throw new ProviderError("OpenAI rejected our key. The owner needs to check it.", `${res.status}: ${why}`);
       if (res.status === 403 || /verif/i.test(why)) throw new ProviderError("OpenAI will not run this model for our account yet (it may need the organization verified). The owner needs to check it.", `${res.status} ${code}: ${why}`);
