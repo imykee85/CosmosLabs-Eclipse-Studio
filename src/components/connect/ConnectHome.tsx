@@ -4,7 +4,10 @@ import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, Brain, Clock, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
+import AgentIcon from "../AgentIcon";
+import AgentMenu from "../create/AgentMenu";
 import { MODEL_KEY } from "@/lib/connect-models";
+import { useAgent } from "@/lib/use-agent";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
 import BrandLogo from "./brands";
@@ -18,6 +21,10 @@ function ConnectChat() {
   const router = useRouter();
   const params = useSearchParams();
   const [text, setText] = useState("");
+  // Atlas: the same shared agent choice and switch as every other prompt box (nothing in this chat reads it yet).
+  const agent = useAgent();
+  const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
+  const agentChip = useRef<HTMLButtonElement>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [chatId, setChatId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -191,10 +198,16 @@ function ConnectChat() {
           <div className="cn-tools">
             <button type="button" className="cn-round" aria-label="Attach pictures from your Library" aria-expanded={attachOpen} onClick={() => setAttachOpen(!attachOpen)}><Plus size={18} /></button>
             <ModelPicker />
+            <div className="cn-grp">
+              <button ref={agentChip} type="button" className="cn-chip cn-agentchip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={15} /> {agent.agent ?? "Atlas"}</button>
+              <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cn-switch ${agent.active ? "is-on" : ""}`}
+                onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
+            </div>
             <button type="submit" className="cn-send" aria-label="Send" disabled={busy || !text.trim()}><ArrowUp size={18} /></button>
           </div>
         </form>
       </div>
+      {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       <div ref={end} />
     </div>
   );
