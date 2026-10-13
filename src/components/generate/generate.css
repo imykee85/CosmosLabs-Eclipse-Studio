@@ -107,10 +107,3 @@
 
 .vs-motion > * { min-width: 0; }
 @media (max-width: 400px) { .vs-motion { grid-template-columns: minmax(0, 1fr); } }
-
-/* On a phone (layout about 520 px) the default row must END with the agent switch, so the chips are a little tighter and the agent chip is its icon alone */
-@media (max-width: 575px) {
-  .cr-row-top .vs-main { gap: 5px; }
-  .cr-row-top .vs-main .cr-chip { padding: 0 8px; gap: 4px; font-size: 13px; }
-  .cr-row-top .vs-main .cr-aname { display: none; }
-}
