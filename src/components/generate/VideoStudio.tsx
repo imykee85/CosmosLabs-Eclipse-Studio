@@ -267,13 +267,13 @@ export default function VideoStudio() {
           ) : null}
         </div>
         {done.length > 0 && (
-          <div className="cr-thumbs vs-thumbs" aria-label="Your earlier videos">
+          <div className="cr-earlier" aria-label="Your five most recent videos">
             {done.map((g) => (
-              <button key={g.id} type="button" className={`vs-thumb ${active?.id === g.id ? "is-on" : ""}`} onClick={() => setActiveId(g.id)} title={g.prompt}>
+              <button key={g.id} type="button" className={active?.id === g.id ? "is-on" : ""} aria-pressed={active?.id === g.id} onClick={() => setActiveId(g.id)} title={g.prompt}>
                 <video src={`${g.imageUrl}#t=0.1`} muted loop autoPlay playsInline preload="auto" />
               </button>
             ))}
-            <Link className="vs-thumb vs-more" href="/gallery" aria-label="Open the Gallery" title="Open the Gallery"><ArrowRight size={16} /></Link>
+            <Link href="/gallery" className="cr-seeall" aria-label="See all in your Gallery" title="See all in your Gallery"><ArrowRight size={16} /></Link>
           </div>
         )}
         {active?.status === "completed" && <RenderDetails g={active} collapsible onDeleted={() => { setActiveId(null); void reload(); }} onStarted={() => void reload()} />}

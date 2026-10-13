@@ -44,12 +44,6 @@
 .vs-cancel { margin-top: 4px; padding: 7px 16px; border: 1px solid var(--a-line3); border-radius: 999px; background: none; color: var(--a-muted); font: inherit; font-size: 13px; cursor: pointer; }
 .vs-cancel:hover:not(:disabled) { color: var(--a-fg); border-color: var(--a-fg2); }
 .vs-cancel:disabled { opacity: .6; cursor: default; }
-.vs-thumbs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 28px auto 0; }
-.vs-thumb { display: grid; place-items: center; width: 72px; height: 72px; padding: 0; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 14px; background: #000; color: var(--a-muted); cursor: pointer; }
-.vs-thumb video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.vs-thumb.is-on { border-color: #c00707; box-shadow: 0 0 0 2px #c00707; }
-.vs-thumb.vs-more { background: var(--a-card); border-style: dashed; border-color: var(--a-line3); color: var(--a-fg2); }
-@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .vs-thumbs { gap: 6px; margin-top: 18px; } .vs-thumb { width: 32px; height: 32px; border-radius: 8px; } }
 .vs-rights { display: flex; align-items: flex-start; gap: 8px; margin: 8px 6px 0; color: var(--a-muted); font-size: 12.5px; line-height: 1.4; cursor: pointer; }
 .vs-rights input { flex: none; width: 16px; height: 16px; margin-top: 1px; accent-color: #c00707; }
 .cr-chip.vs-seed { gap: 4px; padding: 0 4px 0 0; }

@@ -30,7 +30,8 @@
 .cr-earlier { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 28px; }
 .cr-earlier a, .cr-earlier button { display: block; width: 72px; height: 72px; padding: 0; overflow: hidden; border: 1px solid var(--a-line2); border-radius: 14px; background: transparent; cursor: pointer; }
 .cr-earlier button.is-on { border-color: #c00707; box-shadow: 0 0 0 2px #c00707; }
-.cr-earlier img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cr-earlier img, .cr-earlier video { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.cr-earlier video { pointer-events: none; -webkit-mask-image: -webkit-radial-gradient(white, black); } /* Video Studio uses this same row; the mask keeps Safari from drawing a playing video square over the rounded corners */
 .cr-spin { animation: cr-spin 1s linear infinite; }
 @keyframes cr-spin { to { transform: rotate(360deg); } }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
