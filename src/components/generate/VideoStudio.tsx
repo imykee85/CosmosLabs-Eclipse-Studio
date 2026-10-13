@@ -94,9 +94,6 @@ export default function VideoStudio() {
   const active: Render | null = (activeId ? videos.find((g) => g.id === activeId) : videos.find((g) => g.status === "pending")) ?? null;
   const done = videos.filter((g) => g.status === "completed" && !g.deletedAt).slice(0, 5); // the five most recent, like Image Studio
 
-  // The "being made" note is only true while it runs.
-  const activeStatus = active?.status;
-  useEffect(() => { if (activeStatus === "completed" || activeStatus === "failed") setNote((n) => (n.startsWith("Your video is being made") ? "" : n)); }, [activeStatus]);
   useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => c && setConfig(c)).catch(() => {}); }, []);
   useEffect(() => { if (active?.status !== "pending") return; const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, [active?.status]);
 
@@ -217,7 +214,7 @@ export default function VideoStudio() {
       }
       if (!res.ok) { setError(data.error ?? "Could not start the video. Please try again."); return; }
       setActiveId(data.id);
-      setNote(data.seedNote ?? "Your video is being made. This usually takes a few minutes. You can leave this page: it keeps running and lands in your Gallery.");
+      setNote(data.seedNote ?? "");
       if (config?.creditsOn) fetch("/api/credits").catch(() => {}); // the held price shows in the balance
       await reload();
     } catch { setError("Could not reach the server. Check your connection and try again."); }
@@ -280,7 +277,6 @@ export default function VideoStudio() {
             <div className="cr-empty vs-wait" role="status" aria-live="polite">
               <Loader2 size={30} className="cr-spin" />
               <p>Making your video… <b>{clock(now - new Date(active.createdAt).getTime())}</b></p>
-              <small>Usually a few minutes. You can leave: it keeps running and lands in your Gallery.</small>
               <button type="button" className="vs-cancel" disabled={cancelling === active.id} onClick={() => cancel(active)}>{cancelling === active.id ? "Canceling…" : "Cancel"}</button>
             </div>
           ) : active.status === "failed" ? (
