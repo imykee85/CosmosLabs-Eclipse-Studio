@@ -4,7 +4,8 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { claimUsage } from "@/lib/usage";
 import { storageEnabled } from "@/lib/storage";
-import { MAX_UPLOAD_BYTES, MAX_UPLOADS_PER_USER, isUploadKind, storeUpload, toUploadItem } from "@/lib/uploads";
+import { MAX_UPLOAD_BYTES, MAX_UPLOADS_PER_USER, isUploadKind, sniffImageType, storeUpload, toUploadItem } from "@/lib/uploads";
+import { scanUpload } from "@/lib/upload-scan";
 
 export const maxDuration = 30;
 
@@ -57,7 +58,14 @@ export async function POST(req: Request) {
     if ((await db.upload.count({ where: { userId: u.userId } })) >= MAX_UPLOADS_PER_USER) {
       return NextResponse.json({ error: `You have reached the limit of ${MAX_UPLOADS_PER_USER} uploads. Delete some to add more.` }, { status: 409 });
     }
-    const stored = await storeUpload(u.userId, new Uint8Array(await file.arrayBuffer()));
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    // The automatic check runs before anything is stored (type read from the bytes, never from the name).
+    const type = sniffImageType(bytes);
+    if (type) {
+      const scan = await scanUpload(bytes, type);
+      if (!scan.ok) return NextResponse.json({ error: scan.error }, { status: scan.status });
+    }
+    const stored = await storeUpload(u.userId, bytes);
     if ("error" in stored) return NextResponse.json({ error: stored.error }, { status: 400 });
     const row = await db.upload.create({ data: { userId: u.userId, kind, name, projectId, storageKey: stored.key, contentType: stored.contentType, sizeBytes: stored.sizeBytes, width: stored.width, height: stored.height } });
     return NextResponse.json(await toUploadItem(row));

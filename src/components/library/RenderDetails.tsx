@@ -34,9 +34,9 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
     setNote("");
     try {
       const video = g.kind === "video";
-      // A video is started through its own route, with its own length and sound; its pictures were the start frame (first) and the end frame (second), and their rights were confirmed when it was first made.
+      // A video is started through its own route, with its own length and sound; its pictures were the start frame (first) and the end frame (second).
       const body = video
-        ? { prompt: g.prompt, model: g.model, duration: g.durationSec ?? undefined, aspectRatio: g.aspectRatio ?? undefined, resolution: g.resolution ?? undefined, audio: g.hasAudio ?? undefined, projectId: g.projectId ?? undefined, start: g.references?.[0], end: g.references?.[1], rights: g.references?.length ? true : undefined, ...(sameSeed ? { seed: g.seed, lockSeed: true } : {}) }
+        ? { prompt: g.prompt, model: g.model, duration: g.durationSec ?? undefined, aspectRatio: g.aspectRatio ?? undefined, resolution: g.resolution ?? undefined, audio: g.hasAudio ?? undefined, projectId: g.projectId ?? undefined, start: g.references?.[0], end: g.references?.[1], ...(sameSeed ? { seed: g.seed, lockSeed: true } : {}) }
         : { prompt: g.prompt, model: g.model, aspectRatio: g.aspectRatio ?? undefined, resolution: g.resolution ?? undefined, projectId: g.projectId ?? undefined, references: g.references ?? [], ...(sameSeed ? { seed: g.seed, lockSeed: true } : {}) };
       let res = await fetch(video ? "/api/video" : "/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (video && res.status === 409) {

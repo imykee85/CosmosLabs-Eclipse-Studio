@@ -85,3 +85,11 @@
 .vm-menu input[aria-invalid="true"] { border-color: var(--a-danger); }
 .vm-menu textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; resize: none; }
 .vm-menu input[type="range"] { width: 100%; accent-color: #c00707; }
+
+/* Pictures and clips for a video: draggable into the person's own order */
+.vs-ordered { flex-wrap: wrap; }
+.vs-ref { cursor: grab; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; transition: transform .12s, box-shadow .12s; }
+.vs-ref img, .vs-ref video { pointer-events: none; }
+.vs-ref:focus-visible { outline: 2px solid #c00707; outline-offset: 2px; border-radius: 12px; }
+.vs-ref.is-drag { z-index: 2; cursor: grabbing; transform: scale(1.14); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+.vs-ref .cr-ref-n.vs-tag { max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

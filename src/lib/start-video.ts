@@ -23,7 +23,7 @@ export const videoSettings = () => ({
 
 export type StartVideoInput = {
   userId: string; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
-  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; rights?: unknown; confirm?: unknown; projectId?: unknown;
+  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown;
 };
 export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number };
 
@@ -34,7 +34,7 @@ const oneRef = (v: unknown): ReferenceRef | null | undefined => {
 };
 
 // The one place a video is validated and started (POST /api/video). Same rules as images, plus the video-only ones: kill switch, running and daily limits,
-// price confirm, rights confirm. Nothing falls back to another model.
+// price confirm. Nothing falls back to another model.
 export async function startVideoRender(input: StartVideoInput): Promise<StartVideoResult> {
   const { userId } = input;
   const cfg = videoSettings();
@@ -81,8 +81,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (refs.length > caps.refMax) return { ok: false, status: 400, error: `${model.label} takes up to ${caps.refMax} reference pictures (you chose ${refs.length}).` };
   if (end && !caps.endFrame) return { ok: false, status: 400, error: `${model.label} has no end frame.` };
   const pictures = refs.length ? refs : [start, end].filter((r): r is ReferenceRef => !!r);
-  // The rights confirm is enforced here, not only in the browser, and stored with the render.
-  if ((pictures.length || videoRefIds.length) && input.rights !== true) return { ok: false, status: 400, error: "Please confirm you have the right to use these pictures and clips." };
+  // No per-video rights box: every picture and clip here is one of the person's own (finished Eclipse renders, or pictures that were scanned and confirmed when uploaded, src/lib/upload-scan.ts).
 
   const resolution = typeof input.resolution === "string" ? input.resolution : undefined;
   const audio = typeof input.audio === "boolean" ? input.audio : undefined;
@@ -174,7 +173,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     userId, projectId, kind: "video", prompt, status: "pending", statusUrl: null, requestId: null, provider: "higgsfield", model: model.id,
     aspectRatio: aspect, resolution: resolutionUsed ?? null, seed, seedLocked, durationSec: duration, hasAudio: motion ? (motion.kind === "kling" ? keepSound : null) : caps.audio ? audioUsed : null,
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
-    params: { workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, rights: pictures.length || videoRefIds.length ? true : undefined, videoRefs: videoRefIds.length ? videoRefIds : undefined, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
+    params: { workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
   });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
 

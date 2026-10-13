@@ -20,7 +20,7 @@ export const FAILED = "The video could not be made. No credits were used.";
 export const CANCELED = "This video was canceled. No credits were used.";
 export const TIMED_OUT = "This video took too long and was stopped. No credits were used.";
 
-type Params = { workflow?: string; endpoint?: string; resolution?: string; duration?: number; copyTries?: number; cancelRequested?: boolean; rights?: boolean };
+type Params = { workflow?: string; endpoint?: string; resolution?: string; duration?: number; copyTries?: number; cancelRequested?: boolean };
 const paramsOf = (g: Generation): Params => (g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Params) : {});
 
 async function failVideo(g: Generation, error: string): Promise<Generation> {
