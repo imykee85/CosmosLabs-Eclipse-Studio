@@ -311,17 +311,13 @@ export default function VideoStudio() {
                       <button type="button" role="switch" aria-checked={mcScene} aria-label="Scene control" className={`cr-switch ${mcScene ? "is-on" : ""}`} onClick={() => { setMcScene((v) => !v); setNote("Scene control isn't connected yet, so it changes nothing for now."); }}><i /></button>
                     </div>
                     {mcScene && (
-                      <div className="vs-seg" role="radiogroup" aria-label="Where the background comes from">
-                        {(["video", "image"] as const).map((v) => <button key={v} type="button" role="radio" aria-checked={mcSceneFrom === v} className={mcSceneFrom === v ? "is-on" : ""} onClick={() => setMcSceneFrom(v)}>{v === "video" ? "Video" : "Image"}</button>)}
-                      </div>
+                      <select value={mcSceneFrom} onChange={(e) => setMcSceneFrom(e.target.value as "video" | "image")} aria-label="Where the background comes from"><option value="video">From the video</option><option value="image">From the picture</option></select>
                     )}
                     <small>Choose where the background should come from: the picture or the motion video.</small>
                   </div>
                   <div className="vs-opt" role="group" aria-label="Orientation">
                     <div className="vs-opt-head"><span>Orientation</span></div>
-                    <div className="vs-seg" role="radiogroup" aria-label="Orientation" title="character_orientation">
-                      {(["video", "image"] as const).map((v) => <button key={v} type="button" role="radio" aria-checked={mcOrient === v} className={mcOrient === v ? "is-on" : ""} onClick={() => setMcOrient(v)}>{v === "video" ? "Video" : "Image"}</button>)}
-                    </div>
+                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")} aria-label="Orientation" title="character_orientation"><option value="video">From the video</option><option value="image">From the picture</option></select>
                     <small>Video suits complex movements. Image supports camera moves better.</small>
                   </div>
                   <label className="vs-motion-check"><input type="checkbox" checked={mcSound} onChange={(e) => setMcSound(e.target.checked)} /><span>Keep the clip&rsquo;s sound</span></label>

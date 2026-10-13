@@ -99,10 +99,6 @@
 .vs-motion .vs-opt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--a-fg); font-size: 14px; font-weight: 500; }
 .vs-motion .vs-opt-head span { display: inline-flex; align-items: center; gap: 8px; }
 .vs-motion .vs-opt small { color: var(--a-muted); font-size: 12.5px; line-height: 1.4; }
-.vs-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); }
-.vs-seg button { height: 32px; border: 0; border-radius: 9px; background: transparent; color: var(--a-muted); font: inherit; font-size: 14px; cursor: pointer; }
-.vs-seg button.is-on { background: var(--a-card); color: var(--a-fg); box-shadow: 0 0 0 1px var(--a-line3); }
-.vs-seg button:focus-visible { outline: 2px solid #c00707; outline-offset: 1px; }
 
 .vs-style-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
 .vs-style-row span { display: inline-flex; align-items: center; gap: 8px; flex: 1; text-align: left; }
