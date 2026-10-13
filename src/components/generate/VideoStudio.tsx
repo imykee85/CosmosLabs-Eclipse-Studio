@@ -296,8 +296,8 @@ export default function VideoStudio() {
               </label>
               {mcEngine !== "genjutsu" && (
                 <>
-                  <label title="Which way the person in the result faces and turns: like the person in your video, or like your picture"><span>Faces like</span>
-                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")}><option value="video">The video</option><option value="image">The picture</option></select>
+                  <label title="character_orientation: take the orientation from the video or from the picture"><span>Orientation</span>
+                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")}><option value="video">From the video</option><option value="image">From the picture</option></select>
                   </label>
                   <label className="vs-motion-check"><input type="checkbox" checked={mcSound} onChange={(e) => setMcSound(e.target.checked)} /><span>Keep the clip&rsquo;s sound</span></label>
                 </>
