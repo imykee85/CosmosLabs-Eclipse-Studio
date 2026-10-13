@@ -123,3 +123,6 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 - Real onboarding video, tutorial videos, real pricing plans, terms and privacy pages.
 - Build the "Soon" features in the order of the backend phases: Assets and Library saving, Treatment and agents, video and audio, Connect publishing, API/MCP keys, Team, Portfolio publish, Avatars, Certificates, translation.
 - Open question: Library has no desktop link now (only the phone tab).
+
+## Histories and Library tiles (user 2026-10-13)
+- Image Studio's history (preview and the five thumbnails) lists IMAGES only (`kind !== "video"` in `CreateStudio`); Video Studio's history lists VIDEOS only, the five most recent, same size as Image Studio's (72 px, 32 px on phones, arrow to the Gallery), thumbnails autoplay muted on a loop. Library and Gallery tiles (`RenderTile`, `.lib-tile`) are ONE fixed square for every picture and video whatever its shape (`object-fit: cover`, no more natural ratios), videos autoplay muted on a loop (no hover play, no play icon, a seconds badge); the Bin keeps its own tiles.

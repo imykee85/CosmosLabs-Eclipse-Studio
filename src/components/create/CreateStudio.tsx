@@ -84,7 +84,7 @@ export default function CreateStudio() {
   const [projectId, setProjectId] = useState<string | null | undefined>(undefined);
   useEffect(() => { setProjectId(readCurrentProject()?.id ?? null); }, []);
   const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 12);
-  const list = renders ?? [];
+  const list = (renders ?? []).filter((g) => g.kind !== "video"); // Image Studio shows only images: videos live in Video Studio
   const pending = list.find((g) => g.status === "pending") ?? null;
   // The big preview is for what you are making right now: it shows the render started on this visit and then clears
   // when you leave and come back. Earlier work stays in the row of small thumbnails (the five most recent).

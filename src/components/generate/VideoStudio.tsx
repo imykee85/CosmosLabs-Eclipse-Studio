@@ -91,7 +91,7 @@ export default function VideoStudio() {
   const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 40);
   const videos = (renders ?? []).filter((g) => g.kind === "video");
   const active: Render | null = (activeId ? videos.find((g) => g.id === activeId) : videos.find((g) => g.status === "pending")) ?? null;
-  const done = videos.filter((g) => g.status === "completed" && !g.deletedAt).slice(0, 8);
+  const done = videos.filter((g) => g.status === "completed" && !g.deletedAt).slice(0, 5); // the five most recent, like Image Studio
 
   // The "being made" note is only true while it runs.
   const activeStatus = active?.status;
@@ -270,7 +270,7 @@ export default function VideoStudio() {
           <div className="cr-thumbs vs-thumbs" aria-label="Your earlier videos">
             {done.map((g) => (
               <button key={g.id} type="button" className={`vs-thumb ${active?.id === g.id ? "is-on" : ""}`} onClick={() => setActiveId(g.id)} title={g.prompt}>
-                <video src={`${g.imageUrl}#t=0.1`} muted playsInline preload="metadata" />
+                <video src={`${g.imageUrl}#t=0.1`} muted loop autoPlay playsInline preload="auto" />
               </button>
             ))}
             <Link className="vs-thumb vs-more" href="/gallery" aria-label="Open the Gallery" title="Open the Gallery"><ArrowRight size={16} /></Link>
