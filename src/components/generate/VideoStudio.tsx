@@ -147,9 +147,9 @@ export default function VideoStudio() {
   }
 
   function openPicker(t: Target) { setNote(""); setTarget(t); }
-  const picked = target === "start" ? (start ? [start] : []) : target === "end" ? (end ? [end] : []) : refs;
+  const picked = target === "start" || (target === "refs" && mc) ? (start ? [start] : []) : target === "end" ? (end ? [end] : []) : refs;
   function onPicked(next: RefPick[]) {
-    if (target === "start") setStart(next[next.length - 1] ?? null);
+    if (target === "start" || (target === "refs" && mc)) setStart(next[next.length - 1] ?? null); // Motion: the picture is the subject
     else if (target === "end") setEnd(next[next.length - 1] ?? null);
     else setRefs(next);
   }
@@ -270,7 +270,7 @@ export default function VideoStudio() {
           </div>
           {framesShown && (
             <div className="cr-refs" aria-label="Pictures for this clip">
-              {start && <FrameThumb pic={start} tag="Start" onRemove={() => setStart(null)} />}
+              {start && <FrameThumb pic={start} tag={mc ? "Subject" : "Start"} onRemove={() => setStart(null)} />}
               {end && <FrameThumb pic={end} tag="End" onRemove={() => setEnd(null)} />}
               {refs.map((r, i) => <FrameThumb key={`${r.type}-${r.id}`} pic={r} tag={String(i + 1)} onRemove={() => setRefs((l) => l.filter((x) => !(x.type === r.type && x.id === r.id)))} />)}
               {vrefs.map((v, i) => (
@@ -293,16 +293,13 @@ export default function VideoStudio() {
               </label>
               {mcEngine !== "genjutsu" && (
                 <>
-                  <label><span>Quality</span>
-                    <select value={mcTier} onChange={(e) => setMcTier(e.target.value as "pro" | "std")}><option value="pro">Pro</option><option value="std">Standard</option></select>
-                  </label>
-                  <label><span>Facing</span>
-                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")}><option value="video">Follow the video</option><option value="image">Follow the picture</option></select>
+                  <label title="Which way the subject faces and turns: like the person in your video, or like your picture"><span>Faces like</span>
+                    <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")}><option value="video">The video</option><option value="image">The picture</option></select>
                   </label>
                   <label className="vs-motion-check"><input type="checkbox" checked={mcSound} onChange={(e) => setMcSound(e.target.checked)} /><span>Keep the clip&rsquo;s sound</span></label>
                 </>
               )}
-              <p>Start frame is the subject that moves; Motion video is one of your finished videos ({mcEngine === "genjutsu" ? "4 to 30 seconds, longer ones are cut to 30" : "3 to 30 seconds"}). The result is as long as the clip{clipSec != null ? ` (${clipSec} s)` : ""}.</p>
+              <p>In Ingredients choose the subject picture (who or what moves) and one of your finished videos ({mcEngine === "genjutsu" ? "4 to 30 seconds, longer ones are cut to 30" : "3 to 30 seconds"}) whose movement is copied. The result is as long as the video{clipSec != null ? ` (${clipSec} s)` : ""}.</p>
             </div>
           )}
           {needsRights && (
@@ -312,6 +309,7 @@ export default function VideoStudio() {
             </label>
           )}
           <div className="cr-tools">
+            {!mc && (
             <div className="cr-row cr-row-a">
               <button type="button" className={`cr-chip vs-sound ${sound && caps.audio ? "" : "is-muted"}`} disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={!caps.audio ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
                 {sound && caps.audio ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -333,11 +331,24 @@ export default function VideoStudio() {
                 <span className="cr-mlabel">Model:</span><span className="cr-mname"><span className="vs-mshown">{pickerModel.label}</span><span className="vs-msizer" aria-hidden="true">{LONGEST_MODEL_LABEL}</span></span><ChevronDown size={14} />
               </button>
             </div>
+            )}
             <div className="cr-row cr-row-top">
               <div className="vs-main">
+              {mc ? (
+                <label className="cr-chip cr-select" title="Quality of the result"><span className="sr-only">Quality</span>
+                  {mcEngine === "genjutsu" ? (
+                    <select value={quality} onChange={(e) => setQuality(e.target.value)} aria-label="Video quality">{caps.qualities.map((q) => <option key={q} value={q}>{q}</option>)}</select>
+                  ) : (
+                    <select value={mcTier} onChange={(e) => setMcTier(e.target.value as "pro" | "std")} aria-label="Video quality"><option value="pro">Pro</option><option value="std">Standard</option></select>
+                  )}
+                </label>
+              ) : (
+                <>
               <button type="button" className="cr-chip" disabled={!model.startFrame || (!mc && (refs.length > 0 || vrefs.length > 0))} title={!model.startFrame ? `${model.label} has no start frame` : mc ? "Choose the subject picture that should move" : refs.length > 0 || vrefs.length > 0 ? "Use either a start frame or Ingredients, not both" : "Choose the first frame of the clip"} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!caps.endFrame} title={caps.endFrame ? "Choose the last frame of the clip" : start ? `${model.label} has no end frame` : "An end frame needs a start frame first"} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
-              <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose the video whose movement should be copied (3 to 30 seconds)" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> {mc ? "Motion video" : "Ingredients"}{refs.length + vrefs.length ? ` (${refs.length + vrefs.length})` : ""}</button>
+                </>
+              )}
+              <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax && !mc) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax && !mc ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose the subject picture and the video whose movement should be copied" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length + vrefs.length + (mc && start ? 1 : 0) ? ` (${refs.length + vrefs.length + (mc && start ? 1 : 0)})` : ""}</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Agents"}</span></button>
@@ -357,12 +368,12 @@ export default function VideoStudio() {
         <p className="cr-hint cr-keys">Press Ctrl or Cmd + Enter to generate.</p>
       </div>
 
-      {target && <ReferencePicker max={target === "refs" ? caps.refMax : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? caps.refVideoMax : 0} pickedVideos={vrefs} onVideosChange={setVrefs} videosOnly={target === "refs" && (mc || !caps.refMax)} />}
+      {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : caps.refMax) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? caps.refVideoMax : 0} pickedVideos={vrefs} onVideosChange={setVrefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose the subject picture (who or what moves) and one of your finished videos (its movement is copied). One of each." : undefined} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => {
         if (m === "scene") { setMotion(null); setNote("3D scene isn't connected yet."); return; }
         setMotion(m); setVrefs([]); setStart(null);
-        setNote(m ? "Motion transfer: choose a subject picture (Start frame) and one of your videos as the Motion video. The length follows the clip." : "");
+        setNote(m ? "Motion transfer: in Ingredients choose the subject picture and one of your videos. The length follows the video." : "");
       }} onClose={() => setMotionAnchor(null)} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} onClose={() => setSettingsAnchor(null)} />}

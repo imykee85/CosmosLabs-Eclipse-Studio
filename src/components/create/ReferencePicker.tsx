@@ -20,9 +20,10 @@ const VIDEO_TAB: { id: Tab; label: string } = { id: "videos", label: "My videos"
 
 // Dialog for choosing up to `max` pictures to send to the model along with the prompt. Video models can also take the person's own finished videos: they are
 // the last tab ("My videos", up to `videoMax`); `videosOnly` shows just that tab (motion transfer, or a model whose references are clips only).
-export default function ReferencePicker({ max, picked, onChange, onClose, videoMax = 0, pickedVideos = [], onVideosChange, videosOnly = false }: {
+export default function ReferencePicker({ max, picked, onChange, onClose, videoMax = 0, pickedVideos = [], onVideosChange, videosOnly = false, note }: {
   max: number; picked: RefPick[]; onChange: (next: RefPick[]) => void; onClose: () => void;
   videoMax?: number; pickedVideos?: ClipPick[]; onVideosChange?: (next: ClipPick[]) => void; videosOnly?: boolean;
+  note?: string; // replaces the usual line under the heading
 }) {
   const withVideos = videoMax > 0 && !!onVideosChange;
   const tabs = videosOnly ? [VIDEO_TAB] : withVideos ? [...TABS, VIDEO_TAB] : TABS;
@@ -42,6 +43,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
   const has = (type: RefPick["type"], id: string) => picked.some((p) => p.type === type && p.id === id);
   function toggle(item: RefPick) {
     if (has(item.type, item.id)) onChange(picked.filter((p) => !(p.type === item.type && p.id === item.id)));
+    else if (max === 1) onChange([item]); // a single choice swaps the previous one
     else if (picked.length < max) onChange([...picked, item]);
   }
 
@@ -49,6 +51,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
   function toggleVideo(g: { id: string; url: string; label: string; sec: number | null }) {
     if (!onVideosChange) return;
     if (hasVideo(g.id)) onVideosChange(pickedVideos.filter((p) => p.id !== g.id));
+    else if (videoMax === 1) onVideosChange([{ type: "render", id: g.id, url: g.url, label: g.label, sec: g.sec }]); // a single choice swaps the previous one
     else if (pickedVideos.length < videoMax) onVideosChange([...pickedVideos, { type: "render", id: g.id, url: g.url, label: g.label, sec: g.sec }]);
   }
   const videos = (renders ?? []).filter((g) => g.kind === "video" && g.status === "completed" && g.imageUrl);
@@ -74,7 +77,9 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
       <div className="up-dialog rp-dialog" role="dialog" aria-modal="true" aria-label="Choose ingredients" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="rd-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         <h2>Choose ingredients</h2>
-        {videosOnly ? (
+        {note ? (
+          <p className="rp-note">{note}</p>
+        ) : videosOnly ? (
           <p className="rp-note">Choose up to {videoMax} of your finished videos. The model follows them for your prompt (call them video 1, video 2…). <b>{pickedVideos.length} of {videoMax}</b> chosen.</p>
         ) : (
           <p className="rp-note">Choose up to {max} pictures{withVideos ? ` and ${videoMax} of your videos` : ""}. The model uses them as a starting point for your prompt. <b>{picked.length} of {max}</b> pictures{withVideos ? <>, <b>{pickedVideos.length} of {videoMax}</b> videos</> : null} chosen.</p>
@@ -89,7 +94,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
               {videos.map((g) => {
                 const on = hasVideo(g.id);
                 return (
-                  <button key={g.id} type="button" className={`rp-item ${on ? "is-on" : ""}`} aria-pressed={on} disabled={!on && pickedVideos.length >= videoMax} onClick={() => toggleVideo({ id: g.id, url: g.imageUrl ?? "", label: g.prompt, sec: g.durationSec ?? null })} title={g.prompt}>
+                  <button key={g.id} type="button" className={`rp-item ${on ? "is-on" : ""}`} aria-pressed={on} disabled={!on && videoMax > 1 && pickedVideos.length >= videoMax} onClick={() => toggleVideo({ id: g.id, url: g.imageUrl ?? "", label: g.prompt, sec: g.durationSec ?? null })} title={g.prompt}>
                     <video src={g.imageUrl ?? undefined} muted playsInline preload="metadata" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", border: `2px solid ${on ? "#c00707" : "var(--a-line2)"}`, borderRadius: 16, background: "var(--a-card)" }} />
                     {on && <span className="rp-check"><Check size={14} /></span>}
                     <span className="rp-name">{g.prompt}</span><small>{g.modelLabel ?? "Video"}</small>
@@ -105,7 +110,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
             {items.map((it) => {
               const on = has(it.type, it.id);
               return (
-                <button key={`${it.type}-${it.id}`} type="button" className={`rp-item ${on ? "is-on" : ""}`} aria-pressed={on} disabled={!on && picked.length >= max} onClick={() => toggle(it)} title={it.label}>
+                <button key={`${it.type}-${it.id}`} type="button" className={`rp-item ${on ? "is-on" : ""}`} aria-pressed={on} disabled={!on && max > 1 && picked.length >= max} onClick={() => toggle(it)} title={it.label}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.url} alt={it.label} loading="lazy" />
                   {on && <span className="rp-check"><Check size={14} /></span>}
