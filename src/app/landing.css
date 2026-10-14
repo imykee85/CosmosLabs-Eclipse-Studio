@@ -556,7 +556,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (prefers-reduced-motion: reduce) { .atl-float, .atl-sphere, .atl-eye b, .atl-ground, .atl-bot.is-intro .atl-hop, .atl-bot.is-intro .atl-spin { animation: none; } .atl-fill, .atl-demo li > div, .atl-dot { transition: none; } }
 
 /* "Your creative computer" (Core): same paper background and ink as the Atlas workflow section above the idea card. */
-.core-section { background: var(--paper); color: var(--ink); padding-top: 135px; padding-bottom: 60px; }
+.core-section { background: var(--paper); color: var(--ink); padding-top: 135px; padding-bottom: 110px; }
+.try-section.try-cta { padding-top: 130px; padding-bottom: 130px; }
 .core-head { max-width: 1152px; margin: 0 auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
 .core-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 13px; border: 1px solid #c5c0b8; border-radius: 999px; font-size: 11px; color: #6b665f; }
 .core-pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
@@ -594,3 +595,4 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
   .core-block p { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { .core-cw, .core-ccw { animation: none !important; } }
+.site-shell .try-cta h2 em { text-transform: none; } /* Eclipse is a name: keeps its capital */

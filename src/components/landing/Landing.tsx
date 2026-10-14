@@ -138,6 +138,14 @@ export default function Landing() {
 
       <AtlasOrbitSection />
 
+      <section className="try-section try-cta section-pad">
+        <div className="try-inner">
+          <div className="eyebrow">YOUR STUDIO IS WAITING</div>
+          <h2>start creating<br /><em>with Eclipse.</em></h2>
+          <div className="section-cta"><Cta /></div>
+        </div>
+      </section>
+
       <section className="results-section section-pad">
         <div className="section-heading-row results-heading">
           <div>
