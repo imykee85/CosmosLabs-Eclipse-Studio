@@ -1,14 +1,14 @@
 export const wowTiles = [
-  ["PORTRAIT", "AI PHOTOSHOOT"],
-  ["PRODUCT", "CAMPAIGN"],
-  ["FASHION", "EDITORIAL"],
-  ["REAL ESTATE", "CINEMATIC"],
-  ["BEAUTY", "COMMERCIAL"],
-  ["FOOD", "ADVERTISING"],
-  ["UGC", "CREATOR CONTENT"],
-  ["FILM", "CINEMATIC SHORTS"],
-  ["ART", "DIGITAL ART"],
-  ["CAMPAIGN", "BRAND LAUNCH"],
+  ["SEEDANCE 2.5", "BYTEDANCE · VIDEO"],
+  ["KLING 3.0", "KLING · VIDEO"],
+  ["MINIMAX H3", "MINIMAX · VIDEO"],
+  ["WAN 3.0 PRIME", "WAN · VIDEO"],
+  ["HAPPY HORSE 1.1", "HAPPY HORSE · VIDEO"],
+  ["PIXVERSE V6", "PIXVERSE · VIDEO"],
+  ["GROK VIDEO 1.5", "XAI · VIDEO"],
+  ["NANO BANANA PRO", "GOOGLE · IMAGE"],
+  ["GPT IMAGE 2.5", "OPENAI · IMAGE"],
+  ["SEEDREAM 5 PRO", "BYTEDANCE · IMAGE"],
 ] as const;
 
 export const audience = [
