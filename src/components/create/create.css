@@ -232,6 +232,14 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-input input { flex: 1; min-width: 0; padding: 7px 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; }
 .aw-input button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }
 .aw-input button:disabled { opacity: .4; cursor: default; }
+.aw-input { padding-left: 4px; }
+.aw-input button.aw-clip { background: transparent; color: var(--a-muted); }
+.aw-input button.aw-clip:hover:not(:disabled) { color: var(--a-fg); }
+.aw-atts { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 6px; }
+.aw-att { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 3px 8px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); font-size: 12px; }
+.aw-att.is-error { border-color: #c00707; color: #c00707; }
+.aw-atts .aw-att button { display: grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.aw-attached { display: flex; align-items: center; gap: 5px; margin: 0 0 4px; font-size: 12px; opacity: .8; }
 .aw-btn.is-bounce .aw-float { animation: aw-bounce .7s cubic-bezier(.3, .8, .4, 1); }
 @keyframes aw-bounce { 0% { transform: translateY(0); } 25% { transform: translateY(-22px) scale(.94, 1.06); } 50% { transform: translateY(0) scale(1.1, .88); } 72% { transform: translateY(-8px); } 100% { transform: translateY(0); } }
 

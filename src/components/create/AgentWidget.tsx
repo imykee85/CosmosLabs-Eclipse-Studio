@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, History, Loader2, Maximize2, Minimize2, SquarePen, Trash2, X } from "lucide-react";
+import { ArrowUp, Film, History, Image as ImageIcon, Loader2, Maximize2, Minimize2, Paperclip, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
-import { canUseFrame, useAgentChat } from "@/lib/agent-chat";
+import { canUseFrame, useAgentChat, type Attach } from "@/lib/agent-chat";
+import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
+import { readCurrentProject } from "@/lib/projects";
 import { CUE_EVENT, takeCue } from "@/lib/use-agent";
 
 const POS_KEY = "eclipse-agent-widget-pos";
@@ -38,6 +40,11 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const [bounce, setBounce] = useState(false);
   const [big, setBig] = useState(false);
   const [showPast, setShowPast] = useState(false);
+  // Pictures and videos added in the chat itself (paperclip): uploaded at once, sent with the next message.
+  const [atts, setAtts] = useState<Attach[]>([]);
+  const [uploading, setUploading] = useState<number | null>(null);
+  const [attErr, setAttErr] = useState("");
+  const fileIn = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
   const chat = useAgentChat(name);
   const list = useRef<HTMLDivElement>(null);
@@ -116,9 +123,35 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   function submit(e?: React.FormEvent) {
     e?.preventDefault();
     const t = draft.trim();
-    if (!t || chat.busy) return;
+    if (!t || chat.busy || uploading !== null) return;
     setDraft("");
-    void chat.send(t);
+    const sent = atts;
+    setAtts([]);
+    setAttErr("");
+    void chat.send(t, sent);
+  }
+
+  async function addFiles(files: FileList | null) {
+    const list = Array.from(files ?? []).slice(0, 4);
+    if (fileIn.current) fileIn.current.value = "";
+    if (!list.length) return;
+    setAttErr("");
+    const projectId = readCurrentProject()?.id ?? null;
+    for (const f of list) {
+      const name = f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Attachment";
+      const isVideo = f.type.startsWith("video/") || /\.(mp4|mov|webm|m4v)$/i.test(f.name);
+      setUploading(0);
+      if (isVideo) {
+        const r = await uploadVideo<{ id: string }>(f, name, projectId, setUploading);
+        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "video" as const, id: r.item.id, name }].slice(-4));
+        else setAttErr(r.ok ? "Could not add that video." : r.error);
+      } else {
+        const r = await uploadPicture(f, "asset", name, projectId, setUploading);
+        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "picture" as const, id: r.item!.id, name }].slice(-4));
+        else setAttErr(r.ok ? "Could not add that picture." : r.error);
+      }
+    }
+    setUploading(null);
   }
 
   function down(e: React.PointerEvent<HTMLButtonElement>) {
@@ -170,6 +203,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             {chat.messages.length === 0 && <p className="aw-empty">Say hello, or tell me what you want to make.</p>}
             {chat.messages.map((m) => (
               <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""}`}>
+                {m.attach && m.attach.length > 0 && <p className="aw-attached">{m.attach.map((a) => (a.kind === "video" ? <Film key={a.name} size={12} /> : <ImageIcon key={a.name} size={12} />))} {m.attach.map((a) => a.name).join(", ")}</p>}
                 {m.text && <p>{m.text}</p>}
                 {m.frames && m.frames.length > 0 && (
                   <div className="aw-frames">
@@ -201,9 +235,20 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             {chat.busy && <div className="aw-msg is-agent"><p className="aw-typing"><Loader2 size={13} className="cr-spin" /> Thinking…</p></div>}
           </div>
           )}
+          {(atts.length > 0 || uploading !== null || attErr) && (
+            <div className="aw-atts">
+              {atts.map((a) => (
+                <span key={a.id} className="aw-att">{a.kind === "video" ? <Film size={12} /> : <ImageIcon size={12} />}{a.name}<button type="button" aria-label={`Remove ${a.name}`} onClick={() => setAtts((l) => l.filter((x) => x.id !== a.id))}><X size={11} /></button></span>
+              ))}
+              {uploading !== null && <span className="aw-att"><Loader2 size={12} className="cr-spin" />{uploading > 0 && uploading < 1 ? `${Math.round(uploading * 100)}%` : "Adding…"}</span>}
+              {attErr && <span className="aw-att is-error">{attErr}</span>}
+            </div>
+          )}
           <form className="aw-input" onSubmit={submit}>
+            <input ref={fileIn} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,.mov,.mp4,.webm,.m4v" onChange={(e) => void addFiles(e.target.files)} />
+            <button type="button" className="aw-clip" aria-label="Add a picture or video" title="Add a picture or video" disabled={uploading !== null || chat.busy || atts.length >= 4} onClick={() => fileIn.current?.click()}><Paperclip size={15} /></button>
             <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} />
-            <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy}><ArrowUp size={16} /></button>
+            <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy || uploading !== null}><ArrowUp size={16} /></button>
           </form>
         </div>
       )}

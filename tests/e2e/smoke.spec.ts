@@ -135,9 +135,36 @@ test.describe("prompt box messages", () => {
     expect(f.y - (e.y + e.height)).toBeGreaterThanOrEqual(0);
     await expect(page.locator(".cr-hint")).toHaveCount(0);
     await page.click(".aw-btn");
-    await page.fill(".aw-input input", "what went wrong?");
+    await page.fill(".aw-input input:not([type=file])", "what went wrong?");
     await page.click('.aw-input button[type="submit"]');
     await expect.poll(() => sent?.context?.message).toBe("The provider said no.");
+  });
+});
+
+test.describe("Atlas chat attachments", () => {
+  test("the paperclip adds a picture and it travels with the message", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+      localStorage.setItem("eclipse-agent", "Atlas");
+      localStorage.setItem("eclipse-agent-on", "1");
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
+    await page.route("**/api/uploads", (r) => r.fulfill({ json: { id: "up1", kind: "asset", name: "pic", imageUrl: "/x.png", contentType: "image/png", sizeBytes: 1, width: 1, height: 1, projectId: null, createdAt: new Date().toISOString() } }));
+    await page.route("**/api/uploads/direct/start", (r) => r.fulfill({ json: { error: "stop" }, status: 400 }));
+    let sent: { context?: { pictures?: { id: string }[]; videos?: { id: string }[] } } | null = null;
+    await page.route("**/api/agent/chat", (r) => { sent = r.request().postDataJSON(); return r.fulfill({ json: { text: "I see it.", actions: [] } }); });
+    await page.goto("/create");
+    await page.click(".aw-btn");
+    await expect(page.locator(".aw-clip")).toBeVisible();
+    await page.setInputFiles('.aw-input input[type="file"]', { name: "pic.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64") });
+    await expect(page.locator(".aw-att")).toContainText("pic");
+    await page.fill(".aw-input input:not([type=file])", "what is this?");
+    await page.click('.aw-input button[type="submit"]');
+    await expect.poll(() => sent?.context?.pictures?.[0]?.id).toBe("up1");
+    await expect(page.locator(".aw-attached")).toContainText("pic");
+    await expect(page.locator(".aw-att")).toHaveCount(0);
   });
 });
 

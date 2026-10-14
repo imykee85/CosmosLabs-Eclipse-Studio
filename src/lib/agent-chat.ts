@@ -9,7 +9,9 @@ import { PERSONAS } from "./agent-personas";
 export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number; used?: boolean };
 // A frame Atlas captured from a video: saved to the user's Assets (an upload), shown in the chat with buttons to use it.
 export type Frame = { id: string; label: string; sec: number; used?: string };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; error?: boolean; note?: boolean };
+// A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
+export type Attach = { kind: "picture" | "video"; id: string; name: string };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string }[]; error?: boolean; note?: boolean };
 
 export type AgentHost = {
   page: "studio" | "canvas" | "treatment" | "video" | "core";
@@ -98,14 +100,18 @@ export function useAgentChat(agent: string | null) {
     add({ role: "agent", text });
   }, [agent, add]);
 
-  const send = useCallback(async (raw: string) => {
+  const send = useCallback(async (raw: string, atts: Attach[] = []) => {
     const text = raw.trim();
     if (!agent || !text || busyAgents.has(agent)) return;
-    add({ role: "user", text });
+    add({ role: "user", text, ...(atts.length ? { attach: atts.map((a) => ({ kind: a.kind, name: a.name })) } : {}) });
     setBusy(true);
     try {
       const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text }));
-      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, messages: history, context: { page: host?.page ?? "studio", ...(host?.context() ?? {}) } }) });
+      const base = host?.context() ?? { prompt: "" };
+      // What was added in the chat goes first, then what is attached to the prompt box.
+      const pictures = [...atts.filter((a) => a.kind === "picture").map((a) => ({ type: "upload" as const, id: a.id, role: "added in the chat" })), ...(base.pictures ?? [])];
+      const videos = [...atts.filter((a) => a.kind === "video").map((a) => ({ id: a.id, label: a.name, role: "added in the chat" })), ...(base.videos ?? [])];
+      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, messages: history, context: { page: host?.page ?? "studio", ...base, pictures, videos } }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
       const actions: Act[] = Array.isArray(data.actions) ? data.actions.map((a: Omit<Act, "id">) => ({ ...a, id: uid() })) : [];
