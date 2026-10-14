@@ -6,7 +6,7 @@ export type AudioItem = {
   id: string; status: "pending" | "completed" | "failed"; error: string | null; text: string; chars: number; model: string; modelLabel: string;
   voiceId: string | null; voiceName: string | null; createdAt: string; durationMs: number | null; contentType: string | null; sizeBytes: number | null; url: string | null; fileName: string;
 };
-export type VoiceModel = { id: string; label: string; maxChars: number; note: string | null; creditsPerChar: number | null; supports: { emotionTags: boolean; speed: boolean; pitch: boolean; voiceClone: boolean; streaming: boolean; subtitles: boolean } };
+export type VoiceModel = { id: string; label: string; ready: boolean; maxChars: number; note: string | null; creditsPerChar: number | null; supports: { emotionTags: boolean; speed: boolean; pitch: boolean; voiceClone: boolean; streaming: boolean; subtitles: boolean } };
 export type VoiceOption = { voiceId: string; name: string; category?: string; language?: string; gender?: string; accent?: string; age?: string; descriptive?: string; previewUrl?: string };
 
 export function useVoiceModels(): { models: VoiceModel[] | null; error: string } {
@@ -20,8 +20,9 @@ export function useVoiceModels(): { models: VoiceModel[] | null; error: string }
   return { models, error };
 }
 
-export function useVoices(modelId: string | null): { voices: VoiceOption[] | null; error: string; search: (q: string) => void } {
+export function useVoices(modelId: string | null): { voices: VoiceOption[] | null; error: string; ready: boolean; search: (q: string) => void } {
   const [voices, setVoices] = useState<VoiceOption[] | null>(null);
+  const [ready, setReady] = useState(true);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
   useEffect(() => {
@@ -31,11 +32,11 @@ export function useVoices(modelId: string | null): { voices: VoiceOption[] | nul
     fetch(`/api/audio/voices?model=${encodeURIComponent(modelId)}${q ? `&q=${encodeURIComponent(q)}` : ""}`).then(async (r) => {
       const d = await r.json().catch(() => null);
       if (!live) return;
-      if (r.ok && Array.isArray(d?.voices)) { setVoices(d.voices); setError(""); } else { setVoices([]); setError(d?.error ?? "The voices could not be loaded."); }
+      if (r.ok && Array.isArray(d?.voices)) { setVoices(d.voices); setReady(d.ready !== false); setError(""); } else { setVoices([]); setError(d?.error ?? "The voices could not be loaded."); }
     }).catch(() => { if (live) { setVoices([]); setError("The voices could not be loaded."); } });
     return () => { live = false; };
   }, [modelId, q]);
-  return { voices, error, search: setQ };
+  return { voices, error, ready, search: setQ };
 }
 
 // The person's recent voices, and the one being followed. While any voice is pending the list is asked again every 2 seconds.

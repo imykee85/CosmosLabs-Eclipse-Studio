@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ctxFor, providerFor } from "@/lib/audio/providers";
 import { findAudioModel } from "@/lib/audio/registry";
 import { audioUser } from "@/lib/audio/route-helpers";
+import { clerkEnabled } from "@/lib/clerk-enabled";
 import { ProviderFailure, type Voice } from "@/lib/audio/types";
 
 export const dynamic = "force-dynamic";
@@ -12,23 +13,26 @@ const cache = new Map<string, { at: number; voices: Voice[] }>();
 const TTL_MS = 10 * 60_000;
 
 export async function GET(req: Request) {
-  const u = audioUser();
-  if ("res" in u) return u.res;
   const url = new URL(req.url);
   const model = findAudioModel(url.searchParams.get("model"));
-  const ctx = model ? ctxFor(model) : null;
-  if (!model || !ctx) return NextResponse.json({ error: "That voice model is not available." }, { status: 400 });
+  if (!model) return NextResponse.json({ error: "That voice model is not available." }, { status: 400 });
+  // Not connected yet (preview mode or no provider key): an empty list the page can show calmly, never an error.
+  if (!clerkEnabled) return NextResponse.json({ voices: [], ready: false });
+  const u = audioUser();
+  if ("res" in u) return u.res;
+  const ctx = ctxFor(model);
+  if (!ctx) return NextResponse.json({ voices: [], ready: false });
   const provider = providerFor(model);
-  if (!provider.listVoices) return NextResponse.json({ voices: [] });
+  if (!provider.listVoices) return NextResponse.json({ voices: [], ready: true });
   const search = (url.searchParams.get("q") ?? "").trim().slice(0, 80);
   const key = `${model.provider}:${search.toLowerCase()}`;
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL_MS) return NextResponse.json({ voices: hit.voices });
+  if (hit && Date.now() - hit.at < TTL_MS) return NextResponse.json({ voices: hit.voices, ready: true });
   try {
     const voices = await provider.listVoices(ctx, { search: search || undefined });
     cache.set(key, { at: Date.now(), voices });
     if (cache.size > 50) cache.delete(cache.keys().next().value as string);
-    return NextResponse.json({ voices });
+    return NextResponse.json({ voices, ready: true });
   } catch (err) {
     if (err instanceof ProviderFailure) {
       if (err.error.alert) console.error("AUDIO ALERT: listing voices", model.provider, err.error.code);

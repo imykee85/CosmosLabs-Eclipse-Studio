@@ -260,8 +260,8 @@ test.describe("treatment", () => {
 
 test.describe("Voice Studio", () => {
   const models = [
-    { id: "eleven_v4", label: "Eleven v4", maxChars: 10000, note: null, creditsPerChar: 0.0125, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
-    { id: "eleven_flash_v2_5", label: "Flash v2.5", maxChars: 40000, note: null, creditsPerChar: 0.00625, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+    { id: "eleven_v4", label: "Eleven v4", ready: true, maxChars: 10000, note: null, creditsPerChar: 0.0125, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+    { id: "eleven_flash_v2_5", label: "Flash v2.5", ready: true, maxChars: 40000, note: null, creditsPerChar: 0.00625, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
   ];
 
   test("write, pick a voice, add a tag, generate once, and hear the result; tags grey out on a model without them", async ({ page }) => {
@@ -295,5 +295,29 @@ test.describe("Voice Studio", () => {
     expect(sent[0]).toMatchObject({ model: "eleven_v4", voiceId: "voiceA", text: "Hello there. [whispers]" });
     await page.selectOption('select[aria-label="Voice model"]', "eleven_flash_v2_5");
     await expect(page.getByRole("button", { name: "Delivery" })).toBeDisabled();
+  });
+
+  test("before the provider key is set every control still responds and Generate says why it cannot go ahead", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    let posted = 0;
+    await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models: models.map((m) => ({ ...m, ready: false })) } }));
+    await page.route("**/api/audio/voices**", (r) => r.fulfill({ json: { voices: [], ready: false } }));
+    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items: [] } }));
+    await page.route("**/api/audio/generate", (r) => { posted++; return r.fulfill({ status: 503, json: { error: "x" } }); });
+    await page.goto("/voice");
+    await page.fill("#vc-text", "Hello there.");
+    await page.getByRole("button", { name: "Delivery" }).click();
+    await page.getByRole("menuitem", { name: "[whispers]" }).click();
+    await expect(page.getByRole("button", { name: "Faster" })).toBeEnabled();
+    await page.getByRole("button", { name: "Faster" }).click();
+    await page.selectOption('select[aria-label="Voice model"]', "eleven_flash_v2_5");
+    await page.getByRole("button", { name: "Generate" }).click();
+    await expect(page.locator(".vc-error")).toContainText("not connected yet");
+    await page.getByRole("button", { name: "Search all voices" }).click();
+    await expect(page.locator(".vc-none")).toContainText("not connected yet");
+    expect(posted).toBe(0);
   });
 });

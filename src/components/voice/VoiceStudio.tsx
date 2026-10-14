@@ -23,6 +23,7 @@ const SPEEDS = [0.7, 0.8, 0.9, 1, 1.1, 1.2];
 type Chosen = { id: string; name: string; facts?: string };
 const read = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const write = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} };
+const NOT_READY = "Voices are not connected yet. They appear once the ElevenLabs key is set.";
 const factsOf = (v: VoiceOption) => [v.accent, v.gender, v.age, v.descriptive].filter(Boolean).join(" · ") || undefined;
 
 export default function VoiceStudio() {
@@ -89,7 +90,8 @@ export default function VoiceStudio() {
   const chars = text.trim().length;
   const over = model ? chars > model.maxChars : false;
   const price = model?.creditsPerChar != null && chars > 0 ? Math.max(1, Math.ceil(chars * model.creditsPerChar)) : null;
-  const canGo = !!model && !!voice && chars > 0 && !over && !submitting;
+  const ready = !!model?.ready && strip.ready;
+  const canGo = !!model && (!!voice || !ready) && chars > 0 && !over && !submitting;
   const message = error || (modelsError && !models?.length ? modelsError : "") || (strip.error && !picking ? strip.error : "");
 
   const insertTag = useCallback((tag: string) => {
@@ -102,7 +104,8 @@ export default function VoiceStudio() {
   }, [text]);
 
   async function generate() {
-    if (!canGo || !model || !voice) return;
+    if (!canGo || !model) return;
+    if (!ready || !voice) { setError(NOT_READY); return; }
     setError("");
     setSubmitting(true);
     const r = await startVoice({ text: text.trim(), model: model.id, voiceId: voice.id, voiceName: voice.name, speed: model.supports.speed && speed !== 1 ? speed : undefined, projectId: readCurrentProject()?.id ?? null });
@@ -148,7 +151,8 @@ export default function VoiceStudio() {
           {playingTake ? (<><b>{playingTake.voiceName ?? "Voice"}</b><span>{clock(pos.t * 1000)} / {clock((pos.d || (playingTake.durationMs ?? 0) / 1000) * 1000)}</span></>)
             : making ? (<><b>Making your take</b><span>{clock(now - new Date(making.createdAt).getTime())}</span></>)
             : voice ? (<><b>{voice.name}</b>{voice.facts && <span>{voice.facts}</span>}</>)
-            : (<><b>Choose a voice</b><span>Pick one below, then write the script.</span></>)}
+            : ready ? (<><b>Choose a voice</b><span>Pick one below, then write the script.</span></>)
+            : (<><b>Voice Studio</b><span>Voices are not connected yet</span></>)}
         </div>
       </section>
 
@@ -224,7 +228,7 @@ export default function VoiceStudio() {
         </div>
       </div>
 
-      {picking && <VoicePicker voices={sheet.voices} error={sheet.error} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} />}
+      {picking && <VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} />}
     </div>
   );
 }
