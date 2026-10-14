@@ -1,97 +1,69 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { atlasSteps } from "./data";
 
-// "From idea to premium content." The workflow section, now about Atlas. Left: heading, Atlas and the button, pinned while you scroll.
-// Right: a timeline that draws as you scroll (after the owner's Framer reference): the red line grows down to the middle of the screen,
-// each dot lights when its step reaches that line, each step slides in from the right once, and the current step is bright while the rest dim.
-// Under reduced motion the whole line is drawn and every step is shown at once.
-export default function AtlasWorkflow({ cta, atlasImageSrc }: { cta: React.ReactNode; atlasImageSrc?: string }) {
-  const listRef = useRef<HTMLOListElement>(null);
-  const fillRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+// "From idea to premium content." The workflow section, same size as before. Left: heading, the button, and Atlas (the 3D agent from the app, larger).
+// Right: a small self-playing animation of the process (after the owner's Framer timeline reference): a red line runs down the steps one by one,
+// each dot lights as the line reaches it and that step brightens, then it starts again. It only plays while the section is on screen.
+// Under reduced motion every step is shown at once, with the full line.
+const STEP_MS = 1500;
+const HOLD_MS = 1800;
+
+export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
+  const [active, setActive] = useState(0);
+  const [still, setStill] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const list = listRef.current, fill = fillRef.current;
-    if (!list || !fill) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const trigger = window.innerHeight * 0.55;
-      const lr = list.getBoundingClientRect();
-      fill.style.height = `${reduce ? lr.height : Math.max(0, Math.min(lr.height, trigger - lr.top))}px`;
-      let active = -1;
-      itemRefs.current.forEach((li, i) => {
-        const dot = li?.querySelector<HTMLElement>("[data-dot]");
-        if (!li || !dot) return;
-        const r = dot.getBoundingClientRect();
-        const passed = reduce || r.top + r.height / 2 <= trigger;
-        li.dataset.passed = String(passed);
-        if (passed) active = i;
-      });
-      itemRefs.current.forEach((li, i) => { if (li) li.dataset.active = String(i === active || reduce); });
+    if (reduce) { setStill(true); setActive(atlasSteps.length - 1); return; }
+    let timer = 0, visible = false, i = 0;
+    const next = () => {
+      if (!visible) return;
+      i = i >= atlasSteps.length - 1 ? 0 : i + 1;
+      setActive(i);
+      timer = window.setTimeout(next, i === atlasSteps.length - 1 ? HOLD_MS : STEP_MS);
     };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    const io = new IntersectionObserver(
-      (es) => es.forEach((e) => { if (e.isIntersecting) { (e.target as HTMLElement).dataset.in = "true"; io.unobserve(e.target); } }),
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
-    );
-    itemRefs.current.forEach((li) => { if (!li) return; if (reduce) li.dataset.in = "true"; else io.observe(li); });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      io.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-    };
+    const io = new IntersectionObserver(([e]) => {
+      const was = visible;
+      visible = e.isIntersecting;
+      if (visible && !was) { i = 0; setActive(0); timer = window.setTimeout(next, STEP_MS); }
+      if (!visible) window.clearTimeout(timer);
+    }, { threshold: 0.3 });
+    if (box.current) io.observe(box.current);
+    return () => { io.disconnect(); window.clearTimeout(timer); };
   }, []);
 
+  const last = atlasSteps.length - 1;
   return (
     <section id="how-it-works" className="atl-section section-pad">
-      <div className="atl-grid">
-        <div className="atl-left">
-          <div className="eyebrow">THE ECLIPSE WORKFLOW</div>
-          <h2>From idea to<br /><em>premium content.</em></h2>
-          <div className="atl-figure">
-            {atlasImageSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={atlasImageSrc} alt="Atlas, the Eclipse agent" />
-            ) : (
-              // Atlas as drawn in the app (the floating agent), large, until the owner sends a picture.
-              <div className="atl-bot" role="img" aria-label="Atlas, the Eclipse agent">
-                <div className="atl-float">
-                  <div className="atl-ball" />
-                  <i className="atl-eye atl-eye-l"><b /></i>
-                  <i className="atl-eye atl-eye-r"><b /></i>
-                </div>
-                <div className="atl-ground" />
-              </div>
-            )}
-            <span className="atl-name">ATLAS</span>
+      <div className="atl-left">
+        <div className="eyebrow">THE ECLIPSE WORKFLOW</div>
+        <h2>From idea to<br /><em>premium content.</em></h2>
+        <div className="atl-cta">{cta}</div>
+        {/* Atlas, drawn like the agent in the app, only bigger. */}
+        <div className="atl-bot" role="img" aria-label="Atlas, the Eclipse agent">
+          <div className="atl-float">
+            <div className="atl-ball" />
+            <i className="atl-eye atl-eye-l"><b /></i>
+            <i className="atl-eye atl-eye-r"><b /></i>
           </div>
-          <div className="atl-cta">{cta}</div>
+          <div className="atl-ground" />
         </div>
+      </div>
 
-        <div className="atl-right">
-          <div className="atl-line" aria-hidden="true" />
-          <div className="atl-fill" ref={fillRef} aria-hidden="true" />
-          <ol className="atl-steps" ref={listRef}>
-            {atlasSteps.map(([n, title, text], i) => (
-              <li key={n} ref={(el) => { itemRefs.current[i] = el; }} data-in="false" data-passed="false" data-active="false">
-                <span className="atl-dot" data-dot />
-                <div className="atl-step">
-                  <span className="atl-num">{n}</span>
-                  <b>{title}</b>
-                  <p>{text}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
+      <div className="atl-demo" ref={box} aria-label="How Atlas works" style={{ ["--atl-p" as string]: still ? 1 : active / last }}>
+        <div className="atl-line" aria-hidden="true"><div className="atl-fill" /></div>
+        <ol>
+          {atlasSteps.map(([n, title, text], i) => (
+            <li key={n} className={`${i <= active ? "is-done" : ""} ${still || i === active ? "is-active" : ""}`}>
+              <span className="atl-dot" aria-hidden="true" />
+              <span className="atl-num">{n}</span>
+              <div><b>{title}</b><p>{text}</p></div>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
