@@ -30,8 +30,14 @@ export async function GET(req: Request) {
     // Videos we stopped waiting for are asked about again in the background (a late finish turns the row into the video on the next load).
     const late = rows.filter(isLateWatch).slice(0, 3);
     if (late.length) { try { waitUntil(Promise.allSettled(late.map(rescueLateVideo))); } catch { /* not on Vercel */ } }
-    const items = await Promise.all(rows.map(async (g) => toItem(await finalizeGeneration(g))));
-    return NextResponse.json({ items });
+    // One bad row must never blank the whole list: if finishing or describing a render throws, fall back to the row as stored, and skip it only if even that fails.
+    const settled = await Promise.all(rows.map(async (g) => {
+      try { return await toItem(await finalizeGeneration(g)); } catch (err) {
+        console.error("could not describe a render", g.id, err);
+        try { return await toItem(g); } catch { return null; }
+      }
+    }));
+    return NextResponse.json({ items: settled.filter((i) => i !== null) });
   } catch (err) {
     console.error("listing generations failed", err);
     return NextResponse.json({ error: "Could not load your renders. Please try again." }, { status: 500 });

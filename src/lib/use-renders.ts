@@ -40,6 +40,8 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false) 
   const [renders, setRenders] = useState<Render[] | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const live = useRef(true);
+  const tries = useRef(0);
+  const loadedAt = useRef(0);
 
   const load = useCallback(async () => {
     if (projectId === null) { setRenders([]); return; }
@@ -52,8 +54,17 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false) 
       if (r.ok) items = (await r.json()).items ?? [];
     } catch {}
     if (!live.current) return;
-    if (items) setRenders(items); else setRenders((cur) => cur ?? []);
     clearTimeout(timer.current);
+    if (!items) {
+      // A failed load is not an empty library: keep what is on screen, and keep trying (a few times at first, then every half minute) instead of settling on nothing.
+      tries.current += 1;
+      setRenders((cur) => (cur ?? (tries.current > 5 ? [] : null)));
+      timer.current = setTimeout(load, tries.current <= 5 ? 2000 * tries.current : 30_000);
+      return;
+    }
+    tries.current = 0;
+    loadedAt.current = Date.now();
+    setRenders(items);
     const videos = items?.filter((g) => g.status === "pending" && g.kind === "video") ?? [];
     if (videos.length) {
       // A running video is finished by its own route (the list never starts a long copy): ask it about each running video, then reload the list.
@@ -67,7 +78,13 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false) 
   useEffect(() => {
     live.current = true;
     load();
-    return () => { live.current = false; clearTimeout(timer.current); };
+    // Picture links are signed and stop working after 10 minutes: fetch the list again before they do, and when the tab comes back after a while, so tiles never go blank.
+    const refresh = () => { if (Date.now() - loadedAt.current > 4 * 60_000) load(); };
+    const every = setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 60_000);
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => { live.current = false; clearTimeout(timer.current); clearInterval(every); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", onVisible); };
   }, [load]);
 
   return { renders, reload: load };
