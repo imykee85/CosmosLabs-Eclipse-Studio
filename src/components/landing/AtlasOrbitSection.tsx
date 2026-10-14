@@ -45,8 +45,7 @@ export default function AtlasOrbitSection() {
     <section ref={root} data-visible={visible} className="core-section section-pad">
       <div className="core-head">
         <div>
-          <span className="core-pill"><i /> Meet Core</span>
-          <h2>Your creative<br />computer.</h2>
+          <h2>Core:<br />Your creative computer</h2>
         </div>
         <p>One workspace at the centre. Everything it knows and everything it can use orbits around it.</p>
       </div>
