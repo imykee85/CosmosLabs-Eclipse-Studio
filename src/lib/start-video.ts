@@ -1,4 +1,5 @@
 import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
+import { autoTrimEnabled } from "@/lib/conform";
 import { randomInt, randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { HiggsfieldError } from "@/lib/higgsfield";
@@ -87,7 +88,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   // "Auto" aspect ratio: a model that can pick its own gets the word; otherwise the first picture's shape (nearest ratio the model offers), else its usual ratio.
   let aspectIn = typeof input.aspectRatio === "string" && caps.ratios.length ? input.aspectRatio : undefined;
   // The result must end up in the REFERENCE's exact ratio: the model gets the nearest one it offers and the stored clip is trimmed to the exact ratio (src/lib/conform.ts). Saved on the row as `params.conform`.
-  const conform = input.aspectRatio === AUTO_RATIO && caps.ratios.length ? await autoTarget(userId, refs[0] ?? start ?? undefined) : null;
+  const conform = autoTrimEnabled() && input.aspectRatio === AUTO_RATIO && caps.ratios.length ? await autoTarget(userId, refs[0] ?? start ?? undefined) : null;
   if (aspectIn === AUTO_RATIO && !caps.ratios.includes(AUTO_RATIO)) aspectIn = await resolveAutoRatio(userId, refs[0] ?? start ?? undefined, caps.ratios, caps.defaultRatio);
   const resolution = typeof input.resolution === "string" ? input.resolution : undefined;
   const audio = typeof input.audio === "boolean" ? input.audio : undefined;

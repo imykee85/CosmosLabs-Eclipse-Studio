@@ -8,6 +8,9 @@ import { probeVideo, run } from "./video-frames";
 // The target is saved on the row (`params.conform`, the reference's own width and height) when the job starts and applied when the file is stored.
 export type ConformTarget = { w: number; h: number };
 
+/** Trimming a finished file after the model made it is OFF unless AUTO_RATIO_TRIM=on (Config value): the owner wants the MODEL to make the picture or clip in the reference's ratio. */
+export const autoTrimEnabled = () => process.env.AUTO_RATIO_TRIM === "on";
+
 const TOLERANCE = 0.004; // 0.4 percent: pixel rounding by the model is not worth a re-encode
 
 export function targetOf(params: unknown): ConformTarget | null {

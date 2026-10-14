@@ -1,5 +1,5 @@
 import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
-import { ratioString, type ConformTarget } from "@/lib/conform";
+import { autoTrimEnabled, ratioString, type ConformTarget } from "@/lib/conform";
 import { waitUntil } from "@vercel/functions";
 import { claimUsage } from "@/lib/usage";
 import { createGenerationHeld } from "@/lib/reservations";
@@ -53,7 +53,8 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   if (aspectRatio === AUTO_RATIO && !model.ratios.includes(AUTO_RATIO)) aspectRatio = await resolveAutoRatio(input.userId, refs[0], model.ratios, model.ratios.includes("1:1") ? "1:1" : model.ratios[0]);
   // "Auto" with a reference picture: the result must end up in the REFERENCE's exact ratio. The model gets the nearest one it offers (or the exact one, if it takes any size),
   // and the stored file is trimmed to the exact ratio when it arrives in another one (src/lib/conform.ts). The target is saved on the row for that.
-  const conform: ConformTarget | null = input.aspectRatio === AUTO_RATIO && !model.ratios.includes(AUTO_RATIO) ? await autoTarget(input.userId, refs[0]) : null;
+  const exact: ConformTarget | null = input.aspectRatio === AUTO_RATIO && !model.ratios.includes(AUTO_RATIO) ? await autoTarget(input.userId, refs[0]) : null;
+  const conform = autoTrimEnabled() ? exact : null; // trimming afterwards is off by default (see conform.ts)
   if (aspectRatio && !model.ratios.includes(aspectRatio)) {
     return { ok: false, status: 400, error: `${model.label} does not support the ${aspectRatio} aspect ratio. Choose one of: ${model.ratios.join(", ")}.` };
   }
@@ -95,7 +96,7 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
   // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll.
-  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, conform, resolution, refs, items: resolved.items, seedNote, cost });
+  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, items: resolved.items, seedNote, cost });
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
   const made = await createGenerationHeld(userId, cost, { userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform ? { conform } : undefined });
@@ -135,7 +136,7 @@ async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
 // A render by a provider that answers in the same call. The row is written BEFORE the provider is called (our own double-submit
 // protection: a retry can see that the job exists, and nothing is re-submitted after a timeout), then the picture is decoded from the
 // reply, copied into private storage and the row completed. A failure marks the row failed with a plain sentence.
-async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null }): Promise<StartRenderResult> {
+async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; exact: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null }): Promise<StartRenderResult> {
   const { model, userId } = a;
   const provider = syncProvider(model.provider);
   if (!provider || !apiModelOf(model)) return { ok: false, status: 400, error: "That model is not available." };
@@ -149,7 +150,7 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
   const work = (async () => {
     try {
       const references = await Promise.all(a.items.map(loadReference));
-      const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.conform && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.conform) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+      const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.exact && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.exact) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
       const saved = await saveImageBytes(userId, out.bytes, out.contentType, a.conform);
       await completeFromBytes(row, saved, out.usage);
     } catch (err) {
