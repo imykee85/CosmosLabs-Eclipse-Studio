@@ -1,14 +1,14 @@
 export const wowTiles = [
-  ["SEEDANCE 2.5", "BYTEDANCE · VIDEO"],
-  ["KLING 3.0", "KLING · VIDEO"],
-  ["MINIMAX H3", "MINIMAX · VIDEO"],
-  ["WAN 3.0 PRIME", "WAN · VIDEO"],
-  ["HAPPY HORSE 1.1", "HAPPY HORSE · VIDEO"],
-  ["PIXVERSE V6", "PIXVERSE · VIDEO"],
-  ["GROK VIDEO 1.5", "XAI · VIDEO"],
-  ["NANO BANANA PRO", "GOOGLE · IMAGE"],
-  ["GPT IMAGE 2.5", "OPENAI · IMAGE"],
-  ["SEEDREAM 5 PRO", "BYTEDANCE · IMAGE"],
+  ["PORTRAIT", "AI PHOTOSHOOT"],
+  ["PRODUCT", "CAMPAIGN"],
+  ["FASHION", "EDITORIAL"],
+  ["REAL ESTATE", "CINEMATIC"],
+  ["BEAUTY", "COMMERCIAL"],
+  ["FOOD", "ADVERTISING"],
+  ["UGC", "CREATOR CONTENT"],
+  ["FILM", "CINEMATIC SHORTS"],
+  ["ART", "DIGITAL ART"],
+  ["CAMPAIGN", "BRAND LAUNCH"],
 ] as const;
 
 export const audience = [
@@ -20,7 +20,7 @@ export const audience = [
   ["FOOD & BEAUTY", "Premium commercial content for your business."],
 ] as const;
 
-export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising"];
+export const results = ["Seedance 2.5", "Kling 3.0", "MiniMax H3", "Wan 3.0 Prime", "Happy Horse 1.1", "Nano Banana Pro", "GPT Image 2.5", "Seedream 5 Pro"];
 
 export const steps = [
   ["01", "DESCRIBE IT", "Write your idea in plain language."],

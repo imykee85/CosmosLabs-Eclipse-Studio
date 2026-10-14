@@ -140,6 +140,7 @@ export default function Landing() {
         <div className="try-inner">
           <div className="eyebrow">TURN A THOUGHT INTO A STARTING POINT</div>
           <h2>have an idea?<br /><em>try it.</em></h2>
+          <p className="try-sub">Discover the latest frontier generative AI models, all in one place.</p>
           <div className="idea-box">
             <textarea value={idea} onChange={(e) => setIdea(e.target.value)} placeholder={"What do you want to create?\n\nDescribe your idea…"} />
             <button className="create-btn" onClick={tryIt}><Lightbulb size={17} /> Create my idea</button>

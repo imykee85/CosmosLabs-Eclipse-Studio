@@ -5,7 +5,7 @@ export default function ProjectHome() {
   return (
     <div className="ws-choose">
       <h1>What are we creating?</h1>
-      <p>Discover the latest frontier generative AI models for pictures and video, all in one studio.</p>
+      <p>Pick a studio. Everything you make is saved to your gallery. Next time, the Create button takes you straight back to the studio you used last.</p>
       <div className="ws-cards">
         <Link href="/create" className="ws-card">
           <span className="ws-card-icon"><Camera size={20} /></span>
