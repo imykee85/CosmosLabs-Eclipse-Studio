@@ -500,3 +500,6 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .hero .strip-label { color: rgba(176,212,218,.72); }
 .hero .strip-set li { color: rgba(176,212,218,.72); }
 .hero .strip-logo img { filter: brightness(0) invert(1) sepia(1) saturate(2.4) hue-rotate(128deg) brightness(.95); opacity: .78; }
+
+/* Phones that lay the landing page out wider than 800px (page zoom) still get two columns and three rows of model cards. */
+@media (pointer: coarse) and (max-width: 1100px) { .audience-grid { grid-template-columns: repeat(2, 1fr); } }
