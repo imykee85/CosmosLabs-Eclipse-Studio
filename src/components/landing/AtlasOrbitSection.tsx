@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Brain, Cpu, Plug, Puzzle } from "lucide-react";
 import GlowOrb from "@/components/GlowOrb";
 
-// "Atlas, at the core." After the owner's Framer reference (layout and motion only): two dashed rings round a glowing core, small round nodes travelling
+// "Your creative computer." (Core, not Atlas) After the owner's Framer reference (layout and motion only): two dashed rings round a glowing core, small round nodes travelling
 // along them, static text in the four corners. Each ring turns one way and its nodes turn back at the same speed, so the icons stay upright.
 // The rings only turn while the section is on screen.
 const ITEMS = [
-  { key: "memory", title: "Memory", text: "Atlas remembers your brand, your style and what you made before.", icon: Brain, ring: 1, angle: -40 },
+  { key: "memory", title: "Memory", text: "Core remembers your brand, your style and what you made before.", icon: Brain, ring: 1, angle: -40 },
   { key: "apps", title: "Apps", text: "Connects to the tools you already use.", icon: Plug, ring: 0, angle: 200 },
   { key: "skills", title: "Skills", text: "A growing library of skills for ads, product shots, motion and more.", icon: Puzzle, ring: 1, angle: 140 },
   { key: "intelligence", title: "Intelligence", text: "Picks the right model for every job.", icon: Cpu, ring: 0, angle: 20 },
@@ -45,10 +45,10 @@ export default function AtlasOrbitSection() {
     <section ref={root} data-visible={visible} className="core-section section-pad">
       <div className="core-head">
         <div>
-          <span className="core-pill"><i /> Meet Atlas</span>
-          <h2>Atlas, at<br />the core.</h2>
+          <span className="core-pill"><i /> Meet Core</span>
+          <h2>Your creative<br />computer.</h2>
         </div>
-        <p>One agent at the centre. Everything it knows and everything it can use orbits around it.</p>
+        <p>One workspace at the centre. Everything it knows and everything it can use orbits around it.</p>
       </div>
 
       <div className="core-stage">
