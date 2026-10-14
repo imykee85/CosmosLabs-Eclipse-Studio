@@ -287,7 +287,18 @@ export default function VideoStudio() {
   const known = active?.status === "completed" && natural?.id === active.id ? natural.ratio : null;
   const stageShape = known ?? active?.aspectRatio ?? (caps.ratios.length ? ratio : "16:9");
   const stageRatio = (stageShape === "auto" ? "16:9" : stageShape).replace(":", " / ");
-  const width = known ? Math.min(340, Math.round(304 * (Number(known.split(":")[0]) / Number(known.split(":")[1])))) : PREVIEW_WIDTH[stageShape] ?? 304;
+  // The card is the same size as Image Studio's for the same shape: a finished clip uses the nearest standard shape's width, never a larger one of its own.
+  const width = (() => {
+    const base = PREVIEW_WIDTH[stageShape];
+    if (base) return base;
+    const [w, h] = (known ?? stageShape).split(":").map(Number);
+    if (!(w > 0) || !(h > 0)) return 304;
+    const near = Object.entries(PREVIEW_WIDTH).filter(([k]) => k !== "auto").reduce((a, b) => {
+      const r = (k: string) => Math.log(Number(k.split(":")[0]) / Number(k.split(":")[1]));
+      return Math.abs(r(b[0]) - Math.log(w / h)) < Math.abs(r(a[0]) - Math.log(w / h)) ? b : a;
+    });
+    return near[1];
+  })();
   // What is chosen, laid out in the person's order (the order they added things, then whatever they dragged). The tags say what each one is for
   // and the server is told by role (start, end, ingredients, clips, motion), so the layout never changes what the engine does.
   const entries = useMemo<RefItem[]>(() => {
@@ -321,7 +332,7 @@ export default function VideoStudio() {
       </header>
 
       <section className="cr-preview" aria-label="Preview">
-        <div className="cr-stage vs-stage" style={{ aspectRatio: stageRatio, maxWidth: Math.max(width, 240) }}>
+        <div className="cr-stage vs-stage" style={{ aspectRatio: stageRatio, maxWidth: width }}>
           {!active ? (
             <div className="cr-empty"><Clapperboard size={34} strokeWidth={1.4} /><p>Your video appears here</p></div>
           ) : active.status === "pending" ? (
