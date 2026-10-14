@@ -1,6 +1,5 @@
 "use client";
 
-import CtaVideo from "./CtaVideo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -157,7 +156,6 @@ export default function Landing() {
       </section>
 
       <section className="try-section try-cta section-pad">
-        <CtaVideo />
         <div className="try-inner">
           <div className="eyebrow">YOUR STUDIO IS WAITING</div>
           <h2>start creating<br /><em>with Eclipse.</em></h2>
