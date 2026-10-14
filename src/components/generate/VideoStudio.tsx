@@ -427,7 +427,7 @@ export default function VideoStudio() {
               <button type="button" className={`cr-chip vs-gear ${settingsInUse ? "is-on" : ""}`} aria-label="Settings" aria-haspopup="dialog" title="Seed, leave out and prompt strength" onClick={(e) => setSettingsAnchor(e.currentTarget.getBoundingClientRect())}><Settings size={16} />{settingsInUse && <i className="vs-dot" />}</button>
             </div>
             <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad}>
-              {submitting ? <><Loader2 size={16} className="cr-spin" /> Starting</> : <>Generate {price != null ? <span className="cr-cost" title={`About ${price} credits (provisional price)`}><Coins size={14} />{price}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
+              {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate {price != null ? <span className="cr-cost" title={`About ${price} credits (provisional price)`}><Coins size={14} />{price}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
             </button>
           </div>
         </form>
