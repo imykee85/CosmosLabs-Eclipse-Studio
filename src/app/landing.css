@@ -555,24 +555,22 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (pointer: coarse) and (max-width: 1100px) { .atl-section { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; } .atl-demo { --row: 88px; margin-top: 0; } .atl-bot { --u: 2px; } }
 @media (prefers-reduced-motion: reduce) { .atl-float, .atl-sphere, .atl-eye b, .atl-ground, .atl-bot.is-intro .atl-hop, .atl-bot.is-intro .atl-spin { animation: none; } .atl-fill, .atl-demo li > div, .atl-dot { transition: none; } }
 
-/* Black run: the idea card, "Atlas, at the core." and the Atlas card read as one block; only the idea card's top and the Atlas card's bottom are curved. */
-.try-section { border-radius: var(--curve) var(--curve) 0 0; margin-bottom: 0; }
-.try-section.try-atlas { border-radius: 0 0 var(--curve) var(--curve); margin-top: 0; margin-bottom: calc(var(--curve) * -1); padding-top: 110px; }
-.core-section { position: relative; z-index: 1; background: #000; color: var(--paper); padding-top: 60px; padding-bottom: 70px; }
+/* "Your creative computer" (Core): same paper background and ink as the Atlas workflow section above the idea card. */
+.core-section { background: var(--paper); color: var(--ink); padding-top: 135px; padding-bottom: 60px; }
 .core-head { max-width: 1152px; margin: 0 auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
-.core-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 13px; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; font-size: 11px; color: rgba(240,237,232,.72); }
+.core-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 13px; border: 1px solid #c5c0b8; border-radius: 999px; font-size: 11px; color: #6b665f; }
 .core-pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .core-section h2 { margin-top: 22px; }
-.core-head p { max-width: 300px; margin: 0 0 8px; color: #a8a39c; font-size: 14px; line-height: 1.5; }
+.core-head p { max-width: 300px; margin: 0 0 8px; color: #6f6a63; font-size: 14px; line-height: 1.5; }
 .core-stage { position: relative; max-width: 1152px; height: 720px; margin: 56px auto 0; }
 .core-circles { position: absolute; left: 50%; top: 50%; width: min(62vw, 500px); aspect-ratio: 1; transform: translate(-50%, -50%); }
-.core-ring { position: absolute; inset: 0; border-radius: 50%; border: 1px dashed rgba(255,255,255,.2); }
+.core-ring { position: absolute; inset: 0; border-radius: 50%; border: 1px dashed rgba(0,0,0,.24); }
 .core-inner { position: absolute; inset: 15%; }
-.core-ring-in { border-color: rgba(255,255,255,.15); }
+.core-ring-in { border-color: rgba(0,0,0,.18); }
 .core-fill { position: absolute; inset: 0; }
 .core-slot { position: absolute; inset: 0; }
 .core-pt { position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); }
-.core-node { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: #16090b; color: #fff; box-shadow: 0 0 24px rgba(220,20,40,.35); }
+.core-node { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #5a5a5e 0%, #2b2b2e 40%, #131315 80%, #060607 100%); color: #f6f3ee; box-shadow: 0 10px 26px rgba(0,0,0,.2); }
 .core-orb { position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 1; transform: translate(-50%, -50%); }
 .core-orb .glow-orb { width: 100%; height: 100%; }
 .core-cw, .core-ccw { animation: core-cw 60s linear infinite; animation-play-state: paused; }
@@ -584,7 +582,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .core-b0 { left: 0; top: 0; } .core-b1 { right: 0; top: 0; text-align: right; } .core-b2 { left: 0; bottom: 0; } .core-b3 { right: 0; bottom: 0; text-align: right; }
 .core-bicon { display: inline-flex; margin-bottom: 12px; color: var(--accent); }
 .core-block h3 { font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
-.core-block p { margin: 8px 0 0; color: #8d8982; font-size: 14px; line-height: 1.55; }
+.core-block p { margin: 8px 0 0; color: #6f6a63; font-size: 14px; line-height: 1.55; }
 @media (max-width: 800px) {
   .core-head { flex-direction: column; align-items: flex-start; gap: 22px; }
   .core-stage { height: 640px; }
@@ -596,4 +594,3 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
   .core-block p { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { .core-cw, .core-ccw { animation: none !important; } }
-.site-shell .try-atlas h2 em { text-transform: none; } /* Atlas is a name: keeps its capital */

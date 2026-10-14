@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, MessageCircle, Plus, Lightbulb, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
 import { plans } from "@/lib/plans";
 import HeroImage from "./HeroImage";
@@ -137,15 +137,6 @@ export default function Landing() {
       />
 
       <AtlasOrbitSection />
-
-      <CtaPromptCard
-        className="try-atlas"
-        eyebrow="TALK TO ATLAS"
-        line1="got a brief?" line2="hand it to Atlas."
-        placeholder="Tell Atlas what you need"
-        button="Ask Atlas" icon={<MessageCircle size={17} />}
-        onSubmit={(t) => router.push(t.trim() ? `/connect?start=${encodeURIComponent(t.trim())}` : "/connect")}
-      />
 
       <section className="results-section section-pad">
         <div className="section-heading-row results-heading">
