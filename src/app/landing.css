@@ -506,10 +506,10 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 
 /* "Meet Atlas": left column heading, subtext, Atlas, his strengths and the button; right column a small self-playing animation of the steps (.atl-demo).
    Atlas is built at full size from one unit (--u), not scaled up, so iPhone Safari draws his 3D eyes sharp. */
-.atl-section { padding-top: 160px; padding-bottom: 160px; background: var(--paper); color: var(--ink); display: grid; grid-template-columns: 1fr 1fr; gap: clamp(40px,10vw,150px); }
+.atl-section { padding-top: 135px; padding-bottom: 135px; background: var(--paper); color: var(--ink); display: grid; grid-template-columns: 1fr 1fr; gap: clamp(40px,10vw,150px); }
 .atl-section .eyebrow { color: #6b665f; letter-spacing: .14em; }
 .atl-left { max-width: 575px; margin-left: max(0px, calc((100vw - 1165px)/2)); }
-.atl-section h2 { font-size: clamp(56px,7vw,100px); line-height: .9; letter-spacing: -.045em; font-weight: 700; white-space: nowrap; }
+.atl-section h2 { white-space: nowrap; }
 .site-shell .atl-section h2 em { text-transform: none; } /* Atlas is a name: keeps its capital despite the lowercase section-title rule */
 .atl-sub { margin: 18px 0 0; font-size: clamp(20px,2.2vw,28px); line-height: 1.2; letter-spacing: -.02em; font-weight: 500; color: #6b665f; }
 .atl-bot { --u: 2.4px; position: relative; width: calc(64 * var(--u)); height: calc(64 * var(--u)); margin: 64px 0 50px 6px; perspective: calc(360 * var(--u)); }
@@ -537,9 +537,9 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-strengths b { display: block; font-family: var(--font-display); font-size: clamp(17px,1.5vw,20px); font-weight: 600; letter-spacing: -.025em; }
 .atl-strengths p { margin: 7px 0 0; color: #6f6a63; font-size: 14px; line-height: 1.5; max-width: 470px; }
 .atl-cta { margin-top: 44px; }
-.atl-demo { --row: 96px; --n: 5; position: relative; max-width: 575px; width: 100%; }
+.atl-demo { --row: 84px; --n: 5; position: relative; max-width: 575px; width: 100%; }
 .atl-right { align-self: start; }
-.atl-tag { margin: 72px 0 0; font-family: var(--font-display); font-size: clamp(56px,7vw,100px); line-height: .9; letter-spacing: -.045em; font-weight: 700; }
+.atl-tag { margin: 72px 0 0; font-family: var(--font-display); font-size: clamp(47px,6.1vw,84px); line-height: .92; letter-spacing: -.03em; font-weight: 600; }
 .atl-demo ol { list-style: none; margin: 0; padding: 0; }
 .atl-demo li { position: relative; height: var(--row); display: grid; grid-template-columns: 26px 34px 1fr; gap: 0 10px; align-items: start; padding-top: 18px; border-top: 1px solid #c5c0b8; }
 .atl-line { position: absolute; left: 5px; top: 24px; width: 2px; height: calc((var(--n) - 1) * var(--row)); background: rgba(0,0,0,.12); }
@@ -549,8 +549,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-num { font-size: 11px; color: var(--accent); padding-top: 1px; }
 .atl-demo li > div { opacity: .38; transform: translateX(6px); transition: opacity .45s ease .3s, transform .45s var(--ease) .3s; }
 .atl-demo li.is-active > div { opacity: 1; transform: none; }
-.atl-demo b { display: block; font-family: var(--font-display); font-size: 18px; letter-spacing: -.03em; font-weight: 700; }
-.atl-demo p { color: #77716a; font-size: 13px; margin: 6px 0 0; line-height: 1.45; }
-@media (max-width: 800px) { .atl-section { display: block; padding-top: 110px; padding-bottom: 110px; } .atl-demo { margin-top: 60px; } .atl-bot { --u: 2px; } }
-@media (pointer: coarse) and (max-width: 1100px) { .atl-section { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; } .atl-demo { --row: 96px; margin-top: 0; } .atl-bot { --u: 2px; } }
+.atl-demo b { display: block; font-family: var(--font-display); font-size: 16px; letter-spacing: -.03em; font-weight: 700; }
+.atl-demo p { color: #77716a; font-size: 12px; margin: 6px 0 0; line-height: 1.45; }
+@media (max-width: 800px) { .atl-section { display: block; padding-top: 100px; padding-bottom: 100px; } .atl-demo { margin-top: 60px; } .atl-bot { --u: 2px; } }
+@media (pointer: coarse) and (max-width: 1100px) { .atl-section { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; } .atl-demo { --row: 88px; margin-top: 0; } .atl-bot { --u: 2px; } }
 @media (prefers-reduced-motion: reduce) { .atl-float, .atl-sphere, .atl-eye b, .atl-ground, .atl-bot.is-intro .atl-hop, .atl-bot.is-intro .atl-spin { animation: none; } .atl-fill, .atl-demo li > div, .atl-dot { transition: none; } }
