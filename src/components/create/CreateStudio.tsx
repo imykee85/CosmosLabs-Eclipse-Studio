@@ -150,7 +150,7 @@ export default function CreateStudio() {
     if (!f) return;
     setError("");
     if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setError("Only PNG, JPEG and WebP pictures can be uploaded."); return; }
-    if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 25 MB. Please use a smaller one."); return; }
+    if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 50 MB. Please use a smaller one."); return; }
     setUploading(true);
     try {
       const fitted = await shrinkToFit(f);

@@ -41,3 +41,24 @@ The Anthropic key was replaced on 2026-10-13 (Secret, Production and Preview); a
 Credit was added to the Anthropic and OpenAI accounts on 2026-10-13 (provider side, no setting change needed).
 
 The owner pages are linked from Settings, Billing (shown only to the owner), under the balance.
+
+## Large uploads: R2 CORS rule (needed once)
+
+Pictures over 4 MB (up to 50 MB) and videos (up to 500 MB) are sent from the browser straight to the R2 bucket, so the bucket must allow this site to do that.
+Cloudflare dashboard, R2, the `eclipse-media` bucket, Settings, CORS Policy, Add, paste this JSON (add your own domain to `AllowedOrigins` when you have one;
+every Vercel preview address is a different origin, so add the ones you use):
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://cosmos-labs-eclipse-studio-git-claude-new-sessi-86596b-ai-labs8.vercel.app"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Without the rule, pictures still upload (the browser redraws them under 4 MB and uses the old path) but videos cannot be uploaded and the message says storage could not be reached.
+Keep public access and any r2.dev address OFF.

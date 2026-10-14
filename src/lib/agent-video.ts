@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
-import { downloadObjectToFile, storageEnabled } from "@/lib/storage";
-import { frameAt, probeDuration, spacedTimes } from "@/lib/video-frames";
+import { downloadObjectToFile, signedGetUrl, storageEnabled } from "@/lib/storage";
+import { frameAt, probeVideo, spacedTimes } from "@/lib/video-frames";
 import { storeUpload } from "@/lib/uploads";
 import { claimUsage } from "@/lib/usage";
 
@@ -54,9 +54,16 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
 
   const dir = await mkdtemp(join(tmpdir(), "eclipse-vid-"));
   try {
-    const file = join(dir, "clip.mp4");
-    await downloadObjectToFile(clip.storageKey, file);
-    const duration = (await probeDuration(file)) ?? clip.durationSec ?? null;
+    // ffmpeg reads the clip straight from storage through a short-lived link (range requests), so even a 500 MB video is not copied here. If that does not
+    // work in this environment, a copy of up to 300 MB is made in the temp folder instead.
+    let file = await signedGetUrl(clip.storageKey, 900);
+    let info = await probeVideo(file);
+    if (!info) {
+      file = join(dir, "clip.mp4");
+      try { await downloadObjectToFile(clip.storageKey, file); } catch { return fail("The video is too large to open."); }
+      info = await probeVideo(file);
+    }
+    const duration = info?.duration ?? clip.durationSec ?? null;
     if (!duration || duration <= 0) return fail("The video file could not be read.");
 
     if (name === "watch_video") {

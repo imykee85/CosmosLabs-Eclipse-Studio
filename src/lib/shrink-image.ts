@@ -2,9 +2,15 @@
 // as a JPEG in the browser (longest side 3000 px, quality lowered until it fits) before it is uploaded. Smaller pictures
 // are sent untouched. Returns null when the browser cannot decode the file.
 const UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
-export const PICK_LIMIT_BYTES = 25 * 1024 * 1024;
+export const PICK_LIMIT_BYTES = 50 * 1024 * 1024;
 
+// Large pictures now go straight to storage (up to 50 MB), so nothing needs redrawing here: callers keep this call and get the file back untouched.
 export async function shrinkToFit(file: File): Promise<File | null> {
+  return file;
+}
+
+// The old way, still used when the browser cannot reach storage directly: redraw the picture so it fits the 4 MB request limit.
+export async function redrawToFit(file: File): Promise<File | null> {
   if (file.size <= UPLOAD_LIMIT_BYTES) return file;
   try {
     const bitmap = await createImageBitmap(file);

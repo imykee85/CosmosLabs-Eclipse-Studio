@@ -60,9 +60,19 @@ export function spacedTimes(from: number, to: number, count: number): number[] {
 }
 
 /** A picture redrawn as a JPEG no wider than `maxWidth` (for pictures too large to hand to the model as they are). Null when it cannot be done. */
-export async function shrinkPicture(bytes: Uint8Array, maxWidth = 1568): Promise<Buffer | null> {
+export async function shrinkPicture(bytes: Uint8Array, maxWidth = 1568, quality = 3): Promise<Buffer | null> {
   try {
-    const r = await run(["-v", "error", "-i", "pipe:0", "-frames:v", "1", "-vf", `scale='min(${Math.floor(maxWidth)},iw)':-2`, "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "-"], 30_000, bytes);
+    const r = await run(["-v", "error", "-i", "pipe:0", "-frames:v", "1", "-vf", `scale='min(${Math.floor(maxWidth)},iw)':-2`, "-q:v", String(quality), "-f", "image2pipe", "-vcodec", "mjpeg", "-"], 45_000, bytes);
     return r.code === 0 && r.out.byteLength > 200 ? r.out : null;
   } catch { return null; }
+}
+
+/** Length, picture size and whether it has sound, read from ffmpeg's report. `src` is a file path or an https link (ffmpeg reads links with range requests). */
+export async function probeVideo(src: string): Promise<{ duration: number; width: number; height: number; hasAudio: boolean } | null> {
+  const r = await run(["-hide_banner", "-i", src], 45_000).catch(() => null);
+  if (!r) return null;
+  const d = r.err.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+  const v = r.err.match(/Video:[^\n]*?(\d{2,5})x(\d{2,5})/);
+  if (!d || !v) return null;
+  return { duration: Number(d[1]) * 3600 + Number(d[2]) * 60 + Number(d[3]), width: Number(v[1]), height: Number(v[2]), hasAudio: /Audio:/.test(r.err) };
 }

@@ -91,7 +91,7 @@ export default function PromptsView() {
     if (!f) return;
     setNote("");
     if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setNote("Only PNG, JPEG and WebP pictures can be added."); return; }
-    if (f.size > PICK_LIMIT_BYTES) { setNote("That picture is larger than 25 MB. Please use a smaller one."); return; }
+    if (f.size > PICK_LIMIT_BYTES) { setNote("That picture is larger than 50 MB. Please use a smaller one."); return; }
     if (pics.length >= MAX_PICS) { setNote(`You can add up to ${MAX_PICS} pictures.`); return; }
     setUploading(true);
     try {

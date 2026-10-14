@@ -94,8 +94,8 @@ export function AddDialog({ kinds, initial, onClose, onDone }: { kinds: UploadKi
     setErr(null);
     if (!f) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setErr("Only PNG, JPEG and WebP pictures can be uploaded."); return; }
-    if (f.size > PICK_LIMIT_BYTES) { setErr("That picture is larger than 25 MB. Please use a smaller one."); return; }
-    const fitted = await shrinkToFit(f); // big phone photos are redrawn smaller so they fit the 4 MB upload limit
+    if (f.size > PICK_LIMIT_BYTES) { setErr("That picture is larger than 50 MB. Please use a smaller one."); return; }
+    const fitted = await shrinkToFit(f); // large pictures are sent straight to storage by uploadPicture
     if (!fitted) { setErr("Could not make that picture small enough. Please try another."); return; }
     setFile(fitted);
     if (!name.trim()) setName(f.name.replace(/\.[^.]+$/, "").slice(0, 80));

@@ -31,7 +31,7 @@ export async function loadPromptImages(userId: string, refs: ImageRef[]): Promis
       if (r.type === "upload") {
         const u = await db.upload.findFirst({ where: { id: r.id, userId }, select: { storageKey: true, name: true } });
         if (!u || !storageEnabled) return { ok: false, error: "One of your pictures could not be found. It may have been deleted." };
-        bytes = await getObjectBytes(u.storageKey);
+        bytes = await getObjectBytes(u.storageKey, 60 * 1024 * 1024);
         label = u.name;
       } else {
         const g = await db.generation.findFirst({ where: { id: r.id, userId, status: "completed", deletedAt: null }, select: { storageKey: true, imageUrl: true, prompt: true } });

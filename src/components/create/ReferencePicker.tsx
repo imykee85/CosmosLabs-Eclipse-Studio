@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Upload, X } from "lucide-react";
 import { AddDialog } from "@/components/uploads/UploadPanel";
 import { useRenders } from "@/lib/use-renders";
-import { useUploads } from "@/lib/use-uploads";
+import { uploadVideo, useUploads } from "@/lib/use-uploads";
+import { readCurrentProject } from "@/lib/projects";
+import { VIDEO_LIMIT_MB } from "@/lib/direct-upload-client";
 import "@/components/library/library.css";
 import "@/components/uploads/uploads.css";
 
@@ -32,7 +34,9 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
   const knownIds = useRef<Set<string> | null>(null); // ids present before an upload, to spot the new one
   const ingredients = useUploads("ingredients");
   const assets = useUploads("asset");
-  const { renders } = useRenders(undefined, 60);
+  const { renders, reload: reloadRenders } = useRenders(undefined, 60);
+  const [vProgress, setVProgress] = useState<number | null>(null); // upload of a video from the device (0 to 1)
+  const [vError, setVError] = useState("");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -53,6 +57,17 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
     if (hasVideo(g.id)) onVideosChange(pickedVideos.filter((p) => p.id !== g.id));
     else if (videoMax === 1) onVideosChange([{ type: "render", id: g.id, url: g.url, label: g.label, sec: g.sec }]); // a single choice swaps the previous one
     else if (pickedVideos.length < videoMax) onVideosChange([...pickedVideos, { type: "render", id: g.id, url: g.url, label: g.label, sec: g.sec }]);
+  }
+  async function pickVideoFile(f: File | undefined) {
+    if (!f) return;
+    setVError("");
+    if (f.size > VIDEO_LIMIT_MB * 1024 * 1024) { setVError(`That video is larger than ${VIDEO_LIMIT_MB} MB. Please use a smaller one.`); return; }
+    setVProgress(0);
+    const r = await uploadVideo<{ id: string; imageUrl?: string | null; prompt: string; durationSec?: number | null }>(f, f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Uploaded video", readCurrentProject()?.id ?? null, setVProgress);
+    setVProgress(null);
+    if (!r.ok) { setVError(r.error); return; }
+    await reloadRenders?.();
+    toggleVideo({ id: r.item.id, url: r.item.imageUrl ?? "", label: r.item.prompt, sec: r.item.durationSec ?? null });
   }
   const videos = (renders ?? []).filter((g) => g.kind === "video" && g.status === "completed" && g.imageUrl);
 
@@ -89,7 +104,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
         </div>
         {error && <p className="up-error" role="alert">{error}</p>}
         {tab === "videos" ? (
-          loading ? <p className="rp-note">Loading…</p> : videos.length === 0 ? <p className="rp-note">You have no finished videos yet. Make one in Video Studio first.</p> : (
+          loading ? <p className="rp-note">Loading…</p> : videos.length === 0 ? <p className="rp-note">You have no videos yet. Make one in Video Studio, or upload one below.</p> : (
             <div className="rp-grid">
               {videos.map((g) => {
                 const on = hasVideo(g.id);
@@ -119,6 +134,15 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
               );
             })}
           </div>
+        )}
+        {tab === "videos" && (
+          <>
+            <label className={`rp-upload ${vProgress !== null ? "is-busy" : ""}`} style={{ cursor: vProgress !== null ? "default" : "pointer" }}>
+              <Upload size={15} /> {vProgress === null ? "Upload a video" : vProgress < 1 ? `Uploading ${Math.round(vProgress * 100)}%` : "Checking the video…"}
+              <input type="file" accept="video/mp4,video/quicktime,video/webm" hidden disabled={vProgress !== null || (videoMax > 0 && pickedVideos.length >= videoMax && videoMax > 1)} onChange={(e) => { void pickVideoFile(e.target.files?.[0]); e.target.value = ""; }} />
+            </label>
+            {vError && <p className="up-error" role="alert">{vError}</p>}
+          </>
         )}
         {tab !== "images" && tab !== "videos" && <button type="button" className="rp-upload" onClick={() => setAdding(true)} disabled={picked.length >= max}><Upload size={15} /> Upload a new picture</button>}
         <button type="button" className="ws-add" onClick={onClose}>Done</button>

@@ -38,7 +38,7 @@ const nextConfig = {
   // Atlas's video watching runs ffmpeg: keep its binary out of the bundle and make sure it is shipped with that one route.
   experimental: {
     serverComponentsExternalPackages: ["@ffmpeg-installer/ffmpeg"],
-    outputFileTracingIncludes: { "/api/agent/chat": ["./node_modules/@ffmpeg-installer/ffmpeg/**", "./node_modules/@ffmpeg-installer/linux-x64/**"] },
+    outputFileTracingIncludes: Object.fromEntries(["/api/agent/chat", "/api/uploads/direct/finish"].map((r) => [r, ["./node_modules/@ffmpeg-installer/ffmpeg/**", "./node_modules/@ffmpeg-installer/linux-x64/**"]])),
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

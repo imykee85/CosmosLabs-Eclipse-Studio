@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { readImageSize } from "./image-info";
@@ -53,6 +53,27 @@ export async function getObjectBytes(key: string, maxBytes = 15 * 1024 * 1024): 
   const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
   const bytes = await res.Body?.transformToByteArray();
   if (!bytes || bytes.byteLength === 0 || bytes.byteLength > maxBytes) throw new Error("Stored file is empty or too large");
+  return bytes;
+}
+
+/** A one-time link the BROWSER can PUT a file to directly (so it never passes through our server's request-size limit). Works for `ttlSeconds`. */
+export function signedPutUrl(key: string, contentType: string, ttlSeconds = 3600): Promise<string> {
+  return getSignedUrl(r2(), new PutObjectCommand({ Bucket: bucket(), Key: key, ContentType: contentType }), { expiresIn: ttlSeconds });
+}
+
+/** Size and type of a stored file, or null when it does not exist. */
+export async function headObjectInfo(key: string): Promise<{ size: number; contentType: string | null } | null> {
+  try {
+    const r = await r2().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
+    return { size: Number(r.ContentLength ?? 0), contentType: r.ContentType ?? null };
+  } catch { return null; }
+}
+
+/** The first `length` bytes of a stored file (to read its real type without fetching all of it). */
+export async function getObjectHead(key: string, length = 65536): Promise<Uint8Array> {
+  const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key, Range: `bytes=0-${length - 1}` }));
+  const bytes = await res.Body?.transformToByteArray();
+  if (!bytes) throw new Error("Stored file is empty");
   return bytes;
 }
 
