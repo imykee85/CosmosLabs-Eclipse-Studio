@@ -13,6 +13,7 @@ import { limiterFor } from "./limiter";
 import { audioCreditsOn, creditsFor, holdUnits, settledUnits, usdFor } from "./pricing";
 import { ctxFor, providerFor } from "./providers";
 import { hasParenTag } from "./providers/fish";
+import { touchVoice } from "./voices";
 import { findAudioModel, type AudioModel } from "./registry";
 import { withRetry } from "./retry";
 import { ProviderFailure, type AudioRequest } from "./types";
@@ -95,6 +96,7 @@ export async function startAudioJob(input: StartAudioInput): Promise<StartAudioR
   });
   if (!("row" in made)) return { ok: false, status: 402, error: `This needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by work still running` : ""}. Ask the owner to add more credits.` };
 
+  if (voiceId) void touchVoice(userId, model.provider, voiceId); // keeps the "last used" date of the person's own voices (MiniMax deletes unused clones)
   waitUntil(runAudioJob(made.row.id).catch((err) => console.error("audio job crashed", made.row.id, err)));
   return { ok: true, item: await toAudioItem(made.row) };
 }

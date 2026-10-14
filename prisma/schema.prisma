@@ -272,3 +272,27 @@ model AudioJob {
   @@index([status, updatedAt])
   @@map("audio_jobs")
 }
+
+// A voice a person made in Voice Studio: cloned from their own sample or designed from a description. The provider holds the voice itself; this row is the link to
+// it, with the consent record for clones (who agreed, when, to which wording, and a hash of the sample: the sample itself is not kept). Deleting a row deletes the
+// provider voice too.
+model UserVoice {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  provider        String    // elevenlabs, fish, minimax
+  providerVoiceId String    @map("provider_voice_id")
+  name            String
+  kind            String    // cloned | designed
+  description     String?
+  consentAt       DateTime? @map("consent_at")
+  consentVersion  String?   @map("consent_version")
+  sampleHash      String?   @map("sample_hash")
+  designToken     String?   @map("design_token") // the preview a designed voice was saved from: saving the same preview twice gives one voice
+  lastUsedAt      DateTime? @map("last_used_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, provider, providerVoiceId])
+  @@unique([userId, provider, designToken])
+  @@index([userId, provider])
+  @@map("user_voices")
+}

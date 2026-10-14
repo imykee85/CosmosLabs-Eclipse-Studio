@@ -4,6 +4,7 @@ import { findAudioModel } from "@/lib/audio/registry";
 import { audioUser } from "@/lib/audio/route-helpers";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { ProviderFailure, type Voice } from "@/lib/audio/types";
+import { listOwnVoices } from "@/lib/audio/voices";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -23,16 +24,18 @@ export async function GET(req: Request) {
   const ctx = ctxFor(model);
   if (!ctx) return NextResponse.json({ voices: [], ready: false });
   const provider = providerFor(model);
-  if (!provider.listVoices) return NextResponse.json({ voices: [], ready: true });
   const search = (url.searchParams.get("q") ?? "").trim().slice(0, 80);
+  // The person's own cloned and designed voices come first (only this person's, for this provider).
+  const own = await listOwnVoices(u.userId, model.provider, search || undefined).catch((err) => { console.error("listing own voices failed", err); return [] as Voice[]; });
+  if (!provider.listVoices) return NextResponse.json({ voices: own, ready: true });
   const key = `${model.provider}:${search.toLowerCase()}`;
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL_MS) return NextResponse.json({ voices: hit.voices, ready: true });
+  if (hit && Date.now() - hit.at < TTL_MS) return NextResponse.json({ voices: [...own, ...hit.voices], ready: true });
   try {
     const voices = await provider.listVoices(ctx, { search: search || undefined });
     cache.set(key, { at: Date.now(), voices });
     if (cache.size > 50) cache.delete(cache.keys().next().value as string);
-    return NextResponse.json({ voices, ready: true });
+    return NextResponse.json({ voices: [...own, ...voices], ready: true });
   } catch (err) {
     if (err instanceof ProviderFailure) {
       if (err.error.alert) console.error("AUDIO ALERT: listing voices", model.provider, err.error.code);

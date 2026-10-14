@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowUp, Coins, Download, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
 import SoonTag from "../SoonTag";
 import Stage from "./Stage";
+import VoiceCreator from "./VoiceCreator";
 import VoicePicker from "./VoicePicker";
 import { clock, orbStyle } from "./look";
 import { useCredits } from "@/lib/use-credits";
 import { readCurrentProject, timeAgo } from "@/lib/projects";
-import { deleteVoice, startVoice, useVoiceJobs, useVoiceModels, useVoices, type AudioItem, type VoiceOption } from "@/lib/use-voice";
+import { deleteOwnVoice, deleteVoice, startVoice, useVoiceJobs, useVoiceModels, useVoices, type AudioItem, type OwnVoice, type VoiceOption } from "@/lib/use-voice";
 import "./voice.css";
 
 // Voice Studio (AUDIO). A stage, not a form: the chosen voice sits in the middle of a ring that breathes, runs while a take is made and moves (with a red progress ring)
@@ -27,7 +28,7 @@ const voiceKey = (provider: string) => `${VOICE_KEY}-${provider}`; // voice ids 
 const factsOf = (v: VoiceOption) => [v.accent, v.gender, v.age, v.descriptive].filter(Boolean).join(" · ") || undefined;
 
 export default function VoiceStudio() {
-  const { models, error: modelsError } = useVoiceModels();
+  const { models, error: modelsError, costs, consentText } = useVoiceModels();
   const { items, reload } = useVoiceJobs();
   const { reload: reloadCredits } = useCredits();
   const [modelId, setModelId] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export default function VoiceStudio() {
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState(1);
   const [picking, setPicking] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -146,6 +148,25 @@ export default function VoiceStudio() {
     if (await deleteVoice(id)) void reload(); else setError("That take could not be deleted. Please try again.");
   }
 
+  // A voice just made: select it. It belongs to one provider, so the model switches to that provider's if it is not already one of its models.
+  function created(v: OwnVoice) {
+    const c = { id: v.voiceId, name: v.name, facts: v.descriptive };
+    write(voiceKey(v.provider), JSON.stringify(c));
+    setCreating(false); setPicking(false); setError("");
+    if (provider !== v.provider) {
+      const next = models?.find((m) => m.provider === v.provider);
+      if (next) { setModelId(next.id); write(MODEL_KEY, next.id); }
+    } else { setVoice(c); strip.reload(); }
+  }
+  async function removeOwn(v: VoiceOption): Promise<string | null> {
+    if (!v.ownId) return "That voice could not be deleted.";
+    const r = await deleteOwnVoice(v.ownId);
+    if (!r.ok) return r.error;
+    if (voice?.id === v.voiceId && provider) { setVoice(null); write(voiceKey(provider), null); }
+    strip.reload(); sheet.reload();
+    return null;
+  }
+
   function choose(v: VoiceOption) {
     const c = { id: v.voiceId, name: v.name, facts: factsOf(v) };
     setVoice(c); if (provider) write(voiceKey(provider), JSON.stringify(c)); setPicking(false); setError("");
@@ -177,6 +198,7 @@ export default function VoiceStudio() {
       <section className="vc-voices" aria-label="Voices">
         <div className="vc-strip" role="listbox" aria-label="Voices">
           <button type="button" className="vc-chip-all" onClick={() => setPicking(true)} disabled={!model} aria-label="Search all voices"><span><Search size={20} /></span><small>All</small></button>
+          <button type="button" className="vc-chip-all" onClick={() => setCreating(true)} disabled={!model} aria-label="Create a voice"><span><Plus size={20} /></span><small>New</small></button>
           {strip.voices === null && model ? Array.from({ length: 6 }, (_, i) => <span key={i} className="vc-chip-ghost" aria-hidden="true"><i /><small /></span>)
             : stripVoices.map((v) => (
               <button key={v.voiceId} type="button" role="option" aria-selected={voice?.id === v.voiceId} className={`vc-chip ${voice?.id === v.voiceId ? "is-on" : ""}`} onClick={() => choose(v)} title={factsOf(v) ?? v.name}>
@@ -246,7 +268,8 @@ export default function VoiceStudio() {
         </div>
       </div>
 
-      {picking && <VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} />}
+      {picking && <VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} onNew={() => { setPicking(false); setCreating(true); }} onDelete={removeOwn} />}
+      {creating && models && <VoiceCreator models={models} provider={provider} costs={costs} consentText={consentText} onClose={() => setCreating(false)} onCreated={created} />}
     </div>
   );
 }

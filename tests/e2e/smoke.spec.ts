@@ -312,6 +312,71 @@ test.describe("Voice Studio", () => {
     expect(sent[1]).toMatchObject({ model: "seed-audio-1.0", voiceId: "" });
   });
 
+  test("New voice: clone needs a name, a recording and consent; design previews can be kept; an own voice can be deleted", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    const own: Record<string, unknown>[] = [];
+    const sent: { path: string; body: string }[] = [];
+    let deleted = "";
+    const mine = (id: string, name: string, kind: string) => ({ voiceId: id, ownId: `own_${id}`, name, kind, provider: "elevenlabs", descriptive: kind === "cloned" ? "Your clone" : "Your design" });
+    await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models: models.map((m) => ({ ...m, canClone: true, canDesign: true })), voiceCosts: { clone: 40, design: 60 }, consentText: "I own this voice or have written permission to clone it." } }));
+    await page.route("**/api/audio/voices?**", (r) => r.fulfill({ json: { voices: own.map((v) => ({ voiceId: v.voiceId, name: v.name, descriptive: v.descriptive, own: true, ownId: v.ownId, kind: v.kind })), ready: true } }));
+    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items: [] } }));
+    await page.route("**/api/credits", (r) => r.fulfill({ json: { balance: 500, charging: true, isAdmin: false, history: [] } }));
+    await page.route("**/api/audio/voices/clone", (r) => { sent.push({ path: "clone", body: r.request().postData() ?? "" }); const v = mine("clone1", "My voice", "cloned"); own.push(v); return r.fulfill({ json: { voice: v } }); });
+    await page.route("**/api/audio/voices/design", (r) => { sent.push({ path: "design", body: r.request().postData() ?? "" }); return r.fulfill({ json: { previews: [{ token: "tokA", sig: "s".repeat(32), url: "data:audio/mpeg;base64,AAAA", durationMs: 5000 }, { token: "tokB", sig: "t".repeat(32), url: "data:audio/mpeg;base64,AAAA", durationMs: 5000 }] } }); });
+    await page.route("**/api/audio/voices/design/save", (r) => { sent.push({ path: "save", body: r.request().postData() ?? "" }); const v = mine("design1", "Warm narrator", "designed"); own.push(v); return r.fulfill({ json: { voice: v } }); });
+    await page.route("**/api/audio/voices/mine/**", (r) => { deleted = r.request().url().split("/").pop() ?? ""; own.splice(0, own.length); return r.fulfill({ json: { ok: true } }); });
+
+    await page.goto("/voice");
+    await page.getByRole("button", { name: "Create a voice" }).click();
+    const dlg = page.getByRole("dialog", { name: "Create a voice" });
+    await expect(dlg.getByRole("button", { name: "Create voice" })).toContainText("40");
+    await dlg.getByRole("button", { name: "Create voice" }).click();
+    await expect(dlg.getByRole("alert")).toContainText("Give the voice a name");
+    await dlg.getByLabel("Voice name").fill("My voice");
+    await dlg.getByRole("button", { name: "Create voice" }).click();
+    await expect(dlg.getByRole("alert")).toContainText("recording");
+    await dlg.getByLabel("Voice recording").setInputFiles({ name: "me.mp3", mimeType: "audio/mpeg", buffer: Buffer.from("ID3 fake audio") });
+    await expect(dlg).toContainText("me.mp3");
+    await dlg.getByRole("button", { name: "Create voice" }).click();
+    await expect(dlg.getByRole("alert")).toContainText("permission");
+    expect(sent).toHaveLength(0);
+    await dlg.getByLabel("I own this voice or have written permission to clone it.").check();
+    await dlg.getByRole("button", { name: "Create voice" }).click();
+    await expect(dlg).toBeHidden();
+    expect(sent[0].path).toBe("clone");
+    expect(sent[0].body).toContain('name="consent"');
+    expect(sent[0].body).toContain("elevenlabs");
+    // the new voice is chosen and sits first in the strip
+    await expect(page.getByRole("option", { name: "My voice" })).toHaveAttribute("aria-selected", "true");
+
+    await page.getByRole("button", { name: "Create a voice" }).click();
+    await dlg.getByRole("tab", { name: "Design a voice" }).click();
+    await dlg.getByLabel("Describe the voice").fill("too short");
+    await dlg.getByRole("button", { name: "Design voice" }).click();
+    await expect(dlg.getByRole("alert")).toContainText("at least 20");
+    await dlg.getByLabel("Describe the voice").fill("A warm, calm woman in her forties with a soft accent");
+    await dlg.getByRole("button", { name: "Design voice" }).click();
+    await expect(dlg.getByRole("list", { name: "Voice previews" }).getByRole("listitem")).toHaveCount(2);
+    await dlg.getByLabel("Voice name").fill("");
+    await dlg.getByRole("button", { name: "Save voice" }).first().click();
+    await expect(dlg.getByRole("alert")).toContainText("Name your voice");
+    await dlg.getByLabel("Voice name").fill("Warm narrator");
+    await dlg.getByRole("button", { name: "Save voice" }).first().click();
+    await expect(dlg).toBeHidden();
+    expect(JSON.parse(sent.find((x) => x.path === "save")!.body)).toMatchObject({ provider: "elevenlabs", token: "tokA", name: "Warm narrator" });
+    await expect(page.getByRole("option", { name: "Warm narrator" })).toHaveAttribute("aria-selected", "true");
+
+    await page.getByRole("button", { name: "Search all voices" }).click();
+    await page.getByRole("button", { name: "Delete Warm narrator" }).click();
+    await page.getByRole("group", { name: "Delete Warm narrator?" }).getByRole("button", { name: "Delete" }).click();
+    await expect.poll(() => deleted).toBe("own_design1");
+    await expect(page.getByRole("button", { name: "Delete Warm narrator" })).toHaveCount(0);
+  });
+
   test("before the provider key is set every control still responds and Generate says why it cannot go ahead", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));

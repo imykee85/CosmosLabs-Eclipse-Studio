@@ -10,6 +10,7 @@ import { seed } from "./seed";
 const PROVIDERS: Record<AudioProviderId, AudioProvider> = { elevenlabs, fish, minimax, qwen, seed, fake };
 
 export const providerFor = (m: AudioModel): AudioProvider => PROVIDERS[m.provider];
+export const providerById = (id: AudioProviderId): AudioProvider => PROVIDERS[id];
 
 // Each provider's key (Secret) and base address (Config value, with the documented default). A provider whose key is not set is "not connected":
 // its models show in the menu but Generate is refused with a plain message.
@@ -22,9 +23,11 @@ const ENV: Record<Exclude<AudioProviderId, "fake">, { key: string; base: string;
 };
 export const keyNameFor = (p: AudioProviderId) => (p === "fake" ? "AUDIO_FAKE_URL" : ENV[p].key);
 
-export function ctxFor(m: AudioModel): ProviderCtx | null {
-  if (m.provider === "fake") return process.env.AUDIO_FAKE_URL ? { apiKey: "fake", baseUrl: process.env.AUDIO_FAKE_URL } : null;
-  const e = ENV[m.provider];
+export const ctxFor = (m: AudioModel): ProviderCtx | null => ctxForProvider(m.provider);
+
+export function ctxForProvider(provider: AudioProviderId): ProviderCtx | null {
+  if (provider === "fake") return process.env.AUDIO_FAKE_URL ? { apiKey: "fake", baseUrl: process.env.AUDIO_FAKE_URL } : null;
+  const e = ENV[provider];
   const apiKey = process.env[e.key];
   return apiKey ? { apiKey, baseUrl: (process.env[e.base] || e.def).replace(/\/+$/, "") } : null;
 }

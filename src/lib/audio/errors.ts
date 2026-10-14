@@ -96,3 +96,10 @@ export function mapSeedError(status: number, body: string): ProviderError {
   const httpLike = status === 200 && /^\d{3}$/.test(code) ? Number(code) : status;
   return statusOnly(httpLike, "", code || status) ?? { retryable: false, code: code ? `seed_${code}` : `http_${status}`, providerCode: code || status, userMessage: GENERIC };
 }
+
+// For a voice SAMPLE the generic "settings not accepted" is no help: say what a good sample is. Other errors (busy, owner alerts, refusals) keep their own message.
+export const SAMPLE_HINT = "The sample was not accepted. Use a clean recording of one person speaking, 10 to 30 seconds, as MP3, WAV or M4A.";
+export const forSample = (map: (status: number, body: string) => ProviderError) => (status: number, body: string): ProviderError => {
+  const e = map(status, body);
+  return !e.retryable && !e.alert && (e.code === "invalid_request" || /^http_4\d\d$/.test(e.code) || e.code === "not_found") ? { ...e, userMessage: SAMPLE_HINT } : e;
+};

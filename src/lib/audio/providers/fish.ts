@@ -1,5 +1,5 @@
-import { mapFishError } from "../errors";
-import { ProviderFailure, type AudioProvider, type AudioRequest, type AudioResult, type ProviderCtx, type Voice } from "../types";
+import { forSample, mapFishError } from "../errors";
+import { ProviderFailure, type AudioProvider, type AudioRequest, type AudioResult, type CloneInput, type ProviderCtx, type Voice } from "../types";
 import { EMPTY_AUDIO, NEEDS_VOICE, send } from "./http";
 
 // Fish Audio over plain fetch (docs/audio-providers/fish-audio.md). The `model` HEADER picks the model: a missing or unknown one silently falls back to s2.1-pro,
@@ -38,5 +38,31 @@ export const fish: AudioProvider = {
       const sample = Array.isArray(v.samples) ? (v.samples as Array<Record<string, unknown>>).find((s) => typeof s?.audio === "string")?.audio : undefined;
       return { voiceId: String(v._id), name: String(v.title).slice(0, 60), language: langs || undefined, descriptive: tags || undefined, previewUrl: typeof sample === "string" && sample.startsWith("https://") ? sample : undefined };
     });
+  },
+
+  // Saved clone: POST /model (multipart), fast training, private. The new voice's `_id` is the reference_id for TTS. `state` "failed" is an error. Voice DESIGN is not
+  // built for Fish: how a designed voice becomes a saved one is unexplained in its reference (docs/audio-providers/fish-audio.md section 6).
+  async cloneVoice(input: CloneInput, ctx: ProviderCtx): Promise<{ voiceId: string }> {
+    const fd = new FormData();
+    fd.set("type", "tts");
+    fd.set("title", input.name);
+    fd.set("train_mode", "fast");
+    fd.set("visibility", "private");
+    fd.set("enhance_audio_quality", "true");
+    if (input.description) fd.set("description", input.description);
+    fd.append("voices", new Blob([Buffer.from(input.sample)], { type: input.mime }), input.fileName);
+    const res = await send("fish", ctx, `${ctx.baseUrl}/model`, { method: "POST", headers: { Authorization: `Bearer ${ctx.apiKey}` }, body: fd }, forSample(mapFishError));
+    const j = (await res.json().catch(() => null)) as { _id?: string; state?: string } | null;
+    if (!j?._id) throw new ProviderFailure({ retryable: true, code: "empty_voice", userMessage: "The voice could not be created right now. Please try again in a moment." });
+    if (j.state === "failed") {
+      await fish.deleteVoice!(j._id, "cloned", ctx).catch(() => {});
+      throw new ProviderFailure({ retryable: false, code: "clone_failed", userMessage: "The voice could not be created from that sample. Try a clearer recording." });
+    }
+    return { voiceId: j._id };
+  },
+
+  async deleteVoice(voiceId: string, _kind: "cloned" | "designed", ctx: ProviderCtx): Promise<void> {
+    try { await send("fish", ctx, `${ctx.baseUrl}/model/${encodeURIComponent(voiceId)}`, { method: "DELETE", headers: { Authorization: `Bearer ${ctx.apiKey}` } }, mapFishError, 30_000); }
+    catch (err) { if (err instanceof ProviderFailure && err.error.code === "not_found") return; throw err; }
   },
 };

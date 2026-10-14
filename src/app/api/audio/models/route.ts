@@ -4,6 +4,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { audioCreditsOn, pagePricing } from "@/lib/audio/pricing";
 import { modelAvailable } from "@/lib/audio/providers";
 import { PROVIDER_LABEL, ttsModels } from "@/lib/audio/registry";
+import { CLONE_PROVIDERS, CONSENT_TEXT, DESIGN_PROVIDERS, voiceCredits } from "@/lib/audio/voices";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ export async function GET() {
       tags: m.supports.emotionTags ? m.tags ?? [] : [], voiceOptional: !!m.voiceOptional,
       ready: clerkEnabled && modelAvailable(m),
       pricing: on ? pagePricing(m) : null,
+      canClone: CLONE_PROVIDERS.includes(m.provider), canDesign: DESIGN_PROVIDERS.includes(m.provider),
     })),
+    voiceCosts: { clone: voiceCredits("clone"), design: voiceCredits("design") }, consentText: CONSENT_TEXT,
   });
 }
