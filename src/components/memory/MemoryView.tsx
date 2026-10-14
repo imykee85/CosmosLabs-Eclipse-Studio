@@ -1,5 +1,6 @@
 "use client";
 
+import GlowOrb from "@/components/GlowOrb";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Brain, ChevronLeft, Folder, Heart, Package, Palette, Plus, Trash2, Upload, User, X } from "lucide-react";
@@ -107,7 +108,7 @@ export default function MemoryView() {
             {ICON[t]}{counts[t] > 0 && <i>{counts[t]}</i>}
           </button>
         ))}
-        <span className="mm-orb" aria-hidden="true" />
+        <GlowOrb className="mm-orb" />
       </div>
 
       <div className="mm-copy">

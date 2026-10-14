@@ -8,3 +8,9 @@
   select,
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]) { font-size: max(16px, 1em) !important; }
 }
+
+/* The red glowing orb (Memory page and the landing "Atlas, at the core." section). */
+.glow-orb { display: block; border-radius: 50%; background: radial-gradient(circle, #ff3b3b 0%, #c00707 38%, rgba(192, 7, 7, .35) 62%, rgba(230, 226, 220, .9) 100%); box-shadow: 0 0 60px rgba(192, 7, 7, .45); animation: glow-breathe 5s ease-in-out infinite; }
+html[data-app-theme="light"] .glow-orb { background: radial-gradient(circle, #ff3b3b 0%, #c00707 38%, rgba(192, 7, 7, .3) 62%, rgba(255, 255, 255, .95) 100%); }
+@keyframes glow-breathe { 50% { transform: scale(1.07); box-shadow: 0 0 84px rgba(192, 7, 7, .6); } }
+@media (prefers-reduced-motion: reduce) { .glow-orb { animation: none; } }

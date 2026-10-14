@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, MessageCircle, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
 import { plans } from "@/lib/plans";
 import HeroImage from "./HeroImage";
 import CanvasCarousel from "./CanvasCarousel";
 import AtlasWorkflow from "./AtlasWorkflow";
+import AtlasOrbitSection from "./AtlasOrbitSection";
+import CtaPromptCard from "./CtaPromptCard";
 import ScrollReveal from "./ScrollReveal";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
@@ -42,12 +44,10 @@ function Wordmark() {
 export default function Landing() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [idea, setIdea] = useState("");
   const [openFaq, setOpenFaq] = useState(0);
   const [selected, setSelected] = useState(0);
 
   const close = () => setMobileOpen(false);
-  const tryIt = () => router.push(idea.trim() ? `/create?prompt=${encodeURIComponent(idea.trim())}` : "/create");
 
   return (
     <main className="site-shell">
@@ -126,17 +126,26 @@ export default function Landing() {
 
       <AtlasWorkflow cta={<Cta dark>Create your first piece</Cta>} />
 
-      <section id="try-it" className="try-section section-pad">
-        <div className="try-inner">
-          <div className="eyebrow">TURN A THOUGHT INTO A STARTING POINT</div>
-          <h2>have an idea?<br /><em>try it.</em></h2>
-          <div className="idea-box">
-            <textarea value={idea} onChange={(e) => setIdea(e.target.value)} placeholder={"What do you want to create?\n\nDescribe your idea…"} />
-            <button className="create-btn" onClick={tryIt}><Lightbulb size={17} /> Create my idea</button>
-          </div>
-          <p className="try-caption">No prompt engineering. No blank canvas. Just start with what you’re imagining.</p>
-        </div>
-      </section>
+      <CtaPromptCard
+        id="try-it"
+        eyebrow="TURN A THOUGHT INTO A STARTING POINT"
+        line1="have an idea?" line2="try it."
+        placeholder={"What do you want to create?\n\nDescribe your idea…"}
+        button="Create my idea" icon={<Lightbulb size={17} />}
+        caption="No prompt engineering. No blank canvas. Just start with what you’re imagining."
+        onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}
+      />
+
+      <AtlasOrbitSection />
+
+      <CtaPromptCard
+        className="try-atlas"
+        eyebrow="TALK TO ATLAS"
+        line1="got a brief?" line2="hand it to Atlas."
+        placeholder="Tell Atlas what you need"
+        button="Ask Atlas" icon={<MessageCircle size={17} />}
+        onSubmit={(t) => router.push(t.trim() ? `/connect?start=${encodeURIComponent(t.trim())}` : "/connect")}
+      />
 
       <section className="results-section section-pad">
         <div className="section-heading-row results-heading">
