@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, History, Loader2, Maximize2, Minimize2, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
-import { useAgentChat } from "@/lib/agent-chat";
+import { canUseFrame, useAgentChat } from "@/lib/agent-chat";
 import { CUE_EVENT, takeCue } from "@/lib/use-agent";
 
 const POS_KEY = "eclipse-agent-widget-pos";
@@ -171,6 +171,23 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             {chat.messages.map((m) => (
               <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""}`}>
                 {m.text && <p>{m.text}</p>}
+                {m.frames && m.frames.length > 0 && (
+                  <div className="aw-frames">
+                    {m.frames.map((f) => (
+                      <figure key={f.id} className="aw-frame">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/api/uploads/${f.id}/file`} alt={f.label} loading="lazy" />
+                        <figcaption>{f.sec.toFixed(1)} s · saved to Assets</figcaption>
+                        {canUseFrame() && (
+                          <div className="aw-frame-acts">
+                            <button type="button" disabled={!!f.used || chat.busy} onClick={() => void chat.useFrame(m.id, f.id, "start")}>{f.used === "start" ? "Start frame \u2713" : "Use as start frame"}</button>
+                            <button type="button" disabled={!!f.used || chat.busy} onClick={() => void chat.useFrame(m.id, f.id, "ingredient")}>{f.used === "ingredient" ? "Ingredient \u2713" : "Use as ingredient"}</button>
+                          </div>
+                        )}
+                      </figure>
+                    ))}
+                  </div>
+                )}
                 {m.actions && m.actions.length > 0 && (
                   <div className="aw-acts">
                     {m.actions.map((a) => (

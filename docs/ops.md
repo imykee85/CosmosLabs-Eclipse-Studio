@@ -23,7 +23,7 @@ Where each setting lives: **Secret** = Vercel Environment Variables, marked Sens
 | `WHOP_COMPANY_ID`, `WHOP_PLAN_STARTER`, `WHOP_PLAN_GROWTH`, `WHOP_PLAN_SCALE` | Config | Payments | |
 | `VIDEO_KILL_SWITCH` | Config | Stops new video renders | |
 | `VIDEO_RENDERS_PER_MINUTE`, `VIDEO_RENDERS_PER_DAY`, `VIDEO_MAX_RUNNING`, `VIDEO_DAILY_CREDITS`, `VIDEO_CONFIRM_CREDITS` | Config | Video limits | Defaults 6, 30, 3, 2000, 300 |
-| `RENDERS_PER_MINUTE`, `AGENT_DAILY_MESSAGES`, `CONNECT_DAILY_MESSAGES` | Config | Limits | Defaults 20, 200, 100 |
+| `RENDERS_PER_MINUTE`, `AGENT_DAILY_MESSAGES`, `CONNECT_DAILY_MESSAGES`, `AGENT_VIDEO_DAILY` | Config | Limits | Defaults 20, 200, 100, 20 (video watches per day) |
 | `UPLOAD_SCAN`, `UPLOAD_SCAN_ON_ERROR` | Config | Upload check | `off` disables; `allow` lets uploads pass when the checker is down |
 | `CONNECT_SECRET_KEY` | Secret | Encrypts connector credentials | Falls back to the Clerk secret |
 

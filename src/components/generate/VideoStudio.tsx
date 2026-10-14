@@ -158,9 +158,25 @@ export default function VideoStudio() {
         ...(end ? [{ type: end.type, id: end.id, role: "end frame" }] : []),
         ...refs.map((r, i) => ({ type: r.type, id: r.id, role: mc ? "subject picture" : `reference ${i + 1}` })),
       ],
+      videos: [
+        ...vrefs.map((v, i) => ({ id: v.id, label: v.label, role: mc ? "motion clip" : `reference clip ${i + 1}` })),
+        ...(active && active.status === "completed" && !vrefs.some((v) => v.id === active.id) ? [{ id: active.id, label: active.prompt.slice(0, 50), role: "shown in the preview" }] : []),
+      ],
       clips: vrefs.map((v, i) => `${mc ? "motion clip" : `reference clip ${i + 1}`}: ${v.label}${v.sec ? ` (${Math.round(v.sec)} s)` : ""}`),
     }),
-    setPrompt, generate: async () => "Your prompt is ready in the box. Press Generate when the settings look right." });
+    setPrompt, generate: async () => "Your prompt is ready in the box. Press Generate when the settings look right.",
+    // A frame Atlas captured: the start frame, or an ingredient when the model takes pictures that way.
+    useFrame: (f, as) => {
+      const pic: RefPick = { type: "upload", id: f.id, label: f.label, url: `/api/uploads/${f.id}/file` };
+      if (mc) return "Motion mode takes its picture from the Ingredients popup.";
+      if (as === "start") {
+        if (!model.startFrame) return `${model.label} can't take a start frame.`;
+        setStart(pic); return "";
+      }
+      if (caps.refMax > 0) { setRefs((l) => [...l, pic].slice(0, caps.refMax)); return ""; }
+      if (model.startFrame) { setStart(pic); return ""; }
+      return `${model.label} can't take pictures.`;
+    } });
 
   useEffect(() => { try { const m = localStorage.getItem(MODEL_KEY); if (m && VIDEO_MODELS.some((x) => x.id === m && !x.hidden)) setModelId(m); } catch {} }, []);
   // Keep every setting one the chosen model accepts in this way of using it.

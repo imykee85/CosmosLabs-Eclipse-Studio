@@ -214,6 +214,13 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-msg.is-note { background: transparent; border: 1px dashed var(--a-line2); color: var(--a-muted); font-size: 12.5px; }
 .aw-msg.is-error { border: 1px solid #c00707; color: var(--a-fg); }
 .aw-typing { display: flex; align-items: center; gap: 6px; color: var(--a-muted); }
+.aw-frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
+.aw-frame { margin: 0; border-radius: 12px; overflow: hidden; background: var(--a-card); border: 1px solid var(--a-line); }
+.aw-frame img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.aw-frame figcaption { padding: 6px 8px 0; font-size: 11px; color: var(--a-fg2); }
+.aw-frame-acts { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; }
+.aw-frame-acts button { border: 1px solid var(--a-line); background: transparent; color: var(--a-fg); border-radius: 999px; padding: 5px 8px; font-size: 11.5px; cursor: pointer; }
+.aw-frame-acts button:disabled { opacity: .55; cursor: default; }
 .aw-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .aw-act { padding: 7px 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .aw-act:hover:not(:disabled) { border-color: var(--a-fg2); }

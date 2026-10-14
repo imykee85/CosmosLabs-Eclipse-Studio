@@ -8,9 +8,12 @@ import { connectModels } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
-import { buildReply } from "@/lib/agent-reply";
+import { buildReply, type Action } from "@/lib/agent-reply";
+import { VIDEO_TOOLS, isServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 
-export const maxDuration = 60;
+// 120 s: Atlas can watch a video (the file is copied and frames are read from it) before it answers.
+export const maxDuration = 120;
+const MAX_ROUNDS = 5;
 
 // One turn of the conversation with a studio agent. The agent answers in words and may PROPOSE actions (generate, use a prompt, ask for approval); the browser shows them as
 // buttons and nothing happens until the user presses one. Replies are not stored on the server: the browser keeps the chat.
@@ -32,6 +35,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   // Atlas is built in; any other name must be one of THIS person's own agents (looked up by owner, never trusted from the browser).
   let persona = personaOf(body?.agent);
+  const isAtlas = !!persona; // only the built-in agent can watch videos; an agent a person made cannot
   if (!persona && typeof body?.agent === "string" && body.agent.length <= 40) {
     const mine = await db.userAgent.findFirst({ where: { userId, name: body.agent }, select: { name: true, role: true, instructions: true } });
     if (mine) persona = customPersona(mine);
@@ -60,6 +64,7 @@ export async function POST(req: Request) {
     c.ingredients ? `Ingredient pictures attached: ${Math.min(Number(c.ingredients) || 0, 20)}` : "",
     ...(Array.isArray(c.settings) ? (c.settings as unknown[]).slice(0, 16).map((l) => clip(l, 140)).filter(Boolean).map((l) => `Setting: ${l}`) : []),
     Array.isArray(c.clips) && c.clips.length ? `Video clips attached: ${(c.clips as unknown[]).slice(0, 10).map((l) => clip(l, 60)).filter(Boolean).join("; ")}` : "",
+    ...(isAtlas && Array.isArray(c.videos) ? (c.videos as { id?: unknown; label?: unknown; role?: unknown }[]).slice(0, 10).filter((v) => typeof v?.id === "string" && (v.id as string).length <= 64).map((v) => `Video you can watch (clip_id ${v.id}): ${clip(v.label, 60)}${clip(v.role, 30) ? ` (${clip(v.role, 30)})` : ""}`) : []),
     clip(c.message, 400) ? `Message showing on the top edge of the box right now: ${clip(c.message, 400)}` : "",
   ].filter(Boolean).join("\n");
 
@@ -73,9 +78,32 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 4096, system: `${persona.system}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`, tools: TOOLS, messages });
-    const { text, actions } = buildReply(res.content, res.stop_reason);
-    return NextResponse.json({ text, actions });
+    const system = `${persona.system}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`;
+    const tools = isAtlas ? [...TOOLS, ...VIDEO_TOOLS] : TOOLS;
+    // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
+    const convo: Anthropic.MessageParam[] = messages;
+    const earlier: Action[] = [];
+    const frames: Frame[] = [];
+    const state = { captures: 0 };
+    let res = await client.messages.create({ model, max_tokens: 4096, system, tools, messages: convo });
+    for (let round = 1; round < MAX_ROUNDS && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
+      const results: Anthropic.ToolResultBlockParam[] = [];
+      for (const b of res.content) {
+        if (b.type !== "tool_use") continue;
+        if (isServerTool(b.name)) {
+          const r = await runVideoTool(userId, b.name, (b.input ?? {}) as Record<string, unknown>, state);
+          if (r.frames) frames.push(...r.frames);
+          results.push({ type: "tool_result", tool_use_id: b.id, content: r.content, is_error: r.isError });
+        } else results.push({ type: "tool_result", tool_use_id: b.id, content: "Shown to the user as a button." });
+      }
+      earlier.push(...buildReply(res.content, res.stop_reason).actions);
+      convo.push({ role: "assistant", content: res.content }, { role: "user", content: results });
+      res = await client.messages.create({ model, max_tokens: 4096, system, tools, messages: convo });
+    }
+    const final = buildReply(res.content, res.stop_reason);
+    const actions: Action[] = [...earlier, ...final.actions];
+    const text = final.text;
+    return NextResponse.json({ text, actions, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) });
   } catch (err) {
     console.error("agent chat failed", err);
     const msg = err instanceof Error ? err.message : "";

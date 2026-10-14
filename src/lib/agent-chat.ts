@@ -7,26 +7,31 @@ import { PERSONAS } from "./agent-personas";
 // (the floating agent's card, the Image Studio prompt box, a canvas generator). The agent only PROPOSES: its replies carry buttons, and the screen the
 // user is on (the "host") does the work when one is pressed.
 export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number; used?: boolean };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; error?: boolean; note?: boolean };
+// A frame Atlas captured from a video: saved to the user's Assets (an upload), shown in the chat with buttons to use it.
+export type Frame = { id: string; label: string; sec: number; used?: string };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; error?: boolean; note?: boolean };
 
 export type AgentHost = {
   page: "studio" | "canvas" | "treatment" | "video" | "core";
   // Everything on and in the prompt box, as the person sees it: the text, the other settings, the pictures and clips attached (ids only: the server
   // loads the pictures itself, owner-checked, and shows them to the agent), and the message showing on the box's top edge (an error or a notice).
-  context: () => { prompt: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[] };
+  context: () => { prompt: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[]; videos?: { id: string; label: string; role?: string }[] };
   setPrompt: (text: string) => void;
   // Starts the render. Resolves with "" when it started, or a plain reason when it could not.
   generate: (opts: { prompt?: string; count?: number }) => Promise<string>;
+  // Puts a captured frame (an upload) into the box as the start frame or as an ingredient. Resolves with "" when done, or a plain reason. Screens without it just keep the frame in Assets.
+  useFrame?: (frame: { id: string; label: string }, as: "start" | "ingredient") => Promise<string> | string;
 };
 let host: AgentHost | null = null;
 export function useAgentHost(h: AgentHost) {
   const ref = useRef(h);
   ref.current = h;
+  const can = !!h.useFrame;
   useEffect(() => {
-    const proxy: AgentHost = { page: h.page, context: () => ref.current.context(), setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o) };
+    const proxy: AgentHost = { page: h.page, context: () => ref.current.context(), setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o), useFrame: can ? (f, as) => ref.current.useFrame?.(f, as) ?? "" : undefined };
     host = proxy;
     return () => { if (host === proxy) host = null; };
-  }, [h.page]);
+  }, [h.page, can]);
 }
 
 const KEY = (agent: string) => `eclipse-agent-chat-${agent}`;
@@ -104,7 +109,8 @@ export function useAgentChat(agent: string | null) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
       const actions: Act[] = Array.isArray(data.actions) ? data.actions.map((a: Omit<Act, "id">) => ({ ...a, id: uid() })) : [];
-      add({ role: "agent", text: String(data.text ?? ""), actions });
+      const frames: Frame[] = Array.isArray(data.frames) ? data.frames.filter((f: Frame) => f && typeof f.id === "string").slice(0, 8).map((f: Frame) => ({ id: f.id, label: String(f.label ?? "Frame"), sec: Number(f.sec) || 0 })) : [];
+      add({ role: "agent", text: String(data.text ?? ""), actions, ...(frames.length ? { frames } : {}) });
     } catch {
       add({ role: "agent", text: "I couldn't reach the server. Check your connection and try again.", error: true });
     } finally { setBusy(false); }
@@ -126,6 +132,16 @@ export function useAgentChat(agent: string | null) {
     add({ role: "agent", text: why ? `I couldn't start it: ${why}` : host.page === "core" ? "Sent to Core." : "It's rendering. Watch the preview; it keeps going if you leave.", note: true, error: !!why });
   }, [agent, add, send]);
 
+  // The user pressed "Use as start frame" / "Use as ingredient" under a captured frame.
+  const useFrame = useCallback(async (msgId: string, frameId: string, as: "start" | "ingredient") => {
+    if (!agent || !host?.useFrame) return;
+    const f = read(agent).find((m) => m.id === msgId)?.frames?.find((x) => x.id === frameId);
+    if (!f) return;
+    const why = await host.useFrame({ id: f.id, label: f.label }, as);
+    if (why) { add({ role: "agent", text: why, note: true, error: true }); return; }
+    write(agent, read(agent).map((m) => (m.id === msgId ? { ...m, frames: m.frames?.map((x) => (x.id === frameId ? { ...x, used: as } : x)) } : m)));
+  }, [agent, add]);
+
   const clear = useCallback(() => { if (agent) write(agent, []); }, [agent]);
   const past = agent ? readPast(agent) : [];
   // A fresh chat: the current one is kept in the history first.
@@ -140,5 +156,8 @@ export function useAgentChat(agent: string | null) {
     write(agent, hit.messages);
   }, [agent]);
   const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
-  return { messages, busy, send, run, introduce, clear, past, newChat, openPast, deletePast };
+  return { messages, busy, send, run, useFrame, introduce, clear, past, newChat, openPast, deletePast };
 }
+
+/** True when the screen the user is on can take a captured frame into its prompt box. */
+export const canUseFrame = () => !!host?.useFrame;

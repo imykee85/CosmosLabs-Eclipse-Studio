@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { createWriteStream } from "node:fs";
 import { Readable, Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -52,6 +54,16 @@ export async function getObjectBytes(key: string, maxBytes = 15 * 1024 * 1024): 
   const bytes = await res.Body?.transformToByteArray();
   if (!bytes || bytes.byteLength === 0 || bytes.byteLength > maxBytes) throw new Error("Stored file is empty or too large");
   return bytes;
+}
+
+/** Copies one stored file to a local path as a stream (for tools that need a real file, such as ffmpeg). */
+export async function downloadObjectToFile(key: string, dest: string, maxBytes = 300 * 1024 * 1024): Promise<number> {
+  const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+  if (!res.Body) throw new Error("Stored file is empty");
+  let seen = 0;
+  const limit = new Transform({ transform(chunk, _enc, cb) { seen += chunk.length; cb(seen > maxBytes ? new Error("Stored file is too large") : null, chunk); } });
+  await pipeline(res.Body as Readable, limit, createWriteStream(dest));
+  return seen;
 }
 
 /** A link to one stored file that works for SIGNED_URL_TTL_SECONDS and then stops. */

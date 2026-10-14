@@ -35,6 +35,11 @@ const nextConfig = {
   env: { NEXT_PUBLIC_MOCK_LOGOS: process.env.VERCEL_ENV === "production" ? "0" : "1" },
   // Nothing uses next/image, so the image optimizer (an open fetch proxy when it allows every host) is switched off.
   images: { unoptimized: true },
+  // Atlas's video watching runs ffmpeg: keep its binary out of the bundle and make sure it is shipped with that one route.
+  experimental: {
+    serverComponentsExternalPackages: ["@ffmpeg-installer/ffmpeg"],
+    outputFileTracingIncludes: { "/api/agent/chat": ["./node_modules/@ffmpeg-installer/ffmpeg/**", "./node_modules/@ffmpeg-installer/linux-x64/**"] },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

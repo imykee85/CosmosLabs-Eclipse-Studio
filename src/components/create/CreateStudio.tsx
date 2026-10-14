@@ -248,6 +248,14 @@ export default function CreateStudio() {
     }),
     setPrompt,
     generate: (o) => generate(o),
+    // A frame Atlas captured from a video becomes an ingredient (Image Studio has no start frame).
+    useFrame: (f) => {
+      const max = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
+      if (max <= refs.length) return max === 0 ? "This model can't take pictures. Choose another model first." : "The box already holds as many pictures as this model takes.";
+      setNoRefs(false);
+      setRefs((l) => [...l, { type: "upload", id: f.id, url: `/api/uploads/${f.id}/file`, label: f.label }]);
+      return "";
+    },
   });
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
