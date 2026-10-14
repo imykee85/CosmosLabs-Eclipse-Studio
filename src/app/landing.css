@@ -481,6 +481,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* The heading block (title, supporting heading, deck, Start Creating) sits in the vertical centre of the hero (user 2026-10-14); the logo strip stays at the bottom. */
 .hero > .hero-copy { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(820px, calc(100% - 40px)); margin: 0; }
 .hero > .strip { width: 100%; margin-top: auto; }
+/* Desktop: the block sits in the middle of the FIRST SCREEN (the heading lands around 44% of the window height), not the middle of the very tall hero. */
+@media (min-width: 801px) { .hero > .hero-copy { top: 44vh; transform: translateX(-50%); } }
 @media (max-width: 800px) { .hero { min-height: 971px; } }
 
 /* Logo reel tinted to the hero video's teal instead of warm grey/white */
