@@ -322,7 +322,6 @@ export default function VideoStudio() {
     setRefs((l) => [...l].sort((a, b) => at(`r:${a.type}:${a.id}`) - at(`r:${b.type}:${b.id}`)));
     setVrefs((l) => [...l].sort((a, b) => at(`v:${a.id}`) - at(`v:${b.id}`)));
   }
-  const aspectLocked = live && caps.ratios.length === 0;
   // The settings icon shows a dot when a setting inside it is in use.
   const settingsInUse = (seedLocked && !!caps.seed) || (caps.negativePrompt != null && !!negative.trim()) || (caps.cfgScale && creative != null);
 
@@ -411,7 +410,7 @@ export default function VideoStudio() {
               <button type="button" className={`cr-chip vs-sound ${sound && caps.audio ? "" : "is-muted"}`} disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={!caps.audio ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
                 {sound && caps.audio ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
-              {caps.ratios.length > 0 && <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the aspect ratio follows your picture" : "Aspect ratio of the clip"}><span className="sr-only">Aspect ratio</span>
+              {caps.ratios.length > 0 && <label className="cr-chip cr-select" title="Aspect ratio of the clip"><span className="sr-only">Aspect ratio</span>
                 <select value={caps.ratios.length ? ratio : ""} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio" disabled={!caps.ratios.length}>
                   <option value="auto">Auto</option>{caps.ratios.filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
