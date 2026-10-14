@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { atlasSteps } from "./data";
+import { atlasStrengths, atlasSteps } from "./data";
 
-// "From idea to premium content." The workflow section, same size as before. Left: heading, the button, and Atlas (the 3D agent from the app, larger).
+// "Meet Atlas." Left: heading, subtext, Atlas (the 3D agent from the app, larger), his strengths, then the button. When the section comes into view
+// Atlas bounces once and then spins (the same moves as in the app).
 // Right: a small self-playing animation of the process (after the owner's Framer timeline reference): a red line runs down the steps one by one,
 // each dot lights as the line reaches it and that step brightens, then it starts again. It only plays while the section is on screen.
 // Under reduced motion every step is shown at once, with the full line.
@@ -14,6 +15,16 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
   const [active, setActive] = useState(0);
   const [still, setStill] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const bot = useRef<HTMLDivElement>(null);
+  const [intro, setIntro] = useState(false);
+
+  // Bounce, then spin, the first time Atlas comes into view.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !bot.current) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setIntro(true); io.disconnect(); } }, { threshold: 0.6 });
+    io.observe(bot.current);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -39,18 +50,31 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
   return (
     <section id="how-it-works" className="atl-section section-pad">
       <div className="atl-left">
-        <div className="eyebrow">THE ECLIPSE WORKFLOW</div>
-        <h2>From idea to<br /><em>premium content.</em></h2>
-        <div className="atl-cta">{cta}</div>
-        {/* Atlas, drawn like the agent in the app, only bigger. */}
-        <div className="atl-bot" role="img" aria-label="Atlas, the Eclipse agent">
-          <div className="atl-float">
-            <div className="atl-ball" />
-            <i className="atl-eye atl-eye-l"><b /></i>
-            <i className="atl-eye atl-eye-r"><b /></i>
+        <div className="eyebrow">INTRODUCING</div>
+        <h2>Meet <em>Atlas</em></h2>
+        <p className="atl-sub">Your agentic creative partner.</p>
+        {/* Atlas, drawn like the agent in the app (the eyes turn round the ball in 3D), only bigger. */}
+        <div className={`atl-bot${intro ? " is-intro" : ""}`} ref={bot} role="img" aria-label="Atlas, the Eclipse agent">
+          <div className="atl-glow" />
+          <div className="atl-hop">
+            <div className="atl-float">
+              <div className="atl-ball" />
+              <div className="atl-spin">
+                <div className="atl-sphere">
+                  <i className="atl-eye atl-eye-l"><b /></i>
+                  <i className="atl-eye atl-eye-r"><b /></i>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="atl-ground" />
         </div>
+        <ul className="atl-strengths">
+          {atlasStrengths.map(([q, a]) => (
+            <li key={q}><b>{q}</b><p>{a}</p></li>
+          ))}
+        </ul>
+        <div className="atl-cta">{cta}</div>
       </div>
 
       <div className="atl-demo" ref={box} aria-label="How Atlas works" style={{ ["--atl-p" as string]: still ? 1 : active / last }}>

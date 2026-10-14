@@ -23,6 +23,15 @@ export const audience = [
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising"];
 
+// What Atlas is good at, shown under him in the "Meet Atlas" section. Only what Atlas really does today.
+export const atlasStrengths = [
+  ["Don't know where to start?", "Brainstorm with Atlas, or hand over your brief. Atlas pulls out the goal, the audience and the gaps, and shapes them into a plan."],
+  ["Can't write a high-quality prompt?", "Describe your shot in plain words. Atlas writes a detailed, high-fidelity prompt for the model you are using."],
+  ["Need a second pair of eyes?", "Atlas looks at the pictures and videos you share and tells you what works and what needs another take."],
+  ["Want a still from your video?", "Atlas finds the moment you mean, captures the frame and saves it to your Assets, ready to use as a start frame."],
+  ["Always your call.", "Atlas proposes, you approve. Nothing is made until you press the button."],
+] as const;
+
 // The Atlas workflow timeline. Only what Atlas really does today: it proposes, the person approves, nothing renders without a press.
 export const atlasSteps = [
   ["01", "TELL ATLAS", "Describe your idea in plain language."],
