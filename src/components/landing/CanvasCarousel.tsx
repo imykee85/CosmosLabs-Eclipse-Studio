@@ -11,7 +11,7 @@ import { wowTiles } from "./data";
 // Measured: camera distance about 0.52 x the screen width, middle card about 0.17 x 0.24 of the width, about 21.5 degrees from card to card.
 // One shared camera: the cards are DIRECT children of the element with `perspective` (no moving track in between, which is what breaks 3D on iPhone Safari).
 // The ring turns slowly on its own, can be dragged or swiped (a flick glides), and pauses under a mouse; vertical page scroll still works (`touch-action: pan-y`).
-const SLOTS = wowTiles.length * 2;   // two copies of the six cards go round the ring
+const SLOTS = wowTiles.length * 2;   // two copies of the cards go round the ring
 const CAMERA = 0.52;                 // camera distance and ring radius, as a share of the width
 const CARD_W = 0.17;
 const CARD_H = 0.24;

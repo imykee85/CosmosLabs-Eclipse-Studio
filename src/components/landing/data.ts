@@ -5,6 +5,10 @@ export const wowTiles = [
   ["REAL ESTATE", "CINEMATIC"],
   ["BEAUTY", "COMMERCIAL"],
   ["FOOD", "ADVERTISING"],
+  ["UGC", "CREATOR CONTENT"],
+  ["FILM", "CINEMATIC SHORTS"],
+  ["ART", "DIGITAL ART"],
+  ["CAMPAIGN", "BRAND LAUNCH"],
 ] as const;
 
 export const audience = [

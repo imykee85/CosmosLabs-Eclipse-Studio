@@ -169,6 +169,8 @@
 .tone-0 { --tone: linear-gradient(135deg,#7f1d1d,#0f172a); } .tone-1 { --tone: linear-gradient(135deg,#e11d2e,#1a0b0d); }
 .tone-2 { --tone: linear-gradient(135deg,#c00707,#0f172a); } .tone-3 { --tone: linear-gradient(135deg,#dc2626,#1a0b0d); }
 .tone-4 { --tone: linear-gradient(135deg,#c2410c,#1c1917); } .tone-5 { --tone: linear-gradient(135deg,#991b1b,#0f172a); }
+.tone-6 { --tone: linear-gradient(135deg,#b91c1c,#111827); } .tone-7 { --tone: linear-gradient(135deg,#7c2d12,#0c0a09); }
+.tone-8 { --tone: linear-gradient(135deg,#be123c,#1a0b0d); } .tone-9 { --tone: linear-gradient(135deg,#ea580c,#1c1917); }
 .tone-6 { --tone: linear-gradient(135deg,#be123c,#450a0a); } .tone-7 { --tone: linear-gradient(135deg,#9f1239,#7f1d1d); }
 .try-form { text-align: left; }
 .site-link-reset a { color: inherit; }
