@@ -131,7 +131,8 @@ test.describe("prompt box messages", () => {
     await expect(edge).toHaveText("The provider said no.");
     const e = (await edge.boundingBox())!;
     const f = (await page.locator("form.cr-box").boundingBox())!;
-    expect(Math.abs(e.y + e.height - f.y)).toBeLessThanOrEqual(2);
+    expect(f.y - (e.y + e.height)).toBeLessThanOrEqual(12); // plain text sitting just above the box
+    expect(f.y - (e.y + e.height)).toBeGreaterThanOrEqual(0);
     await expect(page.locator(".cr-hint")).toHaveCount(0);
     await page.click(".aw-btn");
     await page.fill(".aw-input input", "what went wrong?");
