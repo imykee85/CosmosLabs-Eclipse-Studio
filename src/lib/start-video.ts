@@ -1,4 +1,4 @@
-import { AUTO_RATIO, resolveAutoRatio } from "@/lib/auto-ratio";
+import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
 import { randomInt, randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { HiggsfieldError } from "@/lib/higgsfield";
@@ -86,6 +86,8 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
 
   // "Auto" aspect ratio: a model that can pick its own gets the word; otherwise the first picture's shape (nearest ratio the model offers), else its usual ratio.
   let aspectIn = typeof input.aspectRatio === "string" && caps.ratios.length ? input.aspectRatio : undefined;
+  // The result must end up in the REFERENCE's exact ratio: the model gets the nearest one it offers and the stored clip is trimmed to the exact ratio (src/lib/conform.ts). Saved on the row as `params.conform`.
+  const conform = input.aspectRatio === AUTO_RATIO && caps.ratios.length ? await autoTarget(userId, refs[0] ?? start ?? undefined) : null;
   if (aspectIn === AUTO_RATIO && !caps.ratios.includes(AUTO_RATIO)) aspectIn = await resolveAutoRatio(userId, refs[0] ?? start ?? undefined, caps.ratios, caps.defaultRatio);
   const resolution = typeof input.resolution === "string" ? input.resolution : undefined;
   const audio = typeof input.audio === "boolean" ? input.audio : undefined;
@@ -177,7 +179,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     userId, projectId, kind: "video", prompt, status: "pending", statusUrl: null, requestId: null, provider: "higgsfield", model: model.id,
     aspectRatio: aspect, resolution: resolutionUsed ?? null, seed, seedLocked, durationSec: duration, hasAudio: motion ? (motion.kind === "kling" ? keepSound : null) : caps.audio ? audioUsed : null,
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
-    params: { workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
+    params: { conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
   });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
 

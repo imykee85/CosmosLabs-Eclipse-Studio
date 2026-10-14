@@ -24,7 +24,7 @@ function binary(): string {
   return (cached = path);
 }
 
-function run(args: string[], timeoutMs: number, input?: Uint8Array): Promise<{ code: number; out: Buffer; err: string }> {
+export function run(args: string[], timeoutMs: number, input?: Uint8Array): Promise<{ code: number; out: Buffer; err: string }> {
   return new Promise((resolve, reject) => {
     const p = spawn(binary(), args, { stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] });
     if (input) { p.stdin!.on("error", () => {}); p.stdin!.end(input); }

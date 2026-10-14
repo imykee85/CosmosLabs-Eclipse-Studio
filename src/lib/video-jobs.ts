@@ -8,6 +8,7 @@ import { spendCredits } from "./credits";
 import { db } from "./db";
 import { cancelVideo, videoStatus } from "./higgsfield-video";
 import { safeText } from "./safe-text";
+import { ratioString, targetOf } from "./conform";
 import { saveVideoFromUrl, storageEnabled } from "./storage";
 import { findVideoModel, videoTimeoutMs } from "./video-models";
 
@@ -85,7 +86,7 @@ export async function finalizeVideo(g: Generation): Promise<Generation> {
 async function saveAndComplete(g: Generation, p: Params, label: string | undefined, videoUrl: string, back: "pending" | "failed"): Promise<Generation> {
   let saved;
   try {
-    saved = await saveVideoFromUrl(g.userId, g.id, videoUrl);
+    saved = await saveVideoFromUrl(g.userId, g.id, videoUrl, targetOf(g.params));
   } catch (err) {
     console.error("saving the video to storage failed", g.id, err);
     const tries = (p.copyTries ?? 0) + 1;
@@ -98,7 +99,7 @@ async function saveAndComplete(g: Generation, p: Params, label: string | undefin
   if (g.creditsHeld != null && g.creditsHeld > 0) {
     try { await spendCredits(g.userId, g.creditsHeld, `${label ?? "Video"} video`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
-  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, error: null, finishedAt: new Date() } });
+  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, ...(saved.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), error: null, finishedAt: new Date() } });
 }
 
 // A video we stopped waiting for (timed out) is kept for LATE_WATCH_MS and asked about again here: if the provider finished it after all, it is saved and

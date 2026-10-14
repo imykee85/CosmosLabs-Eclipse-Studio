@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { createWriteStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
+import { mkdtemp, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { conformImage, conformVideoFile, type ConformTarget } from "./conform";
 import { readImageSize } from "./image-info";
 
 // Private file storage on Cloudflare R2 (S3-compatible). The bucket stays private: nothing is ever served from a public address.
@@ -96,9 +100,19 @@ export function signedGetUrl(key: string, ttlSeconds = SIGNED_URL_TTL_SECONDS): 
  * Copies a finished image from the provider into our bucket and returns its key plus the file's facts (type, size, dimensions).
  * The address comes from the provider's own response, but it is still treated as untrusted: https only (also after redirects), images only, size and time capped.
  */
-export type SavedImage = { key: string; contentType: string; sizeBytes: number; width: number | null; height: number | null };
+export type SavedImage = { key: string; contentType: string; sizeBytes: number; width: number | null; height: number | null; conformed?: boolean };
 
-export async function saveImageFromUrl(userId: string, sourceUrl: string): Promise<SavedImage> {
+// "Auto" aspect ratio with a reference: trims the finished picture to the reference's exact ratio before it is stored (conform.ts). On any failure the original is kept.
+async function conformed(bytes: Uint8Array, type: string, target: ConformTarget | null | undefined): Promise<{ bytes: Uint8Array; type: string; done: boolean }> {
+  if (!target) return { bytes, type, done: false };
+  const r = await conformImage(bytes, type, target).catch(() => null);
+  if (r === "ok") return { bytes, type, done: true };
+  if (r) return { bytes: r.bytes, type: r.type, done: true };
+  console.error("could not trim the picture to the reference aspect ratio; the original is kept");
+  return { bytes, type, done: false };
+}
+
+export async function saveImageFromUrl(userId: string, sourceUrl: string, conform?: ConformTarget | null): Promise<SavedImage> {
   const url = new URL(sourceUrl);
   if (url.protocol !== "https:") throw new Error("Refusing to fetch a non-https image address");
 
@@ -112,24 +126,27 @@ export async function saveImageFromUrl(userId: string, sourceUrl: string): Promi
 
   const declared = Number(res.headers.get("content-length") ?? 0);
   if (declared > MAX_IMAGE_BYTES) throw new Error("Image is too large");
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bytes.byteLength === 0 || bytes.byteLength > MAX_IMAGE_BYTES) throw new Error("Image is empty or too large");
+  const original = new Uint8Array(await res.arrayBuffer());
+  if (original.byteLength === 0 || original.byteLength > MAX_IMAGE_BYTES) throw new Error("Image is empty or too large");
 
-  const key = `u/${userId}/${randomUUID()}.${extension}`;
-  await putObject(key, bytes, type);
+  const c = await conformed(original, type, conform);
+  const bytes = c.bytes;
+  const key = `u/${userId}/${randomUUID()}.${EXTENSIONS[c.type]}`;
+  await putObject(key, bytes, c.type);
   const size = readImageSize(bytes);
-  return { key, contentType: type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null };
+  return { key, contentType: c.type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null, conformed: c.done };
 }
 
 /** Stores a picture that arrived as bytes (Google and OpenAI send it inside the reply, not as an address). Same key layout and facts as saveImageFromUrl. */
-export async function saveImageBytes(userId: string, bytes: Uint8Array, type: string): Promise<SavedImage> {
-  const extension = EXTENSIONS[type];
-  if (!extension) throw new Error(`Unsupported image type: ${type || "unknown"}`);
-  if (bytes.byteLength === 0 || bytes.byteLength > MAX_IMAGE_BYTES) throw new Error("Image is empty or too large");
-  const key = `u/${userId}/${randomUUID()}.${extension}`;
-  await putObject(key, bytes, type);
+export async function saveImageBytes(userId: string, original: Uint8Array, type: string, conform?: ConformTarget | null): Promise<SavedImage> {
+  if (!EXTENSIONS[type]) throw new Error(`Unsupported image type: ${type || "unknown"}`);
+  if (original.byteLength === 0 || original.byteLength > MAX_IMAGE_BYTES) throw new Error("Image is empty or too large");
+  const c = await conformed(original, type, conform);
+  const bytes = c.bytes;
+  const key = `u/${userId}/${randomUUID()}.${EXTENSIONS[c.type]}`;
+  await putObject(key, bytes, c.type);
   const size = readImageSize(bytes);
-  return { key, contentType: type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null };
+  return { key, contentType: c.type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null, conformed: c.done };
 }
 
 /** The address to show for a generation: a fresh signed link when the file is in our storage, else the provider's link. */
@@ -152,9 +169,10 @@ export async function openImage(generation: { imageUrl: string; storageKey: stri
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const VIDEO_COPY_TIMEOUT_MS = 280_000;
 const VIDEO_EXT: Record<string, string> = { "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };
-export type SavedVideo = { key: string; contentType: string; sizeBytes: number };
+export type SavedVideo = { key: string; contentType: string; sizeBytes: number; conformed?: boolean };
+const MAX_CONFORM_BYTES = 150 * 1024 * 1024; // a larger clip is stored as the model made it: re-encoding it would not finish inside the function time limit
 
-export async function saveVideoFromUrl(userId: string, generationId: string, sourceUrl: string): Promise<SavedVideo> {
+export async function saveVideoFromUrl(userId: string, generationId: string, sourceUrl: string, conform?: ConformTarget | null): Promise<SavedVideo> {
   const url = new URL(sourceUrl);
   if (url.protocol !== "https:") throw new Error("Refusing to fetch a non-https video address");
   const res = await fetch(url, { signal: AbortSignal.timeout(VIDEO_COPY_TIMEOUT_MS) });
@@ -179,6 +197,27 @@ export async function saveVideoFromUrl(userId: string, generationId: string, sou
       else cb(null, chunk);
     },
   });
+  // "Auto" aspect ratio with a reference: the clip goes through a temporary file so it can be trimmed to the reference's exact ratio (conform.ts) before it is stored.
+  if (conform && declared <= MAX_CONFORM_BYTES) {
+    const dir = await mkdtemp(join(tmpdir(), "eclipse-conform-"));
+    try {
+      const inFile = join(dir, "in");
+      const outFile = join(dir, "out.mp4");
+      let seen = 0;
+      const cap = new Transform({ transform(chunk: Buffer, _enc, cb) { seen += chunk.length; cb(seen > MAX_VIDEO_BYTES ? new Error("Video is too large") : null, chunk); } });
+      await pipeline(Readable.fromWeb(res.body as never), cap, createWriteStream(inFile));
+      if (seen === 0) throw new Error("Video is empty");
+      const result = seen <= MAX_CONFORM_BYTES ? await conformVideoFile(inFile, outFile, conform) : false;
+      if (result === false) console.error("could not trim the clip to the reference aspect ratio; the original is kept");
+      const useOut = result === true;
+      const file = useOut ? outFile : inFile;
+      const outType = useOut ? "video/mp4" : type;
+      const k = `video/${userId}/${generationId}.${useOut ? "mp4" : VIDEO_EXT[type]}`;
+      const up = new Upload({ client: r2(), params: { Bucket: bucket(), Key: k, Body: createReadStream(file), ContentType: outType }, queueSize: 3, partSize: 8 * 1024 * 1024, leavePartsOnError: false });
+      await up.done();
+      return { key: k, contentType: outType, sizeBytes: (await stat(file)).size, conformed: result !== false };
+    } finally { await rm(dir, { recursive: true, force: true }).catch(() => {}); }
+  }
   const key = `video/${userId}/${generationId}.${VIDEO_EXT[type]}`;
   const upload = new Upload({ client: r2(), params: { Bucket: bucket(), Key: key, Body: Readable.fromWeb(res.body as never).pipe(counter), ContentType: type }, queueSize: 3, partSize: 8 * 1024 * 1024, leavePartsOnError: false });
   await upload.done();

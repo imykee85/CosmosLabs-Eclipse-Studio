@@ -1,4 +1,5 @@
-import { AUTO_RATIO, resolveAutoRatio } from "@/lib/auto-ratio";
+import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
+import { ratioString, type ConformTarget } from "@/lib/conform";
 import { waitUntil } from "@vercel/functions";
 import { claimUsage } from "@/lib/usage";
 import { createGenerationHeld } from "@/lib/reservations";
@@ -50,6 +51,9 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   let aspectRatio = typeof input.aspectRatio === "string" ? input.aspectRatio : undefined;
   // "Auto": the result takes the first reference picture's shape (nearest ratio this model offers); with no reference, the usual 1:1.
   if (aspectRatio === AUTO_RATIO && !model.ratios.includes(AUTO_RATIO)) aspectRatio = await resolveAutoRatio(input.userId, refs[0], model.ratios, model.ratios.includes("1:1") ? "1:1" : model.ratios[0]);
+  // "Auto" with a reference picture: the result must end up in the REFERENCE's exact ratio. The model gets the nearest one it offers (or the exact one, if it takes any size),
+  // and the stored file is trimmed to the exact ratio when it arrives in another one (src/lib/conform.ts). The target is saved on the row for that.
+  const conform: ConformTarget | null = input.aspectRatio === AUTO_RATIO && !model.ratios.includes(AUTO_RATIO) ? await autoTarget(input.userId, refs[0]) : null;
   if (aspectRatio && !model.ratios.includes(aspectRatio)) {
     return { ok: false, status: 400, error: `${model.label} does not support the ${aspectRatio} aspect ratio. Choose one of: ${model.ratios.join(", ")}.` };
   }
@@ -91,10 +95,10 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
   // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll.
-  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, resolution, refs, items: resolved.items, seedNote, cost });
+  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, conform, resolution, refs, items: resolved.items, seedNote, cost });
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
-  const made = await createGenerationHeld(userId, cost, { userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined });
+  const made = await createGenerationHeld(userId, cost, { userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform ? { conform } : undefined });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
   const pre = made.row;
   try {
@@ -131,22 +135,22 @@ async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
 // A render by a provider that answers in the same call. The row is written BEFORE the provider is called (our own double-submit
 // protection: a retry can see that the job exists, and nothing is re-submitted after a timeout), then the picture is decoded from the
 // reply, copied into private storage and the row completed. A failure marks the row failed with a plain sentence.
-async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null }): Promise<StartRenderResult> {
+async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null }): Promise<StartRenderResult> {
   const { model, userId } = a;
   const provider = syncProvider(model.provider);
   if (!provider || !apiModelOf(model)) return { ok: false, status: 400, error: "That model is not available." };
   // The reply carries the picture itself, so there is no provider link to fall back on: it has to go into our storage.
   if (!storageEnabled) return { ok: false, status: 503, error: "Image storage is not set up yet, so this model cannot be used." };
   const jobId = randomUUID();
-  const made = await createGenerationHeld(userId, a.cost, { userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined });
+  const made = await createGenerationHeld(userId, a.cost, { userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined, params: a.conform ? { conform: a.conform } : undefined });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${a.cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
   const row = made.row;
   // The reply goes out at once with a pending row (the browser follows it like any job); the render continues after it (waitUntil, up to the route's 300 s).
   const work = (async () => {
     try {
       const references = await Promise.all(a.items.map(loadReference));
-      const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
-      const saved = await saveImageBytes(userId, out.bytes, out.contentType);
+      const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.conform && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.conform) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+      const saved = await saveImageBytes(userId, out.bytes, out.contentType, a.conform);
       await completeFromBytes(row, saved, out.usage);
     } catch (err) {
       console.error("inline generation failed", model.id, err instanceof ProviderError ? err.detail : err);

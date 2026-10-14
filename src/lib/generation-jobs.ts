@@ -5,6 +5,7 @@ import type { Generation } from "@prisma/client";
 import { spendCredits } from "./credits";
 import { db } from "./db";
 import { higgsfield } from "./higgsfield";
+import { targetOf, ratioString } from "./conform";
 import { chargeFor, getModelById } from "./models";
 import { findVideoModel } from "./video-models";
 import { safeText } from "./safe-text";
@@ -103,7 +104,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
   // Keep our own copy in the private bucket. If the copy fails the render is not lost: it falls back to the provider's link.
   let saved: SavedImage | null = null;
   if (storageEnabled) {
-    try { saved = await saveImageFromUrl(g.userId, s.imageUrl); } catch (err) { console.error("saving the render to storage failed", err); }
+    try { saved = await saveImageFromUrl(g.userId, s.imageUrl, targetOf(g.params)); } catch (err) { console.error("saving the render to storage failed", err); }
   }
   // Charge only once the render exists (a model with no credit price yet is free).
   const chargedModel = getModelById(g.model);
@@ -111,7 +112,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
   if (cost != null) {
     try { await spendCredits(g.userId, cost, `${chargedModel?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
-  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: s.imageUrl, storageKey: saved?.key ?? null, contentType: saved?.contentType ?? null, sizeBytes: saved?.sizeBytes ?? null, width: saved?.width ?? null, height: saved?.height ?? null, error: null } });
+  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: s.imageUrl, storageKey: saved?.key ?? null, contentType: saved?.contentType ?? null, sizeBytes: saved?.sizeBytes ?? null, width: saved?.width ?? null, height: saved?.height ?? null, ...(saved?.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), error: null } });
 }
 
 // Deletes failed renders (one user's, or everyone's when no user is given) once they have been shown for a moment. A render fails before
@@ -123,7 +124,7 @@ export async function completeFromBytes(g: Generation, saved: SavedImage, usage:
   if (cost != null) {
     try { await spendCredits(g.userId, cost, `${model?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
-  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, providerUsage: usage == null ? undefined : (usage as object) } });
+  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, ...(saved.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), providerUsage: usage == null ? undefined : (usage as object) } });
 }
 
 export async function failRender(id: string, error: string): Promise<void> { await fail(id, error); }

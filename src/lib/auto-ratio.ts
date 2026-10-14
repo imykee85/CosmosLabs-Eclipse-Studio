@@ -39,3 +39,9 @@ export async function resolveAutoRatio(userId: string, firstRef: ReferenceRef | 
   const size = await referenceSize(userId, firstRef);
   return (size ? nearestRatio(size.width, size.height, allowed) : null) ?? fallback;
 }
+
+/** The reference's own width and height when "Auto" was chosen and a reference has a known size: the shape the result must end up with. */
+export async function autoTarget(userId: string, firstRef: ReferenceRef | undefined): Promise<{ w: number; h: number } | null> {
+  const size = await referenceSize(userId, firstRef);
+  return size ? { w: size.width, h: size.height } : null;
+}
