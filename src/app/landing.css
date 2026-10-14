@@ -57,7 +57,7 @@
 .audience-preview b { font-family: var(--font-display); font-size: 18px; }
 .audience-preview p { color: var(--muted); font-size: 12px; line-height: 1.4; margin: 7px 0 0; }
 .audience-grid { max-width: 1165px; margin: auto; display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
-.audience-card { position: relative; overflow: hidden; min-height: 232px; padding: 20px; text-align: left; border: 1px solid var(--line); border-radius: 9px; background: #1a1a1a; cursor: pointer; transition: border-color .2s, transform .25s var(--ease); }
+.audience-card { position: relative; overflow: hidden; min-height: 0; aspect-ratio: 402 / 213; padding: 20px; text-align: left; border: 1px solid var(--line); border-radius: 9px; background: #1a1a1a; cursor: pointer; transition: border-color .2s, transform .25s var(--ease); }
 .audience-card:hover, .audience-card.selected { transform: translateY(-4px); border-color: rgba(192,7,7,.7); }
 .audience-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .42; transition: transform .5s var(--ease), opacity .3s; }
 .audience-card:hover img, .audience-card.selected img { transform: scale(1.06); opacity: .56; }
@@ -67,11 +67,10 @@
 .audience-card div { position: absolute; left: 20px; bottom: 20px; right: 42px; display: grid; gap: 5px; }
 .audience-card b { font-family: var(--font-display); font-size: 20px; letter-spacing: -.03em; }
 .audience-card small { color: #d0ccc7; font-size: 11px; line-height: 1.4; }
-.audience-item { min-width: 0; display: grid; gap: 12px; align-content: start; }
+.audience-item { min-width: 0; display: grid; gap: 12px; align-content: start; padding: 8px 8px 14px; border: 1px solid var(--line); border-radius: 14px; background: #101011; }
 .audience-card .audience-number { position: absolute; left: 20px; top: 22px; }
-.audience-info { display: grid; gap: 5px; padding: 0 2px; }
-.audience-info b { font-size: 13px; font-weight: 600; color: #f2f2f2; letter-spacing: -.01em; }
-.audience-info p { margin: 0; font-size: 11.5px; line-height: 1.45; color: #85817b; }
+.audience-info { padding: 0 6px; }
+.audience-info p { margin: 0; font-size: 12px; line-height: 1.45; color: #8d8982; }
 .audience-arrow { position: absolute; right: 19px; bottom: 20px; }
 .section-cta { text-align: center; margin-top: 42px; }
 .process-section { padding-top: 135px; padding-bottom: 135px; border-top: 1px solid var(--line); background: #000; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(40px,10vw,150px); }
