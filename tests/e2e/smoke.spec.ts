@@ -284,16 +284,16 @@ test.describe("Voice Studio", () => {
     });
     await page.goto("/voice");
     await page.fill("#vc-text", "Hello there.");
-    await page.getByRole("button", { name: /Choose a voice/ }).click();
-    await page.getByRole("button", { name: /^Ana/ }).click(); // not "Hear Ana", the preview button
-    await page.getByRole("button", { name: "[whispers]" }).click();
+    await page.getByRole("option", { name: "Ana" }).click();
+    await page.getByRole("button", { name: "Delivery" }).click();
+    await page.getByRole("menuitem", { name: "[whispers]" }).click();
     await expect(page.locator("#vc-text")).toHaveValue("Hello there. [whispers] ");
-    await page.getByRole("button", { name: /^Generate/ }).click();
+    await page.getByRole("button", { name: "Generate" }).click();
     await expect(page.locator(".vc-take")).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ model: "eleven_v4", voiceId: "voiceA", text: "Hello there. [whispers]" });
-    await page.getByRole("radio", { name: "Flash v2.5" }).click();
-    await expect(page.getByRole("button", { name: "[whispers]" })).toBeDisabled();
+    await page.selectOption('select[aria-label="Voice model"]', "eleven_flash_v2_5");
+    await expect(page.getByRole("button", { name: "Delivery" })).toBeDisabled();
   });
 });

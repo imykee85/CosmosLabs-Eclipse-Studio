@@ -5,10 +5,11 @@ export function hash(s: string): number {
   return h >>> 0;
 }
 
-// A soft, lit sphere in two neighbouring hues.
+// A soft, lit sphere in neighbouring hues. Hues stay in Eclipse's warm range (crimson to amber, through magenta) so every voice sits on theme;
+// the default ("eclipse") is the brand red.
 export function orbStyle(seed: string): React.CSSProperties {
-  const h = hash(seed);
-  const hue = h % 360, spin = (h >> 9) % 360, shift = 25 + ((h >> 17) % 40);
+  const h = seed === "eclipse" ? 0 : hash(seed);
+  const hue = seed === "eclipse" ? 356 : (325 + (h % 75)) % 360, spin = (h >> 9) % 360, shift = 14 + ((h >> 17) % 22);
   return {
     background: `radial-gradient(circle at 32% 28%, hsl(${hue} 95% 82% / .95), transparent 42%), conic-gradient(from ${spin}deg, hsl(${hue} 78% 52%), hsl(${(hue + shift) % 360} 80% 46%), hsl(${(hue + 360 - shift) % 360} 70% 34%), hsl(${hue} 78% 52%))`,
   };
