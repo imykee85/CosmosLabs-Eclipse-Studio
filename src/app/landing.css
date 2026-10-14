@@ -478,8 +478,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Safari does not clip a playing <video> to its parent's rounded corners (the hero's curved bottom went square): the video layer carries its own rounded clip. */
 .hero-video-still, .hero-video-el { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
 .hero-video-wash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.38) 38%, rgba(0,0,0,.5) 68%, #000 100%); }
-/* The heading block (title, supporting heading, deck, Start Creating) sits in the vertical centre of the hero (user 2026-10-14); the logo strip stays at the bottom. */
-.hero > .hero-copy { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(820px, calc(100% - 40px)); margin: 0; }
+/* The heading block (title, supporting heading, deck, Start Creating) on phones: just above the middle of the hero, 45.5% down, so the heading starts on the astronaut's chest (user 2026-10-14, marked on a screenshot); the logo strip stays at the bottom. */
+.hero > .hero-copy { position: absolute; top: 45.5%; left: 50%; transform: translate(-50%, -50%); width: min(820px, calc(100% - 40px)); margin: 0; }
 .hero > .strip { width: 100%; margin-top: auto; }
 /* Desktop (mouse or trackpad): the block sits in the middle of the FIRST SCREEN (the heading lands around 44% of the window height), not the middle of the very tall hero. */
 /* Only for a real mouse or trackpad: a phone can be laid out wider than 800 px (page zoom) yet has a very tall window, so it keeps the centred placement above. */
