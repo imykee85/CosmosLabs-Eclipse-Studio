@@ -43,7 +43,7 @@ const video: Item[] = [
   { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true },
 ];
 const audio: Item[] = [
-  { label: "Audio Lab", hint: "Voices, music and sound", icon: <Mic size={17} />, soon: true },
+  { label: "Voice Studio", hint: "Create and clone voices", icon: <Mic size={17} />, soon: true },
   { label: "Music", hint: "Score your content", icon: <Music size={17} />, soon: true },
   { label: "Sound effects", hint: "Add the final touches", icon: <Volume2 size={17} />, soon: true },
 ];
