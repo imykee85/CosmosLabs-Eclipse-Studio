@@ -490,7 +490,3 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .hero .strip-label { color: rgba(176,212,218,.72); }
 .hero .strip-set li { color: rgba(176,212,218,.72); }
 .hero .strip-logo img { filter: brightness(0) invert(1) sepia(1) saturate(2.4) hue-rotate(128deg) brightness(.95); opacity: .78; }
-
-/* Hero text in the same soft teal as the logo reel below it (user 2026-10-14; revert = delete this block). */
-.site-shell .hero h1 { color: rgb(176, 212, 218); }
-.site-shell .hero .hero-sub, .site-shell .hero .hero-deck { color: rgba(176, 212, 218, .82); }
