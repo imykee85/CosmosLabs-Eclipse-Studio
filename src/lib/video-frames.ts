@@ -24,14 +24,15 @@ function binary(): string {
   return (cached = path);
 }
 
-function run(args: string[], timeoutMs: number): Promise<{ code: number; out: Buffer; err: string }> {
+function run(args: string[], timeoutMs: number, input?: Uint8Array): Promise<{ code: number; out: Buffer; err: string }> {
   return new Promise((resolve, reject) => {
-    const p = spawn(binary(), args, { stdio: ["ignore", "pipe", "pipe"] });
+    const p = spawn(binary(), args, { stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] });
+    if (input) { p.stdin!.on("error", () => {}); p.stdin!.end(input); }
     const out: Buffer[] = [];
     let err = "";
     const timer = setTimeout(() => { p.kill("SIGKILL"); reject(new Error("ffmpeg took too long")); }, timeoutMs);
-    p.stdout.on("data", (d: Buffer) => out.push(d));
-    p.stderr.on("data", (d: Buffer) => { if (err.length < 20_000) err += d.toString(); });
+    p.stdout!.on("data", (d: Buffer) => out.push(d));
+    p.stderr!.on("data", (d: Buffer) => { if (err.length < 20_000) err += d.toString(); });
     p.on("error", (e) => { clearTimeout(timer); reject(e); });
     p.on("close", (code) => { clearTimeout(timer); resolve({ code: code ?? -1, out: Buffer.concat(out), err }); });
   });
@@ -56,4 +57,12 @@ export async function frameAt(file: string, sec: number, maxWidth: number, quali
 export function spacedTimes(from: number, to: number, count: number): number[] {
   const span = Math.max(0, to - from);
   return Array.from({ length: count }, (_, i) => Math.round((from + ((i + 0.5) * span) / count) * 100) / 100);
+}
+
+/** A picture redrawn as a JPEG no wider than `maxWidth` (for pictures too large to hand to the model as they are). Null when it cannot be done. */
+export async function shrinkPicture(bytes: Uint8Array, maxWidth = 1568): Promise<Buffer | null> {
+  try {
+    const r = await run(["-v", "error", "-i", "pipe:0", "-frames:v", "1", "-vf", `scale='min(${Math.floor(maxWidth)},iw)':-2`, "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "-"], 30_000, bytes);
+    return r.code === 0 && r.out.byteLength > 200 ? r.out : null;
+  } catch { return null; }
 }

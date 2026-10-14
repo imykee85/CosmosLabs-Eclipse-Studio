@@ -23,7 +23,7 @@ export function parsePictures(input: unknown): PicturePick[] {
 export async function attachPictures(userId: string, picks: PicturePick[], last: Anthropic.MessageParam, load: (userId: string, refs: ImageRef[]) => ReturnType<Loader>): Promise<string> {
   if (!picks.length) return "";
   const loaded = await load(userId, picks.map(({ type, id }) => ({ type, id })));
-  if (!loaded.ok) return "\nThe pictures attached to the box could not be loaded this time, so you cannot see them. Say so if it matters.";
+  if (!loaded.ok) return `\nThe ${picks.length} picture${picks.length > 1 ? "s" : ""} attached to the box could not be loaded this time, so you cannot see them. The reason: ${loaded.error} Tell the user that reason plainly and do not guess what the pictures show.`;
   const blocks: Anthropic.ContentBlockParam[] = [];
   loaded.images.forEach((img, i) => {
     blocks.push({ type: "text", text: `Picture ${i + 1}${picks[i].role ? ` (${picks[i].role})` : ""}: ${clip(img.label, 60)}` });
