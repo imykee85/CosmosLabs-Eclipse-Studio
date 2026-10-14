@@ -411,11 +411,11 @@ export default function VideoStudio() {
               <button type="button" className={`cr-chip vs-sound ${sound && caps.audio ? "" : "is-muted"}`} disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} title={!caps.audio ? `${model.label} has no sound setting` : sound ? "Sound on. Tap to mute." : "Muted. Tap to turn sound on."} onClick={() => setSound((v) => !v)}>
                 {sound && caps.audio ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
-              <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the aspect ratio follows your picture" : "Aspect ratio of the clip"}><span className="sr-only">Aspect ratio</span>
+              {caps.ratios.length > 0 && <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the aspect ratio follows your picture" : "Aspect ratio of the clip"}><span className="sr-only">Aspect ratio</span>
                 <select value={caps.ratios.length ? ratio : ""} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio" disabled={!caps.ratios.length}>
-                  {caps.ratios.length ? <><option value="auto">Auto</option>{caps.ratios.filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}</> : <option value="">Follows picture</option>}
+                  {caps.ratios.length ? <><option value="auto">Auto</option>{caps.ratios.filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}</>}
                 </select>
-              </label>
+              </label>}
               <label className="cr-chip cr-select"><span className="sr-only">Length</span>
                 <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} aria-label="Length of the clip" disabled={!caps.durations.length} title={mc ? "The length follows the motion clip" : undefined}>{caps.durations.map((d) => <option key={d} value={d}>{secs(d)}</option>)}</select>
               </label>
