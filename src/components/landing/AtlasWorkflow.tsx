@@ -16,6 +16,22 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
   const [still, setStill] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const bot = useRef<HTMLDivElement>(null);
+  const right = useRef<HTMLDivElement>(null);
+
+  // Side by side, the right column starts level with the top of Atlas; stacked, it just follows.
+  useEffect(() => {
+    const align = () => {
+      const r = right.current, b = bot.current;
+      if (!r || !b) return;
+      r.style.marginTop = "0px";
+      if (r.getBoundingClientRect().left <= b.getBoundingClientRect().left + 40) return;
+      r.style.marginTop = `${Math.max(0, Math.round(b.getBoundingClientRect().top - r.getBoundingClientRect().top))}px`;
+    };
+    align();
+    window.addEventListener("resize", align);
+    document.fonts?.ready.then(align);
+    return () => window.removeEventListener("resize", align);
+  }, []);
   const [intro, setIntro] = useState(false);
 
   // Bounce, then spin, the first time Atlas comes into view.
@@ -77,6 +93,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
         <div className="atl-cta">{cta}</div>
       </div>
 
+      <div className="atl-right" ref={right}>
       <div className="atl-demo" ref={box} aria-label="How Atlas works" style={{ ["--atl-p" as string]: still ? 1 : active / last }}>
         <div className="atl-line" aria-hidden="true"><div className="atl-fill" /></div>
         <ol>
@@ -88,6 +105,8 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
             </li>
           ))}
         </ol>
+      </div>
+      <p className="atl-tag">Imagine it. Say it.<br /><em>Atlas does the rest.</em></p>
       </div>
     </section>
   );
