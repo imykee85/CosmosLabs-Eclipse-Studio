@@ -18,9 +18,10 @@ const MAX_COPY_TRIES = 4;                   // after this many failed copies the
 export const REFUSED = "The model refused this. Try a different prompt or picture.";
 export const FAILED = "The video could not be made. No credits were used.";
 export const CANCELED = "This video was canceled. No Eclipse credits were used. Higgsfield decides whether it refunds its own.";
-export const TIMED_OUT = "We stopped waiting for this video: it took longer than our wait limit. No Eclipse credits were used. It may still finish at Higgsfield, which may already have used some of its own credits.";
+export const TIMED_OUT = "This video is taking longer than our wait limit. If Higgsfield still finishes it, it will appear here by itself and only then are Eclipse credits used. Higgsfield may already have used some of its own.";
+export const LATE_WATCH_MS = 6 * 60 * 60 * 1000; // after a timeout the row is kept this long and re-checked, so a video that finishes late is not lost
 
-type Params = { workflow?: string; endpoint?: string; resolution?: string; duration?: number; copyTries?: number; cancelRequested?: boolean };
+type Params = { workflow?: string; endpoint?: string; resolution?: string; duration?: number; copyTries?: number; cancelRequested?: boolean; lateUntil?: number };
 const paramsOf = (g: Generation): Params => (g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Params) : {});
 
 async function failVideo(g: Generation, error: string): Promise<Generation> {
@@ -58,9 +59,9 @@ export async function finalizeVideo(g: Generation): Promise<Generation> {
     if (age > timeoutMs) {
       // Keep what the provider last said, so the owner can tell "still waiting in its queue" from "running" from "an answer we misread".
       const base = g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Record<string, unknown>) : {};
-      await db.generation.update({ where: { id: g.id }, data: { params: { ...base, providerStatusAtTimeout: s.raw ?? s.state, startedAtProvider: Boolean(g.startedAt) } as object } }).catch(() => {});
       // We only stop WAITING. The provider is not told to cancel: a job that is really running keeps its credits and may still finish, so cancelling it
       // could cost the person both the credits and the video. Only the person's own Cancel button asks the provider to stop.
+      await db.generation.updateMany({ where: { id: g.id, status: { in: ["pending", "saving"] } }, data: { params: { ...base, providerStatusAtTimeout: s.raw ?? s.state, startedAtProvider: Boolean(g.startedAt), lateUntil: Date.now() + LATE_WATCH_MS } as object } });
       return failVideo(g, TIMED_OUT);
     }
     return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
@@ -77,22 +78,47 @@ export async function finalizeVideo(g: Generation): Promise<Generation> {
   if (claim.count === 0) return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
   if (!storageEnabled) return failVideo(g, "Video storage is not set up, so this video could not be saved. No credits were used.");
 
+  return saveAndComplete(g, p, model?.label, s.videoUrl, "pending");
+}
+
+// Copies the finished file into storage, charges once and completes the row. `back` is the status the row returns to if the copy fails (the claim moved it to "saving").
+async function saveAndComplete(g: Generation, p: Params, label: string | undefined, videoUrl: string, back: "pending" | "failed"): Promise<Generation> {
   let saved;
   try {
-    saved = await saveVideoFromUrl(g.userId, g.id, s.videoUrl);
+    saved = await saveVideoFromUrl(g.userId, g.id, videoUrl);
   } catch (err) {
     console.error("saving the video to storage failed", g.id, err);
     const tries = (p.copyTries ?? 0) + 1;
     if (tries >= MAX_COPY_TRIES) return failVideo(g, "This video was made but could not be saved. No credits were used.");
-    // Not finished: back to pending so the next ask tries the copy again (the provider still has the file).
-    await db.generation.updateMany({ where: { id: g.id, status: "saving" }, data: { status: "pending", params: { ...p, copyTries: tries } } });
+    // Not finished: back to where it was so the next ask tries the copy again (the provider still has the file).
+    await db.generation.updateMany({ where: { id: g.id, status: "saving" }, data: { status: back, params: { ...p, copyTries: tries } } });
     return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
   }
 
   if (g.creditsHeld != null && g.creditsHeld > 0) {
-    try { await spendCredits(g.userId, g.creditsHeld, `${model?.label ?? "Video"} video`); } catch (err) { console.error("charging credits failed", g.id, err); }
+    try { await spendCredits(g.userId, g.creditsHeld, `${label ?? "Video"} video`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
   return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, error: null, finishedAt: new Date() } });
+}
+
+// A video we stopped waiting for (timed out) is kept for LATE_WATCH_MS and asked about again here: if the provider finished it after all, it is saved and
+// charged like any other and the row turns into the video. A provider answer of failed/refused/canceled, or the end of the window, lets the row go.
+export const isLateWatch = (g: Generation) => g.kind === "video" && g.status === "failed" && Boolean(g.statusUrl) && (paramsOf(g).lateUntil ?? 0) > Date.now();
+
+export async function rescueLateVideo(g: Generation): Promise<Generation> {
+  if (!isLateWatch(g)) return g;
+  const p = paramsOf(g);
+  let s;
+  try { s = await videoStatus(g.statusUrl!); } catch { return g; }
+  if (s.state === "queued" || s.state === "in_progress") return g;
+  if (s.state !== "completed") {
+    await db.generation.updateMany({ where: { id: g.id, status: "failed" }, data: { params: { ...p, lateUntil: 0 } as object } });
+    return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
+  }
+  if (!storageEnabled) return g;
+  const claim = await db.generation.updateMany({ where: { id: g.id, status: "failed" }, data: { status: "saving" } });
+  if (claim.count === 0) return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
+  return saveAndComplete(g, p, findVideoModel(g.model)?.label, s.videoUrl, "failed");
 }
 
 // Cancel is best effort (what Higgsfield's cancel address really does is NOT VERIFIED): the provider is asked, then asked how it is going. Only a status of

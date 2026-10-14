@@ -2,7 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
+import { waitUntil } from "@vercel/functions";
 import { finalizeGeneration, purgeFailed, toItem } from "@/lib/generation-jobs";
+import { isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 100;
@@ -25,6 +27,9 @@ export async function GET(req: Request) {
     await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err));
     const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
     // Renders still running are checked on here, so coming back later (or from another device) finds them finished.
+    // Videos we stopped waiting for are asked about again in the background (a late finish turns the row into the video on the next load).
+    const late = rows.filter(isLateWatch).slice(0, 3);
+    if (late.length) { try { waitUntil(Promise.allSettled(late.map(rescueLateVideo))); } catch { /* not on Vercel */ } }
     const items = await Promise.all(rows.map(async (g) => toItem(await finalizeGeneration(g))));
     return NextResponse.json({ items });
   } catch (err) {

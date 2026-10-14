@@ -129,8 +129,11 @@ export async function completeFromBytes(g: Generation, saved: SavedImage, usage:
 export async function failRender(id: string, error: string): Promise<void> { await fail(id, error); }
 
 export async function purgeFailed(userId?: string): Promise<number> {
-  const r = await db.generation.deleteMany({ where: { status: "failed", updatedAt: { lt: new Date(Date.now() - FAILED_KEEP_MS) }, ...(userId ? { userId } : {}) } });
-  return r.count;
+  const rows = await db.generation.findMany({ where: { status: "failed", updatedAt: { lt: new Date(Date.now() - FAILED_KEEP_MS) }, ...(userId ? { userId } : {}) }, select: { id: true, kind: true, params: true } });
+  // A video we stopped waiting for is kept while it may still finish at the provider (see rescueLateVideo).
+  const drop = rows.filter((r) => !(r.kind === "video" && r.params && typeof r.params === "object" && !Array.isArray(r.params) && Number((r.params as { lateUntil?: number }).lateUntil ?? 0) > Date.now())).map((r) => r.id);
+  if (!drop.length) return 0;
+  return (await db.generation.deleteMany({ where: { id: { in: drop } } })).count;
 }
 
 const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };
