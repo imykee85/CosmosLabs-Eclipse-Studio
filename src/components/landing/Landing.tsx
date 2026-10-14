@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
-import { audience, faqs, results, steps } from "./data";
+import { audience, faqs, results } from "./data";
 import { plans } from "@/lib/plans";
 import HeroImage from "./HeroImage";
 import CanvasCarousel from "./CanvasCarousel";
+import AtlasWorkflow from "./AtlasWorkflow";
 import ScrollReveal from "./ScrollReveal";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
@@ -123,22 +124,7 @@ export default function Landing() {
         <div className="section-cta"><Cta /></div>
       </section>
 
-      <section id="how-it-works" className="process-section section-pad">
-        <div className="process-title">
-          <div className="eyebrow">THE ECLIPSE WORKFLOW</div>
-          <h2>from idea to image.<br /><em>in one step.</em></h2>
-          <Cta dark>Create your first image</Cta>
-        </div>
-        <div className="process-list">
-          {steps.map(([num, title, copy]) => (
-            <div className="process-row" key={num}>
-              <span>{num}</span>
-              <div><b>{title}</b><p>{copy}</p></div>
-              <ArrowRight size={18} />
-            </div>
-          ))}
-        </div>
-      </section>
+      <AtlasWorkflow cta={<Cta dark>Create your first piece</Cta>} />
 
       <section id="try-it" className="try-section section-pad">
         <div className="try-inner">

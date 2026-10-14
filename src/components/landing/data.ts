@@ -23,11 +23,13 @@ export const audience = [
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising"];
 
-export const steps = [
-  ["01", "DESCRIBE IT", "Write your idea in plain language."],
-  ["02", "GENERATE", "Eclipse sends your prompt to the image model."],
-  ["03", "REVIEW", "See the result right away."],
-  ["04", "KEEP IT", "Every generation is saved to your gallery."],
+// The Atlas workflow timeline. Only what Atlas really does today: it proposes, the person approves, nothing renders without a press.
+export const atlasSteps = [
+  ["01", "TELL ATLAS", "Describe your idea in plain language."],
+  ["02", "ATLAS PLANS IT", "Atlas shapes the idea and writes the prompt."],
+  ["03", "ATLAS CREATES", "Approve it and your image or video is made."],
+  ["04", "REFINE", "Ask for changes and Atlas reworks it."],
+  ["05", "KEEP IT", "Every result is saved in your gallery."],
 ] as const;
 
 export const faqs = [
