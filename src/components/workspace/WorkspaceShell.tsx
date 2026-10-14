@@ -37,7 +37,7 @@ const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/a
 // The four tools that work across Photo, Audio and Video, shown together under one heading at the top.
 const utilities: Item[] = [connectItem, agentsItem, canvasItem, ingredients];
 const video: Item[] = [
-  { label: "Treatment", hint: "Shape the concept", href: "/treatment", icon: <Lightbulb size={17} />, soon: true },
+  { label: "Treatment", hint: "Shape the concept", href: "/treatment", icon: <Lightbulb size={17} /> },
   { label: "Prompts", hint: "Scene by scene", href: "/prompts", icon: <MessageSquareText size={17} /> },
   { label: "Video Studio", hint: "Render the clips", href: "/generate", icon: <Clapperboard size={17} />, soon: true },
   { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true },

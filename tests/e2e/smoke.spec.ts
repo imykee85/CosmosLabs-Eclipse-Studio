@@ -198,3 +198,35 @@ test.describe("phone layout", () => {
     expect(w.scroll).toBeLessThanOrEqual(520);
   });
 });
+
+test.describe("treatment", () => {
+  test("the planner chat builds a treatment, keeps it, and hands it to Prompts", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+    let body: { mode?: string; messages?: { role: string; text: string }[]; treatment?: { title: string } } | null = null;
+    await page.route("**/api/treatment/chat", (r) => {
+      body = r.request().postDataJSON();
+      return r.fulfill({ json: { text: "Nice. Who is it for?", treatment: { title: "Night Run", logline: "A courier races dawn across the city.", structure: ["Alarm rings", "The sprint", "Sunrise"] } } });
+    });
+    await page.goto("/treatment");
+    await page.locator(".tr-start-card", { hasText: "Describe your idea" }).click();
+    await page.fill("textarea", "a courier who races the sunrise");
+    await page.click(".tr-send");
+    await expect(page.locator(".tr-bubble", { hasText: "Nice. Who is it for?" })).toBeVisible();
+    expect(body!.mode).toBe("concept");
+    expect(body!.messages!.at(-1)!.text).toBe("a courier who races the sunrise");
+    await expect(page.locator(".tr-plan")).toContainText("Night Run");
+    await expect(page.locator(".tr-plan li")).toHaveCount(3);
+    // kept through a refresh
+    await page.reload();
+    await expect(page.locator(".tr-plan")).toContainText("Night Run");
+    await expect(page.locator(".tr-bubble", { hasText: "Nice. Who is it for?" })).toBeVisible();
+    // carried on to Prompts
+    await page.click(".tr-pill-go");
+    await expect(page).toHaveURL(/\/prompts/);
+    await expect(page.locator("textarea").first()).toHaveValue(/Night Run/);
+  });
+});

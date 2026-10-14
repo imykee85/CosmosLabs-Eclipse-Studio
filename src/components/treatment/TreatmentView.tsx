@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import { ArrowRight, FileText, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Copy, FileText, Loader2, Trash2, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
 import AgentIcon from "@/components/AgentIcon";
 import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
+import { readCurrentProject } from "@/lib/projects";
+import { cleanTreatment, EMPTY_TREATMENT, hasTreatment, treatmentText, type Treatment } from "@/lib/treatment";
 import "@/components/create/create.css";
 import "./treatment.css";
 
@@ -42,6 +44,11 @@ const MEDIA = [
   { label: "Style", icon: <Palette size={14} /> },
 ];
 
+type Msg = { id: string; role: "user" | "assistant"; text: string; full?: string; error?: boolean };
+const uid = () => Math.random().toString(36).slice(2, 10);
+const TEXT_FILE = /\.(txt|md|csv|json)$/i;
+const KEY = (project: string) => `eclipse-treatment-${project}`;
+
 export default function TreatmentView() {
   const router = useRouter();
   // null = the starting-point screen (desktop). Phones have no such screen, so they open on the first tab.
@@ -49,17 +56,74 @@ export default function TreatmentView() {
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
   const [files, setFiles] = useState<File[]>([]);
   const [text, setText] = useState("");
+  // The conversation and the plan built from it (a treatment), kept in this browser per project.
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [plan, setPlan] = useState<Treatment>(EMPTY_TREATMENT);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [project, setProject] = useState("default");
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const id = readCurrentProject()?.id ?? "default";
+    setProject(id);
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY(id)) ?? "null");
+      if (d && Array.isArray(d.msgs)) setMsgs(d.msgs.filter((m: Msg) => m && typeof m.text === "string" && (m.role === "user" || m.role === "assistant")).slice(-60));
+      if (d?.plan) setPlan(cleanTreatment(d.plan));
+      if (d?.mode === "brief" || d?.mode === "concept" || d?.mode === "guide") setMode(d.mode);
+    } catch {}
+    setReady(true);
+  }, []);
+  useEffect(() => {
+    if (!ready) return;
+    try { localStorage.setItem(KEY(project), JSON.stringify({ mode, msgs: msgs.slice(-60), plan })); } catch {}
+  }, [ready, project, mode, msgs, plan]);
+  useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, busy]);
+
   // The agent: pick one (chip) and switch it on (switch). On, it floats on the screen like in Image Studio and its card is the chat.
   const agent = useAgent();
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
   const agentChip = useRef<HTMLButtonElement>(null);
   useAgentHost({
     page: "treatment",
-    context: () => ({ prompt: text }),
+    context: () => ({ prompt: text, settings: treatmentText(plan).split("\n").slice(0, 14) }),
     setPrompt: setText,
     generate: async () => "Pictures are made in Image Studio. Open it and I can start the render there.",
   });
   const picker = useRef<HTMLInputElement>(null);
+  async function send() {
+    const typed = text.trim();
+    if ((!typed && !files.length) || busy) return;
+    setError("");
+    // Text files are read here and sent with the message; other kinds of file cannot be read yet.
+    const readable = files.filter((f) => TEXT_FILE.test(f.name) && f.size <= 200_000);
+    if (files.length && readable.length < files.length) setError("Only text files (.txt, .md, .csv, .json, up to 200 KB) can be read for now. Paste the text of other files instead.");
+    let full = typed;
+    for (const f of readable) full += `\n\n[Attached file: ${f.name}]\n${(await f.text()).slice(0, 8000)}`;
+    if (!full.trim()) return;
+    const shown = typed || (readable.length ? `(${readable.map((f) => f.name).join(", ")})` : "");
+    const mine: Msg = { id: uid(), role: "user", text: shown + (typed && readable.length ? `\n(attached: ${readable.map((f) => f.name).join(", ")})` : ""), full };
+    const history = [...msgs, mine];
+    setMsgs(history); setText(""); setFiles([]); setBusy(true);
+    try {
+      const res = await fetch("/api/treatment/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: active.id, treatment: plan, messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, text: m.full ?? m.text })) }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsgs((l) => [...l, { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The planner couldn't answer. Please try again.", error: true }]); return; }
+      if (data.treatment) setPlan(cleanTreatment(data.treatment));
+      setMsgs((l) => [...l, { id: uid(), role: "assistant", text: String(data.text ?? "") }]);
+    } catch {
+      setMsgs((l) => [...l, { id: uid(), role: "assistant", text: "I couldn't reach the server. Check your connection and try again.", error: true }]);
+    } finally { setBusy(false); }
+  }
+  const continueToPrompts = () => {
+    try { if (hasTreatment(plan)) sessionStorage.setItem("eclipse-treatment-handoff", treatmentText(plan)); } catch {}
+    router.push("/prompts");
+  };
+  const copyPlan = async () => { try { await navigator.clipboard.writeText(treatmentText(plan)); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {} };
+  const newPlan = () => { if (busy) return; setMsgs([]); setPlan(EMPTY_TREATMENT); setError(""); };
+
   const addFiles = (list: FileList | null) => { const picked = Array.from(list ?? []); if (picked.length) setFiles((f) => [...f, ...picked]); if (picker.current) picker.current.value = ""; };
 
   return (
@@ -70,9 +134,9 @@ export default function TreatmentView() {
           <p>{mode ? active.start : "Answer a few questions and Eclipse shapes your video concept. Optional."}</p>
         </div>
         <div className="tr-actions">
-          <span className="tr-pill tr-pill-quiet tr-pill-wide"><Lightbulb size={13} /> No concept yet</span>
-          <span className="tr-pill tr-pill-quiet tr-pill-short" aria-label="No concept yet"><Lightbulb size={14} /></span>
-          <button type="button" className="tr-pill tr-pill-go" onClick={() => router.push("/prompts")}>
+          <span className="tr-pill tr-pill-quiet tr-pill-wide"><Lightbulb size={13} /> {plan.title || (hasTreatment(plan) ? "Concept in progress" : "No concept yet")}</span>
+          <span className="tr-pill tr-pill-quiet tr-pill-short" aria-label={plan.title || "No concept yet"}><Lightbulb size={14} /></span>
+          <button type="button" className="tr-pill tr-pill-go" onClick={continueToPrompts}>
             <span className="tr-wide">Continue to prompts</span><span className="tr-short">Prompts</span> <ArrowRight size={15} />
           </button>
           <button type="button" className="tr-more" aria-label="More options"><MoreHorizontal size={17} /></button>
@@ -127,7 +191,30 @@ export default function TreatmentView() {
           </div>
         </div>
 
-        <form className="tr-composer" onSubmit={(e) => e.preventDefault()}>
+        {msgs.map((m) => (
+          <div key={m.id} className={`tr-msg ${m.role === "user" ? "is-user" : ""}`}>
+            {m.role === "assistant" && <span className="tr-ai">AI</span>}
+            <div className={`tr-bubble ${m.error ? "is-error" : ""}`}><p>{m.text}</p></div>
+          </div>
+        ))}
+        {busy && <div className="tr-msg"><span className="tr-ai">AI</span><div className="tr-bubble"><p className="tr-typing"><Loader2 size={15} className="cr-spin" /> Thinking…</p></div></div>}
+        <div ref={end} />
+
+        {hasTreatment(plan) && (
+          <section className="tr-plan" aria-label="Your treatment">
+            <div className="tr-plan-head">
+              <b>{plan.title || "Your treatment"}</b>
+              <span>
+                <button type="button" className="tr-tool" aria-label="Copy the treatment" title="Copy the treatment" onClick={() => void copyPlan()}><Copy size={15} />{copied && <i>Copied</i>}</button>
+                <button type="button" className="tr-tool" aria-label="Start a new treatment" title="Start a new treatment" onClick={newPlan}><Trash2 size={15} /></button>
+              </span>
+            </div>
+            {([["Idea", plan.logline], ["Audience", plan.audience], ["Goal", plan.goal], ["Tone", plan.tone], ["Look", plan.look], ["Notes", plan.notes]] as const).filter(([, v]) => v).map(([k, v]) => <p key={k}><em>{k}</em>{v}</p>)}
+            {plan.structure.length > 0 && <ol>{plan.structure.map((b, i) => <li key={i}>{b}</li>)}</ol>}
+          </section>
+        )}
+
+        <form className="tr-composer" onSubmit={(e) => { e.preventDefault(); void send(); }}>
           {files.length > 0 && (
             <div className="tr-files">
               {files.map((f, i) => (
@@ -138,9 +225,11 @@ export default function TreatmentView() {
             </div>
           )}
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Your message"
-            placeholder={active.id === "brief" ? "Paste your brief or attach a file..." : "Type your answer..."} />
+            placeholder={active.id === "brief" ? "Paste your brief or attach a file..." : "Type your answer..."}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
+          {error && <p className="tr-error" role="alert">{error}</p>}
           <div className="tr-tools">
-            <input ref={picker} type="file" multiple hidden accept=".pdf,.doc,.docx,.txt,.md,.rtf" onChange={(e) => addFiles(e.target.files)} />
+            <input ref={picker} type="file" multiple hidden accept=".txt,.md,.csv,.json" onChange={(e) => addFiles(e.target.files)} />
             <button type="button" className="tr-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
             <button type="button" className="tr-tool" aria-label="Add a link"><Link2 size={16} /></button>
             <button type="button" className="tr-tool" aria-label="Voice input"><Mic size={16} /></button>
@@ -151,7 +240,7 @@ export default function TreatmentView() {
               <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                 onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
             </div>
-            <button type="submit" className="tr-send" aria-label="Send"><Send size={16} /></button>
+            <button type="submit" className="tr-send" aria-label="Send" disabled={busy || (!text.trim() && !files.length)}>{busy ? <Loader2 size={16} className="cr-spin" /> : <Send size={16} />}</button>
           </div>
         </form>
       </section>
