@@ -16,7 +16,7 @@ const START_GRACE_MS = 2 * 60 * 1000;             // how long a render may be wi
 // A failed render is not worth keeping. It stays this long after it failed so whoever is watching still reads why, then it is deleted.
 const FAILED_KEEP_MS = 2 * 60 * 1000;
 export const SYNC_MARK = "sync:";                 // statusUrl of a render that runs inside its own request
-const SYNC_GIVE_UP_MS = 4 * 60 * 1000;            // such a request cannot outlive its function time limit; past this it is gone
+const SYNC_GIVE_UP_MS = 6 * 60 * 1000;            // such a request cannot outlive its function time limit; past this it is gone
 
 export type RenderItem = {
   id: string;
@@ -65,7 +65,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
   if (g.kind === "video") return g;
   const staleSaving = g.status === "saving" && Date.now() - g.updatedAt.getTime() > SAVING_STALE_MS;
   if (g.status !== "pending" && !staleSaving) return g;
-  // A render from Google or OpenAI runs inside the request that started it (no job to ask about): leave it alone while it can still be running, and fail it if that request died.
+  // A render from Google or OpenAI runs in the background of the request that started it (no job to ask about): leave it alone while it can still be running, and fail it if that function died.
   if (g.statusUrl?.startsWith(SYNC_MARK)) {
     if (g.status === "pending" && Date.now() - g.createdAt.getTime() > SYNC_GIVE_UP_MS) return (await fail(g.id, "This render took too long and was stopped. Please try again.")) ?? g;
     return g;

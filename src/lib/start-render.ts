@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions";
 import { claimUsage } from "@/lib/usage";
 import { createGenerationHeld } from "@/lib/reservations";
 import { db } from "@/lib/db";
@@ -109,7 +110,7 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
 }
 
 
-const INLINE_TIMEOUT_MS = 55_000; // the start route's time limit is 60 s
+const INLINE_TIMEOUT_MS = 280_000; // the start route's time limit is 300 s; the render runs after the reply has gone out
 
 async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
   let bytes: Uint8Array;
@@ -137,15 +138,19 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
   const made = await createGenerationHeld(userId, a.cost, { userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${a.cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
   const row = made.row;
-  try {
-    const references = await Promise.all(a.items.map(loadReference));
-    const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
-    const saved = await saveImageBytes(userId, out.bytes, out.contentType);
-    return { ok: true, item: await toItem(await completeFromBytes(row, saved, out.usage)), seedNote: a.seedNote };
-  } catch (err) {
-    console.error("inline generation failed", model.id, err instanceof ProviderError ? err.detail : err);
-    const message = err instanceof ProviderError ? err.userMessage : "Our side failed to make or save this image. Please try again.";
-    await failRender(row.id, message);
-    return { ok: false, status: 502, error: message };
-  }
+  // The reply goes out at once with a pending row (the browser follows it like any job); the render continues after it (waitUntil, up to the route's 300 s).
+  const work = (async () => {
+    try {
+      const references = await Promise.all(a.items.map(loadReference));
+      const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+      const saved = await saveImageBytes(userId, out.bytes, out.contentType);
+      await completeFromBytes(row, saved, out.usage);
+    } catch (err) {
+      console.error("inline generation failed", model.id, err instanceof ProviderError ? err.detail : err);
+      const message = err instanceof ProviderError ? err.userMessage : "Our side failed to make or save this image. Please try again.";
+      await failRender(row.id, message).catch(() => {});
+    }
+  })();
+  try { waitUntil(work); } catch { /* not on Vercel: the promise simply keeps running */ }
+  return { ok: true, item: await toItem(row), seedNote: a.seedNote };
 }
