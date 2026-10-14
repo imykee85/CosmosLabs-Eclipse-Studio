@@ -413,7 +413,7 @@ export default function VideoStudio() {
               </button>
               {caps.ratios.length > 0 && <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the aspect ratio follows your picture" : "Aspect ratio of the clip"}><span className="sr-only">Aspect ratio</span>
                 <select value={caps.ratios.length ? ratio : ""} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio" disabled={!caps.ratios.length}>
-                  {caps.ratios.length ? <><option value="auto">Auto</option>{caps.ratios.filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}</>}
+                  <option value="auto">Auto</option>{caps.ratios.filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </label>}
               <label className="cr-chip cr-select"><span className="sr-only">Length</span>
