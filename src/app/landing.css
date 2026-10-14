@@ -490,6 +490,3 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .hero .strip-label { color: rgba(176,212,218,.72); }
 .hero .strip-set li { color: rgba(176,212,218,.72); }
 .hero .strip-logo img { filter: brightness(0) invert(1) sepia(1) saturate(2.4) hue-rotate(128deg) brightness(.95); opacity: .78; }
-
-/* The phone browser's top bar takes its colour from the page background behind the content (iPhone Safari with floating bars ignores theme-color): on the landing page only, that background is the hero's top colour (user 2026-10-14). The sections cover the page, so it shows only behind the bars and in overscroll. */
-html:has(.site-shell .hero), body:has(.site-shell .hero) { background-color: #3f1615; }
