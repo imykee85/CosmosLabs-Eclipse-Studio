@@ -108,13 +108,17 @@ export default function Landing() {
           </div>
         </div>
         <div className="audience-grid">
-          {audience.map(([title, copy], i) => (
-            <button className={`audience-card ${selected === i ? "selected" : ""}`} onClick={() => setSelected(i)} key={title}>
-              <div className={`tile tone-${i}`} />
-              <span className="audience-number">0{i + 1}</span>
-              <div><b>{title}</b><small>{copy}</small></div>
-              <ArrowRight className="audience-arrow" size={18} />
-            </button>
+          {audience.map(([title, copy, maker, kind, facts, nice], i) => (
+            <div className="audience-item" key={title}>
+              <button className={`audience-card ${selected === i ? "selected" : ""}`} onClick={() => setSelected(i)}>
+                <div className={`tile tone-${i}`} />
+                <span className="audience-number">0{i + 1}</span>
+                <span className="audience-kind">{kind}</span>
+                <div><b>{title}</b><small>{copy}</small></div>
+                <ArrowRight className="audience-arrow" size={18} />
+              </button>
+              <div className="audience-info"><b>{maker.toLowerCase()} / {nice}</b><p>{facts}</p></div>
+            </div>
           ))}
         </div>
         <div className="section-cta"><Cta /></div>

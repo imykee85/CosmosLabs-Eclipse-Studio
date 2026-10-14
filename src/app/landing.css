@@ -67,6 +67,12 @@
 .audience-card div { position: absolute; left: 20px; bottom: 20px; right: 42px; display: grid; gap: 5px; }
 .audience-card b { font-family: var(--font-display); font-size: 20px; letter-spacing: -.03em; }
 .audience-card small { color: #d0ccc7; font-size: 11px; line-height: 1.4; }
+.audience-item { min-width: 0; display: grid; gap: 12px; align-content: start; }
+.audience-card .audience-kind { position: absolute; right: 20px; top: 18px; padding: 3px 9px; border-radius: 6px; background: rgba(255,255,255,.14); font-size: 10px; letter-spacing: .04em; color: #fff; }
+.audience-card .audience-number { position: absolute; left: 20px; top: 22px; }
+.audience-info { display: grid; gap: 5px; padding: 0 2px; }
+.audience-info b { font-size: 13px; font-weight: 600; color: #f2f2f2; letter-spacing: -.01em; }
+.audience-info p { margin: 0; font-size: 11.5px; line-height: 1.45; color: #85817b; }
 .audience-arrow { position: absolute; right: 19px; bottom: 20px; }
 .section-cta { text-align: center; margin-top: 42px; }
 .process-section { padding-top: 135px; padding-bottom: 135px; border-top: 1px solid var(--line); background: #000; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(40px,10vw,150px); }
