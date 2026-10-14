@@ -1,24 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FolderOpen, Search } from "lucide-react";
 import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
 import { useRenders } from "@/lib/use-renders";
 import SoonTag from "@/components/SoonTag";
 import UploadPanel from "@/components/uploads/UploadPanel";
+import MoreSentinel from "./MoreSentinel";
 import RenderTile from "./RenderTile";
 import "./library.css";
+
+const PAGE = 30; // the first screenful opens fast; more load as you scroll
 
 // Everything saved from any project, kept in one place so it can be reused in other projects.
 export default function LibraryView({ kind }: { kind: LibraryKind }) {
   const router = useRouter();
-  const { renders: all, reload } = useRenders();
+  const [limit, setLimit] = useState(PAGE);
+  const { renders: all, reload } = useRenders(undefined, limit);
+  const more = useCallback(() => setLimit((l) => l + PAGE), []);
   const renders = all ?? [];
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<(typeof INGREDIENT_ROLES)[number]>("All");
 
   const q = query.trim().toLowerCase();
+  useEffect(() => { if (q) setLimit(100); }, [q]); // a search looks through everything, not just the pages loaded so far
   const shown = renders.filter((g) => (!q || g.prompt.toLowerCase().includes(q)) && (kind === "Videos" ? g.kind === "video" : kind === "Images" ? g.kind !== "video" : true));
 
   return (
@@ -48,11 +54,14 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
       {kind === "Ingredients" ? (
         <UploadPanel show="ingredients" addKinds={["character", "product", "scene"]} addLabel="Add ingredient" role={role === "All" ? "all" : (role.toLowerCase() as "character" | "product" | "scene")} empty={{ title: "No ingredients yet", copy: "Characters, products and scenes you add appear here, ready to reuse in any project." }} />
       ) : (kind === "All" || kind === "Images" || kind === "Videos") && shown.length > 0 ? (
-        <div className="lib-grid">
-          {shown.map((g) => (
-            <RenderTile key={g.id} g={g} onChanged={reload} />
-          ))}
-        </div>
+        <>
+          <div className="lib-grid">
+            {shown.map((g) => (
+              <RenderTile key={g.id} g={g} onChanged={reload} />
+            ))}
+          </div>
+          <MoreSentinel active={renders.length >= limit && limit < 100} onMore={more} />
+        </>
       ) : (
       <div className="lib-empty">
         <FolderOpen size={46} strokeWidth={1.4} aria-hidden="true" />

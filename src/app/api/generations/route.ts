@@ -8,6 +8,7 @@ import { isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 100;
+const FINISH_WAIT_MS = 3500; // checking on a running render asks the provider; one slow answer must not hold up the whole list (the row is shown as it is and the check carries on)
 
 // The signed-in user's renders, newest first. With ?projectId= only that project's (the Gallery); without it all of them (the Library). Images in the Bin are left out unless ?bin=1 asks for exactly those. Each imageUrl is a fresh short-lived signed link, so fetch the list again rather than keeping the links.
 export const maxDuration = 60;
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
     if (late.length) { try { waitUntil(Promise.allSettled(late.map(rescueLateVideo))); } catch { /* not on Vercel */ } }
     // One bad row must never blank the whole list: if finishing or describing a render throws, fall back to the row as stored, and skip it only if even that fails.
     const settled = await Promise.all(rows.map(async (g) => {
-      try { return await toItem(await finalizeGeneration(g)); } catch (err) {
+      try { return await toItem(await Promise.race([finalizeGeneration(g), new Promise<typeof g>((resolve) => setTimeout(() => resolve(g), FINISH_WAIT_MS))])); } catch (err) {
         console.error("could not describe a render", g.id, err);
         try { return await toItem(g); } catch { return null; }
       }

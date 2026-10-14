@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
 import RenderDialog from "./RenderDialog";
@@ -13,6 +13,22 @@ const Caption = ({ g }: { g: Render }) => (
   </>
 );
 
+// A tile's clip loads and plays only while it is on (or just about to be on) screen: a Library full of videos used to start downloading every clip at once.
+function TileVideo({ src, label }: { src: string; label: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setNear(true); el.play?.().catch(() => {}); } else el.pause?.();
+    }, { rootMargin: "200px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <video ref={ref} src={near ? `${src}#t=0.1` : undefined} muted loop autoPlay playsInline preload={near ? "metadata" : "none"} aria-label={label} />;
+}
+
 // One render in the Gallery or Library: the picture, or a spinner while it is still being made, or why it failed.
 export default function RenderTile({ g, onChanged }: { g: Render; onChanged?: () => void }) {
   const [open, setOpen] = useState(false);
@@ -23,12 +39,12 @@ export default function RenderTile({ g, onChanged }: { g: Render; onChanged?: ()
           {g.kind === "video" ? (
             // A video tile: the same fixed square as a picture; it plays muted on a loop (#t=0.1 makes iPhone Safari draw a first frame). Tapping opens the full player.
             <span className="lib-video">
-              <video src={`${g.imageUrl}#t=0.1`} muted loop autoPlay playsInline preload="auto" aria-label={g.prompt} />
+              <TileVideo src={g.imageUrl} label={g.prompt} />
               {g.durationSec ? <em>{Math.round(g.durationSec)} s</em> : null}
             </span>
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={g.imageUrl} alt={g.prompt} loading="lazy" />
+            <img src={g.imageUrl} alt={g.prompt} loading="lazy" decoding="async" />
           )}
           <Caption g={g} />
         </button>
