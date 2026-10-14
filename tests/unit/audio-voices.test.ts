@@ -38,8 +38,8 @@ test("a rejected sample says what a good sample is; busy and owner alerts keep t
 
 test("who can clone and who can design", () => {
   assert.deepEqual(CLONE_PROVIDERS, ["elevenlabs", "fish", "minimax"]);
-  assert.deepEqual(DESIGN_PROVIDERS, ["elevenlabs", "minimax"]);
-  assert.ok(fish.cloneVoice && !fish.designVoice && elevenlabs.designVoice && minimax.designVoice);
+  assert.deepEqual(DESIGN_PROVIDERS, ["elevenlabs", "fish", "minimax"]);
+  assert.ok(fish.cloneVoice && fish.designVoice && elevenlabs.designVoice && minimax.designVoice);
 });
 
 async function fakeServer(handler: (r: IncomingMessage, body: string, res: ServerResponse) => void) {

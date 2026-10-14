@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { forSample, mapMiniMaxError } from "../errors";
+import { segmentsFromWords } from "../transcript";
 import { ProviderFailure, type AudioProvider, type AudioRequest, type AudioResult, type CloneInput, type DesignInput, type DesignPreview, type ProviderCtx, type Voice } from "../types";
 import { EMPTY_AUDIO, NEEDS_VOICE, send } from "./http";
 
 // MiniMax sync TTS over plain fetch (docs/audio-providers/minimax.md section 4). Every answer is HTTP 200 with base_resp: status_code 0 is the only success.
 // Audio comes back as hex and is decoded here; it is never kept as hex. Constant bitrate MP3 so pieces of a long text can be joined.
-const MODELS = new Set(["speech-2.8-hd", "speech-2.8-turbo", "speech-2.6-hd", "speech-2.6-turbo"]);
+const MODELS = new Set(["speech-2.8-hd", "speech-2.8-turbo", "speech-2.6-hd", "speech-2.6-turbo", "speech-02-hd", "speech-02-turbo"]);
+const STT_MODELS = new Set(["asr-1.0"]);
 
 export function minimaxBody(req: AudioRequest): Record<string, unknown> {
   const voice: Record<string, unknown> = { voice_id: req.voiceId };
@@ -34,10 +36,37 @@ const httpMap = (status: number) => mapMiniMaxError(0, status);
 const safeJson = (t: string): BaseResp | null => { try { return JSON.parse(t) as BaseResp; } catch { return null; } };
 const DESIGN_PREVIEW_TEXT = "Hello! This is how my voice sounds. I hope you like it.";
 
+// Speech to text POST /v1/speech_to_text (multipart; this endpoint uses REAL HTTP statuses, docs/audio-providers/minimax.md section 9). 500 s and 50 MB at most, paid accounts,
+// 2 at a time. The answer's fields are read defensively (text, duration, segments with start/end): VERIFY with a real key.
+async function transcribe(req: AudioRequest, ctx: ProviderCtx): Promise<AudioResult> {
+  if (!req.input) throw new ProviderFailure(NEEDS_VOICE);
+  const fd = new FormData();
+  fd.set("model", "asr-1.0");
+  fd.set("response_format", "verbose_json");
+  fd.append("file", new Blob([Buffer.from(await req.input.bytes())], { type: req.input.mime }), req.input.name);
+  const headers: Record<string, string> = { Authorization: `Bearer ${ctx.apiKey}` };
+  if (req.language) headers.language = req.language;
+  const res = await send("minimax", ctx, `${ctx.baseUrl}/v1/speech_to_text`, { method: "POST", headers, body: fd }, httpMap, 280_000);
+  const j = (await res.json().catch(() => null)) as { text?: string; duration?: number; language?: string; segments?: Array<{ text?: string; start?: number; end?: number }> } | null;
+  const text = (j?.text ?? "").trim();
+  if (!text) throw new ProviderFailure({ retryable: false, code: "no_speech", userMessage: "No speech was found in that recording." });
+  const segments = (j?.segments ?? []).filter((s) => typeof s.text === "string" && s.text.trim() && Number.isFinite(s.start) && Number.isFinite(s.end)).map((s) => ({ text: s.text!.trim(), start: s.start!, end: s.end! }));
+  return { mime: "text/plain", transcript: { text, language: j?.language, durationSec: Number.isFinite(j?.duration) ? j!.duration : segments.length ? segments[segments.length - 1].end : undefined, segments: segments.length ? segments : segmentsFromWords([]) } };
+}
+
+// Long text POST /v1/t2a_async_v2 (up to 50,000 characters): MiniMax makes the audio on its side; we ask GET /v1/query/t2a_async_query_v2 until it says Success, then copy
+// the file at once (it is available for only 9 hours). Status words are read case-insensitively (VERIFY the exact retrieve answer with a real key).
+export function asyncBody(req: AudioRequest): Record<string, unknown> {
+  const voice: Record<string, unknown> = { voice_id: req.voiceId };
+  if (req.speed != null && req.speed !== 1) voice.speed = req.speed;
+  return { model: req.modelId, text: req.text, voice_setting: voice, audio_setting: { audio_sample_rate: 44100, bitrate: 128000, format: "mp3", channel: 1 }, language_boost: "auto" };
+}
+
 export const minimax: AudioProvider = {
   id: "minimax",
-  supports: (kind, modelId) => kind === "tts" && MODELS.has(modelId),
+  supports: (kind, modelId) => (kind === "tts" && MODELS.has(modelId)) || (kind === "stt" && STT_MODELS.has(modelId)),
   async generate(req: AudioRequest, ctx: ProviderCtx): Promise<AudioResult> {
+    if (req.kind === "stt") return transcribe(req, ctx);
     if (!req.voiceId) throw new ProviderFailure(NEEDS_VOICE);
     const res = await send("minimax", ctx, `${ctx.baseUrl}/v1/t2a_v2`, { method: "POST", headers: auth(ctx), body: JSON.stringify(minimaxBody(req)) }, httpMap);
     const j = (await res.json().catch(() => null)) as (BaseResp & { data?: { audio?: string } | null; extra_info?: { audio_length?: number; usage_characters?: number } }) | null;
@@ -97,5 +126,33 @@ export const minimax: AudioProvider = {
     // A voice MiniMax already removed (an unused clone expires after 7 days) is gone: nothing left to delete.
     if (Number(j?.base_resp?.status_code ?? -1) === 0 || [2042, 20132].includes(Number(j?.base_resp?.status_code))) return;
     check(j);
+  },
+
+  async start(req: AudioRequest, ctx: ProviderCtx): Promise<{ taskId: string }> {
+    if (!req.voiceId) throw new ProviderFailure(NEEDS_VOICE);
+    const res = await send("minimax", ctx, `${ctx.baseUrl}/v1/t2a_async_v2`, { method: "POST", headers: auth(ctx), body: JSON.stringify(asyncBody(req)) }, httpMap);
+    const text = await res.text();
+    const j = safeJson(text) as (BaseResp & { task_id?: string | number }) | null;
+    check(j);
+    const id = /"task_id"\s*:\s*"?(\d{1,24})"?/.exec(text)?.[1] ?? (typeof j?.task_id === "string" ? j.task_id : "");
+    if (!id) throw new ProviderFailure({ retryable: true, code: "empty_task", userMessage: "The voice could not be started right now. Please try again in a moment." });
+    return { taskId: id };
+  },
+
+  async poll(taskId: string, ctx: ProviderCtx) {
+    if (!/^\d{1,24}$/.test(taskId)) return { status: "failed" as const, error: { retryable: false, code: "bad_task", userMessage: "The voice could not be made. Nothing was charged." } };
+    const res = await send("minimax", ctx, `${ctx.baseUrl}/v1/query/t2a_async_query_v2?task_id=${taskId}`, { method: "GET", headers: { Authorization: `Bearer ${ctx.apiKey}` } }, httpMap, 30_000);
+    const text = await res.text();
+    const j = safeJson(text) as (BaseResp & { status?: string }) | null;
+    check(j);
+    const status = String(j?.status ?? "").toLowerCase();
+    if (status === "failed" || status === "expired") return { status: "failed" as const, error: { retryable: false, code: `task_${status}`, userMessage: "The voice could not be made. Nothing was charged." } };
+    if (status !== "success") return { status: "running" as const };
+    const fileId = /"file_id"\s*:\s*"?(\d{1,24})"?/.exec(text)?.[1];
+    if (!fileId) return { status: "failed" as const, error: { retryable: false, code: "no_file", userMessage: "The voice could not be made. Nothing was charged." } };
+    const file = await send("minimax", ctx, `${ctx.baseUrl}/v1/files/retrieve_content?file_id=${fileId}`, { method: "GET", headers: { Authorization: `Bearer ${ctx.apiKey}` } }, httpMap, 120_000);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (!bytes.length) throw new ProviderFailure(EMPTY_AUDIO);
+    return { status: "done" as const, result: { bytes, mime: "audio/mpeg" } };
   },
 };

@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowUp, Coins, Download, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
+import { AlertCircle, ArrowUp, Coins, Download, FileText, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
 import SoonTag from "../SoonTag";
 import Stage from "./Stage";
+import TranscriptView from "./Transcript";
+import { EffectsConsole, ModeTabs, MusicConsole, TranscribeConsole, type Mode } from "./Modes";
 import VoiceCreator from "./VoiceCreator";
 import VoicePicker from "./VoicePicker";
 import { clock, orbStyle } from "./look";
@@ -18,6 +20,9 @@ import "./voice.css";
 const MODEL_KEY = "eclipse-voice-model";
 const VOICE_KEY = "eclipse-voice-voice";
 const DRAFT_KEY = "eclipse-draft-voice"; // cleared at sign-out with the other drafts
+const MODE_KEY = "eclipse-voice-mode";
+const KIND_LABEL = { tts: "Voice", stt: "Transcript", sfx: "Sound effect", music: "Music" } as const;
+const MODE_HERO: Record<Exclude<Mode, "speak">, [string, string]> = { transcribe: ["Transcribe", "Turn a recording into text with times and speakers"], effects: ["Sound effects", "Describe a sound and get it"], music: ["Music", "Describe a track and get it"] };
 const SPEEDS = [0.7, 0.8, 0.9, 1, 1.1, 1.2];
 
 type Chosen = { id: string; name: string; facts?: string };
@@ -28,7 +33,9 @@ const voiceKey = (provider: string) => `${VOICE_KEY}-${provider}`; // voice ids 
 const factsOf = (v: VoiceOption) => [v.accent, v.gender, v.age, v.descriptive].filter(Boolean).join(" · ") || undefined;
 
 export default function VoiceStudio() {
-  const { models, error: modelsError, costs, consentText } = useVoiceModels();
+  const { models: allModels, error: modelsError, costs, consentText } = useVoiceModels();
+  const models = useMemo(() => allModels?.filter((m) => m.kind === "tts") ?? null, [allModels]);
+  const [studioMode, setStudioMode] = useState<Mode>("speak");
   const { items, reload } = useVoiceJobs();
   const { reload: reloadCredits } = useCredits();
   const [modelId, setModelId] = useState<string | null>(null);
@@ -49,6 +56,8 @@ export default function VoiceStudio() {
 
   useEffect(() => {
     setModelId(read(MODEL_KEY));
+    const m = read(MODE_KEY);
+    if (m === "transcribe" || m === "effects" || m === "music") setStudioMode(m);
     setText(read(DRAFT_KEY) ?? "");
     loaded.current = true;
   }, []);
@@ -100,12 +109,12 @@ export default function VoiceStudio() {
   const playingTake = takes.find((t) => t.id === playing) ?? null;
   const making = takes.find((t) => t.status === "pending") ?? null;
   const mode: "idle" | "making" | "playing" = playingTake ? "playing" : making ? "making" : "idle";
-  const stageSeed = playingTake?.voiceId ?? voice?.id ?? "eclipse";
+  const stageSeed = playingTake?.voiceId ?? (studioMode === "speak" ? voice?.id : studioMode) ?? "eclipse";
 
   const chars = text.trim().length;
   const over = model ? chars > model.maxChars : false;
   const pricing = model?.pricing ?? null;
-  const price = !pricing || chars === 0 ? null : pricing.unit === "max" ? pricing.credits
+  const price = !pricing || chars === 0 || pricing.unit === "sec" ? null : pricing.unit === "max" ? pricing.credits
     : Math.max(1, Math.ceil((pricing.unit === "byte" ? new TextEncoder().encode(text.trim()).length : chars) * pricing.perUnit));
   const ready = !!model?.ready && strip.ready;
   const NOT_READY = notReady(model?.providerLabel);
@@ -167,6 +176,15 @@ export default function VoiceStudio() {
     return null;
   }
 
+  function changeMode(m: Mode) { setStudioMode(m); setError(""); setTagsOpen(false); write(MODE_KEY, m); }
+  // The other modes start a job through the same route and follow it in the takes list; they get back an error text, or null when it started.
+  async function startKind(body: Record<string, unknown>): Promise<string | null> {
+    const r = await startVoice({ ...body, projectId: readCurrentProject()?.id ?? null });
+    if (!r.ok) return r.error;
+    void reload();
+    return null;
+  }
+
   function choose(v: VoiceOption) {
     const c = { id: v.voiceId, name: v.name, facts: factsOf(v) };
     setVoice(c); if (provider) write(voiceKey(provider), JSON.stringify(c)); setPicking(false); setError("");
@@ -186,8 +204,9 @@ export default function VoiceStudio() {
       <section className="vc-hero" aria-label="Stage">
         <Stage seed={stageSeed} mode={mode} progress={pos.d ? pos.t / pos.d : 0} />
         <div className="vc-now" aria-live="polite">
-          {playingTake ? (<><b>{playingTake.voiceName ?? "Voice"}</b><span>{clock(pos.t * 1000)} / {clock((pos.d || (playingTake.durationMs ?? 0) / 1000) * 1000)}</span></>)
-            : making ? (<><b>Making your take</b><span>{clock(now - new Date(making.createdAt).getTime())}</span></>)
+          {playingTake ? (<><b>{playingTake.voiceName ?? KIND_LABEL[playingTake.kind]}</b><span>{clock(pos.t * 1000)} / {clock((pos.d || (playingTake.durationMs ?? 0) / 1000) * 1000)}</span></>)
+            : making ? (<><b>{making.kind === "stt" ? "Transcribing" : "Making your take"}</b><span>{clock(now - new Date(making.createdAt).getTime())}</span></>)
+            : studioMode !== "speak" ? (<><b>{MODE_HERO[studioMode][0]}</b><span>{MODE_HERO[studioMode][1]}</span></>)
             : voice ? (<><b>{voice.name}</b>{voice.facts && <span>{voice.facts}</span>}</>)
             : !ready ? (<><b>{model?.label ?? "Voice Studio"}</b><span>{model ? `${model.providerLabel} is not connected yet` : "Loading models"}</span></>)
             : model?.voiceOptional ? (<><b>{model.label}</b><span>Describe the voice and the scene in the script, or pick a voice below.</span></>)
@@ -195,7 +214,7 @@ export default function VoiceStudio() {
         </div>
       </section>
 
-      <section className="vc-voices" aria-label="Voices">
+      {studioMode === "speak" && <section className="vc-voices" aria-label="Voices">
         <div className="vc-strip" role="listbox" aria-label="Voices">
           <button type="button" className="vc-chip-all" onClick={() => setPicking(true)} disabled={!model} aria-label="Search all voices"><span><Search size={20} /></span><small>All</small></button>
           <button type="button" className="vc-chip-all" onClick={() => setCreating(true)} disabled={!model} aria-label="Create a voice"><span><Plus size={20} /></span><small>New</small></button>
@@ -206,26 +225,28 @@ export default function VoiceStudio() {
               </button>
             ))}
         </div>
-      </section>
+      </section>}
 
       <section className="vc-takes" aria-label="Takes">
         {takes.length === 0 ? (items === null ? null : <p className="vc-empty">Your takes appear here.</p>) : (
           <ul className="vc-list">
             {takes.map((t) => (
               <li key={t.id} className={`vc-take is-${t.status} ${playing === t.id ? "is-playing" : ""}`}>
-                {t.status === "completed" ? <button type="button" className="vc-play" aria-label={playing === t.id ? "Pause" : "Play"} onClick={() => toggle(t)}>{playing === t.id ? <Pause size={16} /> : <Play size={16} />}</button>
+                {t.status === "completed" && t.kind === "stt" ? <span className="vc-play is-doc" aria-hidden="true"><FileText size={16} /></span>
+                  : t.status === "completed" ? <button type="button" className="vc-play" aria-label={playing === t.id ? "Pause" : "Play"} onClick={() => toggle(t)}>{playing === t.id ? <Pause size={16} /> : <Play size={16} />}</button>
                   : t.status === "pending" ? <span className="vc-play is-wait" aria-hidden="true"><Loader2 size={16} className="vc-spin" /></span>
                   : <span className="vc-play is-bad" aria-hidden="true"><AlertCircle size={16} /></span>}
                 <div className="vc-take-body">
                   <p className="vc-take-text" title={t.text}>{t.text}</p>
-                  {t.status === "failed" ? <p className="vc-take-err">{t.error ?? "This take could not be made."}</p>
-                    : <p className="vc-take-meta"><span className="vc-orb vc-orb-xs" style={orbStyle(t.voiceId ?? t.id)} aria-hidden="true" />{t.voiceName ?? "Voice"} · {t.modelLabel} · {t.status === "pending" ? "making…" : timeAgo(t.createdAt)}</p>}
+                  {t.status === "failed" ? <p className="vc-take-err">{t.error ?? "This could not be made."}</p>
+                    : <p className="vc-take-meta"><span className="vc-orb vc-orb-xs" style={orbStyle(t.voiceId ?? t.id)} aria-hidden="true" />{t.kind === "tts" ? t.voiceName ?? "Voice" : KIND_LABEL[t.kind]} · {t.modelLabel} · {t.status === "pending" ? "making…" : timeAgo(t.createdAt)}</p>}
                 </div>
                 <span className="vc-dur">{t.status === "completed" && t.durationMs ? clock(t.durationMs) : ""}</span>
                 <span className="vc-take-actions">
-                  {t.status === "completed" && <a className="vc-icon" href={`/api/audio/${t.id}/file?download=1`} download aria-label="Download"><Download size={16} /></a>}
+                  {t.status === "completed" && t.kind !== "stt" && <a className="vc-icon" href={`/api/audio/${t.id}/file?download=1`} download aria-label="Download"><Download size={16} /></a>}
                   {t.status !== "pending" && <button type="button" className="vc-icon" aria-label="Delete" onClick={() => void remove(t.id)}><Trash2 size={16} /></button>}
                 </span>
+                {t.status === "completed" && t.kind === "stt" && t.transcript && <TranscriptView t={t.transcript} name={t.text} />}
               </li>
             ))}
           </ul>
@@ -234,7 +255,11 @@ export default function VoiceStudio() {
 
       <div className="vc-console-wrap">
         {message && <p className="vc-error" role="alert">{message}</p>}
-        <div className={`vc-console ${over ? "is-over" : ""}`}>
+        <ModeTabs mode={studioMode} onMode={changeMode} />
+        {studioMode === "transcribe" && <TranscribeConsole models={allModels?.filter((m) => m.kind === "stt") ?? []} onStart={startKind} setError={setError} />}
+        {studioMode === "effects" && <EffectsConsole models={allModels?.filter((m) => m.kind === "sfx") ?? []} onStart={startKind} setError={setError} />}
+        {studioMode === "music" && <MusicConsole models={allModels?.filter((m) => m.kind === "music") ?? []} onStart={startKind} setError={setError} />}
+        {studioMode === "speak" && <div className={`vc-console ${over ? "is-over" : ""}`}>
           <label htmlFor="vc-text" className="sr-only">Script</label>
           <textarea id="vc-text" ref={box} rows={2} value={text} onChange={(e) => { setText(e.target.value); if (error) setError(""); }} placeholder={voice ? `Write what ${voice.name} should say…` : "Write the script…"}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }} />
@@ -265,7 +290,7 @@ export default function VoiceStudio() {
             </button>
           </div>
           <span className="vc-soon"><SoonTag /></span>
-        </div>
+        </div>}
       </div>
 
       {picking && <VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} onNew={() => { setPicking(false); setCreating(true); }} onDelete={removeOwn} />}

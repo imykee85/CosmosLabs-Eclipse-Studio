@@ -175,3 +175,32 @@
 .vc-newbtn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .vc-sheet-actions { display: flex; align-items: center; gap: 8px; }
 .vc-new-go .vc-cost { position: static; margin-left: 4px; background: rgba(255, 255, 255, .2); color: #fff; box-shadow: none; }
+
+/* Modes: Speak, Transcribe, Effects, Music */
+.vc-modes { display: flex; gap: 4px; width: max-content; max-width: 100%; margin: 0 auto 8px; padding: 4px; overflow-x: auto; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); scrollbar-width: none; }
+.vc-modes::-webkit-scrollbar { display: none; }
+.vc-modes button { flex: none; height: 34px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.vc-modes button.is-on { background: var(--a-fg); color: var(--a-bg); }
+.vc-pill.is-on { border-color: var(--vc-red); background: var(--vc-red); color: #fff; }
+.vc-pill:disabled.is-on { opacity: .4; }
+.vc-drop { display: flex; align-items: center; gap: 8px; }
+.vc-dropbtn { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border: 1px dashed var(--a-line3); border-radius: 16px; background: transparent; color: var(--a-fg); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.vc-dropbtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vc-dropbtn:disabled { opacity: .5; cursor: not-allowed; }
+.vc-recbtn { flex: none; height: 48px; padding: 0 16px; }
+.vc-progress { height: 4px; margin: 10px 4px 0; overflow: hidden; border-radius: 4px; background: var(--a-line2); }
+.vc-progress i { display: block; height: 100%; background: var(--vc-red); transition: width .15s linear; }
+.vc-console-tr .vc-controls { margin-top: 10px; }
+.vc-play.is-doc { display: grid; place-items: center; color: var(--a-muted); }
+
+/* Transcript inside a take */
+.vc-take { grid-template-columns: 40px minmax(0, 1fr) auto auto; }
+.vc-tr { grid-column: 1 / -1; display: grid; gap: 10px; margin-top: 2px; padding: 12px 14px; border: 1px solid var(--a-line); border-radius: 18px; background: var(--a-input); }
+.vc-tr-text { display: -webkit-box; margin: 0; overflow: hidden; color: var(--a-fg2); font-size: 15px; line-height: 1.55; white-space: pre-wrap; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+.vc-tr-text.is-open { display: block; max-height: 360px; overflow-y: auto; -webkit-line-clamp: unset; }
+.vc-tr-lines { display: grid; gap: 8px; max-height: 360px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.vc-tr-lines li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; color: var(--a-fg2); font-size: 14px; line-height: 1.5; }
+.vc-tr-lines time { color: var(--a-muted2); font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 2px; }
+.vc-tr-lines b { display: block; margin-bottom: 2px; color: var(--a-fg); font-size: 12px; font-weight: 600; }
+.vc-tr-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.vc-tr-actions .vc-pill { height: 32px; padding: 0 12px; }

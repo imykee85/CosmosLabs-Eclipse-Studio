@@ -12,7 +12,19 @@ export type AudioRequest = {
   seed?: number;
   previousText?: string;     // continuity between chunks of one long text
   nextText?: string;
+  // sound effects and music
+  durationSec?: number;      // sfx 0.5 to 30 (unset = the model decides); music 3 to 600
+  loop?: boolean;            // sfx: a clip that loops cleanly
+  instrumental?: boolean;    // music: no vocals
+  // speech to text: the input lives in private storage. `url` is a short-lived signed link, `bytes()` loads it for providers that need the file itself.
+  input?: { url: string; name: string; mime: string; bytes: () => Promise<Uint8Array> };
+  diarize?: boolean;         // speech to text: tell speakers apart
+  language?: string;         // speech to text: a language code when the person knows it
 };
+
+// A transcript: the whole text plus timed segments (one sentence or turn each; speakers when the provider told them apart).
+export type TranscriptSegment = { text: string; start: number; end: number; speaker?: string };
+export type Transcript = { text: string; language?: string; durationSec?: number; segments: TranscriptSegment[] };
 
 export type ProviderCtx = { apiKey: string; baseUrl: string; signal?: AbortSignal };
 
@@ -25,6 +37,7 @@ export type AudioResult = {
   usage?: Record<string, number>;
   raw?: unknown;
   subtitles?: unknown;
+  transcript?: Transcript;
 };
 
 // retryable: worth another try after a pause. alert: the owner must act (key, balance, plan), so the person sees only a generic message.
@@ -46,6 +59,9 @@ export interface AudioProvider {
   designVoice?(input: DesignInput, ctx: ProviderCtx): Promise<DesignPreview[]>;
   saveDesign?(token: string, input: { name: string; description: string }, ctx: ProviderCtx): Promise<{ voiceId: string }>; // makes a previewed design a voice
   deleteVoice?(voiceId: string, kind: "cloned" | "designed", ctx: ProviderCtx): Promise<void>;
+  // Long jobs the provider runs on its side (MiniMax long text): start returns a task id, poll is asked until it is done.
+  start?(req: AudioRequest, ctx: ProviderCtx): Promise<{ taskId: string }>;
+  poll?(taskId: string, ctx: ProviderCtx): Promise<{ status: "running" | "done" | "failed"; result?: AudioResult; error?: ProviderError }>;
 }
 
 // What adapters throw: a normalised ProviderError. Callers branch on `.error`, never on the provider's own text.

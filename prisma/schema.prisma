@@ -261,6 +261,8 @@ model AudioJob {
   creditsCharged Int?     @map("credits_charged")
   costUsd       Float?    @map("cost_usd") // provider cost computed from the registry price and the units used
   usage         Json?     // the provider's own usage numbers (kept to reconcile real costs)
+  result        Json?     // a transcript (speech to text) with its timed segments; null for jobs that make an audio file
+  lockedAt      DateTime? @map("locked_at") // one worker at a time advances a long (async) job; a lock older than 2 minutes is stale
   deletedAt     DateTime? @map("deleted_at")
   startedAt     DateTime? @map("started_at")
   finishedAt    DateTime? @map("finished_at")

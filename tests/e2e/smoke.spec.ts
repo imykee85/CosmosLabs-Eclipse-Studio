@@ -259,11 +259,12 @@ test.describe("treatment", () => {
 });
 
 test.describe("Voice Studio", () => {
+  const OPT = { diarize: false, loop: false, instrumental: false, minSeconds: null, maxSeconds: null, maxInputBytes: null, maxInputSeconds: null, long: false };
   const models = [
-    { id: "eleven_v4", label: "Eleven v4", provider: "elevenlabs", providerLabel: "ElevenLabs", tags: ["[whispers]", "[laughs]"], voiceOptional: false, ready: true, maxChars: 10000, note: null, pricing: { unit: "char", perUnit: 0.0125 }, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
-    { id: "speech-2.8-hd", label: "MiniMax Speech 2.8 HD", provider: "minimax", providerLabel: "MiniMax", tags: ["(laughs)"], voiceOptional: false, ready: true, maxChars: 10000, note: null, pricing: null, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: false, streaming: false, subtitles: false } },
-    { id: "seed-audio-1.0", label: "Seed Audio 1.0", provider: "seed", providerLabel: "Seed Audio", tags: [], voiceOptional: true, ready: true, maxChars: 3000, note: null, pricing: { unit: "max", credits: 50 }, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: false, streaming: false, subtitles: false } },
-    { id: "eleven_flash_v2_5", label: "Flash v2.5", provider: "elevenlabs", providerLabel: "ElevenLabs", tags: [], voiceOptional: false, ready: true, maxChars: 40000, note: null, pricing: { unit: "char", perUnit: 0.00625 }, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+    { id: "eleven_v4", kind: "tts", options: OPT, label: "Eleven v4", provider: "elevenlabs", providerLabel: "ElevenLabs", tags: ["[whispers]", "[laughs]"], voiceOptional: false, ready: true, maxChars: 10000, note: null, pricing: { unit: "char", perUnit: 0.0125 }, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+    { id: "speech-2.8-hd", kind: "tts", options: OPT, label: "MiniMax Speech 2.8 HD", provider: "minimax", providerLabel: "MiniMax", tags: ["(laughs)"], voiceOptional: false, ready: true, maxChars: 10000, note: null, pricing: null, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: false, streaming: false, subtitles: false } },
+    { id: "seed-audio-1.0", kind: "tts", options: OPT, label: "Seed Audio 1.0", provider: "seed", providerLabel: "Seed Audio", tags: [], voiceOptional: true, ready: true, maxChars: 3000, note: null, pricing: { unit: "max", credits: 50 }, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: false, streaming: false, subtitles: false } },
+    { id: "eleven_flash_v2_5", kind: "tts", options: OPT, label: "Flash v2.5", provider: "elevenlabs", providerLabel: "ElevenLabs", tags: [], voiceOptional: false, ready: true, maxChars: 40000, note: null, pricing: { unit: "char", perUnit: 0.00625 }, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
   ];
 
   test("write, pick a voice, add a tag, generate once, and hear the result; tags grey out on a model without them", async ({ page }) => {
@@ -375,6 +376,87 @@ test.describe("Voice Studio", () => {
     await page.getByRole("group", { name: "Delete Warm narrator?" }).getByRole("button", { name: "Delete" }).click();
     await expect.poll(() => deleted).toBe("own_design1");
     await expect(page.getByRole("button", { name: "Delete Warm narrator" })).toHaveCount(0);
+  });
+
+  test("Transcribe, Effects and Music: each mode collects its input, sends the right job, and a finished transcript can be read, copied and downloaded", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    const mk = (id: string, label: string, kind: string, provider: string, providerLabel: string, over: Record<string, unknown> = {}, ready = true) => ({
+      id, label, kind, provider, providerLabel, ready, canClone: false, canDesign: false, maxChars: kind === "stt" ? 0 : 1000, note: null, tags: [], voiceOptional: false, pricing: { unit: "sec", perSec: 0.1 },
+      options: { ...OPT, ...over }, supports: { emotionTags: false, speed: false, pitch: false, voiceClone: false, streaming: false, subtitles: false },
+    });
+    let all = [
+      mk("eleven_v4", "Eleven v4", "tts", "elevenlabs", "ElevenLabs"),
+      mk("scribe_v2", "ElevenLabs Scribe v2", "stt", "elevenlabs", "ElevenLabs", { diarize: true, maxInputBytes: 200 * 1048576 }),
+      mk("asr-1.0", "MiniMax ASR 1.0", "stt", "minimax", "MiniMax", { maxInputBytes: 50 * 1048576 }),
+      mk("eleven_text_to_sound_v2", "ElevenLabs Sound Effects", "sfx", "elevenlabs", "ElevenLabs", { loop: true, minSeconds: 0.5, maxSeconds: 30 }),
+      mk("music_v2_5", "ElevenLabs Music", "music", "elevenlabs", "ElevenLabs", { instrumental: true, minSeconds: 3, maxSeconds: 240 }),
+    ];
+    const sent: Record<string, unknown>[] = [];
+    let uploads = 0;
+    const transcript = { text: "Hello there. Hi back", segments: [{ text: "Hello there.", start: 0, end: 0.9, speaker: "Speaker 1" }, { text: "Hi back", start: 65, end: 66, speaker: "Speaker 2" }] };
+    const done = { id: "t1", kind: "stt", status: "completed", error: null, text: "talk.mp3", chars: 8, model: "scribe_v2", modelLabel: "ElevenLabs Scribe v2", voiceId: null, voiceName: null, createdAt: new Date().toISOString(), durationMs: 66000, contentType: null, sizeBytes: null, url: null, fileName: "x.txt", transcript };
+    let items: unknown[] = [done];
+    await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models: all, voiceCosts: { clone: null, design: null }, consentText: "x" } }));
+    await page.route("**/api/audio/voices?**", (r) => r.fulfill({ json: { voices: [], ready: true } }));
+    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items } }));
+    await page.route("**/api/credits", (r) => r.fulfill({ json: { balance: 500, charging: true, isAdmin: false, history: [] } }));
+    await page.route("**/api/audio/input", (r) => { uploads++; return r.fulfill({ json: { key: "audio/u/in/abc.mp3", url: "http://localhost:3101/fake-r2/abc.mp3" } }); });
+    await page.route("**/fake-r2/**", (r) => r.fulfill({ status: 200, body: "" }));
+    await page.route("**/api/audio/generate", (r) => { sent.push(JSON.parse(r.request().postData() ?? "{}")); return r.fulfill({ json: { ...done, id: "n1", status: "pending", transcript: null } }); });
+
+    await page.goto("/voice");
+    // Transcribe
+    await page.getByRole("tab", { name: "Transcribe" }).click();
+    await page.getByRole("button", { name: "Transcribe" }).click();
+    await expect(page.locator(".vc-error")).toContainText("Add a recording first");
+    await page.getByLabel("Recording", { exact: true }).setInputFiles({ name: "talk.mp3", mimeType: "audio/mpeg", buffer: Buffer.alloc(32000, 1) });
+    await expect(page.getByText("talk.mp3 · 32 KB")).toBeVisible();
+    await page.getByRole("button", { name: "Speakers" }).click();
+    await page.getByRole("button", { name: "Transcribe" }).click();
+    await expect.poll(() => sent.length).toBe(1);
+    expect(sent[0]).toMatchObject({ kind: "stt", model: "scribe_v2", inputKey: "audio/u/in/abc.mp3", inputName: "talk.mp3", diarize: true });
+    expect(uploads).toBe(1);
+    await page.selectOption('select[aria-label="Model"]', "asr-1.0");
+    await expect(page.getByRole("button", { name: "Speakers" })).toBeDisabled();
+    // the finished transcript: read with times, copy, download text and subtitles
+    await page.getByRole("button", { name: "Show with times" }).click();
+    await expect(page.getByRole("list", { name: "Transcript with times" })).toContainText("01:05");
+    await expect(page.getByRole("list", { name: "Transcript with times" })).toContainText("Speaker 2");
+    const [d1] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Subtitles" }).click()]);
+    expect(d1.suggestedFilename()).toBe("talk.srt");
+    const [d2] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Text" }).click()]);
+    expect(d2.suggestedFilename()).toBe("talk.txt");
+
+    // Effects
+    await page.getByRole("tab", { name: "Effects" }).click();
+    await page.getByLabel("Describe the sound").fill("Rain on a tin roof");
+    await page.selectOption('select[aria-label="Length"]', "5");
+    await page.getByRole("button", { name: "Loop" }).click();
+    await page.getByRole("button", { name: "Make sound" }).click();
+    await expect.poll(() => sent.length).toBe(2);
+    expect(sent[1]).toMatchObject({ kind: "sfx", model: "eleven_text_to_sound_v2", text: "Rain on a tin roof", durationSec: 5, loop: true });
+
+    // Music: a default length, instrumental, and the longest length offered follows the model
+    await page.getByRole("tab", { name: "Music" }).click();
+    await page.getByLabel("Describe the music").fill("Warm slow piano");
+    await page.getByRole("button", { name: "Instrumental" }).click();
+    await expect(page.locator('select[aria-label="Length"] option').last()).toHaveText("4 min");
+    await page.getByRole("button", { name: "Make music" }).click();
+    await expect.poll(() => sent.length).toBe(3);
+    expect(sent[2]).toMatchObject({ kind: "music", model: "music_v2_5", durationSec: 60, instrumental: true });
+
+    // a provider that is not connected is named when you press the button
+    all = all.map((m) => (m.kind === "music" ? { ...m, ready: false } : m));
+    await page.reload();
+    await page.getByRole("tab", { name: "Music" }).click();
+    await page.getByLabel("Describe the music").fill("Warm slow piano");
+    await page.getByRole("button", { name: "Make music" }).click();
+    await expect(page.locator(".vc-error")).toContainText("ElevenLabs is not connected yet");
+    expect(sent).toHaveLength(3);
+    items = [];
   });
 
   test("before the provider key is set every control still responds and Generate says why it cannot go ahead", async ({ page }) => {

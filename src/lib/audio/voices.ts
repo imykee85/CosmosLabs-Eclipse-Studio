@@ -19,7 +19,7 @@ export const CONSENT_TEXT = "I own this voice or have written permission to clon
 export const MAX_OWN_VOICES = 20;
 export const MAX_SAMPLE_BYTES = 4_000_000; // the host's request limit is 4.5 MB: a 10 to 30 s sample fits easily
 export const CLONE_PROVIDERS: AudioProviderId[] = ["elevenlabs", "fish", "minimax"];
-export const DESIGN_PROVIDERS: AudioProviderId[] = ["elevenlabs", "minimax"];
+export const DESIGN_PROVIDERS: AudioProviderId[] = ["elevenlabs", "fish", "minimax"];
 
 const num = (name: string, fallback: number) => (Number(process.env[name]) > 0 ? Math.floor(Number(process.env[name])) : fallback);
 // Flat prices in credits (Config values AUDIO_CLONE_CREDITS, AUDIO_DESIGN_CREDITS); null while charging is off. PROVISIONAL: provider costs are $1.50 (MiniMax clone),
@@ -136,7 +136,7 @@ export type DesignPreviewItem = { token: string; sig: string; url: string; durat
 export async function designOwnVoice(input: { userId: string; provider: unknown; description: unknown }): Promise<VoiceResult<{ previews: DesignPreviewItem[] }>> {
   const { userId } = input;
   const provider = DESIGN_PROVIDERS.find((p) => p === input.provider);
-  if (!provider) return fail(400, "That provider cannot design voices here. Choose ElevenLabs or MiniMax.");
+  if (!provider) return fail(400, "That provider cannot design voices here. Choose ElevenLabs, Fish Audio or MiniMax.");
   const ctx = ctxForProvider(provider);
   if (!ctx) return notConnected(provider);
   const description = cleanText(input.description, 1000);

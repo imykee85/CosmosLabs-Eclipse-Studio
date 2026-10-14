@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { audioCreditsOn, pagePricing } from "@/lib/audio/pricing";
 import { modelAvailable } from "@/lib/audio/providers";
-import { PROVIDER_LABEL, ttsModels } from "@/lib/audio/registry";
+import { PROVIDER_LABEL, audioModels, kindOf, musicMaxSeconds } from "@/lib/audio/registry";
 import { CLONE_PROVIDERS, CONSENT_TEXT, DESIGN_PROVIDERS, voiceCredits } from "@/lib/audio/voices";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,9 @@ export async function GET() {
   if (clerkEnabled && !auth().userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const on = audioCreditsOn();
   return NextResponse.json({
-    models: ttsModels().map((m) => ({
+    models: audioModels().map((m) => ({
+      kind: kindOf(m),
+      options: { diarize: !!m.diarize, loop: !!m.loop, instrumental: !!m.instrumental, minSeconds: m.minSeconds ?? null, maxSeconds: m.kinds.includes("music") ? musicMaxSeconds(m) : m.maxSeconds ?? null, maxInputBytes: m.maxInputBytes ?? null, maxInputSeconds: m.maxInputSeconds ?? null, long: !!m.asyncAbove },
       id: m.id, label: m.label, provider: m.provider, providerLabel: PROVIDER_LABEL[m.provider], maxChars: m.maxChars, supports: m.supports, note: m.note ?? null,
       tags: m.supports.emotionTags ? m.tags ?? [] : [], voiceOptional: !!m.voiceOptional,
       ready: clerkEnabled && modelAvailable(m),
