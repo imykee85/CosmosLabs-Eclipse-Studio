@@ -7,9 +7,11 @@ import { wowTiles } from "./data";
 // toward the viewer the further it sits from the middle (the middle ones face you; the outer ones turn so their inner edge sits further away, like the Framer-style reference). Positions are driven by hand each frame so the loop
 // is seamless and fractional; vertical page scrolling still works on touch (`touch-action: pan-y`).
 const COPIES = 3;
-const MAX_DEG = 34;       // tilt of a card at the edge of the row
+const MAX_DEG = 30;       // tilt of a card at the edge of the row
 const DRIFT_PX_S = 28;    // slow automatic drift
 const PERSPECTIVE = 1100;
+const FLAT = 0.25;        // the middle stretch of the row keeps the base size
+const GROW = 0.42;        // how much bigger a card gets for each step away from it (about 1.3x at the edge)
 
 export default function CanvasCarousel() {
   const root = useRef<HTMLDivElement>(null);
@@ -36,7 +38,10 @@ export default function CanvasCarousel() {
       for (let i = 0; i < cards.length; i++) {
         const d = i * step - pos;                         // distance of this card's middle from the middle of the row
         const n = Math.max(-1.25, Math.min(1.25, d / (boxW / 2)));
-        cards[i].style.transform = `rotateY(${(-n * MAX_DEG).toFixed(2)}deg)`;
+        // Like standing inside a curved wall: the middle cards sit further away (smaller), the outer ones come toward you (bigger) and turn so their inner edge falls back.
+        const grow = 1 + GROW * Math.max(0, Math.abs(n) - FLAT);
+        const z = PERSPECTIVE * (1 - 1 / grow);
+        cards[i].style.transform = `translateZ(${z.toFixed(1)}px) rotateY(${(-n * MAX_DEG).toFixed(2)}deg)`;
       }
     };
     const wrap = () => { while (pos >= 2 * setW) pos -= setW; while (pos < setW) pos += setW; };

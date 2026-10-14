@@ -37,10 +37,10 @@
 .scroll-cue { position: absolute; bottom: 21px; left: 50%; transform: translateX(-50%); color: #77736e; display: flex; gap: 8px; align-items: center; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
 .wow-section { padding-top: 152px; padding-bottom: 160px; background: var(--paper); color: var(--ink); }
 .section-kicker { font-family: var(--font-display); font-size: clamp(39px,7vw,100px); letter-spacing: -.03em; line-height: .86; max-width: 710px; }
-.wow-carousel { position: relative; margin: 80px calc(-1 * clamp(20px,5%,72px)) 50px; padding: 26px 0; overflow: hidden; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.wow-carousel { position: relative; margin: 80px calc(-1 * clamp(20px,5%,72px)) 50px; padding: calc(clamp(150px, 17vw, 250px) * 0.62) 0; overflow: hidden; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .wow-carousel:active { cursor: grabbing; }
-.wow-track { display: flex; gap: clamp(18px, 3vw, 40px); width: max-content; will-change: transform; transform-style: preserve-3d; }
-.wow-slide { position: relative; flex: none; width: clamp(150px, 15vw, 250px); aspect-ratio: 172 / 266; overflow: hidden; border-radius: 16px; backface-visibility: hidden; will-change: transform; }
+.wow-track { display: flex; gap: clamp(14px, 2.2vw, 34px); width: max-content; will-change: transform; transform-style: preserve-3d; }
+.wow-slide { position: relative; flex: none; width: clamp(150px, 17vw, 250px); aspect-ratio: 172 / 266; overflow: hidden; border-radius: 16px; backface-visibility: hidden; will-change: transform; }
 .image-wash { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.67)); }
 .wow-label { position: absolute; left: 16px; bottom: 16px; display: grid; gap: 3px; color: #fff; }
 .wow-label b { font-family: var(--font-display); font-size: 17px; letter-spacing: -.03em; }
