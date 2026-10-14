@@ -7,7 +7,7 @@ import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results, steps, wowTiles } from "./data";
 import { plans } from "@/lib/plans";
-import HeroVideo from "./HeroVideo";
+import HeroImage from "./HeroImage";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
@@ -76,7 +76,7 @@ export default function Landing() {
       </header>
 
       <section id="top" className="hero section-pad">
-        <HeroVideo />
+        <HeroImage />
         <div className="hero-copy">
           <h1>Eclipse Studio</h1>
           <h2 className="hero-sub">AI Creative Suite</h2>
