@@ -289,10 +289,11 @@ test.describe("Voice Studio", () => {
     await page.getByRole("button", { name: "[whispers]" }).click();
     await expect(page.locator("#vc-text")).toHaveValue("Hello there. [whispers] ");
     await page.getByRole("button", { name: /^Generate/ }).click();
-    await expect(page.locator("audio")).toHaveCount(1);
+    await expect(page.locator(".vc-take")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ model: "eleven_v4", voiceId: "voiceA", text: "Hello there. [whispers]" });
-    await page.selectOption('select[aria-label="Voice model"]', "eleven_flash_v2_5");
+    await page.getByRole("radio", { name: "Flash v2.5" }).click();
     await expect(page.getByRole("button", { name: "[whispers]" })).toBeDisabled();
   });
 });
