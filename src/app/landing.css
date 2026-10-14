@@ -192,8 +192,11 @@
   background-size: 260% 100%; animation: metallic-sweep 4s ease-in-out infinite alternate;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
   filter: drop-shadow(0 0 2px rgba(255,255,255,.4)); }
+.glint-btn::after { content: ''; position: absolute; inset: 0; border-radius: 999px; pointer-events: none;
+  background: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.07) 43%, rgba(255,255,255,.30) 50%, rgba(255,255,255,.07) 57%, transparent 66%);
+  background-size: 260% 100%; animation: metallic-sweep 4s ease-in-out infinite alternate; }
 @keyframes metallic-sweep { from { background-position: 130% 0; } to { background-position: -30% 0; } }
-@media (prefers-reduced-motion: reduce) { .glint-btn::before { animation: none; background-position: 50% 0; } }
+@media (prefers-reduced-motion: reduce) { .glint-btn::before, .glint-btn::after { animation: none; background-position: 50% 0; } }
 
 /* Type and logo sizes (mobile / desktop, breakpoint 800px) */
 .nav-wrap .wordmark svg { width: 80px; height: 80px; }
