@@ -1,9 +1,9 @@
 name: CI
 
+# Manual only (Actions tab, "Run workflow"). It used to run on every push and GitHub emailed "No jobs were run" each time (2026-10-14, user complaint):
+# the account's Actions could not start jobs. Put the push and pull_request triggers back once Actions works on this repository.
 on:
-  push:
-    branches: [main, "claude/**"]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   check:
