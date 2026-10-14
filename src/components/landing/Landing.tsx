@@ -136,16 +136,6 @@ export default function Landing() {
         onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}
       />
 
-      <AtlasOrbitSection />
-
-      <section className="try-section try-cta section-pad">
-        <div className="try-inner">
-          <div className="eyebrow">YOUR STUDIO IS WAITING</div>
-          <h2>start creating<br /><em>with Eclipse.</em></h2>
-          <div className="section-cta"><Cta /></div>
-        </div>
-      </section>
-
       <section className="results-section section-pad">
         <div className="section-heading-row results-heading">
           <div>
@@ -164,6 +154,16 @@ export default function Landing() {
         </div>
         <div className="center-cta" style={{ marginTop: 70 }}><Cta dark>Create Yours</Cta></div>
       </section>
+
+      <section className="try-section try-cta section-pad">
+        <div className="try-inner">
+          <div className="eyebrow">YOUR STUDIO IS WAITING</div>
+          <h2>start creating<br /><em>with Eclipse.</em></h2>
+          <div className="section-cta"><Cta /></div>
+        </div>
+      </section>
+
+      <AtlasOrbitSection />
 
       <section id="pricing" className="pricing-section section-pad">
         <div className="eyebrow">SIMPLE PRICING</div>
