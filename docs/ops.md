@@ -62,3 +62,7 @@ every Vercel preview address is a different origin, so add the ones you use):
 
 Without the rule, pictures still upload (the browser redraws them under 4 MB and uses the old path) but videos cannot be uploaded and the message says storage could not be reached.
 Keep public access and any r2.dev address OFF.
+
+
+## Voice Studio (audio)
+Secrets (Vercel, Production and Preview): `ELEVENLABS_API_KEY`. Later phases add `FISH_API_KEY`, `MINIMAX_API_KEY`, `DASHSCOPE_API_KEY` (Singapore key), `BYTEPLUS_VOICE_API_KEY` (the Seed Speech console key, NOT `ARK_API_KEY`). Config values: `ELEVENLABS_BASE_URL` (default https://api.elevenlabs.io), `AUDIO_KILL_SWITCH=1` (refuses new voices), `AUDIO_JOBS_PER_MINUTE` (10), `AUDIO_JOBS_PER_DAY` (100), `AUDIO_MAX_RUNNING` (3), `AUDIO_ELEVENLABS_MAX_CONCURRENCY` (default 2: set it to your ElevenLabs plan's concurrency), `AUDIO_ELEVENLABS_RPM` (default 0 = none), `AUDIO_MARGIN` (1.25) and `AUDIO_CREDIT_USD` (0.008) for the credit price. The model list shows only models whose key is set. The table `audio_jobs` is created by the build (`db-push: applying`). Smoke test after the key is set: open Voice Studio, choose a voice, write one short line, Generate once, play and download it; then open `/admin/health` and send me the Voice lines.

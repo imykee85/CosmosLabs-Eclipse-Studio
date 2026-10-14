@@ -25,6 +25,7 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "GEMINI_API_KEY", kind: "Secret", needed: "Google models" },
   { name: "OPENAI_API_KEY", kind: "Secret", needed: "GPT models" },
   { name: "ARK_API_KEY", kind: "Secret", needed: "Seedream models" },
+  { name: "ELEVENLABS_API_KEY", kind: "Secret", needed: "Voice Studio (text to speech)" },
   { name: "CRON_SECRET", kind: "Secret", needed: "daily finishing job" },
   { name: "ADMIN_EMAILS", kind: "Config", needed: "these owner pages" },
   { name: "CREDITS_ENABLED", kind: "Config", needed: "charging for renders" },
@@ -83,6 +84,20 @@ export async function POST() {
     if (last) add(null, `Latest failure (${last.kind}, ${last.model ?? "unknown model"}): ${safeText(last.error ?? "no text")}`);
   } catch {
     add(null, "Renders: could not be counted");
+  }
+
+  // Recent voices (Voice Studio)
+  try {
+    const since = new Date(Date.now() - 24 * 3600_000);
+    const [total, failed, last] = await Promise.all([
+      db.audioJob.count({ where: { createdAt: { gte: since } } }),
+      db.audioJob.count({ where: { createdAt: { gte: since }, status: "failed" } }),
+      db.audioJob.findFirst({ where: { status: "failed" }, orderBy: { updatedAt: "desc" }, select: { model: true, error: true, params: true } }),
+    ]);
+    add(null, `Voices in the last 24 hours: ${total}, failed: ${failed}`);
+    if (last) add(null, `Latest voice failure (${last.model}, code ${(last.params as { failCode?: string } | null)?.failCode ?? "none"}): ${safeText(last.error ?? "no text")}`);
+  } catch {
+    add(null, "Voices: could not be counted");
   }
 
   return NextResponse.json({ lines, at: new Date().toISOString() });

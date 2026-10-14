@@ -43,7 +43,7 @@ const video: Item[] = [
   { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true },
 ];
 const audio: Item[] = [
-  { label: "Voice Studio", hint: "Create and clone voices", icon: <Mic size={17} />, soon: true },
+  { label: "Voice Studio", hint: "Create and clone voices", href: "/voice", icon: <Mic size={17} />, soon: true },
   { label: "Music", hint: "Score your content", icon: <Music size={17} />, soon: true },
   { label: "Sound effects", hint: "Add the final touches", icon: <Volume2 size={17} />, soon: true },
 ];
@@ -164,7 +164,7 @@ const tabIcon = (icon: React.ReactNode) => (isValidElement(icon) ? cloneElement(
 
 const SLOT_KEY = "eclipse-create-slot";
 // Shortcuts that can take over the Create tab.
-const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo[1], photo[2], video[0], video[1], video[2]];
+const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo[1], photo[2], video[0], video[1], video[2], audio[0]];
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
@@ -269,7 +269,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/voice": "Voice Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {

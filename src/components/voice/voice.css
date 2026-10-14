@@ -1,0 +1,36 @@
+/* Voice Studio (prefix vc-): reuses Image Studio's cr- layout; only what audio needs is here. */
+.vc-stage { min-height: 200px; max-width: 420px; padding: 8px; overflow: visible; }
+.vc-player { display: grid; gap: 12px; width: 100%; padding: 18px; text-align: left; }
+.vc-text { margin: 0; color: var(--a-fg); font-size: 14px; line-height: 1.45; max-height: 4.4em; overflow: hidden; }
+.vc-player audio { width: 100%; height: 40px; }
+.vc-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--a-muted2); font-size: 12px; }
+.vc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cr-stage .vc-actions a.cr-chip { display: inline-flex; width: auto; height: 36px; text-decoration: none; } /* undo `.cr-stage a` (full-size picture links) for this button */
+.vc-link { border: 0; background: transparent; color: var(--a-muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+.vc-chipicon { display: grid; place-items: center; gap: 2px; width: 100%; height: 100%; color: var(--a-muted); }
+.vc-chipicon small { font-size: 10px; }
+.vc-counter { display: flex; justify-content: flex-end; padding: 2px 8px 0; color: var(--a-muted2); font-size: 12px; }
+.vc-counter .is-over { color: #c00707; font-weight: 600; }
+.vc-voicebtn span { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vc-tags { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; }
+.vc-tags::-webkit-scrollbar { display: none; }
+.vc-tag { flex: none; font-size: 13px; }
+
+/* The voice sheet: a bottom sheet on phones, a centred dialog on desktop. */
+.vc-sheet-back { position: fixed; inset: 0; z-index: 60; display: grid; align-items: end; background: rgba(0, 0, 0, .5); }
+.vc-sheet { width: 100%; max-height: 78dvh; display: grid; grid-template-rows: auto 1fr; border-radius: 22px 22px 0 0; background: var(--a-card); border: 1px solid var(--a-line2); overflow: hidden; }
+.vc-sheet-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--a-line2); }
+.vc-search { flex: 1; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); color: var(--a-muted); }
+.vc-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; }
+.vc-x { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg); cursor: pointer; }
+.vc-list { overflow-y: auto; padding: 6px 8px 14px; }
+.vc-none { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 28px 0; color: var(--a-muted2); font-size: 14px; }
+.vc-row { display: flex; align-items: center; gap: 8px; border-radius: 14px; }
+.vc-row.is-on { background: var(--a-input); }
+.vc-play { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--a-line2); border-radius: 50%; background: transparent; color: var(--a-fg); cursor: pointer; }
+.vc-play:disabled { opacity: .4; cursor: not-allowed; }
+.vc-pick { flex: 1; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; padding: 10px 8px; border: 0; background: transparent; color: var(--a-fg); font: inherit; text-align: left; cursor: pointer; }
+.vc-pick b { font-weight: 600; font-size: 15px; }
+.vc-pick small { grid-column: 1; color: var(--a-muted2); font-size: 12px; }
+.vc-pick svg { grid-row: 1 / span 2; grid-column: 2; color: #c00707; }
+@media (min-width: 801px) { .vc-sheet-back { place-items: center; } .vc-sheet { width: 460px; border-radius: 22px; } }

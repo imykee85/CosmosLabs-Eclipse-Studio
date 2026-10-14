@@ -235,3 +235,40 @@ model UsageEvent {
   @@index([userId, kind, createdAt(sort: Desc)])
   @@map("usage_events")
 }
+
+// One Voice Studio job (text to speech first; speech to text, effects and music later). Kept apart from Generation so Library, Gallery and Image Studio never see audio rows.
+// pending = running (the price is HELD while it runs), completed, failed. Audio is stored privately at audio/<userId>/<id>.<ext>.
+model AudioJob {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  projectId     String?   @map("project_id")
+  kind          String    @default("tts") // tts, later stt, sfx, music
+  provider      String    // elevenlabs, later fish, minimax...
+  model         String    // registry id (src/lib/audio/registry.ts)
+  voiceId       String?   @map("voice_id") // the provider's voice id
+  voiceName     String?   @map("voice_name")
+  text          String    // the script that was sent
+  textHash      String    @map("text_hash")
+  chars         Int       // characters of the script (bytes for byte-priced models are counted at billing time)
+  status        String    @default("pending")
+  error         String?   // why it failed, in words for the person
+  params        Json?     // speed, language, chunks, copy tries
+  storageKey    String?   @map("storage_key")
+  contentType   String?   @map("content_type")
+  sizeBytes     Int?      @map("size_bytes")
+  durationMs    Int?      @map("duration_ms")
+  creditsHeld   Int?      @map("credits_held") // the price held while it runs and charged when it completes
+  creditsCharged Int?     @map("credits_charged")
+  costUsd       Float?    @map("cost_usd") // provider cost computed from the registry price and the units used
+  usage         Json?     // the provider's own usage numbers (kept to reconcile real costs)
+  deletedAt     DateTime? @map("deleted_at")
+  startedAt     DateTime? @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, status])
+  @@index([status, updatedAt])
+  @@map("audio_jobs")
+}

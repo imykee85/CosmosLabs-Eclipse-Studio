@@ -257,3 +257,42 @@ test.describe("treatment", () => {
     await expect(page.locator("textarea").first()).toHaveValue(/Night Run/);
   });
 });
+
+test.describe("Voice Studio", () => {
+  const models = [
+    { id: "eleven_v4", label: "Eleven v4", maxChars: 10000, note: null, creditsPerChar: 0.0125, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+    { id: "eleven_flash_v2_5", label: "Flash v2.5", maxChars: 40000, note: null, creditsPerChar: 0.00625, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+  ];
+
+  test("write, pick a voice, add a tag, generate once, and hear the result; tags grey out on a model without them", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    const sent: Record<string, unknown>[] = [];
+    let items: unknown[] = [];
+    await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models } }));
+    await page.route("**/api/audio/voices**", (r) => r.fulfill({ json: { voices: [{ voiceId: "voiceA", name: "Ana", accent: "british" }] } }));
+    await page.route("**/api/credits", (r) => r.fulfill({ json: { balance: 100, charging: true, isAdmin: false, history: [] } }));
+    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items } }));
+    await page.route("**/api/audio/generate", (r) => {
+      const body = JSON.parse(r.request().postData() ?? "{}");
+      sent.push(body);
+      const item = { id: "j1", status: "completed", error: null, text: body.text, chars: body.text.length, model: body.model, modelLabel: "Eleven v4", voiceId: body.voiceId, voiceName: body.voiceName, createdAt: new Date().toISOString(), durationMs: 4000, contentType: "audio/mpeg", sizeBytes: 64000, url: "data:audio/mpeg;base64,AAAA", fileName: "x.mp3" };
+      items = [item];
+      return r.fulfill({ json: item });
+    });
+    await page.goto("/voice");
+    await page.fill("#vc-text", "Hello there.");
+    await page.getByRole("button", { name: /Choose a voice/ }).click();
+    await page.getByRole("button", { name: /^Ana/ }).click(); // not "Hear Ana", the preview button
+    await page.getByRole("button", { name: "[whispers]" }).click();
+    await expect(page.locator("#vc-text")).toHaveValue("Hello there. [whispers] ");
+    await page.getByRole("button", { name: /^Generate/ }).click();
+    await expect(page.locator("audio")).toHaveCount(1);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ model: "eleven_v4", voiceId: "voiceA", text: "Hello there. [whispers]" });
+    await page.selectOption('select[aria-label="Voice model"]', "eleven_flash_v2_5");
+    await expect(page.getByRole("button", { name: "[whispers]" })).toBeDisabled();
+  });
+});
