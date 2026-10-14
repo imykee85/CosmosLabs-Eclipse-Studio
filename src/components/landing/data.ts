@@ -12,15 +12,15 @@ export const wowTiles = [
 ] as const;
 
 export const audience = [
-  ["MYSELF", "Photoshoots, personal content and social visuals."],
-  ["MY PRODUCT", "Turn a simple product photo into a polished campaign."],
-  ["MY BRAND", "Content for socials, ads and launches."],
-  ["FASHION", "Editorials, lookbooks and product content."],
-  ["REAL ESTATE", "Properties presented as cinematic visuals."],
-  ["FOOD & BEAUTY", "Premium commercial content for your business."],
+  ["SEEDANCE 2.5", "ByteDance video with sound, up to 30 seconds."],
+  ["KLING 3.0", "Multi-shot video with sound and top general motion."],
+  ["MINIMAX H3", "2K video from text, keyframes or references."],
+  ["WAN 3.0 PRIME", "Long clips up to 30 seconds, with sound."],
+  ["NANO BANANA PRO", "Google's highest quality image model."],
+  ["GPT IMAGE 2.5", "OpenAI's newest image model."],
 ] as const;
 
-export const results = ["Seedance 2.5", "Kling 3.0", "MiniMax H3", "Wan 3.0 Prime", "Happy Horse 1.1", "Nano Banana Pro", "GPT Image 2.5", "Seedream 5 Pro"];
+export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising"];
 
 export const steps = [
   ["01", "DESCRIBE IT", "Write your idea in plain language."],
