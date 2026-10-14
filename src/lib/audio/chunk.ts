@@ -64,3 +64,43 @@ export function joinMp3(parts: Uint8Array[]): Uint8Array {
 
 // Length of a constant-bitrate MP3, from its size (128 kbps). Approximate: ID3 tags and the last frame are ignored.
 export const mp3DurationMs = (bytes: number, kbps = 128) => Math.round((bytes * 8) / (kbps * 1000) * 1000);
+
+// WAV (Qwen answers 16-bit PCM WAV): find the "fmt " and "data" chunks of a RIFF file.
+type WavInfo = { fmt: Uint8Array; data: Uint8Array; byteRate: number };
+export function readWav(b: Uint8Array): WavInfo | null {
+  const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  const tag = (at: number) => String.fromCharCode(b[at], b[at + 1], b[at + 2], b[at + 3]);
+  if (b.length < 12 || tag(0) !== "RIFF" || tag(8) !== "WAVE") return null;
+  let at = 12, fmt: Uint8Array | null = null, data: Uint8Array | null = null;
+  while (at + 8 <= b.length) {
+    const id = tag(at);
+    let len = dv.getUint32(at + 4, true);
+    if (id === "data" && (len === 0 || len === 0xffffffff || at + 8 + len > b.length)) len = b.length - at - 8; // streamed WAVs may leave the size unset
+    if (id === "fmt ") fmt = b.subarray(at + 8, at + 8 + len);
+    if (id === "data") { data = b.subarray(at + 8, at + 8 + len); break; }
+    at += 8 + len + (len % 2);
+  }
+  if (!fmt || !data || fmt.length < 16) return null;
+  const byteRate = new DataView(fmt.buffer, fmt.byteOffset, fmt.byteLength).getUint32(8, true);
+  return { fmt, data, byteRate };
+}
+
+// Joins WAV pieces of the same format into one file (the first piece's format wins; pieces that are not WAV are refused).
+export function joinWav(parts: Uint8Array[]): Uint8Array {
+  if (parts.length === 1) return parts[0];
+  const infos = parts.map(readWav);
+  if (infos.some((i) => !i)) throw new Error("not a WAV piece");
+  const first = infos[0]!;
+  const dataLen = infos.reduce((n, i) => n + i!.data.length, 0);
+  const out = new Uint8Array(12 + 8 + first.fmt.length + 8 + dataLen);
+  const dv = new DataView(out.buffer);
+  const put = (at: number, s: string) => { for (let i = 0; i < 4; i++) out[at + i] = s.charCodeAt(i); };
+  put(0, "RIFF"); dv.setUint32(4, out.length - 8, true); put(8, "WAVE");
+  put(12, "fmt "); dv.setUint32(16, first.fmt.length, true); out.set(first.fmt, 20);
+  let at = 20 + first.fmt.length;
+  put(at, "data"); dv.setUint32(at + 4, dataLen, true); at += 8;
+  for (const i of infos) { out.set(i!.data, at); at += i!.data.length; }
+  return out;
+}
+
+export const wavDurationMs = (b: Uint8Array) => { const i = readWav(b); return i && i.byteRate > 0 ? Math.round((i.data.length / i.byteRate) * 1000) : null; };

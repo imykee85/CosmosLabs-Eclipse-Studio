@@ -8,10 +8,11 @@ import { checkPrompt } from "@/lib/moderation";
 import { createAudioJobHeld } from "@/lib/reservations";
 import { deleteObject, putObject, signedMediaUrl, storageEnabled } from "@/lib/storage";
 import { claimUsage } from "@/lib/usage";
-import { joinMp3, mp3DurationMs, splitForTts } from "./chunk";
+import { joinMp3, joinWav, mp3DurationMs, splitForTts, wavDurationMs } from "./chunk";
 import { limiterFor } from "./limiter";
-import { audioCreditsOn, creditsFor, ttsCredits, usdFor } from "./pricing";
+import { audioCreditsOn, creditsFor, holdUnits, settledUnits, usdFor } from "./pricing";
 import { ctxFor, providerFor } from "./providers";
+import { hasParenTag } from "./providers/fish";
 import { findAudioModel, type AudioModel } from "./registry";
 import { withRetry } from "./retry";
 import { ProviderFailure, type AudioRequest } from "./types";
@@ -68,7 +69,8 @@ export async function startAudioJob(input: StartAudioInput): Promise<StartAudioR
   if (!text) return { ok: false, status: 400, error: "Write the text to speak first." };
   if (text.length > model.maxChars) return { ok: false, status: 400, error: `${model.label} takes up to ${model.maxChars.toLocaleString("en-US")} characters (you wrote ${text.length.toLocaleString("en-US")}).` };
   const voiceId = typeof input.voiceId === "string" ? input.voiceId.trim() : "";
-  if (!/^[A-Za-z0-9_-]{1,64}$/.test(voiceId)) return { ok: false, status: 400, error: "Pick a voice first." };
+  if (voiceId ? !/^[A-Za-z0-9_.-]{1,128}$/.test(voiceId) : !model.voiceOptional) return { ok: false, status: 400, error: "Pick a voice first." };
+  if (model.provider === "fish" && hasParenTag(text)) return { ok: false, status: 400, error: "Fish models read cues in square brackets, like [happy], not round ones." };
   const voiceName = typeof input.voiceName === "string" ? input.voiceName.trim().slice(0, 80) || null : null;
   let speed: number | undefined;
   if (input.speed != null && input.speed !== 1) {
@@ -81,14 +83,14 @@ export async function startAudioJob(input: StartAudioInput): Promise<StartAudioR
   const m = checkPrompt(text);
   if (!m.ok) { console.warn("audio text refused", m.category); return { ok: false, status: 422, error: m.reason }; }
 
-  const cost = audioCreditsOn() ? ttsCredits(model, text.length) : null;
+  const cost = audioCreditsOn() ? creditsFor(usdFor(model, holdUnits(model, text))) : null;
   const running = await db.audioJob.count({ where: { userId, status: "pending" } });
   if (running >= cfg.maxRunning) return { ok: false, status: 429, error: `You already have ${running} voices being made. Wait for one to finish.` };
   if (!(await claimUsage(userId, "audio", cfg.perMinute, 60_000))) return { ok: false, status: 429, error: "You are starting voices very quickly. Wait a moment and try again." };
   if (!(await claimUsage(userId, "audio-day", cfg.perDay, 24 * 3600_000))) return { ok: false, status: 429, error: `You have reached today's limit of ${cfg.perDay} voices.` };
 
   const made = await createAudioJobHeld(userId, cost, {
-    id: randomUUID().replace(/-/g, "").slice(0, 25), userId, projectId, kind: "tts", provider: model.provider, model: model.id, voiceId, voiceName, text, textHash: createHash("sha256").update(text).digest("hex"),
+    id: randomUUID().replace(/-/g, "").slice(0, 25), userId, projectId, kind: "tts", provider: model.provider, model: model.id, voiceId: voiceId || null, voiceName: voiceId ? voiceName : null, text, textHash: createHash("sha256").update(text).digest("hex"),
     chars: text.length, status: "pending", creditsHeld: cost, params: speed ? { speed } : undefined,
   });
   if (!("row" in made)) return { ok: false, status: 402, error: `This needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by work still running` : ""}. Ask the owner to add more credits.` };
@@ -115,10 +117,13 @@ export async function runAudioJob(id: string): Promise<void> {
   const speed = (job.params && typeof job.params === "object" && !Array.isArray(job.params) ? (job.params as { speed?: number }).speed : undefined) || undefined;
 
   let audio: Uint8Array;
+  let mime = "audio/mpeg";
   let chunks = 1;
   let characterCost: number | undefined;
+  let seconds: number | undefined;
+  let reportedMs: number | undefined = 0;
   try {
-    const pieces = splitForTts(job.text, model.callChars, "char");
+    const pieces = splitForTts(job.text, model.callChars, model.callUnit ?? "char");
     chunks = pieces.length;
     const parts: Uint8Array[] = [];
     for (let i = 0; i < pieces.length; i++) {
@@ -128,10 +133,13 @@ export async function runAudioJob(id: string): Promise<void> {
         const res = await withRetry(() => provider.generate(req, ctx));
         if (!res.bytes?.length) throw new ProviderFailure({ retryable: false, code: "empty_audio", userMessage: "The voice could not be made. Please try again." });
         parts.push(res.bytes);
+        mime = res.mime;
         if (typeof res.usage?.characterCost === "number") characterCost = (characterCost ?? 0) + res.usage.characterCost;
+        if (typeof res.usage?.seconds === "number") seconds = (seconds ?? 0) + res.usage.seconds;
+        reportedMs = reportedMs != null && res.durationMs != null ? reportedMs + res.durationMs : undefined;
       } finally { release(); }
     }
-    audio = joinMp3(parts);
+    audio = mime === "audio/wav" ? joinWav(parts) : joinMp3(parts);
   } catch (err) {
     if (err instanceof ProviderFailure) {
       if (err.error.alert) console.error("AUDIO ALERT: provider needs the owner", model.provider, err.error.code, err.error.providerCode);
@@ -142,16 +150,18 @@ export async function runAudioJob(id: string): Promise<void> {
     return failJob(id, "The voice could not be made. Nothing was charged.");
   }
 
-  const key = `audio/${job.userId}/${job.id}.mp3`;
-  try { await putObject(key, audio, "audio/mpeg"); }
+  const key = `audio/${job.userId}/${job.id}.${EXT[mime] ?? "mp3"}`;
+  try { await putObject(key, audio, mime); }
   catch (err) { console.error("saving audio failed", id, err); return failJob(id, "The voice was made but could not be saved. Nothing was charged."); }
 
-  // Settle: the price follows the characters actually sent (the provider's own `character-cost` is kept in usage for reconciling, not used to bill: it may count credits, not characters).
-  const usd = usdFor(model, job.chars);
+  // Settle: the price follows the characters (or UTF-8 bytes) actually sent, or the seconds the provider reports for a second-priced model. A provider's own
+  // counters (ElevenLabs `character-cost`, MiniMax/Qwen usage) are kept in usage for reconciling, not used to bill.
+  const units = settledUnits(model, job.text, seconds);
+  const usd = usdFor(model, units);
   const credits = audioCreditsOn() && job.creditsHeld != null ? creditsFor(usd) : null;
   // Completing the row and writing the charge happen in ONE short transaction under the person's credit lock (the one spendCredits takes): a finished voice is always
   // either charged exactly once or not finished, and a row that was failed meanwhile (stale) is neither kept nor charged.
-  const data = { status: "completed", storageKey: key, contentType: "audio/mpeg", sizeBytes: audio.length, durationMs: mp3DurationMs(audio.length), costUsd: usd, creditsCharged: null as number | null, finishedAt: new Date(), usage: { chars: job.chars, chunks, ...(characterCost != null ? { characterCost } : {}) } };
+  const data = { status: "completed", storageKey: key, contentType: mime, sizeBytes: audio.length, durationMs: mime === "audio/wav" ? wavDurationMs(audio) : reportedMs || mp3DurationMs(audio.length), costUsd: usd, creditsCharged: null as number | null, finishedAt: new Date(), usage: { chars: job.chars, units, chunks, ...(characterCost != null ? { characterCost } : {}), ...(seconds != null ? { seconds } : {}) } };
   let completed = false;
   try {
     completed = await db.$transaction(async (tx) => {
@@ -162,7 +172,7 @@ export async function runAudioJob(id: string): Promise<void> {
       if (credits != null) {
         const sum = await tx.creditLedger.aggregate({ where: { userId: job.userId }, _sum: { delta: true } });
         if ((sum._sum.delta ?? 0) >= credits) {
-          await tx.creditLedger.create({ data: { userId: job.userId, delta: -credits, reason: "CHARGE", note: `${model.label} voice, ${job.chars} characters` } });
+          await tx.creditLedger.create({ data: { userId: job.userId, delta: -credits, reason: "CHARGE", note: `${model.label} voice, ${model.priceUnit === "second" ? `${Math.round(units)} s` : `${job.chars} characters`}` } });
           charged = credits;
         } else console.error("audio price could not be charged: balance too low", id);
       }

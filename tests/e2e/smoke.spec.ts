@@ -260,8 +260,10 @@ test.describe("treatment", () => {
 
 test.describe("Voice Studio", () => {
   const models = [
-    { id: "eleven_v4", label: "Eleven v4", ready: true, maxChars: 10000, note: null, creditsPerChar: 0.0125, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
-    { id: "eleven_flash_v2_5", label: "Flash v2.5", ready: true, maxChars: 40000, note: null, creditsPerChar: 0.00625, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+    { id: "eleven_v4", label: "Eleven v4", provider: "elevenlabs", providerLabel: "ElevenLabs", tags: ["[whispers]", "[laughs]"], voiceOptional: false, ready: true, maxChars: 10000, note: null, pricing: { unit: "char", perUnit: 0.0125 }, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
+    { id: "speech-2.8-hd", label: "MiniMax Speech 2.8 HD", provider: "minimax", providerLabel: "MiniMax", tags: ["(laughs)"], voiceOptional: false, ready: true, maxChars: 10000, note: null, pricing: null, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: false, streaming: false, subtitles: false } },
+    { id: "seed-audio-1.0", label: "Seed Audio 1.0", provider: "seed", providerLabel: "Seed Audio", tags: [], voiceOptional: true, ready: true, maxChars: 3000, note: null, pricing: { unit: "max", credits: 50 }, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: false, streaming: false, subtitles: false } },
+    { id: "eleven_flash_v2_5", label: "Flash v2.5", provider: "elevenlabs", providerLabel: "ElevenLabs", tags: [], voiceOptional: false, ready: true, maxChars: 40000, note: null, pricing: { unit: "char", perUnit: 0.00625 }, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },
   ];
 
   test("write, pick a voice, add a tag, generate once, and hear the result; tags grey out on a model without them", async ({ page }) => {
@@ -295,6 +297,19 @@ test.describe("Voice Studio", () => {
     expect(sent[0]).toMatchObject({ model: "eleven_v4", voiceId: "voiceA", text: "Hello there. [whispers]" });
     await page.selectOption('select[aria-label="Voice model"]', "eleven_flash_v2_5");
     await expect(page.getByRole("button", { name: "Delivery" })).toBeDisabled();
+    // Every provider is in the menu, grouped; a voice is chosen per provider; MiniMax offers its own (round-bracket) tags; Seed Audio runs without a voice.
+    await expect(page.locator('select[aria-label="Voice model"] optgroup')).toHaveCount(3);
+    await page.selectOption('select[aria-label="Voice model"]', "speech-2.8-hd");
+    await expect(page.getByRole("option", { name: "Ana", selected: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Delivery" }).click();
+    await expect(page.getByRole("menuitem", { name: "(laughs)" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.selectOption('select[aria-label="Voice model"]', "seed-audio-1.0");
+    await page.fill("#vc-text", "A calm narrator in the rain.");
+    await expect(page.locator(".vc-cost")).toHaveText("50");
+    await page.getByRole("button", { name: "Generate" }).click();
+    await expect.poll(() => sent.length).toBe(2);
+    expect(sent[1]).toMatchObject({ model: "seed-audio-1.0", voiceId: "" });
   });
 
   test("before the provider key is set every control still responds and Generate says why it cannot go ahead", async ({ page }) => {

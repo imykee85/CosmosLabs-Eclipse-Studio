@@ -8,7 +8,7 @@ export type AudioRequest = {
   voiceId?: string;
   speed?: number;            // 1 = normal; only sent to models whose registry entry says `supports.speed`
   languageCode?: string;
-  format?: "mp3";            // phase 1: MP3 only (ElevenLabs mp3_44100_128, constant bitrate, so chunks can be joined)
+  format?: "mp3";            // MP3 wherever the provider offers it (constant bitrate, so chunks can be joined); Qwen answers WAV
   seed?: number;
   previousText?: string;     // continuity between chunks of one long text
   nextText?: string;

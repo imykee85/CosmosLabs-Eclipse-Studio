@@ -6,7 +6,8 @@ export type AudioItem = {
   id: string; status: "pending" | "completed" | "failed"; error: string | null; text: string; chars: number; model: string; modelLabel: string;
   voiceId: string | null; voiceName: string | null; createdAt: string; durationMs: number | null; contentType: string | null; sizeBytes: number | null; url: string | null; fileName: string;
 };
-export type VoiceModel = { id: string; label: string; ready: boolean; maxChars: number; note: string | null; creditsPerChar: number | null; supports: { emotionTags: boolean; speed: boolean; pitch: boolean; voiceClone: boolean; streaming: boolean; subtitles: boolean } };
+export type VoicePricing = { unit: "char" | "byte"; perUnit: number } | { unit: "max"; credits: number } | null;
+export type VoiceModel = { id: string; label: string; provider: string; providerLabel: string; ready: boolean; maxChars: number; note: string | null; tags: string[]; voiceOptional: boolean; pricing: VoicePricing; supports: { emotionTags: boolean; speed: boolean; pitch: boolean; voiceClone: boolean; streaming: boolean; subtitles: boolean } };
 export type VoiceOption = { voiceId: string; name: string; category?: string; language?: string; gender?: string; accent?: string; age?: string; descriptive?: string; previewUrl?: string };
 
 export function useVoiceModels(): { models: VoiceModel[] | null; error: string } {

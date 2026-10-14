@@ -17,13 +17,13 @@ import "./voice.css";
 const MODEL_KEY = "eclipse-voice-model";
 const VOICE_KEY = "eclipse-voice-voice";
 const DRAFT_KEY = "eclipse-draft-voice"; // cleared at sign-out with the other drafts
-const TAGS = ["whispers", "laughs", "sighs", "excited", "sarcastic", "crying"];
 const SPEEDS = [0.7, 0.8, 0.9, 1, 1.1, 1.2];
 
 type Chosen = { id: string; name: string; facts?: string };
 const read = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const write = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} };
-const NOT_READY = "Voices are not connected yet. They appear once the ElevenLabs key is set.";
+const notReady = (provider?: string) => `${provider ?? "This provider"} is not connected yet. Its voices appear once its key is set.`;
+const voiceKey = (provider: string) => `${VOICE_KEY}-${provider}`; // voice ids belong to one provider, so the choice is kept per provider
 const factsOf = (v: VoiceOption) => [v.accent, v.gender, v.age, v.descriptive].filter(Boolean).join(" · ") || undefined;
 
 export default function VoiceStudio() {
@@ -47,7 +47,6 @@ export default function VoiceStudio() {
 
   useEffect(() => {
     setModelId(read(MODEL_KEY));
-    try { const v = JSON.parse(read(VOICE_KEY) ?? "null"); if (v && typeof v.id === "string" && typeof v.name === "string") setVoice(v); } catch {}
     setText(read(DRAFT_KEY) ?? "");
     loaded.current = true;
   }, []);
@@ -56,6 +55,20 @@ export default function VoiceStudio() {
   useEffect(() => { const el = box.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 220)}px`; }, [text]);
 
   const model = useMemo(() => models?.find((m) => m.id === modelId) ?? models?.[0] ?? null, [models, modelId]);
+  const provider = model?.provider ?? null;
+  // The voice chosen for this model's provider (the first visit of this page used one key for every provider: that choice was ElevenLabs').
+  useEffect(() => {
+    if (!provider) return;
+    let v: Chosen | null = null;
+    try { const raw = read(voiceKey(provider)) ?? (provider === "elevenlabs" ? read(VOICE_KEY) : null); const j = JSON.parse(raw ?? "null"); if (j && typeof j.id === "string" && typeof j.name === "string") v = j; } catch {}
+    setVoice(v);
+  }, [provider]);
+  // Models grouped by provider for the menu (each provider once, in the order it first appears).
+  const groups = useMemo(() => {
+    const g = new Map<string, NonNullable<typeof models>>();
+    for (const m of models ?? []) g.set(m.providerLabel, [...(g.get(m.providerLabel) ?? []), m]);
+    return Array.from(g, ([label, items]) => ({ label, items }));
+  }, [models]);
   const strip = useVoices(model?.id ?? null);
   const sheet = useVoices(picking ? model?.id ?? null : null);
   useEffect(() => { if (model && !model.supports.speed && speed !== 1) setSpeed(1); }, [model, speed]);
@@ -89,15 +102,18 @@ export default function VoiceStudio() {
 
   const chars = text.trim().length;
   const over = model ? chars > model.maxChars : false;
-  const price = model?.creditsPerChar != null && chars > 0 ? Math.max(1, Math.ceil(chars * model.creditsPerChar)) : null;
+  const pricing = model?.pricing ?? null;
+  const price = !pricing || chars === 0 ? null : pricing.unit === "max" ? pricing.credits
+    : Math.max(1, Math.ceil((pricing.unit === "byte" ? new TextEncoder().encode(text.trim()).length : chars) * pricing.perUnit));
   const ready = !!model?.ready && strip.ready;
-  const canGo = !!model && (!!voice || !ready) && chars > 0 && !over && !submitting;
+  const NOT_READY = notReady(model?.providerLabel);
+  const canGo = !!model && (!!voice || !ready || model.voiceOptional) && chars > 0 && !over && !submitting;
   const message = error || (modelsError && !models?.length ? modelsError : "") || (strip.error && !picking ? strip.error : "");
 
   const insertTag = useCallback((tag: string) => {
     const el = box.current;
     const a = el?.selectionStart ?? text.length, b = el?.selectionEnd ?? text.length;
-    const t = `${a > 0 && !/\s/.test(text[a - 1]) ? " " : ""}[${tag}] `;
+    const t = `${a > 0 && !/\s/.test(text[a - 1]) ? " " : ""}${tag} `;
     setText(text.slice(0, a) + t + text.slice(b));
     setTagsOpen(false);
     requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(a + t.length, a + t.length); });
@@ -105,10 +121,11 @@ export default function VoiceStudio() {
 
   async function generate() {
     if (!canGo || !model) return;
-    if (!ready || !voice) { setError(NOT_READY); return; }
+    if (!ready) { setError(NOT_READY); return; }
+    if (!voice && !model.voiceOptional) { setError("Pick a voice first."); return; }
     setError("");
     setSubmitting(true);
-    const r = await startVoice({ text: text.trim(), model: model.id, voiceId: voice.id, voiceName: voice.name, speed: model.supports.speed && speed !== 1 ? speed : undefined, projectId: readCurrentProject()?.id ?? null });
+    const r = await startVoice({ text: text.trim(), model: model.id, voiceId: voice?.id ?? "", voiceName: voice?.name, speed: model.supports.speed && speed !== 1 ? speed : undefined, projectId: readCurrentProject()?.id ?? null });
     setSubmitting(false);
     if (!r.ok) { setError(r.error); return; }
     setText("");
@@ -131,7 +148,7 @@ export default function VoiceStudio() {
 
   function choose(v: VoiceOption) {
     const c = { id: v.voiceId, name: v.name, facts: factsOf(v) };
-    setVoice(c); write(VOICE_KEY, JSON.stringify(c)); setPicking(false); setError("");
+    setVoice(c); if (provider) write(voiceKey(provider), JSON.stringify(c)); setPicking(false); setError("");
   }
 
   // The strip shows the chosen voice first even when it is not in the first page of the list.
@@ -151,8 +168,9 @@ export default function VoiceStudio() {
           {playingTake ? (<><b>{playingTake.voiceName ?? "Voice"}</b><span>{clock(pos.t * 1000)} / {clock((pos.d || (playingTake.durationMs ?? 0) / 1000) * 1000)}</span></>)
             : making ? (<><b>Making your take</b><span>{clock(now - new Date(making.createdAt).getTime())}</span></>)
             : voice ? (<><b>{voice.name}</b>{voice.facts && <span>{voice.facts}</span>}</>)
-            : ready ? (<><b>Choose a voice</b><span>Pick one below, then write the script.</span></>)
-            : (<><b>Voice Studio</b><span>Voices are not connected yet</span></>)}
+            : !ready ? (<><b>{model?.label ?? "Voice Studio"}</b><span>{model ? `${model.providerLabel} is not connected yet` : "Loading models"}</span></>)
+            : model?.voiceOptional ? (<><b>{model.label}</b><span>Describe the voice and the scene in the script, or pick a voice below.</span></>)
+            : (<><b>Choose a voice</b><span>Pick one below, then write the script.</span></>)}
         </div>
       </section>
 
@@ -202,7 +220,7 @@ export default function VoiceStudio() {
             <label className="vc-pill vc-select" title="Voice model">
               <span className="sr-only">Voice model</span>
               <select aria-label="Voice model" value={model?.id ?? ""} disabled={!models?.length} onChange={(e) => { setModelId(e.target.value); write(MODEL_KEY, e.target.value); }}>
-                {models?.length ? models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>) : <option value="">{models === null ? "Loading…" : "No models"}</option>}
+                {models?.length ? groups.map((g) => <optgroup key={g.label} label={g.label}>{g.items.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</optgroup>) : <option value="">{models === null ? "Loading…" : "No models"}</option>}
               </select>
             </label>
             <div className={`vc-pill vc-stepper ${model?.supports.speed ? "" : "is-off"}`} role="group" aria-label="Speed" title={model?.supports.speed ? "Speaking speed" : `${model?.label ?? "This model"} has no speed control`}>
@@ -211,10 +229,10 @@ export default function VoiceStudio() {
               <button type="button" aria-label="Faster" disabled={!model?.supports.speed || speed >= SPEEDS[SPEEDS.length - 1]} onClick={() => setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + 1)])}><Plus size={14} /></button>
             </div>
             <div className="vc-tagwrap">
-              <button type="button" className={`vc-pill vc-tagbtn ${tagsOpen ? "is-open" : ""}`} aria-haspopup="menu" aria-expanded={tagsOpen} disabled={!model?.supports.emotionTags} title={model?.supports.emotionTags ? "Delivery tags" : `${model?.label ?? "This model"} does not read delivery tags`} onClick={() => setTagsOpen((o) => !o)}><Tag size={14} /> Delivery</button>
+              <button type="button" className={`vc-pill vc-tagbtn ${tagsOpen ? "is-open" : ""}`} aria-haspopup="menu" aria-expanded={tagsOpen} disabled={!model?.tags.length} title={model?.supports.emotionTags ? "Delivery tags" : `${model?.label ?? "This model"} does not read delivery tags`} onClick={() => setTagsOpen((o) => !o)}><Tag size={14} /> Delivery</button>
               {tagsOpen && (
                 <div className="vc-tagmenu" role="menu" aria-label="Delivery tags">
-                  {TAGS.map((t) => <button key={t} type="button" role="menuitem" onClick={() => insertTag(t)}>[{t}]</button>)}
+                  {(model?.tags ?? []).map((t) => <button key={t} type="button" role="menuitem" onClick={() => insertTag(t)}>{t}</button>)}
                 </div>
               )}
             </div>

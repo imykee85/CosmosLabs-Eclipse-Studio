@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
-import { audioCreditsOn, creditsPerChar } from "@/lib/audio/pricing";
+import { audioCreditsOn, pagePricing } from "@/lib/audio/pricing";
 import { modelAvailable } from "@/lib/audio/providers";
-import { ttsModels } from "@/lib/audio/registry";
+import { PROVIDER_LABEL, ttsModels } from "@/lib/audio/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +15,10 @@ export async function GET() {
   const on = audioCreditsOn();
   return NextResponse.json({
     models: ttsModels().map((m) => ({
-      id: m.id, label: m.label, maxChars: m.maxChars, supports: m.supports, note: m.note ?? null,
+      id: m.id, label: m.label, provider: m.provider, providerLabel: PROVIDER_LABEL[m.provider], maxChars: m.maxChars, supports: m.supports, note: m.note ?? null,
+      tags: m.supports.emotionTags ? m.tags ?? [] : [], voiceOptional: !!m.voiceOptional,
       ready: clerkEnabled && modelAvailable(m),
-      creditsPerChar: on && m.priceUnit === "char" ? creditsPerChar(m) : null,
+      pricing: on ? pagePricing(m) : null,
     })),
   });
 }
