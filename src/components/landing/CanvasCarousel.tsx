@@ -9,7 +9,7 @@ import { wowTiles } from "./data";
 const COPIES = 3;
 const MAX_DEG = 30;       // tilt of a card at the edge of the row
 const DRIFT_PX_S = 28;    // slow automatic drift
-const PERSPECTIVE = 1100;
+const PERSPECTIVE = 900;
 const FLAT = 0.25;        // the middle stretch of the row keeps the base size
 const GROW = 0.42;        // how much bigger a card gets for each step away from it (about 1.3x at the edge)
 
@@ -39,9 +39,10 @@ export default function CanvasCarousel() {
         const d = i * step - pos;                         // distance of this card's middle from the middle of the row
         const n = Math.max(-1.25, Math.min(1.25, d / (boxW / 2)));
         // Like standing inside a curved wall: the middle cards sit further away (smaller), the outer ones come toward you (bigger) and turn so their inner edge falls back.
+        // Each card carries its OWN perspective() (a parent perspective is unreliable through a moving track on iPhone Safari); the sideways push `d * (grow - 1)` is the
+        // spreading a real perspective would give, so bigger cards never overlap their neighbours.
         const grow = 1 + GROW * Math.max(0, Math.abs(n) - FLAT);
-        const z = PERSPECTIVE * (1 - 1 / grow);
-        cards[i].style.transform = `translateZ(${z.toFixed(1)}px) rotateY(${(-n * MAX_DEG).toFixed(2)}deg)`;
+        cards[i].style.transform = `translateX(${(d * (grow - 1)).toFixed(1)}px) perspective(${PERSPECTIVE}px) rotateY(${(-n * MAX_DEG).toFixed(2)}deg) scale(${grow.toFixed(3)})`;
       }
     };
     const wrap = () => { while (pos >= 2 * setW) pos -= setW; while (pos < setW) pos += setW; };
@@ -90,7 +91,7 @@ export default function CanvasCarousel() {
 
   const items = Array.from({ length: COPIES }, (_, c) => wowTiles.map(([title, sub], i) => ({ title, sub, i, key: `${c}-${i}`, hidden: c !== 1 })));
   return (
-    <div className="wow-carousel" ref={root} style={{ perspective: PERSPECTIVE }} aria-label="Examples of what Eclipse makes">
+    <div className="wow-carousel" ref={root} aria-label="Examples of what Eclipse makes">
       <div className="wow-track" ref={track}>
         {items.flat().map((it) => (
           <article className="wow-slide" key={it.key} aria-hidden={it.hidden || undefined}>

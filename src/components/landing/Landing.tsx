@@ -9,6 +9,7 @@ import { audience, faqs, results, steps } from "./data";
 import { plans } from "@/lib/plans";
 import HeroImage from "./HeroImage";
 import CanvasCarousel from "./CanvasCarousel";
+import ScrollReveal from "./ScrollReveal";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
@@ -93,6 +94,7 @@ export default function Landing() {
 
       <section id="examples" className="wow-section section-pad">
         <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
+        <ScrollReveal className="wow-reveal" text="Eclipse brings your pictures, video, prompts and AI agents together in one creative studio, so an idea can become a finished piece without leaving the page." />
         <CanvasCarousel />
         <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
       </section>
