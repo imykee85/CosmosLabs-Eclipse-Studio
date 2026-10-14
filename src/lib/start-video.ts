@@ -1,3 +1,4 @@
+import { AUTO_RATIO, resolveAutoRatio } from "@/lib/auto-ratio";
 import { randomInt, randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { HiggsfieldError } from "@/lib/higgsfield";
@@ -83,6 +84,9 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const pictures = refs.length ? refs : [start, end].filter((r): r is ReferenceRef => !!r);
   // No per-video rights box: every picture and clip here is one of the person's own (finished Eclipse renders, or pictures that were scanned and confirmed when uploaded, src/lib/upload-scan.ts).
 
+  // "Auto" aspect ratio: a model that can pick its own gets the word; otherwise the first picture's shape (nearest ratio the model offers), else its usual ratio.
+  let aspectIn = typeof input.aspectRatio === "string" && caps.ratios.length ? input.aspectRatio : undefined;
+  if (aspectIn === AUTO_RATIO && !caps.ratios.includes(AUTO_RATIO)) aspectIn = await resolveAutoRatio(userId, refs[0] ?? start ?? undefined, caps.ratios, caps.defaultRatio);
   const resolution = typeof input.resolution === "string" ? input.resolution : undefined;
   const audio = typeof input.audio === "boolean" ? input.audio : undefined;
 
@@ -128,7 +132,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   }
 
   // Check the request against the model BEFORE anything is held or limited (placeholder addresses stand in for the pictures).
-  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: typeof input.aspectRatio === "string" ? input.aspectRatio : undefined, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined });
+  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined });
   if (!probe.ok) return { ok: false, status: 400, error: probe.error };
 
   const resolutionUsed = typeof probe.body.resolution === "string" ? probe.body.resolution : undefined;
@@ -163,7 +167,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     if (!clips.ok) return { ok: false, status: 400, error: clips.error };
     refVideoUrls = clips.urls;
   }
-  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: typeof input.aspectRatio === "string" ? input.aspectRatio : undefined, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl, endUrl, refUrls, refVideoUrls });
+  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl, endUrl, refUrls, refVideoUrls });
   if (!built.ok) return { ok: false, status: 400, error: built.error };
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel starts cannot all pass the balance check.

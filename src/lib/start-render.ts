@@ -1,3 +1,4 @@
+import { AUTO_RATIO, resolveAutoRatio } from "@/lib/auto-ratio";
 import { waitUntil } from "@vercel/functions";
 import { claimUsage } from "@/lib/usage";
 import { createGenerationHeld } from "@/lib/reservations";
@@ -46,7 +47,9 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
 
   const projectId = typeof input.projectId === "string" && input.projectId.length <= 64 ? input.projectId : null;
 
-  const aspectRatio = typeof input.aspectRatio === "string" ? input.aspectRatio : undefined;
+  let aspectRatio = typeof input.aspectRatio === "string" ? input.aspectRatio : undefined;
+  // "Auto": the result takes the first reference picture's shape (nearest ratio this model offers); with no reference, the usual 1:1.
+  if (aspectRatio === AUTO_RATIO && !model.ratios.includes(AUTO_RATIO)) aspectRatio = await resolveAutoRatio(input.userId, refs[0], model.ratios, model.ratios.includes("1:1") ? "1:1" : model.ratios[0]);
   if (aspectRatio && !model.ratios.includes(aspectRatio)) {
     return { ok: false, status: 400, error: `${model.label} does not support the ${aspectRatio} aspect ratio. Choose one of: ${model.ratios.join(", ")}.` };
   }

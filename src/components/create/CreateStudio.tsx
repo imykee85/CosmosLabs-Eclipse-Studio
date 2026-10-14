@@ -124,7 +124,7 @@ export default function CreateStudio() {
 
   // Keep the chosen shape one the chosen model supports.
   useEffect(() => {
-    if (model && !model.ratios.includes(ratio)) setRatio(model.ratios[0]);
+    if (model && ratio !== "auto" && !model.ratios.includes(ratio)) setRatio(model.ratios[0]);
   }, [model, ratio]);
   // Keep the chosen quality to one the model can render; otherwise fall back to its first.
   useEffect(() => {
@@ -290,7 +290,7 @@ export default function CreateStudio() {
       <section className="cr-preview" aria-label="Preview">
         {(() => {
           const shown = busy ? null : latestDone;
-          const r = pending?.aspectRatio ?? shown?.aspectRatio ?? ratio;
+          const r = pending?.aspectRatio ?? shown?.aspectRatio ?? (ratio === "auto" ? "1:1" : ratio);
           return (
             <div className="cr-stage" style={{ aspectRatio: r.replace(":", " / "), maxWidth: previewWidth(r) }} aria-live="polite">
               {busy ? (
@@ -378,7 +378,8 @@ export default function CreateStudio() {
           <label className="cr-chip cr-select">
             <span className="sr-only">Aspect ratio</span>
             <select value={ratio} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio">
-              {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
+              <option value="auto">Auto</option>
+              {(model?.ratios ?? [ratio]).filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
           <div className="cr-qty" role="group" aria-label="Number of images">

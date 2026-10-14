@@ -133,7 +133,7 @@ function StyleNode({ id, data, selected }: NodeProps<CNode>) {
 function Result({ gid, ratio, on, onPick, onOpen, small }: { gid: string; ratio: string; on: boolean; onPick?: () => void; onOpen: () => void; small?: boolean }) {
   const [gone, setGone] = useState(false);
   return (
-    <div className={`cv-res ${small ? "is-small" : ""} ${on ? "is-on" : ""}`} style={{ aspectRatio: ratio.replace(":", " / ") }}>
+    <div className={`cv-res ${small ? "is-small" : ""} ${on ? "is-on" : ""}`} style={{ aspectRatio: (ratio === "auto" ? "1:1" : ratio).replace(":", " / ") }}>
       {gone ? <span className="cv-gone">Removed</span> : (
         <button type="button" className="cv-res-img nodrag" onClick={onOpen} title="Open with details" aria-label="Open this image with its details">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -177,7 +177,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   })();
   const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;
   // A shape the chosen model cannot make is replaced in the picker (never silently at send time).
-  const ratio = model && !model.ratios.includes(ratioWanted) ? model.ratios[0] : ratioWanted;
+  const ratio = model && ratioWanted !== "auto" && !model.ratios.includes(ratioWanted) ? model.ratios[0] : ratioWanted;
   const tierOk = !model || !model.resolutions.length || !!tierResolution(model.resolutions, tier);
   useEffect(() => {
     if (!model || !model.resolutions.length || tierResolution(model.resolutions, tier)) return;
@@ -279,7 +279,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   const ingN = (data.refs ?? []).length;
 
   return (
-    <Shell id={id} kind={kind} selected={selected} className="cv-gen" cardStyle={{ aspectRatio: ratio.replace(":", " / ") }}
+    <Shell id={id} kind={kind} selected={selected} className="cv-gen" cardStyle={{ aspectRatio: (ratio === "auto" ? "1:1" : ratio).replace(":", " / ") }}
       display={
         <div className="cv-disp">
           {busy && gens.length === 0 ? (
@@ -305,7 +305,8 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
           <div className="cv-controls nodrag">
             <label className="cv-chip cv-sel"><span className="sr-only">Aspect ratio</span>
               <select value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>
-                {(model?.ratios ?? [ratio]).map((r) => <option key={r} value={r}>{r}</option>)}
+                <option value="auto">Auto</option>
+                {(model?.ratios ?? [ratio]).filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </label>
             <div className="cv-qty" role="group" aria-label="Number of images">

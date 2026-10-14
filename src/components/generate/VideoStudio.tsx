@@ -181,7 +181,7 @@ export default function VideoStudio() {
   useEffect(() => { try { const m = localStorage.getItem(MODEL_KEY); if (m && VIDEO_MODELS.some((x) => x.id === m && !x.hidden)) setModelId(m); } catch {} }, []);
   // Keep every setting one the chosen model accepts in this way of using it.
   useEffect(() => {
-    if (caps.ratios.length && !caps.ratios.includes(ratio)) setRatio(caps.defaultRatio);
+    if (caps.ratios.length && ratio !== "auto" && !caps.ratios.includes(ratio)) setRatio(caps.defaultRatio);
     if (!caps.durations.includes(duration)) setDuration(caps.defaultDuration);
     if (caps.qualities.length ? !caps.qualities.includes(quality) : quality !== "") setQuality(caps.defaultQuality);
     if (!caps.endFrame) setEnd(null);
@@ -400,7 +400,7 @@ export default function VideoStudio() {
               </button>
               <label className="cr-chip cr-select" title={aspectLocked ? "With a start frame the aspect ratio follows your picture" : "Aspect ratio of the clip"}><span className="sr-only">Aspect ratio</span>
                 <select value={caps.ratios.length ? ratio : ""} onChange={(e) => setRatio(e.target.value)} aria-label="Aspect ratio" disabled={!caps.ratios.length}>
-                  {caps.ratios.length ? caps.ratios.map((r) => <option key={r} value={r}>{r === "auto" ? "Auto" : r}</option>) : <option value="">Follows picture</option>}
+                  {caps.ratios.length ? <><option value="auto">Auto</option>{caps.ratios.filter((r) => r !== "auto").map((r) => <option key={r} value={r}>{r}</option>)}</> : <option value="">Follows picture</option>}
                 </select>
               </label>
               <label className="cr-chip cr-select"><span className="sr-only">Length</span>
