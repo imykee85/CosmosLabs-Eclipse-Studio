@@ -213,8 +213,10 @@ export default function VideoStudio() {
       if (!r.ok) { setError(r.error); return; }
       if (!r.item) return;
       const pic: RefPick = { type: "upload", id: r.item.id, url: r.item.imageUrl, label: r.item.name };
-      // The + adds to the reference pictures once there are some; otherwise it gives a start frame; a model with no start frame takes it as a reference picture; one with neither says so.
-      if (refs.length > 0 && caps.refMax) setRefs((l) => [...l, pic].slice(0, caps.refMax));
+      // A model that takes reference pictures (Seedance) gets the + picture as a reference, like Higgsfield; the start frame stays the person's own choice (unless one is already set). Other models: start frame, else reference, else a note.
+      const modelRefMax = model.live?.endpoints.ref ? model.live.refs?.max ?? 0 : 0;
+      if (modelRefMax > 0 && !start) setRefs((l) => [...l, pic].slice(0, modelRefMax));
+      else if (refs.length > 0 && caps.refMax) setRefs((l) => [...l, pic].slice(0, caps.refMax));
       else if (model.startFrame) setStart(pic);
       else if (caps.refMax > 0) setRefs((l) => [...l, pic].slice(0, caps.refMax));
       else setNote(`${model.label} makes video from text only. Choose a model that takes a start frame or pictures.`);
