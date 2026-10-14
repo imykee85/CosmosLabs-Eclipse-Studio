@@ -558,9 +558,9 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* "Your creative computer" (Core): same paper background and ink as the Atlas workflow section above the idea card. */
 .core-section { background: var(--paper); color: var(--ink); padding-top: 135px; padding-bottom: 110px; }
 .try-section.try-cta { padding-top: 130px; padding-bottom: 130px; }
-.core-head { max-width: 1152px; margin: 0 auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
+.core-head { max-width: 1152px; margin: 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 20px; }
 .site-shell .core-section h2 { margin-top: 0; text-transform: none; white-space: nowrap; } /* keeps the capital in "Your" */
-.core-head p { max-width: 300px; margin: 0 0 8px; color: #6f6a63; font-size: 14px; line-height: 1.5; }
+.core-head p { max-width: 420px; margin: 0; color: #6f6a63; font-size: 14px; line-height: 1.5; }
 .core-stage { position: relative; max-width: 1152px; height: 720px; margin: 56px auto 0; }
 .core-circles { position: absolute; left: 50%; top: 50%; width: min(62vw, 500px); aspect-ratio: 1; transform: translate(-50%, -50%); }
 .core-ring { position: absolute; inset: 0; border-radius: 50%; border: 1px dashed rgba(0,0,0,.24); }
