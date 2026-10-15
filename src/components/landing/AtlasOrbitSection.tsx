@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Brain, Cpu, Plug, Puzzle } from "lucide-react";
+import { Brain, Cpu, Folder, Plug, Puzzle } from "lucide-react";
 import GlowOrb from "@/components/GlowOrb";
 
 // "Your creative computer." (Core, not Atlas) After the owner's Framer reference (layout and motion only): two dashed rings round a glowing core, small round nodes travelling
@@ -9,10 +9,13 @@ import GlowOrb from "@/components/GlowOrb";
 // The rings only turn while the section is on screen.
 const ITEMS = [
   { key: "memory", title: "Memory", text: "Core remembers your brand, your style and what you made before.", icon: Brain, ring: 1, angle: -40 },
-  { key: "apps", title: "Apps", text: "Connects to the tools you already use.", icon: Plug, ring: 0, angle: 200 },
+  { key: "apps", title: "Apps", text: "Connects to the tools you already use.", icon: Plug, ring: 0, angle: 140 },
   { key: "skills", title: "Skills", text: "A growing library of skills for ads, product shots, motion and more.", icon: Puzzle, ring: 1, angle: 140 },
   { key: "intelligence", title: "Intelligence", text: "Picks the right model for every job.", icon: Cpu, ring: 0, angle: 20 },
 ] as const;
+// A third node on the outer ring, like the Core page (Projects): it travels with the others but has no text block in the corners.
+const PROJECTS = { key: "projects", icon: Folder, ring: 0, angle: 260 } as const;
+const NODES = [...ITEMS, PROJECTS];
 const OUTER_S = 60, INNER_S = 44;
 
 export default function AtlasOrbitSection() {
@@ -26,7 +29,7 @@ export default function AtlasOrbitSection() {
     return () => io.disconnect();
   }, []);
 
-  const ringNodes = (ring: 0 | 1, back: boolean, seconds: number) => ITEMS.filter((it) => it.ring === ring).map((it) => {
+  const ringNodes = (ring: 0 | 1, back: boolean, seconds: number) => NODES.filter((it) => it.ring === ring).map((it) => {
     const Icon = it.icon;
     return (
       <div key={it.key} className="core-slot" style={{ transform: `rotate(${it.angle}deg)` }}>

@@ -615,3 +615,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Hero heading block brighter */
 .site-shell .hero h1 { color: #fff; }
 .site-shell .hero .hero-sub { color: #f2efea; }
+
+/* Every heading subtext on the homepage has the size of "AI Creative Suite" (owner 2026-10-15): 20px, 24px on desktop, weight 500. */
+.audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 20px; font-weight: 500; line-height: 1.35; letter-spacing: -.01em; }
+@media (min-width: 801px) { .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 24px; } }
+.audience-sub { max-width: 600px; } .core-head p { max-width: 600px; } .results-heading p { max-width: 400px; }
