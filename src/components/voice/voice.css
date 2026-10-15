@@ -96,7 +96,7 @@
 @keyframes vc-spin { to { transform: rotate(360deg); } }
 
 /* Voice sheet */
-.vc-sheet-back { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); animation: vc-fade .18s ease-out; }
+.vc-sheet-back { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); animation: vc-fade .18s ease-out; }
 .vc-sheet { display: flex; flex-direction: column; width: min(620px, 100%); max-height: min(720px, 86dvh); padding: 18px 18px 8px; border: 1px solid var(--a-line2); border-radius: 26px; background: var(--a-card); box-shadow: 0 30px 80px var(--a-shadow); animation: vc-rise .22s ease-out; }
 .vc-sheet-grab { display: none; }
 .vc-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -128,7 +128,8 @@
   .vc { min-height: calc(100dvh - 190px); }
   .vc-stage { width: min(250px, 62vw); }
   .vc-now b { font-size: 22px; }
-  .vc-console-wrap { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .vc { padding-bottom: 300px; }
+  .vc-console-wrap { position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; margin: 0; padding: 0; }
   .vc-console { padding: 12px 12px 10px 16px; border-radius: 24px; }
   .vc-console textarea { font-size: 16px; }
   .vc-controls { gap: 6px; }
