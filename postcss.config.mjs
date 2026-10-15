@@ -1,3 +1,3 @@
-const config = { plugins: { tailwindcss: {}, "./scripts/postcss-phone-text.cjs": {}, autoprefixer: {} } };
+const config = { plugins: { tailwindcss: {}, autoprefixer: {} } };
 
 export default config;
