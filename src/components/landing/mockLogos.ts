@@ -1,5 +1,5 @@
 // DESIGN MOCKUP ONLY. These are other companies' logos, not Eclipse customers. They only show on local and preview
-// builds (see NEXT_PUBLIC_MOCK_LOGOS in next.config) and are switched off automatically in production.
+// builds (see NEXT_PUBLIC_MOCK_LOGOS in next.config) (and, with the owner's OK of 2026-10-15, on production too).
 // Before launch: delete this file, public/logos/mock/, and the mock branch in IndustryStrip.tsx.
 export const mockLogos: { name: string; src: string; h: number }[] = [
   { name: "Meta", src: "/logos/mock/meta.svg", h: 37 },

@@ -32,7 +32,7 @@ const securityHeaders = [
 
 const nextConfig = {
   // Design-mockup logos on the landing strip: shown locally and on preview deployments, never in production.
-  env: { NEXT_PUBLIC_MOCK_LOGOS: process.env.VERCEL_ENV === "production" ? "0" : "1" },
+  env: { NEXT_PUBLIC_MOCK_LOGOS: "1" }, // owner 2026-10-15: mock logos are allowed on every build, production included
   // Nothing uses next/image, so the image optimizer (an open fetch proxy when it allows every host) is switched off.
   images: { unoptimized: true },
   // Atlas's video watching runs ffmpeg: keep its binary out of the bundle and make sure it is shipped with that one route.
