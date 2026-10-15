@@ -13,12 +13,12 @@ export const wowTiles = [
 
 // [name, short line on the card, maker, kind, small facts shown under the card, name as written under the card]. Facts come from our own model list (video-models.ts / models.ts): nothing invented, no prices.
 export const audience = [
-  ["SEEDANCE 2.5", "ByteDance video with sound, up to 30 seconds.", "ByteDance", "Video", "Text to video and start-frame video, with sound, 4 to 30 seconds.", "Seedance 2.5"],
-  ["KLING 3.0", "Multi-shot video with sound and top general motion.", "Kling", "Video", "Multi-shot clips from text or images, with sound.", "Kling 3.0"],
-  ["MINIMAX H3", "2K video from text, keyframes or references.", "MiniMax", "Video", "2K video from text, keyframes or reference files.", "MiniMax H3"],
-  ["WAN 3.0 PRIME", "Long clips up to 30 seconds, with sound.", "Wan", "Video", "Clips up to 30 seconds from text, pictures or clips, with sound.", "Wan 3.0 Prime"],
-  ["NANO BANANA PRO", "Google's highest quality image model.", "Google", "Image", "Google's highest quality image model, with reference pictures.", "Nano Banana Pro"],
-  ["GPT IMAGE 2.5", "OpenAI's newest image model.", "OpenAI", "Image", "OpenAI's newest image model, with picture edits.", "GPT Image 2.5"],
+  ["Seedance 2.5", "ByteDance video with sound, up to 30 seconds.", "ByteDance", "Video", "Text to video and start-frame video, with sound, 4 to 30 seconds.", "Seedance 2.5"],
+  ["Kling 3.0", "Multi-shot video with sound and top general motion.", "Kling", "Video", "Multi-shot clips from text or images, with sound.", "Kling 3.0"],
+  ["MiniMax H3", "2K video from text, keyframes or references.", "MiniMax", "Video", "2K video from text, keyframes or reference files.", "MiniMax H3"],
+  ["Wan 3.0 Prime", "Long clips up to 30 seconds, with sound.", "Wan", "Video", "Clips up to 30 seconds from text, pictures or clips, with sound.", "Wan 3.0 Prime"],
+  ["Nano Banana Pro", "Google's highest quality image model.", "Google", "Image", "Google's highest quality image model, with reference pictures.", "Nano Banana Pro"],
+  ["GPT Image 2.5", "OpenAI's newest image model.", "OpenAI", "Image", "OpenAI's newest image model, with picture edits.", "GPT Image 2.5"],
 ] as const;
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising"];
@@ -34,11 +34,11 @@ export const atlasStrengths = [
 
 // The Atlas workflow timeline. Only what Atlas really does today: it proposes, the person approves, nothing renders without a press.
 export const atlasSteps = [
-  ["01", "TELL ATLAS", "Describe your idea in plain language."],
-  ["02", "ATLAS PLANS IT", "Atlas shapes the idea and writes the prompt."],
-  ["03", "ATLAS CREATES", "Approve it and your image or video is made."],
-  ["04", "REFINE", "Ask for changes and Atlas reworks it."],
-  ["05", "KEEP IT", "Every result is saved in your gallery."],
+  ["01", "Tell Atlas", "Describe your idea in plain language."],
+  ["02", "Atlas plans it", "Atlas shapes the idea and writes the prompt."],
+  ["03", "Atlas creates", "Approve it and your image or video is made."],
+  ["04", "Refine", "Ask for changes and Atlas reworks it."],
+  ["05", "Keep it", "Every result is saved in your gallery."],
 ] as const;
 
 export const faqs = [

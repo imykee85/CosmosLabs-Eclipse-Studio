@@ -19,7 +19,7 @@ import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
 
-function Cta({ dark = false, glint = false, children = "Start Creating" }: { dark?: boolean; glint?: boolean; children?: React.ReactNode }) {
+function Cta({ dark = false, glint = false, children = "Start creating" }: { dark?: boolean; glint?: boolean; children?: React.ReactNode }) {
   const cls = `pill-btn ${dark ? "pill-btn-dark" : ""} ${glint ? "glint-btn" : ""}`;
   return (
     <>
@@ -64,7 +64,7 @@ export default function Landing() {
         <div className="nav-actions">
           <SignedOut>
             <Link className="pill-btn" href="/sign-in">
-              Sign Up/Log In
+              Sign up / Log in
               <ArrowRight size={15} strokeWidth={1.7} />
             </Link>
           </SignedOut>
@@ -99,14 +99,14 @@ export default function Landing() {
         <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
         <ScrollReveal className="wow-reveal" text="Eclipse brings your pictures, video, prompts and AI agents together in one creative studio, so an idea can become a finished piece without leaving the page." />
         <CanvasCarousel />
-        <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
+        <div className="center-cta"><span>All created with Eclipse</span><Cta dark>Create yours</Cta></div>
       </section>
 
       <section className="audience-section section-pad">
         <div className="section-heading-row">
           <div>
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
-            <h2>what do you want<br /><em>to create?</em></h2>
+            <h2>What do you want<br /><em>to create?</em></h2>
             <p className="audience-sub">Discover the latest frontier generative AI models.</p>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function Landing() {
       <CtaPromptCard
         id="try-it"
         eyebrow="TURN A THOUGHT INTO A STARTING POINT"
-        line1="have an idea?" line2="try it."
+        line1="Have an idea?" line2="Try it."
         placeholder={"What do you want to create?\n\nDescribe your idea…"}
         button="Create my idea" icon={<Lightbulb size={17} />}
         caption="No prompt engineering. No blank canvas. Just start with what you’re imagining."
@@ -142,7 +142,7 @@ export default function Landing() {
         <div className="section-heading-row results-heading">
           <div>
             <div className="eyebrow">CREATED WITH ECLIPSE</div>
-            <h2>made to look<br /><em>like you meant it.</em></h2>
+            <h2>Made to look<br /><em>like you meant it.</em></h2>
           </div>
           <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
         </div>
@@ -154,13 +154,13 @@ export default function Landing() {
             </article>
           ))}
         </div>
-        <div className="center-cta" style={{ marginTop: 70 }}><Cta dark>Create Yours</Cta></div>
+        <div className="center-cta" style={{ marginTop: 70 }}><Cta dark>Create yours</Cta></div>
       </section>
 
       <section className="try-section try-cta section-pad">
         <div className="try-inner">
           <div className="eyebrow">YOUR STUDIO IS WAITING</div>
-          <h2>start creating<br /><em>with Eclipse.</em></h2>
+          <h2>Start creating<br /><em>with Eclipse.</em></h2>
           <div className="section-cta"><Cta /></div>
         </div>
       </section>
@@ -169,7 +169,7 @@ export default function Landing() {
 
       <section id="pricing" className="pricing-section section-pad">
         <div className="eyebrow">SIMPLE PRICING</div>
-        <h2 className="plans-title">pick the plan<br /><em>that fits.</em></h2>
+        <h2 className="plans-title">Pick the plan<br /><em>that fits.</em></h2>
         <div className="plan-grid">
           {plans.map((p, i) => (
             <article className={`plan-card ${i === 1 ? "plan-popular" : ""}`} key={p.name}>
@@ -191,7 +191,7 @@ export default function Landing() {
 
       <section id="faq" className="faq-section section-pad">
         <div className="eyebrow">QUESTIONS, ANSWERED.</div>
-        <h2>frequently asked<br /><em>questions</em></h2>
+        <h2>Frequently asked<br /><em>questions.</em></h2>
         <div className="faq-list">
           {faqs.map(([q, a], i) => (
             <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={q}>
@@ -207,9 +207,9 @@ export default function Landing() {
 
       <section className="final-section section-pad">
         <div className="eyebrow">YOUR NEXT IDEA SHOULDN’T STAY AN IDEA</div>
-        <h2>TURN IT INTO<br /><em>CONTENT WITH ECLIPSE.</em></h2>
+        <h2>Turn it into<br /><em>content with Eclipse.</em></h2>
         <button className="pill-btn" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-          Back To Top
+          Back to top
           <ArrowUp size={15} strokeWidth={1.7} />
         </button>
       </section>
