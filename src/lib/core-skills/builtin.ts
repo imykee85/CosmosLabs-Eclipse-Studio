@@ -8,6 +8,7 @@ import path from "node:path";
 export type BuiltinSkillDef = {
   id: string; dir: string; title: string; source: string; license: string; tags: string[];
   requiresSandbox: boolean; estimatedCost: "low" | "medium" | "high";
+  internal: boolean; // never listed or advertised to people; used only when they ask for what it does
 };
 export type BuiltinSkill = BuiltinSkillDef & { description: string };
 
@@ -15,7 +16,7 @@ export const BUILTIN_SKILLS: BuiltinSkillDef[] = [
   {
     id: "design-taste-frontend", dir: "taste-skill", title: "Taste Skill: website design",
     source: "github.com/Leonxlnx/taste-skill@f624f37", license: "MIT (Copyright (c) 2026 Leonxlnx)",
-    tags: ["design", "web", "frontend"], requiresSandbox: true, estimatedCost: "high",
+    tags: ["design", "web", "frontend"], requiresSandbox: true, estimatedCost: "high", internal: true,
   },
 ];
 

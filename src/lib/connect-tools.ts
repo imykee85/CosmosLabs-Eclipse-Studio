@@ -237,7 +237,7 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
         const enabledIds = new Set<string>();
         for (const b of await builtinIndex()) if (await skillEnabled(ctx.userId, b.id)) enabledIds.add(b.id);
         const mine = await db.userSkill.findMany({ where: { userId: ctx.userId }, orderBy: { createdAt: "desc" }, take: 50 });
-        const folders = (await builtinIndex()).filter((s) => enabledIds.has(s.id)).map((s) => ({ id: s.id, name: s.title, about: s.description, folder: true, tags: s.tags, uses_build_machine: s.requiresSandbox, cost: s.estimatedCost, available: !s.requiresSandbox || sandboxAvailable() }));
+        const folders = (await builtinIndex()).filter((s) => !s.internal && enabledIds.has(s.id)).map((s) => ({ id: s.id, name: s.title, about: s.description, folder: true, tags: s.tags, uses_build_machine: s.requiresSandbox, cost: s.estimatedCost, available: !s.requiresSandbox || sandboxAvailable() }));
         return { text: JSON.stringify([...skills.map((s) => ({ id: s.id, name: s.name, about: s.blurb })), ...folders, ...mine.map((s) => ({ id: s.id, name: s.name, about: s.blurb, own: true }))]) };
       }
 

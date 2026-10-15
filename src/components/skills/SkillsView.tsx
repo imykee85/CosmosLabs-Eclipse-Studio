@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownAZ, BadgeCheck, ChevronLeft, Clock, LayoutGrid, List, Play, Plus, Puzzle, Search, Timer, Trash2, X } from "lucide-react";
 import ConnectNav from "@/components/connect/ConnectNav";
-import TasteSkillRow from "./TasteSkillRow";
 import { skills } from "@/lib/skills";
 import "@/components/connect/connect.css";
 import "./skills.css";
@@ -138,7 +137,6 @@ export default function SkillsView() {
             ))}
           </ul>
           {shown.length === 0 && <p className="cn-none">No skills match “{query}”.</p>}
-          {!query.trim() && <TasteSkillRow />}
         </section>
       )}
 

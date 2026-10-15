@@ -16,6 +16,7 @@ test("the index lists the Taste Skill with the SKILL.md description and the righ
   assert.deepEqual(t.tags, ["design", "web", "frontend"]);
   assert.equal(t.requiresSandbox, true);
   assert.equal(t.estimatedCost, "high");
+  assert.equal(t.internal, true);
   assert.ok(md.length > 20_000, "built-in skills are not held to the 20 KB cap");
 });
 
