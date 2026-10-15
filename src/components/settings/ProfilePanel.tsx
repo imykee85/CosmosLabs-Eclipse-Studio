@@ -6,12 +6,12 @@ import { Upload } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import { useDemoProfile } from "@/components/account";
 import { clerkEnabled } from "@/lib/clerk-enabled";
+import { LANGS } from "@/lib/i18n/languages";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { squareDataUrl, writeDemoProfile } from "@/lib/demo-profile";
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const TYPES = ["image/png", "image/jpeg", "image/webp"];
-const LANGS = ["English", "Español", "Français", "Deutsch", "Português"];
-const LANG_KEY = "eclipse-language";
 
 type Props = {
   name: string;
@@ -24,13 +24,10 @@ function ProfileForm({ name, image, saveName, saveAvatar }: Props) {
   const [value, setValue] = useState(name);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const [lang, setLang] = useState("English");
+  const { lang, setLang } = useLocale();
   const file = useRef<HTMLInputElement>(null);
 
   useEffect(() => setValue(name), [name]);
-  useEffect(() => {
-    try { const l = localStorage.getItem(LANG_KEY); if (l && LANGS.includes(l)) setLang(l); } catch {}
-  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -66,11 +63,6 @@ function ProfileForm({ name, image, saveName, saveAvatar }: Props) {
     }
   }
 
-  function chooseLang(l: string) {
-    setLang(l);
-    try { localStorage.setItem(LANG_KEY, l); } catch {}
-  }
-
   return (
     <>
       <section className="st-section" aria-labelledby="st-profile">
@@ -100,10 +92,9 @@ function ProfileForm({ name, image, saveName, saveAvatar }: Props) {
         <h2 id="st-prefs">Preferences</h2>
         <p className="st-sub">Choose the language for AI suggestions and the interface.</p>
         <label htmlFor="st-lang" className="st-label">LANGUAGE</label>
-        <select id="st-lang" className="st-input st-select" value={lang} onChange={(e) => chooseLang(e.target.value)}>
-          {LANGS.map((l) => <option key={l} value={l}>{l}</option>)}
+        <select id="st-lang" className="st-input st-select" value={lang} onChange={(e) => setLang(e.target.value)} translate="no">
+          {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
         </select>
-        <p className="st-hint">Remembered on this device. The interface is English only for now.</p>
       </section>
     </>
   );

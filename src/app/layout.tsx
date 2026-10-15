@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/react"; // page views; sends nothing until Web Analytics is switched on in the Vercel project
 import { clerkEnabled } from "@/lib/clerk-enabled";
+import LocaleProvider from "@/components/i18n/LocaleProvider";
 import "./globals.css";
 
 // Inter is kept in the repo (src/app/fonts) instead of downloaded from Google at build time: a failed download once broke a Vercel build.
@@ -37,16 +38,21 @@ const STATUS_BAR_SCRIPT = `try{var l=localStorage.getItem('eclipse-theme')==='li
 // Portrait phones only (shorter screen side <= 600); landscape and tablets keep width=device-width.
 const PHONE_LAYOUT_SCRIPT = `(function(){try{var s=Math.min(screen.width,screen.height);if(s>600)return;function W(){return Math.round(s/(location.pathname==='/'?0.5:0.75))}function run(){var port=matchMedia('(orientation: portrait)').matches;var q=document.querySelectorAll('meta[name="viewport"]');if(!q.length){var m=document.createElement('meta');m.name='viewport';m.content='width=device-width';document.head.appendChild(m);q=[m]}for(var i=0;i<q.length;i++){var o={},t=q[i].content.split(',');for(var j=0;j<t.length;j++){var kv=t[j].split('=');if(kv[0].trim())o[kv[0].trim()]=(kv[1]||'').trim()}if(port){o.width=String(W());delete o['initial-scale'];delete o['maximum-scale']}else{o.width='device-width';o['initial-scale']='1'}var out=[];for(var k in o)out.push(k+'='+o[k]);out=out.join(', ');if(q[i].content!==out)q[i].content=out}}run();document.addEventListener('DOMContentLoaded',run);addEventListener('load',run);addEventListener('orientationchange',run);addEventListener('popstate',run);['pushState','replaceState'].forEach(function(n){var f=history[n];history[n]=function(){var r=f.apply(this,arguments);setTimeout(run,0);return r}});new MutationObserver(run).observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:['content']})}catch(e){}})();`;
 
+// A visitor whose language is not English: hide the page until the translator has run (it removes the attribute when done, and the provider after 2.5 s at the latest), so English never flashes first.
+// The language is the person's own choice (localStorage) or the cookie the middleware set from their connection. The legal and admin pages are never translated.
+const LANGUAGE_SCRIPT = `try{var c=null;try{var v=JSON.parse(localStorage.getItem('eclipse-locale')||'null');c=v&&v.lang}catch(e){}var m=document.cookie.match(/(?:^|; )eclipse-lang=([^;]*)/),l=c||(m&&m[1])||'en';if(l!=='en'&&!/^\\/(terms|privacy|admin)(\\/|$)/.test(location.pathname)){document.documentElement.setAttribute('data-i18n','pending');setTimeout(function(){document.documentElement.removeAttribute('data-i18n')},3000)}}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const page = (
     <html lang="en" className={`${inter.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PHONE_LAYOUT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: STATUS_BAR_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: LANGUAGE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('eclipse-theme')==='light')document.documentElement.setAttribute('data-app-theme','light')}catch(e){}" }} />
       </head>
       <body className="min-h-screen bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
-        {children}
+        <LocaleProvider>{children}</LocaleProvider>
         <Analytics />
       </body>
     </html>

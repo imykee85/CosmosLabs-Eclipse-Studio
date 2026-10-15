@@ -298,3 +298,18 @@ model UserVoice {
   @@index([userId, provider])
   @@map("user_voices")
 }
+
+// A translated piece of interface text: one row per (language, English text). Shared by everyone, so each string is translated (and paid for) once.
+// `source` is the English text with numbers lifted out ({0}, {1}); `sourceHash` is its SHA-256 (the lookup key).
+model Translation {
+  id         String   @id @default(cuid())
+  lang       String
+  sourceHash String   @map("source_hash")
+  source     String
+  text       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([lang, sourceHash])
+  @@index([createdAt])
+  @@map("translations")
+}

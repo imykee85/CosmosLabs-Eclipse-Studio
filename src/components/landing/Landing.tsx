@@ -7,6 +7,8 @@ import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
 import { plans } from "@/lib/plans";
+import PriceBadge from "@/components/i18n/PriceBadge";
+import LanguageMenu from "@/components/i18n/LanguageMenu";
 import HeroImage from "./HeroImage";
 import CanvasCarousel from "./CanvasCarousel";
 import AtlasWorkflow from "./AtlasWorkflow";
@@ -174,6 +176,7 @@ export default function Landing() {
               {i === 1 && <span className="plan-tag">Most popular</span>}
               <h3>{p.name}</h3>
               <p className="plan-price">${p.price}<small>/month</small></p>
+              <PriceBadge usd={p.price} className="badge-row" />
               <ul>
                 <li><Check size={15} /> {p.credits.toLocaleString("en-US")} credits every month</li>
                 <li><Check size={15} /> {p.seats} seat{p.seats === 1 ? "" : "s"}</li>
@@ -215,7 +218,7 @@ export default function Landing() {
         <div className="footer-top">
           <Wordmark />
         </div>
-        <div className="footer-bottom"><span>© 2026 Cosmos Labs AI. All rights reserved.</span><div><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
+        <div className="footer-bottom"><span>© 2026 Cosmos Labs AI. All rights reserved.</span><div><LanguageMenu /><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
       </footer>
     </main>
   );

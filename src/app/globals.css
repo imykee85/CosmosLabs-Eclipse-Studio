@@ -14,3 +14,15 @@
 html[data-app-theme="light"] .glow-orb { background: radial-gradient(circle, #ff3b3b 0%, #c00707 38%, rgba(192, 7, 7, .3) 62%, rgba(255, 255, 255, .95) 100%); }
 @keyframes glow-breathe { 50% { transform: scale(1.07); box-shadow: 0 0 84px rgba(192, 7, 7, .6); } }
 @media (prefers-reduced-motion: reduce) { .glow-orb { animation: none; } }
+
+/* Translation: a visitor who needs another language sees the page only once it has been translated (the runtime clears the attribute; a timer is the safety net). */
+html[data-i18n="pending"] body { opacity: 0; }
+body { transition: opacity .16s ease; }
+.price-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 3px 9px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.2; letter-spacing: .01em; white-space: nowrap; vertical-align: middle; opacity: .85; }
+.price-badge.badge-row { display: flex; width: max-content; margin: 10px 0 0; }
+.lang-menu { position: relative; }
+.lang-btn { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: #77736e; font: inherit; font-size: 12px; cursor: pointer; transition: color .18s ease; }
+.lang-btn:hover { color: #fff; }
+.lang-list { position: absolute; bottom: calc(100% + 10px); left: 0; z-index: 30; display: grid; gap: 2px; min-width: 190px; max-height: min(60vh, 420px); margin: 0; padding: 6px; overflow-y: auto; list-style: none; border: 1px solid #2a2927; border-radius: 14px; background: #121110; box-shadow: 0 16px 40px rgba(0, 0, 0, .55); }
+.lang-list button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 9px 12px; border: 0; border-radius: 9px; background: none; color: #d5d1cd; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.lang-list button:hover, .lang-list button.is-on { background: #211f1d; color: #fff; }

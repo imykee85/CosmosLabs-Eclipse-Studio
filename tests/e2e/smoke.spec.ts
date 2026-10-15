@@ -1,5 +1,29 @@
 import { test, expect } from "@playwright/test";
 
+test.describe("language and local prices", () => {
+  test("a visitor from Colombia gets Spanish and a peso badge next to each plan price; one from the US gets neither", async ({ browser }) => {
+    const co = await browser.newContext({ extraHTTPHeaders: { "x-vercel-ip-country": "CO", "accept-language": "en-US" } });
+    await co.route("**/api/translate", async (r) => {
+      const j = JSON.parse(r.request().postData() ?? "{}") as { texts: string[] };
+      await r.fulfill({ json: { translations: j.texts.map((t) => (t === "Get started" ? "Empezar" : t)) } });
+    });
+    const page = await co.newPage();
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+    await expect(page.locator(".plan-card .pill-btn").first()).toHaveText("Empezar");
+    await expect(page.locator(".plan-card .price-badge").first()).toContainText("COP");
+    await expect(page.locator(".plan-price").first()).toContainText("$19"); // the real price stays in dollars
+    await co.close();
+    const us = await browser.newContext({ extraHTTPHeaders: { "x-vercel-ip-country": "US", "accept-language": "en-US" } });
+    const p2 = await us.newPage();
+    await p2.goto("/");
+    await expect(p2.locator(".plan-card").first()).toBeVisible();
+    await expect(p2.locator("html")).toHaveAttribute("lang", "en");
+    expect(await p2.locator(".price-badge").count()).toBe(0);
+    await us.close();
+  });
+});
+
 test.describe("public site", () => {
   test("the landing page loads with its heading and a way in", async ({ page }) => {
     await page.goto("/");
