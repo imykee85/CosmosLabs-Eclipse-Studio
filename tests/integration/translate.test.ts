@@ -32,7 +32,7 @@ before(async () => {
   process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${(srv.address() as { port: number }).port}`;
   process.env.ANTHROPIC_API_KEY = "test";
   lib = await import("../../src/lib/i18n/translate-server");
-  route = await import("../../src/app/api/translate/route");
+  route = await import("../../src/app/api/i18n/[lang]/route");
   locale = await import("../../src/app/api/locale/route");
   dbm = (await import("../../src/lib/db")).db;
   await dbm.translation.deleteMany({});
@@ -94,17 +94,33 @@ test("limits: unsupported language, oversize batch, kill switch, daily cap", { s
   assert.equal(calls.length, n);
 });
 
-test("the public route validates its input and answers", { skip }, async () => {
-  const post = (body: unknown, ip = "1.1.1.1") => route.POST(new Request("http://x/api/translate", { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": ip }, body: JSON.stringify(body) }));
-  assert.equal((await post({ lang: "xx", texts: ["Generate"] })).status, 400);
-  assert.equal((await post({ lang: "es", texts: [] })).status, 400);
-  assert.equal((await post({ lang: "es", texts: [1] })).status, 400);
-  const ok = await post({ lang: "es", texts: ["Generate"] });
-  assert.equal(ok.status, 200);
-  assert.deepEqual((await ok.json()).translations, ["ES(Generate)"]);
-  let last = 200;
-  for (let i = 0; i < 45; i++) last = (await post({ lang: "es", texts: ["Generate"] }, "9.9.9.9")).status;
-  assert.equal(last, 429); // one address cannot hammer it
+test("the dictionary the browser downloads: hash of the English text -> translation, only code-written wording, cached", { skip }, async () => {
+  const { hash } = await import("../../src/lib/i18n/text");
+  await lib.translateMany("it", ["Generate", "Library"]);
+  const get = (lang: string) => route.GET(new Request(`http://x/api/i18n/${lang}`), { params: { lang } });
+  assert.equal((await get("en")).status, 404);
+  assert.equal((await get("ar")).status, 404);
+  const r = await get("it");
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.d[hash("Generate")], "ES(Generate)");
+  assert.equal(j.d[hash("Library")], "ES(Library)");
+  assert.ok(j.n >= 2 && j.t > 1000);
+  assert.match(r.headers.get("cache-control") ?? "", /s-maxage/); // an edge-cached file
+  assert.equal(Object.values(j.d).some((t) => /secret/i.test(String(t))), false);
+});
+
+test("warming a whole language translates every interface string once, in batches, and the dictionary then holds all of them", { skip }, async () => {
+  let r = await lib.warmLanguage("nl", 240);
+  assert.ok(r.added > 100 && r.remaining > 0 && r.total > 1000);
+  for (let i = 0; i < 40 && r.remaining; i++) r = await lib.warmLanguage("nl", 240);
+  assert.equal(r.remaining, 0);
+  const before = calls.length;
+  const again = await lib.warmLanguage("nl", 240);
+  assert.deepEqual([again.added, again.remaining], [0, 0]);
+  assert.equal(calls.length, before); // nothing left to ask
+  const dict = await lib.dictionaryFor("nl");
+  assert.equal(dict.count, dict.total);
 });
 
 test("/api/locale reads the visitor's country from the host's header", { skip }, async () => {

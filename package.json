@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && node scripts/db-push.mjs && npm run i18n:extract && next build",
+    "build": "prisma generate && node scripts/db-push.mjs && npm run i18n:extract && node --import tsx scripts/i18n-warm.mjs && next build",
     "db:push": "prisma db push",
     "start": "next start",
     "lint": "next lint",
@@ -12,6 +12,7 @@
     "postinstall": "prisma generate",
     "test": "node --import tsx --test tests/unit/*.test.ts",
     "i18n:extract": "node --import tsx scripts/i18n-extract.mjs",
+    "i18n:warm": "I18N_BUILD_WARM=on node --import tsx scripts/i18n-warm.mjs",
     "test:integration": "node --import tsx --test tests/integration/*.test.ts",
     "test:e2e": "playwright test"
   },

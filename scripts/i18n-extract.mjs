@@ -8,7 +8,7 @@ import { hash, lift, MAX_TEXT } from "../src/lib/i18n/text.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "src");
 // Safety, system-prompt and server-only files: never part of the manifest.
-const SKIP_FILES = /(^|\/)(moderation|prompt-engines|agent-personas|connect-agent|connect-tools|upload-scan|agent-video|video-frames|higgsfield|higgsfield-video|secret-box|safe-text|storage)\.ts$|\/providers\/|\/audio\/providers\/|\/audio\/errors\.ts$/;
+const SKIP_FILES = /\/components\/legal\/|\/lib\/motion(-prompts)?\.ts$|\/lib\/i18n\/|\/components\/admin\/|\/app\/\(account\)\/admin\/|\/app\/api\/admin\/|AdminCredits\.tsx$|(^|\/)(moderation|prompt-engines|agent-personas|connect-agent|connect-tools|upload-scan|agent-video|video-frames|higgsfield|higgsfield-video|secret-box|safe-text|storage)\.ts$|\/providers\/|\/audio\/providers\/|\/audio\/errors\.ts$/;
 const SKIP_ATTRS = new Set(["className", "id", "htmlFor", "href", "src", "type", "name", "key", "role", "style", "rel", "target", "value", "inputMode", "autoComplete", "accept", "method", "action", "fill", "stroke", "viewBox", "d", "xmlns", "transform", "data-testid", "variant", "size", "color", "loading", "decoding", "crossOrigin", "dir", "lang", "translate", "pattern", "step", "min", "max", "points", "cx", "cy", "r", "x", "y", "width", "height", "preserveAspectRatio", "aria-live", "aria-haspopup", "aria-sort", "aria-orientation", "aria-current", "aria-controls", "aria-labelledby", "aria-describedby"]);
 
 const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ldquo: "“", rdquo: "”", lsquo: "‘", rsquo: "’", mdash: "—", ndash: "–", hellip: "…", middot: "·", times: "×", copy: "©", bull: "•" };
@@ -31,9 +31,20 @@ function jsxText(raw) {
 }
 
 const found = new Set();
-function add(text) {
+// Strings that are code, not wording: class names, selectors, headers, env names, paths, snake/kebab identifiers.
+const CODE_LIKE = /^[\w.:/@#\[\]="'*>+~^$|(),\s-]*$/;
+function codeLike(t) {
+  if (/^[a-z0-9]+([-_:.][a-z0-9]+)+(\s+[\w:.\[\]-]+)*$/i.test(t) && !/\s[A-Za-z]{4,}\s/.test(t)) return true; // kebab/snake/dotted identifiers and class lists
+  if (/^[A-Z0-9_]{4,}$/.test(t)) return true; // ENV_NAMES
+  if (t.length <= 3 && t === t.toUpperCase()) return true; // BG, GB, QAR: abbreviations and codes
+  if (/[{}<>=;]/.test(t.replace(/\{\d+\}/g, ""))) return true;
+  if (/^(\/|\.\/|@\/|https?:|data:|image\/|video\/|audio\/|application\/|text\/)/.test(t)) return true;
+  if (/^[\w-]+(\[[^\]]*\])?(,\s*[\w\[\]=".-]+)*$/.test(t) && t === t.toLowerCase() && !/\s/.test(t)) return true; // single lowercase token
+  return false;
+}
+function add(text, jsx = false) {
   const t = text.trim();
-  if (t.length < 2 || t.length > MAX_TEXT || !/\p{L}/u.test(t)) return;
+  if (t.length < 2 || t.length > MAX_TEXT || !/\p{L}/u.test(t) || (!jsx && codeLike(t))) return; // JSX text is always wording (FAQ, UGC...)
   const { template } = lift(t);
   found.add(template);
 }
@@ -41,7 +52,7 @@ const looksLikeText = (s) => /\p{L}{2}/u.test(s) && (/\s/.test(s.trim()) || /^\p
 
 function visit(node) {
   if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isTypeNode(node) || ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) return;
-  if (ts.isJsxText(node)) add(jsxText(node.text));
+  if (ts.isJsxText(node)) add(jsxText(node.text), true);
   else if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
     const p = node.parent;
     const inAttr = ts.isJsxAttribute(p) || (ts.isJsxExpression(p) && ts.isJsxAttribute(p.parent));

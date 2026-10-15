@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
-import { KEEP_NAMES, MAX_TEXT } from "./text";
+import { hash, KEEP_NAMES, MAX_TEXT } from "./text";
 import { isLang, langName } from "./languages";
 import manifest from "./manifest.json";
 
@@ -14,7 +14,7 @@ const ALLOWED = new Set<string>(manifest as string[]);
 // Needs ANTHROPIC_API_KEY. The English text is untrusted (it can come from anyone's browser): the translator only ever sees it as data and answers through a tool.
 
 export const MAX_BATCH = 60;
-const CHUNK = 20; // strings per model call; calls run side by side so a batch costs about one call's time
+const CHUNK = 40; // strings per model call; calls run side by side so a batch costs about one call's time
 const PARALLEL = 6;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -79,7 +79,7 @@ export async function translateMany(lang: string, templates: string[], opts: { i
   const today = await db.translation.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } });
   if (!opts.ignoreCap && today + missing.length > cap) return { ok: true, translations: out };
 
-  const client = new Anthropic({ apiKey, maxRetries: 1, timeout: 40_000 });
+  const client = new Anthropic({ apiKey, maxRetries: 4, timeout: 50_000 });
   const fresh = new Map<string, string>();
   const groups: number[][] = [];
   for (let i = 0; i < missing.length; i += CHUNK) groups.push(missing.slice(i, i + CHUNK));
@@ -125,4 +125,25 @@ export async function warmLanguage(lang: string, n = 180): Promise<{ added: numb
 export async function translationCounts(): Promise<Record<string, number>> {
   const rows = await db.translation.groupBy({ by: ["lang"], _count: { _all: true } });
   return Object.fromEntries(rows.map((r) => [r.lang, r._count._all]));
+}
+
+// ---- The dictionary the browser downloads: every stored translation of one language, keyed by the browser's own hash of the English template.
+type Dict = { at: number; count: number; d: Record<string, string> };
+const dictCache = new Map<string, Dict>();
+
+export async function dictionaryFor(lang: string): Promise<{ d: Record<string, string>; count: number; total: number }> {
+  const hit = dictCache.get(lang);
+  if (hit && Date.now() - hit.at < 120_000) return { d: hit.d, count: hit.count, total: manifestSize };
+  const rows = await db.translation.findMany({ where: { lang }, select: { source: true, text: true } });
+  const d: Record<string, string> = {};
+  for (const r of rows) if (ALLOWED.has(r.source)) d[hash(r.source)] = r.text;
+  const count = Object.keys(d).length;
+  dictCache.set(lang, { at: Date.now(), count, d });
+  return { d, count, total: manifestSize };
+}
+
+/** Languages that are not complete yet, for the build step and the lazy completion. */
+export async function coverage(): Promise<Record<string, number>> {
+  const counts = await translationCounts();
+  return counts;
 }

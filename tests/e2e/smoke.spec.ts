@@ -1,12 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { hash } from "../../src/lib/i18n/text";
 
 test.describe("language and local prices", () => {
   test("a visitor from Colombia gets Spanish and a peso badge next to each plan price; one from the US gets neither", async ({ browser }) => {
     const co = await browser.newContext({ extraHTTPHeaders: { "x-vercel-ip-country": "CO", "accept-language": "en-US" } });
-    await co.route("**/api/translate", async (r) => {
-      const j = JSON.parse(r.request().postData() ?? "{}") as { texts: string[] };
-      await r.fulfill({ json: { translations: j.texts.map((t) => (t === "Get started" ? "Empezar" : t)) } });
-    });
+    await co.route("**/api/i18n/es", (r) => r.fulfill({ json: { d: { [hash("Get started")]: "Empezar" }, n: 1, t: 1 } }));
     const page = await co.newPage();
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "es");

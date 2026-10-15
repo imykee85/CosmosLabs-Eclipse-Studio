@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { isLang } from "@/lib/i18n/languages";
-import { startTranslator } from "@/lib/i18n/translator";
+import { fetchDict, readStoredDict, startTranslator, type Dict } from "@/lib/i18n/translator";
 
 // The visitor's language and local currency. Detected on the server from the connection (see /api/locale and the middleware's language cookie),
 // overridden by the person's own choice (kept in this browser), and applied to the whole page by the translator.
@@ -47,15 +47,27 @@ export default function LocaleProvider({ children }: { children: ReactNode }) {
     return () => { off = true; };
   }, []);
 
-  // Translate the page. English needs nothing.
+  // Translate the page. English needs nothing. The dictionary comes from this browser's copy at once (a repeat visitor), else from the server's cached file that the page's first script already started downloading;
+  // either way the page is shown only once it is translated (the attribute is cleared here, and by a timer as a safety net).
   useEffect(() => {
     const root = document.documentElement;
     root.lang = loc.lang;
     if (loc.lang === "en") { root.removeAttribute("data-i18n"); return; }
+    let stop: (() => void) | undefined;
+    let off = false;
     const done = () => root.removeAttribute("data-i18n");
-    const fallback = setTimeout(done, 1500); // never leave the page hidden
-    const stop = startTranslator(loc.lang, () => { clearTimeout(fallback); done(); });
-    return () => { clearTimeout(fallback); stop(); };
+    const fallback = setTimeout(done, 2500);
+    const apply = (d: Dict | null) => { if (off || stop || !d) return; stop = startTranslator(d); };
+    const stored = readStoredDict(loc.lang);
+    if (stored) { apply(stored); done(); }
+    const early = (window as unknown as { __i18n?: Promise<Dict | null> }).__i18n;
+    (early ?? fetchDict(loc.lang)).then((d) => {
+      if (off) return;
+      if (!stored) { apply(d); done(); } // first visit: translated, then shown
+      else if (d && !stop) apply(d);
+      if (!d) done();
+    });
+    return () => { off = true; clearTimeout(fallback); stop?.(); };
   }, [loc.lang]);
 
   const setLang = useCallback((code: string) => {
