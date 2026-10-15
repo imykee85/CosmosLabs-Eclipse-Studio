@@ -604,3 +604,14 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .nav-links { gap: clamp(14px, 2.2vw, 36px); margin-right: clamp(14px, 3vw, 60px); }
 .nav-actions { gap: 12px; }
 .nav-actions .pill-btn { padding: 10px 16px; gap: 8px; }
+
+/* Brighter nav text; the language picker has the same size, weight, colour and centre line as the links (owner 2026-10-15) */
+.nav-links a, .nav-actions .login, .lang-menu.is-nav .lang-btn { color: #f4f1ed; }
+.nav-links a:hover, .nav-actions .login:hover, .lang-menu.is-nav .lang-btn:hover { color: #fff; }
+.lang-menu.is-nav { display: flex; align-items: center; }
+.lang-menu.is-nav .lang-btn { font-size: 16px; font-weight: 500; letter-spacing: 0; line-height: inherit; }
+.lang-menu.is-nav .lang-btn svg:first-child { opacity: 1; }
+.lang-menu.is-nav .lang-btn svg:last-child { opacity: .85; }
+/* Hero heading block brighter */
+.site-shell .hero h1 { color: #fff; }
+.site-shell .hero .hero-sub { color: #f2efea; }

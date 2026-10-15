@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { I18N_EVENT, translateText } from "@/lib/i18n/translator";
 
 // A paragraph whose words start faint and turn solid one after another as it scrolls up through the middle of the screen.
 // Progress is 0 when the top of the paragraph is 85% of the way down the screen and 1 once its bottom reaches 45%. Under reduced motion every word is solid at once.
 export default function ScrollReveal({ text, className = "" }: { text: string; className?: string }) {
   const ref = useRef<HTMLParagraphElement>(null);
-  const words = text.split(" ");
+  // The sentence is split into one span per word, which the page translator cannot match, so the whole sentence is translated here (and again if the language arrives later).
+  const [shown, setShown] = useState(text);
+  useEffect(() => {
+    const update = () => setShown(translateText(text));
+    update();
+    window.addEventListener(I18N_EVENT, update);
+    return () => window.removeEventListener(I18N_EVENT, update);
+  }, [text]);
+  const words = shown.split(" ");
 
   useEffect(() => {
     const el = ref.current;
@@ -35,7 +44,7 @@ export default function ScrollReveal({ text, className = "" }: { text: string; c
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [shown]);
 
   return (
     <p ref={ref} className={className}>

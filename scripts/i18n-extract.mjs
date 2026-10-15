@@ -42,9 +42,13 @@ function codeLike(t) {
   if (/^[\w-]+(\[[^\]]*\])?(,\s*[\w\[\]=".-]+)*$/.test(t) && t === t.toLowerCase() && !/\s/.test(t)) return true; // single lowercase token
   return false;
 }
+let currentFile = "";
+// Files whose string literals are all wording (card titles like PORTRAIT, FOOD, ART are single capital words that look like codes).
+const WORDING_FILES = /components\/landing\/data\.ts$/;
 function add(text, jsx = false) {
   const t = text.trim();
-  if (t.length < 2 || t.length > MAX_TEXT || !/\p{L}/u.test(t) || (!jsx && codeLike(t))) return; // JSX text is always wording (FAQ, UGC...)
+  const wording = jsx || WORDING_FILES.test(currentFile);
+  if (t.length < 2 || t.length > MAX_TEXT || !/\p{L}/u.test(t) || (!wording && codeLike(t))) return; // JSX text is always wording (FAQ, UGC...)
   const { template } = lift(t);
   found.add(template);
 }
@@ -73,6 +77,7 @@ function walk(dir) {
     if (e.isDirectory()) walk(p);
     else if (/\.(tsx?|mts)$/.test(e.name) && !/\.d\.ts$/.test(e.name) && !SKIP_FILES.test(p.replace(/\\/g, "/"))) {
       const src = fs.readFileSync(p, "utf8");
+      currentFile = p.split(path.sep).join("/");
       visit(ts.createSourceFile(p, src, ts.ScriptTarget.Latest, true, p.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS));
     }
   }
