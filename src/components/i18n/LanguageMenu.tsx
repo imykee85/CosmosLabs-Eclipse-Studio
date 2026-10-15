@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Globe } from "lucide-react";
+import { Check, ChevronDown, Globe } from "lucide-react";
 import { LANGS } from "@/lib/i18n/languages";
 import { useLocale } from "./LocaleProvider";
 
 // Footer language switcher for the public site. Choosing a language is remembered in this browser and the page reloads in it.
-export default function LanguageMenu() {
+export default function LanguageMenu({ nav = false }: { nav?: boolean }) {
   const { lang, setLang } = useLocale();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -19,9 +19,9 @@ export default function LanguageMenu() {
   }, [open]);
   const current = LANGS.find((l) => l.code === lang) ?? LANGS[0];
   return (
-    <div className="lang-menu" ref={box} translate="no">
+    <div className={`lang-menu ${nav ? "is-nav" : ""}`} ref={box} translate="no">
       <button type="button" className="lang-btn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Globe size={14} /> {current.native}
+        <Globe size={nav ? 13 : 14} /> {current.native}{nav && <ChevronDown size={12} />}
       </button>
       {open && (
         <ul className="lang-list" role="listbox" aria-label="Language">

@@ -56,7 +56,7 @@ export default function Landing() {
       <header className="nav-wrap">
         <Wordmark />
         <nav className={mobileOpen ? "nav-links mobile-visible" : "nav-links"}>
-          <a href="#examples" onClick={close}>Examples</a>
+          <LanguageMenu nav />
           <a href="#how-it-works" onClick={close}>How it Works</a>
           <a href="#pricing" onClick={close}>Pricing</a>
           <a href="#faq" onClick={close}>FAQ</a>
@@ -218,7 +218,7 @@ export default function Landing() {
         <div className="footer-top">
           <Wordmark />
         </div>
-        <div className="footer-bottom"><span>© 2026 Cosmos Labs AI. All rights reserved.</span><div><LanguageMenu /><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
+        <div className="footer-bottom"><span>© 2026 Cosmos Labs AI. All rights reserved.</span><div><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
       </footer>
     </main>
   );
