@@ -190,9 +190,7 @@ function CreateTab({ pathname }: { pathname: string }) {
         <span className="mb-tab-icon">{plain ? <Plus size={24} strokeWidth={2.2} /> : tabIcon(slot.icon)}</span><span>{plain ? "Create" : slot.label}</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
-        <Section title="PLAN" items={plan} pathname={pathname} defaultOpen={plan.some((i) => i.href === pathname)} />
-        <Section title="CREATE" items={create} pathname={pathname} defaultOpen={create.some((i) => i.href === pathname)} />
-        <Section title="FILES" items={filesPhone} pathname={pathname} defaultOpen={filesPhone.some((i) => i.href === pathname)} />
+        <Section title="CREATE" items={create} pathname={pathname} />
       </TabMenuBox>
     </>
   );

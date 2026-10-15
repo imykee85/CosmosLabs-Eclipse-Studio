@@ -74,6 +74,23 @@ test.describe("signed-in app (demo mode)", () => {
     await expect(page.locator(".mb-tabs").getByText("Library")).toBeVisible();
   });
 
+  test("double-tapping the Create tab lists only the CREATE group", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], entries: [], balance: 0, models: [] } }));
+    await page.setViewportSize({ width: 520, height: 900 });
+    await page.goto("/create");
+    const tab = page.locator(".mb-tabs a").filter({ hasText: /Image Studio|Create/ }).first();
+    await tab.click();
+    await tab.click();
+    const menu = page.getByRole("menu", { name: "Shortcuts" });
+    await expect(menu).toBeVisible();
+    expect((await menu.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["CREATE"]);
+    expect((await menu.locator(".ws-item-text b").allInnerTexts()).map((t) => t.trim())).toEqual(["Image Studio", "Video Studio", "Voice Studio"]);
+  });
+
   test("a project opens the studios and the Library shows uniform tiles", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
