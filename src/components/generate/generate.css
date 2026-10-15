@@ -1,0 +1,104 @@
+/* Generate (video step 3): empty state until the prompts exist. Prefix gn- . */
+.ws-main:has(.gn-wrap) { max-width: none; padding-top: 28px; }
+.gn-wrap { max-width: 1040px; }
+.gn-card { display: grid; justify-items: center; align-content: center; gap: 14px; min-height: 320px; padding: 48px 28px; border: 1px solid var(--a-line2); border-radius: 36px; background: var(--a-card); box-shadow: 0 10px 30px var(--a-shadow); color: var(--a-muted2); text-align: center; }
+.gn-card h1 { margin: 6px 0 0; color: var(--a-fg); font-size: 22px; font-weight: 500; letter-spacing: -.01em; }
+.gn-card p { max-width: 460px; margin: 0; color: var(--a-muted); font-size: 16px; line-height: 1.55; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .ws-main:has(.gn-wrap) { padding: 18px 18px calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .gn-card { min-height: 280px; border-radius: 30px; }
+}
+
+/* Video Studio's model list and frame tags. */
+.cr-ref-n.vs-tag { width: auto; min-width: 18px; padding: 0 6px; border-radius: 999px; }
+
+/* Sound is just an icon: tap to mute or unmute. */
+.cr-chip.vs-sound { width: 38px; padding: 0; justify-content: center; }
+.cr-row-top .cr-chip.vs-sound { padding: 0; }
+.cr-chip.vs-sound.is-muted { color: var(--a-muted); }
+
+/* The model button is always as wide as the longest model name (an invisible copy of it sets the size), so it never changes size when the model changes.
+   The chips on that line spread evenly; on a narrow screen the name may shrink with an ellipsis. */
+.cr-row-a { justify-content: space-between; }
+.cr-row-a .cr-modelbtn.vs-model { flex: 0 1 auto; min-width: 0; }
+.vs-model .cr-mname { display: grid; flex: 0 1 auto; min-width: 0; }
+.vs-model .cr-mname > span { grid-area: 1 / 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.vs-model .vs-msizer { visibility: hidden; }
+.cr-chip.vs-sound { flex: 0 0 34px; width: 34px; min-width: 34px; }
+
+/* Motion pop-up: a title and a short line for each choice. */
+.vs-motionmenu .am-item { align-items: flex-start; }
+.vs-motionmenu .am-item svg:first-child { margin-top: 3px; flex: none; }
+.vs-motionmenu .am-item span { flex: 1; display: grid; gap: 2px; }
+.vs-motionmenu .am-item b { font-weight: 600; font-size: 15px; }
+.vs-motionmenu .am-item small { color: var(--a-muted); font-size: 13px; line-height: 1.35; }
+.cr-chip.is-on { border-color: #c00707; }
+
+/* Video Studio, connected (2026-10-12): the stage plays the video, shows a timer while one runs, and a row of earlier videos sits under it. */
+.vs-stage { position: relative; }
+.vs-stage video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.vs-stage:has(video) { border-style: solid; border-color: var(--a-line2); }
+.vs-wait { text-align: center; }
+.vs-wait b { font-variant-numeric: tabular-nums; color: var(--a-fg); }
+.vs-wait small { max-width: 260px; color: var(--a-muted2); font-size: 12.5px; line-height: 1.45; }
+.vs-cancel { margin-top: 4px; padding: 7px 16px; border: 1px solid var(--a-line3); border-radius: 999px; background: none; color: var(--a-muted); font: inherit; font-size: 13px; cursor: pointer; }
+.vs-cancel:hover:not(:disabled) { color: var(--a-fg); border-color: var(--a-fg2); }
+.vs-cancel:disabled { opacity: .6; cursor: default; }
+.vs-rights { display: flex; align-items: flex-start; gap: 8px; margin: 8px 6px 0; color: var(--a-muted); font-size: 12.5px; line-height: 1.4; cursor: pointer; }
+.vs-rights input { flex: none; width: 16px; height: 16px; margin-top: 1px; accent-color: #c00707; }
+.cr-chip.vs-seed { gap: 4px; padding: 0 4px 0 0; }
+.cr-chip.vs-seed > button { display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 6px 0 11px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.cr-chip.vs-seed > button:disabled { cursor: not-allowed; }
+.cr-chip.vs-seed.is-muted { opacity: .55; }
+.cr-chip.vs-seed input { width: 92px; height: 26px; padding: 0 8px; border: 1px solid var(--a-line3); border-radius: 999px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 13px; }
+.cr-chip.vs-seed input[aria-invalid="true"] { border-color: var(--a-danger); }
+.vs-adv { display: grid; gap: 10px; margin: 10px 4px 0; }
+.vs-adv label { display: grid; gap: 6px; color: var(--a-muted); font-size: 12.5px; }
+.vs-adv textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; resize: none; }
+.vs-adv input[type="range"] { width: 100%; accent-color: #c00707; }
+.vs-motion { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 4px 0; padding: 12px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); }
+.vs-motion label { display: grid; gap: 6px; color: var(--a-muted); font-size: 12.5px; }
+.vs-motion select { height: 36px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; }
+.vs-motion .vs-motion-check { display: flex; align-items: center; gap: 8px; align-self: end; height: 36px; cursor: pointer; }
+.vs-motion .vs-motion-check input { width: 16px; height: 16px; accent-color: #c00707; }
+.vs-motion p { grid-column: 1 / -1; margin: 0; color: var(--a-muted); font-size: 12.5px; line-height: 1.45; }
+.cr-modelbtn:disabled { opacity: .55; cursor: not-allowed; }
+/* The chip row: the everyday chips end with the agent toggle (they fill the row's width); the settings icon sits one row-width further on, so it only shows
+   after swiping the row left. */
+.cr-row-top { scroll-snap-type: x proximity; }
+.cr-row-top .vs-main { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 100%; scroll-snap-align: start; }
+.cr-row-top .vs-gear { position: relative; width: 36px; padding: 0; justify-content: center; margin-left: 4px; scroll-snap-align: end; }
+.vs-gear .vs-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: #c00707; }
+.vm-menu { gap: 12px; padding: 14px; }
+.vm-menu section { display: grid; gap: 8px; }
+.vm-menu section.is-off { opacity: .55; }
+.vm-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vm-head b { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+.vm-head em { color: var(--a-muted); font-size: 12.5px; font-style: normal; }
+.vm-menu small { color: var(--a-muted); font-size: 12.5px; line-height: 1.4; }
+.vm-menu input[type="text"], .vm-menu input[inputmode="numeric"] { height: 36px; padding: 0 10px; border: 1px solid var(--a-line3); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; }
+.vm-menu input[aria-invalid="true"] { border-color: var(--a-danger); }
+.vm-menu textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; resize: none; }
+.vm-menu input[type="range"] { width: 100%; accent-color: #c00707; }
+
+/* Pictures and clips for a video: draggable into the person's own order */
+.vs-ordered { flex-wrap: wrap; }
+.vs-ref { cursor: grab; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; transition: transform .12s, box-shadow .12s; }
+.vs-ref img, .vs-ref video { pointer-events: none; }
+.vs-ref:focus-visible { outline: 2px solid #c00707; outline-offset: 2px; border-radius: 12px; }
+.vs-ref.is-drag { z-index: 2; cursor: grabbing; transform: scale(1.14); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+.vs-ref .cr-ref-n.vs-tag { max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Motion panel options: a title row (with an optional switch) and a Video / Image choice */
+.vs-motion .vs-opt { display: grid; gap: 6px; align-content: start; color: var(--a-muted); font-size: 12.5px; }
+.vs-motion .vs-opt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
+.vs-motion .vs-opt-head span { display: inline-flex; align-items: center; gap: 8px; }
+
+.vs-style-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.vs-style-row span { display: inline-flex; align-items: center; gap: 8px; flex: 1; text-align: left; }
+.vs-style-row em { color: var(--a-muted); font-style: normal; font-weight: 400; }
+.vs-style-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-muted); }
+.vs-style-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; outline: none; }
+
+.vs-motion > * { min-width: 0; }
+@media (max-width: 400px) { .vs-motion { grid-template-columns: minmax(0, 1fr); } }

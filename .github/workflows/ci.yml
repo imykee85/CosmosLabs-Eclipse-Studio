@@ -1,0 +1,33 @@
+name: CI
+
+# Manual only (Actions tab, "Run workflow"). It used to run on every push and GitHub emailed "No jobs were run" each time (2026-10-14, user complaint):
+# the account's Actions could not start jobs. Put the push and pull_request triggers back once Actions works on this repository.
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx next lint
+      - name: Unit tests
+        run: npm test
+      - name: Build (no database needed: the schema step is skipped outside Vercel)
+        run: npx next build
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          DIRECT_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Smoke tests
+        run: npm run test:e2e

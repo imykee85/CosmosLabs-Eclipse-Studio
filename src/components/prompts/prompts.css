@@ -1,0 +1,48 @@
+/* The Prompts page: engine tabs, the conversation with copyable prompt blocks, and a composer docked above the phone tab bar. */
+.pm-wrap { max-width: 760px; margin: 0 auto; padding-bottom: 24px; }
+.pm-head p { margin: 10px 0 0; color: var(--a-muted); font-size: 15px; line-height: 1.5; }
+.pm-engines { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.pm-engine { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: border-color .18s, color .18s; }
+.pm-engine:hover { border-color: var(--a-line4); }
+.pm-engine.is-on { border-color: #c00707; color: var(--a-fg); box-shadow: 0 0 0 1px #c00707 inset; }
+.pm-blurb { margin: 10px 2px 0; color: var(--a-muted); font-size: 13.5px; line-height: 1.5; }
+.pm-thread { display: grid; gap: 14px; margin-top: 24px; min-height: 120px; }
+.pm-empty { margin: 0; padding: 22px 18px; border: 1px dashed var(--a-line3); border-radius: 18px; color: var(--a-muted); font-size: 14px; line-height: 1.55; }
+.pm-msg { max-width: 100%; }
+.pm-msg.is-user { justify-self: end; max-width: 88%; padding: 11px 14px; border-radius: 18px; background: #c00707; color: #fff; }
+.pm-msg.is-user p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.5; }
+.pm-pics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.pm-pics span { display: block; } .pm-pics img { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,255,255,.35); }
+.pm-msg.is-assistant { display: grid; gap: 10px; }
+.pm-say { margin: 0; color: var(--a-fg2); font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pm-msg.is-error p { margin: 0; padding: 12px 14px; border: 1px solid #c00707; border-radius: 14px; color: var(--a-fg); font-size: 14px; line-height: 1.5; }
+.pm-typing { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--a-muted); font-size: 14px; }
+.pm-block { border: 1px solid var(--a-line2); border-radius: 18px; background: var(--a-card); overflow: hidden; }
+.pm-block pre { margin: 0; padding: 16px 16px 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 14px; line-height: 1.6; color: var(--a-fg); max-height: 420px; overflow-y: auto; }
+.pm-block-acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 12px 12px; }
+.pm-block-acts button { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.pm-block-acts button:hover { border-color: var(--a-fg2); }
+.pm-dock { margin-top: 20px; }
+.pm-note { margin: 0 0 8px; padding: 0 4px; color: var(--a-muted); font-size: 13px; }
+.pm-box { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-input); }
+.pm-box:focus-within { border-color: var(--a-fg2); }
+.pm-box textarea { width: 100%; min-height: 56px; resize: none; border: 0; outline: 0; background: transparent; padding: 4px 6px; color: var(--a-fg); font: inherit; font-size: 16px; line-height: 1.5; }
+.pm-box textarea::placeholder { color: var(--a-ph); }
+.pm-attached { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 4px; }
+.pm-att { position: relative; width: 52px; height: 52px; }
+.pm-att img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid var(--a-line2); }
+.pm-att i { position: absolute; left: -5px; top: -5px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #c00707; color: #fff; font-size: 10px; font-style: normal; font-weight: 600; }
+.pm-att button { position: absolute; right: -6px; top: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-card); color: var(--a-fg); cursor: pointer; }
+.pm-tools { display: flex; align-items: center; gap: 8px; }
+.pm-tool { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 38px; height: 38px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.pm-tool:hover:not(:disabled) { border-color: var(--a-fg2); } .pm-tool:disabled { opacity: .5; cursor: default; }
+.pm-send { margin-left: auto; display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }
+.pm-send:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .pm-wrap { padding-bottom: 230px; }
+  .pm-head p { margin-top: 0; }
+  .pm-engines { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 14px; }
+  .pm-engines::-webkit-scrollbar { display: none; }
+  .pm-engine { flex: none; }
+  .pm-dock { position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; margin: 0; padding-top: 6px; background: var(--a-bg); }
+}

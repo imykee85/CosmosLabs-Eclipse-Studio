@@ -1,0 +1,14 @@
+.acct-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.acct-main { max-width: 1120px; margin: 0 auto; padding: 56px clamp(16px, 4%, 48px) 80px; }
+@media (max-width: 800px) { .acct-main { padding: 28px 18px 48px; } }
+@media (max-width: 520px) {
+  .db-page .db-header { padding-left: 10px; padding-right: 10px; gap: 6px; }
+  .db-page .db-header-right { gap: 4px; }
+  .db-page .db-header-right .db-pill { padding-left: 9px; padding-right: 9px; }
+  .db-page .db-header-right .db-icon, .db-page .db-header-right .um-avatar { width: 32px; height: 32px; }
+  .db-page .db-header .db-logo svg { width: 34px; height: 34px; }
+}
+@media (max-width: 380px) { .db-page .db-header-right .db-pill-solid svg { display: none; } }
+
+/* Back on these pages is just a < arrow with a comfortable tap area. */
+.acct-back { padding: 8px; margin: 0 0 0 -4px; }

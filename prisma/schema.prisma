@@ -3,18 +3,365 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Users live in Clerk; userId is the Clerk user id.
 model Generation {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  prompt     String
+  imageUrl   String   @default("") @map("image_url") // where the provider produced it; only a fallback, never shown once the file is in our storage; empty while the render is still running
+  status     String   @default("completed") // pending (running at the provider), saving (being copied into storage), completed, failed
+  statusUrl  String?  @map("status_url") // where to ask the provider how the render is going
+  error      String?  // why a render failed, in words for the user
+  aspectRatio String? @map("aspect_ratio")
+  resolution String?  // the resolution tier that was requested, when the model has one
+  contentType String? @map("content_type") // image/png, image/jpeg or image/webp
+  sizeBytes  Int?     @map("size_bytes")
+  width      Int?
+  height     Int?
+  deletedAt  DateTime? @map("deleted_at") // set when moved to the Bin; the file is only removed when deleted forever
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  storageKey String?  @map("storage_key") // the file in the private R2 bucket; served only through short-lived signed links
+  projectId  String?  @map("project_id") // the project it was made in; the Gallery shows only its own project, the Library shows all
+  model      String?  // registry id of the model that REALLY ran
+  provider   String?  // who made it: higgsfield, google, openai (null on renders from before providers were recorded)
+  providerUsage Json? @map("provider_usage") // the provider's own usage numbers for this render (tokens), kept so real costs can be worked out later
+  requestId  String?  @map("request_id") // Higgsfield's request id
+  seed       Int?     // the seed ACTUALLY sent to the provider; null when the model has no seed
+  seedLocked Boolean  @default(false) @map("seed_locked") // true when the user locked it (Fixed seed on, or a seed named for a re-run)
+  references Json?    // the pictures used as references: [{ type: "upload" | "render", id }]
+  costUsd    Float?   @map("cost_usd") // real cost once measured; blank until then
+  kind       String   @default("image") // image or video; a video row is finished by its own lazy status route (src/lib/video-jobs.ts)
+  cancelUrl  String?  @map("cancel_url") // Higgsfield's cancel address for a running video
+  idemKey    String?  @map("idem_key") // the Idempotency-Key of this submit (one per render attempt)
+  creditsHeld Int?    @map("credits_held") // the price held while a video runs and charged when it completes (a video's price depends on length, quality and sound)
+  durationSec Float?  @map("duration_sec") // length of a finished or requested video
+  hasAudio   Boolean? @map("has_audio") // whether sound was requested
+  params     Json?    // the settings a video was made with (workflow, endpoint, duration, resolution, rights acceptance), kept for re-runs and cost tables
+  startedAt  DateTime? @map("started_at") // when the provider first reported the video running
+  finishedAt DateTime? @map("finished_at") // when the provider reported it finished
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, projectId, createdAt(sort: Desc)])
+  @@index([status, updatedAt])
+  @@map("generations")
+}
+
+// One row per user, written when they finish onboarding right after signing up.
+model Onboarding {
+  userId      String   @id @map("user_id")
+  usage       String
+  experience  String
+  audience    String
+  contentType String   @map("content_type")
+  source      String
+  blocker     String[] // multiple challenges can be chosen
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("onboarding")
+}
+
+// A user's project. Deleting moves it to the bin (deletedAt set); it can be restored.
+model Project {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  name      String
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, deletedAt])
+  @@map("projects")
+}
+
+// One saved canvas per project and user (the graph as JSON), so a canvas follows the account across devices.
+model CanvasState {
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  data      Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([userId, projectId])
+  @@map("canvas_states")
+}
+
+// A canvas in a project's canvas library. A project can hold many; deletedAt marks one that is in "Recently deleted" (restorable) until it is deleted for good.
+// `data` is the whole graph (nodes with everything chosen and typed in them, wires, camera), `thumbId` the render shown on its card.
+// The older single CanvasState per project is read once into the first canvas (see GET /api/canvases) and then dropped.
+model Canvas {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  projectId String    @map("project_id")
+  name      String
+  data      Json
+  nodeCount Int       @default(0) @map("node_count")
+  thumbId   String?   @map("thumb_id")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, projectId, deletedAt])
+  @@map("canvases")
+}
+
+// Append-only credit ledger. A user's balance is the sum of delta; credits live here, never in the payment provider.
+// PURCHASE rows carry the provider's payment id, and the unique pair makes a repeated webhook delivery a no-op.
+model CreditLedger {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  delta      Int
+  reason     String // GRANT | PURCHASE | CHARGE | REFUND | ADJUST
+  provider   String?
+  externalId String?  @map("external_id")
+  note       String?  // what it was for, in words (e.g. "Soul 2 image", "Added by the owner")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, externalId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("credit_ledger")
+}
+
+// Connect: one chat with the assistant. Messages are kept exactly as the model produced them, so a thread can be continued later.
+model ConnectChat {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
-  prompt    String
-  imageUrl  String   @map("image_url")
+  projectId String?  @map("project_id")
+  title     String   @default("New chat")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  messages  ConnectMessage[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("connect_chats")
+}
+
+model ConnectMessage {
+  id        String      @id @default(cuid())
+  chatId    String      @map("chat_id")
+  chat      ConnectChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  seq       Int // order inside the chat
+  role      String // user | assistant
+  content   Json // the message's content blocks as sent to / received from the model (text, images, tool calls, tool results)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([chatId, seq])
+  @@map("connect_messages")
+}
+
+// What Eclipse remembers about a user and their work. topic: projects | products | characters | style | tastes.
+model Memory {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  topic     String
+  text      String
+  source    String   @default("user") // user | agent
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId, createdAt(sort: Desc)])
-  @@map("generations")
+  @@map("memories")
+}
+
+// A skill the user wrote themselves (the built-in ones live in code).
+model UserSkill {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  blurb        String   @default("")
+  instructions String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("user_skills")
+}
+
+// An agent a person made for themselves (Atlas is built in and not stored). The name is what the prompt boxes show; the instructions are the person's own description of how it should behave.
+model UserAgent {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  role         String   @default("")
+  instructions String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, name])
+  @@index([userId, createdAt])
+  @@map("user_agents")
+}
+
+// A connected app. secret is the credential (a bot token or webhook address), stored encrypted (src/lib/secret-box.ts).
+model ConnectorLink {
+  userId    String   @map("user_id")
+  connector String // registry id, see src/lib/connectors.ts
+  label     String   @default("") // what to show, e.g. the channel name; never the secret
+  secret    String
+  extra     Json? // non-secret settings, e.g. the Telegram chat id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([userId, connector])
+  @@map("connector_links")
+}
+
+// A picture the user uploaded as a reference: an asset (any reference photo) or an ingredient (character, product, scene).
+// The file lives in the private bucket under storageKey; it is shown only through short-lived signed links.
+model Upload {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  kind        String // asset | character | product | scene
+  name        String
+  projectId   String?  @map("project_id") // the project it was added in, if any; uploads are usable from every project
+  storageKey  String   @map("storage_key")
+  contentType String   @map("content_type")
+  sizeBytes   Int      @map("size_bytes")
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId, kind, createdAt(sort: Desc)])
+  @@map("uploads")
+}
+
+// One row per use of a limited, paid feature (agent chat, prompts chat, Orbit message). Counted per person inside a lock so parallel requests cannot all pass a limit.
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  kind      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, kind, createdAt(sort: Desc)])
+  @@map("usage_events")
+}
+
+// One Voice Studio job (text to speech first; speech to text, effects and music later). Kept apart from Generation so Library, Gallery and Image Studio never see audio rows.
+// pending = running (the price is HELD while it runs), completed, failed. Audio is stored privately at audio/<userId>/<id>.<ext>.
+model AudioJob {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  projectId     String?   @map("project_id")
+  kind          String    @default("tts") // tts, later stt, sfx, music
+  provider      String    // elevenlabs, later fish, minimax...
+  model         String    // registry id (src/lib/audio/registry.ts)
+  voiceId       String?   @map("voice_id") // the provider's voice id
+  voiceName     String?   @map("voice_name")
+  text          String    // the script that was sent
+  textHash      String    @map("text_hash")
+  chars         Int       // characters of the script (bytes for byte-priced models are counted at billing time)
+  status        String    @default("pending")
+  error         String?   // why it failed, in words for the person
+  params        Json?     // speed, language, chunks, copy tries
+  storageKey    String?   @map("storage_key")
+  contentType   String?   @map("content_type")
+  sizeBytes     Int?      @map("size_bytes")
+  durationMs    Int?      @map("duration_ms")
+  creditsHeld   Int?      @map("credits_held") // the price held while it runs and charged when it completes
+  creditsCharged Int?     @map("credits_charged")
+  costUsd       Float?    @map("cost_usd") // provider cost computed from the registry price and the units used
+  usage         Json?     // the provider's own usage numbers (kept to reconcile real costs)
+  result        Json?     // a transcript (speech to text) with its timed segments; null for jobs that make an audio file
+  lockedAt      DateTime? @map("locked_at") // one worker at a time advances a long (async) job; a lock older than 2 minutes is stale
+  deletedAt     DateTime? @map("deleted_at")
+  startedAt     DateTime? @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, status])
+  @@index([status, updatedAt])
+  @@map("audio_jobs")
+}
+
+// A voice a person made in Voice Studio: cloned from their own sample or designed from a description. The provider holds the voice itself; this row is the link to
+// it, with the consent record for clones (who agreed, when, to which wording, and a hash of the sample: the sample itself is not kept). Deleting a row deletes the
+// provider voice too.
+model UserVoice {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  provider        String    // elevenlabs, fish, minimax
+  providerVoiceId String    @map("provider_voice_id")
+  name            String
+  kind            String    // cloned | designed
+  description     String?
+  consentAt       DateTime? @map("consent_at")
+  consentVersion  String?   @map("consent_version")
+  sampleHash      String?   @map("sample_hash")
+  designToken     String?   @map("design_token") // the preview a designed voice was saved from: saving the same preview twice gives one voice
+  lastUsedAt      DateTime? @map("last_used_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, provider, providerVoiceId])
+  @@unique([userId, provider, designToken])
+  @@index([userId, provider])
+  @@map("user_voices")
+}
+
+// A translated piece of interface text: one row per (language, English text). Shared by everyone, so each string is translated (and paid for) once.
+// `source` is the English text with numbers lifted out ({0}, {1}); `sourceHash` is its SHA-256 (the lookup key).
+model Translation {
+  id         String   @id @default(cuid())
+  lang       String
+  sourceHash String   @map("source_hash")
+  source     String
+  text       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([lang, sourceHash])
+  @@index([createdAt])
+  @@map("translations")
+}
+
+// Core sandbox: one run of a sandbox-backed skill (for example the website design skill). The user confirms it, credits are charged
+// step by step (creditsCharged), and the row is the only way the sandbox tools find a sandbox: one active run per person.
+model SandboxRun {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  skillId        String    @map("skill_id")
+  sandboxId      String?   @map("sandbox_id")
+  status         String    @default("starting") // starting | running | finishing | done | stopped | failed
+  step           String    @default("plan") // plan | build | review1 | review2 | review3
+  creditsCharged Int       @default(0) @map("credits_charged")
+  creditCap      Int       @map("credit_cap")
+  turns          Int       @default(0)
+  note           String?
+  resultKey      String?   @map("result_key") // R2 key of the saved zip
+  credits        String?   // the pictures' credit lines, kept with the result
+  createdAt      DateTime  @default(now()) @map("created_at")
+  deadlineAt     DateTime  @map("deadline_at")
+  lastActiveAt   DateTime  @default(now()) @map("last_active_at")
+  endedAt        DateTime? @map("ended_at")
+
+  @@index([userId, status])
+  @@index([status, lastActiveAt])
+  @@map("sandbox_runs")
+}
+
+// Every sandbox tool call, for audit: what ran, how long, how it ended. Commands are cut to 500 characters; output is never stored.
+model SandboxAudit {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  runId      String?  @map("run_id")
+  tool       String
+  command    String?
+  durationMs Int      @map("duration_ms")
+  exitCode   Int?     @map("exit_code")
+  ok         Boolean
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([runId])
+  @@map("sandbox_audit")
+}
+
+// Per-person on/off for a built-in Core skill. No row means on.
+model SkillSetting {
+  userId  String  @map("user_id")
+  skillId String  @map("skill_id")
+  enabled Boolean
+
+  @@id([userId, skillId])
+  @@map("skill_settings")
 }

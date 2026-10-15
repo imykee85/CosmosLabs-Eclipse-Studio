@@ -1,0 +1,87 @@
+.ob-page { height: 100vh; height: 100dvh; display: flex; padding: 24px 16px; overflow-x: hidden; overflow-y: auto; background: #000; color: #f2f2f2; font-family: var(--font-sans), Inter, sans-serif; }
+.ob-card { width: min(100%, 520px); padding: 40px; border: 1px solid rgba(255,255,255,.1); border-radius: 28px; background: #1a1a1a; box-shadow: 0 25px 80px rgba(0,0,0,.5); }
+.ob-step { margin: 0 0 12px; color: #a09b94; font-size: 14px; }
+.ob-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+.ob-fill { height: 100%; border-radius: 999px; background: #c00707; transition: width .35s cubic-bezier(.23,1,.32,1); }
+.ob-fieldset { margin: 36px 0 0; padding: 0; border: 0; min-width: 0; }
+.ob-title { padding: 0; margin: 0 0 28px; font-size: 28px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.ob-options { display: grid; gap: 12px; }
+.ob-option { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; background: #111; font-size: 16px; font-weight: 400; cursor: pointer; transition: border-color .18s, background .18s; }
+.ob-option:hover { border-color: rgba(255,255,255,.4); }
+.ob-option input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.ob-radio { flex: none; width: 26px; height: 26px; border: 1.5px solid rgba(255,255,255,.4); border-radius: 50%; transition: border-color .18s, background .18s, box-shadow .18s; }
+.ob-hint { margin: -16px 0 22px; color: #a09b94; font-size: 14px; }
+.ob-check { flex: none; position: relative; width: 26px; height: 26px; border: 1.5px solid rgba(255,255,255,.4); border-radius: 8px; transition: border-color .18s, background .18s; }
+.ob-option.is-selected .ob-check { border-color: #c00707; background: #c00707; }
+.ob-option.is-selected .ob-check:after { content: ''; position: absolute; left: 8px; top: 4px; width: 6px; height: 12px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.ob-option.is-selected { border-color: #c00707; background: #1d0e0e; }
+.ob-option.is-selected .ob-radio { border-color: #c00707; background: #c00707; box-shadow: inset 0 0 0 5px #1d0e0e; }
+.ob-option:has(input:focus-visible) { outline: 2px solid #c00707; outline-offset: 2px; }
+.ob-error { margin: 18px 0 0; color: #ff6b6b; font-size: 14px; }
+.ob-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; }
+.ob-back, .ob-next { padding: 15px 28px; border-radius: 999px; font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; transition: transform .18s, background .2s, opacity .2s; }
+.ob-back { border: 1px solid rgba(255,255,255,.25); background: transparent; color: #f2f2f2; }
+.ob-back:hover:not(:disabled) { border-color: rgba(255,255,255,.5); }
+.ob-next { border: 0; background: #c00707; color: #fff; }
+.ob-next:hover:not(:disabled) { background: #d90b0b; transform: translateY(-1px); }
+.ob-next:disabled { background: #3a3a3a; color: #8a857e; cursor: not-allowed; }
+.ob-back:disabled { opacity: .5; cursor: default; }
+@media (max-width: 600px) { .ob-card { padding: 28px 22px; border-radius: 22px; } .ob-title { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { .ob-fill, .ob-next, .ob-back { transition: none; } }
+
+/* Fade from the form into the welcome video */
+.ob-stage { display: grid; justify-items: center; gap: 24px; margin: auto; width: 100%; transition: opacity .6s ease; }
+.ob-stage.is-leaving { opacity: 0; pointer-events: none; }
+.ob-video { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; opacity: 0; animation: ob-fade-in .9s .35s ease forwards; }
+.ob-video-el { width: 100%; height: 100%; object-fit: cover; }
+.ob-welcome { display: grid; justify-items: center; gap: 14px; text-align: center; animation: ob-rise 1s .6s ease both; }
+.ob-welcome h2 { margin: 12px 0 0; font-size: 36px; font-weight: 700; letter-spacing: -.02em; }
+.ob-welcome p { margin: 0; color: #a09b94; font-size: 16px; }
+.ob-skip { position: absolute; right: 24px; bottom: 28px; padding: 10px 20px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; background: rgba(0,0,0,.35); color: #fff; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; backdrop-filter: blur(6px); }
+.ob-skip:hover { border-color: #fff; }
+@keyframes ob-fade-in { to { opacity: 1; } }
+@keyframes ob-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ob-video { animation-duration: .01s; animation-delay: 0s; } .ob-welcome { animation: none; } }
+
+/* Same card on every step (the step-2 sizing); only its height follows the options.
+   Centred in the visible screen. Short screens shrink everything together, never per step. */
+.ob-card { width: min(100%, 520px); flex: none; }
+.ob-brand svg { display: block; }
+@media (max-height: 940px) {
+  .ob-page { padding: 16px; } .ob-stage { gap: 16px; }
+  .ob-brand svg { width: 44px; height: 44px; }
+  .ob-card { padding: 28px 30px; }
+  .ob-fieldset { margin-top: 24px; } .ob-title { font-size: 24px; margin-bottom: 20px; }
+  .ob-options { gap: 8px; } .ob-option { padding: 13px 20px; font-size: 15px; } .ob-radio, .ob-check { width: 24px; height: 24px; }
+  .ob-actions { margin-top: 22px; } .ob-back, .ob-next { padding: 12px 24px; font-size: 15px; }
+}
+@media (max-height: 700px) {
+  .ob-brand svg { width: 36px; height: 36px; }
+  .ob-card { padding: 22px 24px; }
+  .ob-fieldset { margin-top: 18px; } .ob-title { font-size: 21px; margin-bottom: 14px; }
+  .ob-hint { margin: -8px 0 12px; font-size: 13px; }
+  .ob-options { gap: 6px; } .ob-option { padding: 10px 18px; font-size: 14px; } .ob-radio, .ob-check { width: 22px; height: 22px; }
+  .ob-actions { margin-top: 16px; } .ob-back, .ob-next { padding: 10px 22px; font-size: 14px; }
+}
+@media (max-height: 600px) {
+  .ob-brand { display: none; }
+  .ob-card { padding: 18px 22px; } .ob-step { margin-bottom: 8px; }
+  .ob-title { font-size: 19px; } .ob-option { padding: 8px 16px; } .ob-actions { margin-top: 12px; }
+}
+
+/* Light appearance: follows the setting chosen on the sign-in page (no toggle here) */
+html[data-app-theme="light"] .ob-page { background: #faf8f5; color: #141414; }
+html[data-app-theme="light"] .ob-brand svg { color: #141414; }
+html[data-app-theme="light"] .ob-card { background: #fff; border-color: rgba(0,0,0,.1); box-shadow: 0 25px 80px rgba(60,40,20,.14); }
+html[data-app-theme="light"] .ob-step, html[data-app-theme="light"] .ob-hint { color: #6b665f; }
+html[data-app-theme="light"] .ob-track { background: rgba(0,0,0,.08); }
+html[data-app-theme="light"] .ob-option { background: #f1ede7; border-color: rgba(0,0,0,.18); }
+html[data-app-theme="light"] .ob-option:hover { border-color: rgba(0,0,0,.4); }
+html[data-app-theme="light"] .ob-radio, html[data-app-theme="light"] .ob-check { border-color: rgba(0,0,0,.4); }
+html[data-app-theme="light"] .ob-option.is-selected { border-color: #c00707; background: #fdecec; }
+html[data-app-theme="light"] .ob-option.is-selected .ob-radio { border-color: #c00707; background: #c00707; box-shadow: inset 0 0 0 5px #fdecec; }
+html[data-app-theme="light"] .ob-option.is-selected .ob-check { border-color: #c00707; background: #c00707; }
+html[data-app-theme="light"] .ob-error { color: #c62828; }
+html[data-app-theme="light"] .ob-back { border-color: rgba(0,0,0,.25); color: #141414; }
+html[data-app-theme="light"] .ob-back:hover:not(:disabled) { border-color: rgba(0,0,0,.6); }
+html[data-app-theme="light"] .ob-next:disabled { background: #dcd7cf; color: #7a756e; }
