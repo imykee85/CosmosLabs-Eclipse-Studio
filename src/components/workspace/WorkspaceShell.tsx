@@ -36,7 +36,7 @@ const videoStudio: Item = { label: "Video Studio", hint: "Render the clips", hre
 const voiceStudio: Item = { label: "Voice Studio", hint: "Voice, sound, music", href: "/voice", icon: <Mic size={17} />, soon: true };
 const libraryItem: Item = { label: "Library", hint: "Everything you made", href: "/library", icon: <Library size={17} /> };
 const gallery: Item = { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> };
-const assets: Item = { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> };
+const assets: Item = { label: "Assets", hint: "Your uploads", href: "/assets", icon: <FolderOpen size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const exportItem: Item = { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true };
 const plan: Item[] = [treatmentItem, promptsItem];
