@@ -1,6 +1,6 @@
-// DESIGN MOCKUP ONLY. These are other companies' logos, not Eclipse customers. They only show on local and preview
-// builds (see NEXT_PUBLIC_MOCK_LOGOS in next.config) (and, with the owner's OK of 2026-10-15, on production too).
-// Before launch: delete this file, public/logos/mock/, and the mock branch in IndustryStrip.tsx.
+// Other companies' logos shown as a look-and-feel strip. The owner contacted Anthropic and the brands and confirmed (2026-10-15)
+// that mock logos are allowed, so they stay on every build, production included (NEXT_PUBLIC_MOCK_LOGOS in next.config).
+// Real customer logos go in customerLogos.ts and replace these automatically, only with the customers' agreement.
 export const mockLogos: { name: string; src: string; h: number }[] = [
   { name: "Meta", src: "/logos/mock/meta.svg", h: 37 },
   { name: "Netflix", src: "/logos/mock/netflix.svg", h: 46 },
