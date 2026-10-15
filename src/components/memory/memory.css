@@ -168,3 +168,13 @@
   .mm-stage .mm-node svg { width: 17px; height: 17px; }
 }
 @media (prefers-reduced-motion: reduce) { .mm-cw, .mm-ccw { animation: none; } }
+
+/* Phones: the orbit fills the space between the heading and the list (or the add bar when the list is empty), centred (owner 2026-10-15) */
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .mm-stage { inset: calc(140px + env(safe-area-inset-top, 0px)) 0 calc(30% + 80px) 0; container-type: size; }
+  .mm-side { max-height: 30%; }
+  .mm-wrap.is-empty .mm-stage { bottom: 92px; }
+  .mm-circles { top: 50%; width: min(84cqw, calc(100cqh - 70px), 460px); min-width: 0; }
+  .mm-stage .mm-node { width: 52px; height: 52px; }
+  .mm-stage .mm-node svg { width: 19px; height: 19px; }
+}

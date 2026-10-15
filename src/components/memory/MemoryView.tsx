@@ -96,7 +96,7 @@ export default function MemoryView() {
     </div>
   ));
   return (
-    <div className="mm-wrap">
+    <div className={`mm-wrap${shown.length ? "" : " is-empty"}`}>
       <div className="mm-top">
         <div className="mm-left">
           <Link href="/connect" className="mm-back" aria-label="Back to Core"><ChevronLeft size={24} /></Link>
