@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   if (!isLang(body?.lang) || body.lang === "en") return NextResponse.json({ error: "Choose a language." }, { status: 400 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set." }, { status: 503 });
   try {
-    return NextResponse.json(await warmLanguage(body.lang, 50));
+    return NextResponse.json(await warmLanguage(body.lang, 180));
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Translation failed." }, { status: 500 });
   }

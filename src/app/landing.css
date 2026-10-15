@@ -597,3 +597,10 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 }
 @media (prefers-reduced-motion: reduce) { .core-cw, .core-ccw { animation: none !important; } }
 .site-shell .try-cta h2 em { text-transform: none; } /* Eclipse is a name: keeps its capital */
+
+/* Top bar with long translated words: links and the button never wrap, gaps give way before the words do. */
+.nav-links a, .nav-actions .pill-btn { white-space: nowrap; }
+.nav-wrap { gap: 14px; }
+.nav-links { gap: clamp(14px, 2.2vw, 36px); margin-right: clamp(14px, 3vw, 60px); }
+.nav-actions { gap: 12px; }
+.nav-actions .pill-btn { padding: 10px 16px; gap: 8px; }

@@ -53,7 +53,7 @@ export default function LocaleProvider({ children }: { children: ReactNode }) {
     root.lang = loc.lang;
     if (loc.lang === "en") { root.removeAttribute("data-i18n"); return; }
     const done = () => root.removeAttribute("data-i18n");
-    const fallback = setTimeout(done, 2500); // never leave the page hidden
+    const fallback = setTimeout(done, 1500); // never leave the page hidden
     const stop = startTranslator(loc.lang, () => { clearTimeout(fallback); done(); });
     return () => { clearTimeout(fallback); stop(); };
   }, [loc.lang]);

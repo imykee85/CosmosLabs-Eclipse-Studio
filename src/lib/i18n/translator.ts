@@ -38,9 +38,11 @@ export function startTranslator(lang: string, onFirstDone: () => void): () => vo
   };
 
   type Job = { key: string; template: string; nums: string[]; apply: (translated: string) => void };
-  const pending = new Map<string, { template: string; jobs: Job[] }>();
+  const pending = new Map<string, { template: string; jobs: Job[]; visible: boolean }>();
+  // Text on (or just below) the screen is translated first, so the page can be shown while the rest follows in the background.
+  const onScreen = (el: Element | null) => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > -150 && r.top < innerHeight + 500; };
 
-  function plan(value: string, apply: (translated: string) => void): boolean {
+  function plan(value: string, apply: (translated: string) => void, near: Element | null): boolean {
     const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(value)!;
     const core = m[2];
     if (!translatable(core)) return false;
@@ -53,7 +55,8 @@ export function startTranslator(lang: string, onFirstDone: () => void): () => vo
     const failedAt = missed.get(key);
     if (failedAt && Date.now() - failedAt < 60_000) return false;
     if (failedAt === Number.MAX_SAFE_INTEGER) return false;
-    const slot = pending.get(key) ?? { template, jobs: [] };
+    const slot = pending.get(key) ?? { template, jobs: [], visible: false };
+    if (!slot.visible && onScreen(near)) slot.visible = true;
     slot.jobs.push({ key, template, nums, apply: wrap });
     pending.set(key, slot);
     return true;
@@ -67,7 +70,7 @@ export function startTranslator(lang: string, onFirstDone: () => void): () => vo
     if (prev && v === prev.applied) return; // our own translation
     const entry: Entry = { src: v, applied: null };
     texts.set(node, entry);
-    plan(v, (t) => { if (stopped || node.nodeValue !== entry.src) return; node.nodeValue = t; entry.applied = t; });
+    plan(v, (t) => { if (stopped || node.nodeValue !== entry.src) return; node.nodeValue = t; entry.applied = t; }, parent);
   }
 
   function visitAttrs(el: Element) {
@@ -79,7 +82,7 @@ export function startTranslator(lang: string, onFirstDone: () => void): () => vo
       if (rec?.[a] && rec[a].applied === v) continue;
       const entry: Entry = { src: v, applied: null };
       rec = rec ?? {}; rec[a] = entry; attrs.set(el, rec);
-      plan(v, (t) => { if (stopped || el.getAttribute(a) !== entry.src) return; el.setAttribute(a, t); entry.applied = t; });
+      plan(v, (t) => { if (stopped || el.getAttribute(a) !== entry.src) return; el.setAttribute(a, t); entry.applied = t; }, el);
     }
   }
 
@@ -94,10 +97,10 @@ export function startTranslator(lang: string, onFirstDone: () => void): () => vo
     for (let n = walker.nextNode(); n; n = walker.nextNode()) visitText(n as Text);
   }
 
-  async function flush() {
-    if (pending.size === 0) return;
-    const entries = [...pending.entries()];
-    pending.clear();
+  async function flush(onlyVisible: boolean) {
+    const entries = [...pending.entries()].filter(([, slot]) => !onlyVisible || slot.visible);
+    if (entries.length === 0) return;
+    for (const [k] of entries) pending.delete(k);
     const chunks: typeof entries[] = [];
     for (let i = 0; i < entries.length; i += BATCH) chunks.push(entries.slice(i, i + BATCH));
     let next = 0;
@@ -126,8 +129,9 @@ export function startTranslator(lang: string, onFirstDone: () => void): () => vo
   async function run(roots: Iterable<Node>) {
     if (stopped || skipPath(location.pathname)) { if (!firstDone) { firstDone = true; onFirstDone(); } return; }
     for (const r of roots) if (r.isConnected) scan(r);
-    await flush();
+    await flush(true); // what the visitor can see
     if (!firstDone) { firstDone = true; onFirstDone(); }
+    await flush(false); // everything else, in the background
   }
 
   const observer = new MutationObserver((records) => {

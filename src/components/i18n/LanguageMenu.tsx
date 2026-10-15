@@ -20,8 +20,8 @@ export default function LanguageMenu({ nav = false }: { nav?: boolean }) {
   const current = LANGS.find((l) => l.code === lang) ?? LANGS[0];
   return (
     <div className={`lang-menu ${nav ? "is-nav" : ""}`} ref={box} translate="no">
-      <button type="button" className="lang-btn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Globe size={nav ? 13 : 14} /> {current.native}{nav && <ChevronDown size={12} />}
+      <button type="button" className="lang-btn" aria-haspopup="listbox" aria-label={current.native} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Globe size={nav ? 20 : 14} strokeWidth={1.6} /> {nav ? current.code.toUpperCase() : current.native}{nav && <ChevronDown size={14} />}
       </button>
       {open && (
         <ul className="lang-list" role="listbox" aria-label="Language">

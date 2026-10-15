@@ -14,7 +14,8 @@ const ALLOWED = new Set<string>(manifest as string[]);
 // Needs ANTHROPIC_API_KEY. The English text is untrusted (it can come from anyone's browser): the translator only ever sees it as data and answers through a tool.
 
 export const MAX_BATCH = 60;
-const CHUNK = 25;
+const CHUNK = 20; // strings per model call; calls run side by side so a batch costs about one call's time
+const PARALLEL = 6;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -80,15 +81,21 @@ export async function translateMany(lang: string, templates: string[], opts: { i
 
   const client = new Anthropic({ apiKey, maxRetries: 1, timeout: 40_000 });
   const fresh = new Map<string, string>();
-  for (let i = 0; i < missing.length; i += CHUNK) {
-    const idx = missing.slice(i, i + CHUNK);
-    try {
-      const got = await translateChunk(client, lang, idx.map((j) => templates[j]));
-      got.forEach((t, k) => { if (t) fresh.set(hashes[idx[k]], t); });
-    } catch (e) {
-      console.warn("[i18n] translation call failed:", e instanceof Error ? e.message : e);
+  const groups: number[][] = [];
+  for (let i = 0; i < missing.length; i += CHUNK) groups.push(missing.slice(i, i + CHUNK));
+  let next = 0;
+  const worker = async () => {
+    while (next < groups.length) {
+      const idx = groups[next++];
+      try {
+        const got = await translateChunk(client, lang, idx.map((j) => templates[j]));
+        got.forEach((t, k) => { if (t) fresh.set(hashes[idx[k]], t); });
+      } catch (e) {
+        console.warn("[i18n] translation call failed:", e instanceof Error ? e.message : e);
+      }
     }
-  }
+  };
+  await Promise.all(Array.from({ length: Math.min(PARALLEL, groups.length) }, worker));
   if (fresh.size) {
     await db.translation.createMany({
       data: missing.filter((j) => fresh.has(hashes[j])).map((j) => ({ lang, sourceHash: hashes[j], source: templates[j], text: fresh.get(hashes[j])! })),
@@ -101,17 +108,17 @@ export async function translateMany(lang: string, templates: string[], opts: { i
 export const manifestSize = ALLOWED.size;
 
 /** Owner tool: translate the next `n` interface strings that have no translation yet in `lang` (so the first visitors in that language do not wait). */
-export async function warmLanguage(lang: string, n = 50): Promise<{ added: number; remaining: number; total: number }> {
+export async function warmLanguage(lang: string, n = 180): Promise<{ added: number; remaining: number; total: number }> {
   if (!isLang(lang) || lang === "en") throw new Error("Unsupported language.");
   const rows = await db.translation.findMany({ where: { lang }, select: { sourceHash: true } });
   const have = new Set(rows.map((r) => r.sourceHash));
   const todo = [...ALLOWED].filter((t) => !have.has(sha(t)));
-  const batch = todo.slice(0, Math.min(Math.max(n, 1), MAX_BATCH));
+  const batch = todo.slice(0, Math.min(Math.max(n, 1), 240));
   let added = 0;
-  if (batch.length) {
-    const r = await translateMany(lang, batch, { ignoreCap: true });
-    if (r.ok) added = r.translations.filter((t) => typeof t === "string").length;
-  }
+  const parts: string[][] = [];
+  for (let i = 0; i < batch.length; i += MAX_BATCH) parts.push(batch.slice(i, i + MAX_BATCH));
+  const results = await Promise.all(parts.map((p) => translateMany(lang, p, { ignoreCap: true })));
+  for (const r of results) if (r.ok) added += r.translations.filter((t) => typeof t === "string").length;
   return { added, remaining: Math.max(todo.length - added, 0), total: ALLOWED.size };
 }
 
