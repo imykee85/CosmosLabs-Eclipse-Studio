@@ -313,3 +313,55 @@ model Translation {
   @@index([createdAt])
   @@map("translations")
 }
+
+// Core sandbox: one run of a sandbox-backed skill (for example the website design skill). The user confirms it, credits are charged
+// step by step (creditsCharged), and the row is the only way the sandbox tools find a sandbox: one active run per person.
+model SandboxRun {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  skillId        String    @map("skill_id")
+  sandboxId      String?   @map("sandbox_id")
+  status         String    @default("starting") // starting | running | finishing | done | stopped | failed
+  step           String    @default("plan") // plan | build | review1 | review2 | review3
+  creditsCharged Int       @default(0) @map("credits_charged")
+  creditCap      Int       @map("credit_cap")
+  turns          Int       @default(0)
+  note           String?
+  resultKey      String?   @map("result_key") // R2 key of the saved zip
+  credits        String?   // the pictures' credit lines, kept with the result
+  createdAt      DateTime  @default(now()) @map("created_at")
+  deadlineAt     DateTime  @map("deadline_at")
+  lastActiveAt   DateTime  @default(now()) @map("last_active_at")
+  endedAt        DateTime? @map("ended_at")
+
+  @@index([userId, status])
+  @@index([status, lastActiveAt])
+  @@map("sandbox_runs")
+}
+
+// Every sandbox tool call, for audit: what ran, how long, how it ended. Commands are cut to 500 characters; output is never stored.
+model SandboxAudit {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  runId      String?  @map("run_id")
+  tool       String
+  command    String?
+  durationMs Int      @map("duration_ms")
+  exitCode   Int?     @map("exit_code")
+  ok         Boolean
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([runId])
+  @@map("sandbox_audit")
+}
+
+// Per-person on/off for a built-in Core skill. No row means on.
+model SkillSetting {
+  userId  String  @map("user_id")
+  skillId String  @map("skill_id")
+  enabled Boolean
+
+  @@id([userId, skillId])
+  @@map("skill_settings")
+}

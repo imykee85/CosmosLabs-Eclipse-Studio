@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { finalizeGeneration, purgeFailed } from "@/lib/generation-jobs";
+import { sweepRuns } from "@/lib/sandbox/runs";
 import { finalizeVideo, isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
 
 export const maxDuration = 300;
@@ -37,7 +38,8 @@ export async function GET(req: Request) {
     const rescued = (await Promise.allSettled(late.map(rescueLateVideo))).filter((r) => r.status === "fulfilled" && r.value.status === "completed").length;
     const done = results.filter((r) => r.status === "fulfilled" && r.value.status !== "pending" && r.value.status !== "saving").length;
     const cleared = await purgeFailed().catch(() => 0);
-    return NextResponse.json({ checked: rows.length, finished: done, rescuedLate: rescued, clearedFailed: cleared, more: rows.length === BATCH });
+    const sweptBuilds = await sweepRuns().catch(() => 0);
+    return NextResponse.json({ checked: rows.length, finished: done, rescuedLate: rescued, clearedFailed: cleared, sweptBuilds, more: rows.length === BATCH });
   } catch (err) {
     console.error("render finishing job failed", err);
     return NextResponse.json({ error: "The job failed." }, { status: 500 });

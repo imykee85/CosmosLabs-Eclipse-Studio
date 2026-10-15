@@ -6,6 +6,11 @@ import { directConnectors } from "@/lib/connectors";
 import { enabledModels } from "@/lib/models";
 import { MEMORY_LIMIT, MEMORY_TEXT_MAX, MEMORY_TOPICS, isTopic } from "@/lib/memory";
 import { skills } from "@/lib/skills";
+import { builtinDef, builtinIndex, loadBuiltinSkill, readSkillFile } from "@/lib/core-skills/builtin";
+import { sandboxAvailable } from "@/lib/sandbox";
+import { activeRun } from "@/lib/sandbox/runs";
+import { skillEnabled } from "@/lib/core-skills/settings";
+import { runSandboxTool, SANDBOX_TOOL_NAMES } from "@/lib/sandbox/tools";
 import { startRender } from "@/lib/start-render";
 import { displayUrl, openImage } from "@/lib/storage";
 import { unseal } from "@/lib/secret-box";
@@ -88,6 +93,46 @@ export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
     name: "use_skill",
     description: "Fetch the step-by-step playbook of a skill, then follow it in this conversation.",
     input_schema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+  },
+  {
+    name: "load_skill",
+    description: "Load a built-in skill that comes as a folder of files (see list_skills, entries marked folder). Returns its SKILL.md. Skills that need a build machine only work after the person has started a build from the Skills panel.",
+    input_schema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+  },
+  {
+    name: "read_skill_file",
+    description: "Read one file inside a built-in skill's folder (for example references/layout.md), only when the skill text tells you to.",
+    input_schema: { type: "object", properties: { id: { type: "string" }, path: { type: "string", description: "Relative path inside the skill folder." } }, required: ["id", "path"] },
+  },
+  {
+    name: "sandbox_exec",
+    description: "Run a shell command on the person's build machine (only during a build they started). Runs from /work/project unless cwd is given. Output is cut if long.",
+    input_schema: { type: "object", properties: { command: { type: "string" }, cwd: { type: "string", description: "Folder under /work." }, timeout_seconds: { type: "number", description: "1 to 600, default 120." } }, required: ["command"] },
+  },
+  {
+    name: "sandbox_read_file",
+    description: "Read a text file on the build machine (path under /work).",
+    input_schema: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
+  },
+  {
+    name: "sandbox_write_file",
+    description: "Write a text file on the build machine (path under /work, up to 2 MB).",
+    input_schema: { type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"] },
+  },
+  {
+    name: "sandbox_list_files",
+    description: "List files under a folder on the build machine (default /work/project).",
+    input_schema: { type: "object", properties: { path: { type: "string" } } },
+  },
+  {
+    name: "view_image",
+    description: "Look at a PNG, JPEG or WebP picture on the build machine, such as a screenshot (path under /work).",
+    input_schema: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
+  },
+  {
+    name: "run_step",
+    description: "Move a build to its next step (build, review1, review2, review3). Each step is charged when it starts, so only start one when you are really about to do that work.",
+    input_schema: { type: "object", properties: { step: { type: "string", enum: ["build", "review1", "review2", "review3"] } }, required: ["step"] },
   },
   {
     name: "list_connected_apps",
@@ -189,8 +234,11 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
       }
 
       case "list_skills": {
+        const enabledIds = new Set<string>();
+        for (const b of await builtinIndex()) if (await skillEnabled(ctx.userId, b.id)) enabledIds.add(b.id);
         const mine = await db.userSkill.findMany({ where: { userId: ctx.userId }, orderBy: { createdAt: "desc" }, take: 50 });
-        return { text: JSON.stringify([...skills.map((s) => ({ id: s.id, name: s.name, about: s.blurb })), ...mine.map((s) => ({ id: s.id, name: s.name, about: s.blurb, own: true }))]) };
+        const folders = (await builtinIndex()).filter((s) => enabledIds.has(s.id)).map((s) => ({ id: s.id, name: s.title, about: s.description, folder: true, tags: s.tags, uses_build_machine: s.requiresSandbox, cost: s.estimatedCost, available: !s.requiresSandbox || sandboxAvailable() }));
+        return { text: JSON.stringify([...skills.map((s) => ({ id: s.id, name: s.name, about: s.blurb })), ...folders, ...mine.map((s) => ({ id: s.id, name: s.name, about: s.blurb, own: true }))]) };
       }
 
       case "use_skill": {
@@ -199,6 +247,23 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
         if (builtIn) return { text: `Skill: ${builtIn.name}\n${builtIn.playbook}` };
         const own = await db.userSkill.findFirst({ where: { id, userId: ctx.userId } });
         return own ? { text: `Skill: ${own.name}\n${own.instructions}` } : { text: "No skill with that id. Use list_skills.", isError: true };
+      }
+
+      case "load_skill": {
+        const id = str(args.id, 60), def = builtinDef(id);
+        if (!def) return { text: "No built-in folder skill with that id. Use list_skills.", isError: true };
+        if (!(await skillEnabled(ctx.userId, id))) return { text: "The user has switched this skill off in the Skills panel.", isError: true };
+        if (def.requiresSandbox) {
+          if (!sandboxAvailable()) return { text: "This skill needs a build machine and that is not switched on yet. Tell the user it is coming and offer to help another way.", isError: true };
+          if (!(await activeRun(ctx.userId))) return { text: "This skill needs a build machine. The person starts a build from the Skills panel (it shows the cost and asks them to confirm); tell them to do that, then try again.", isError: true };
+        }
+        const r = await loadBuiltinSkill(id, `/work/skills/${id}`);
+        return r.ok ? { text: r.text } : { text: r.error, isError: true };
+      }
+
+      case "read_skill_file": {
+        const r = await readSkillFile(str(args.id, 60), args.path);
+        return r.ok ? { text: r.text } : { text: r.error, isError: true };
       }
 
       case "list_connected_apps": {
@@ -223,6 +288,7 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
       }
 
       default:
+        if ((SANDBOX_TOOL_NAMES as readonly string[]).includes(name)) return runSandboxTool(name, args, ctx.userId);
         return { text: `Unknown tool ${name}.`, isError: true };
     }
   } catch (err) {
