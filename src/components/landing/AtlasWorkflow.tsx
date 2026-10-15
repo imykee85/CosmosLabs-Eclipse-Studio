@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { atlasStrengths, atlasSteps } from "./data";
+import Tone from "./Tone";
 
 // "Meet Atlas." Left: heading, subtext, Atlas (the 3D agent from the app, larger), his strengths, then the button. When the section comes into view
 // Atlas bounces once and then spins (the same moves as in the app).
@@ -68,7 +69,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
       <div className="atl-left">
         <div className="eyebrow">INTRODUCING</div>
         <h2>Meet <em>Atlas</em></h2>
-        <p className="atl-sub">Your agentic creative partner.</p>
+        <Tone className="atl-sub" text="Your [[agentic creative partner]]." />
         {/* Atlas, drawn like the agent in the app (the eyes turn round the ball in 3D), only bigger. */}
         <div className={`atl-bot${intro ? " is-intro" : ""}`} ref={bot} role="img" aria-label="Atlas, the Eclipse agent">
           <div className="atl-glow" />

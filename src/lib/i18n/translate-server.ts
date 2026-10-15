@@ -23,6 +23,7 @@ const SYSTEM = (lang: string) => `You translate short user-interface strings of 
 Rules:
 - Natural, concise product wording for buttons, labels, menus and short sentences; keep the tone friendly and plain. Keep the capitalisation style of the source (Title Case buttons stay short).
 - Placeholders like {0}, {1} stand for numbers: keep each one exactly, in a sensible place.
+- Words between [[ and ]] are highlighted: keep the [[ ]] markers around the words that carry the same meaning in your translation, as many pairs as the English has.
 - Never translate these names, keep them exactly as written: ${KEEP_NAMES.join(", ")}. Model names, file names, keyboard keys, emoji and symbols stay as they are.
 - Keep the text's punctuation, line breaks and leading or trailing spaces' meaning; do not add explanations or quotation marks.
 - If a string is already in ${langName(lang)} or has nothing to translate, return it unchanged.
@@ -50,6 +51,10 @@ async function translateChunk(client: Anthropic, lang: string, texts: string[]):
     // A translation that dropped a number placeholder, or ballooned, is not trusted.
     const need = (texts[i].match(/\{\d+\}/g) ?? []);
     if (need.some((p) => !clean.includes(p)) || clean.length > MAX_TEXT * 3) return null;
+    // Highlight markers that did not survive in pairs are dropped: the sentence then shows without a highlight instead of in English.
+    const pairs = (x: string) => [(x.match(/\[\[/g) ?? []).length, (x.match(/\]\]/g) ?? []).length];
+    const [o, c] = pairs(clean), [eo] = pairs(texts[i]);
+    if (eo && (o !== c || o !== eo)) return clean.replace(/\[\[|\]\]/g, "");
     return clean;
   });
 }

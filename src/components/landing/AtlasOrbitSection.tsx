@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Brain, Cpu, Plug, Puzzle } from "lucide-react";
 import GlowOrb from "@/components/GlowOrb";
+import Tone from "./Tone";
 
 // "Your creative computer." (Core, not Atlas) After the owner's Framer reference (layout and motion only): two dashed rings round a glowing core, small round nodes travelling
 // along them, static text in the four corners. Each ring turns one way and its nodes turn back at the same speed, so the icons stay upright.
@@ -47,7 +48,7 @@ export default function AtlasOrbitSection() {
         <div>
           <h2>Core:<br />Your creative computer</h2>
         </div>
-        <p>One workspace at the centre. Everything it knows and everything it can use orbits around it.</p>
+        <Tone text="[[One workspace]] at the centre. Everything it knows and everything it can use [[orbits around it]]." />
       </div>
 
       <div className="core-stage">

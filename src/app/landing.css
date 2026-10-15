@@ -743,3 +743,44 @@ html .site-shell p { text-wrap: pretty; }
 html[data-phone] .site-shell .atl-demo { --row: calc(84px * var(--pk, 1)); }
 html[data-phone] .site-shell .menu-toggle svg { width: calc(22px * var(--pk, 1)); height: calc(22px * var(--pk, 1)); }
 html[data-phone] .site-shell .menu-toggle { color: #f4f1ed; }
+
+/* ---- Editorial layer (owner 2026-10-15, "similar" to their reference): two voices only (Inter for words, Geist Mono for labels),
+   the title across the full width, emphasis by colour, fewer sizes. ---- */
+.site-shell {
+  --edge: clamp(20px, 5vw, 72px);                         /* the one side margin: nav, title, sections */
+  --t-label: max(12px, calc(10.5px * var(--pk, 1)));
+  --t-sub: var(--t-lead);                                 /* sub-headings and leads are one size now */
+}
+/* A. Labels: small mono capitals, quiet, slightly open */
+html .site-shell .eyebrow, html .site-shell .strip-label, html .site-shell .center-cta span, html .site-shell .scroll-cue,
+html .site-shell .nav-links a, html .site-shell .lang-menu.is-nav .lang-btn, html .site-shell .atl-num, html .site-shell .audience-number,
+html .site-shell .plan-tag, html .site-shell .footer-bottom, html .site-shell .footer-bottom a, html .site-shell .footer-bottom span, html .site-shell .results-grid span {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--t-label); font-weight: 450;
+  letter-spacing: .06em; text-transform: uppercase; line-height: 1.4;
+}
+html .site-shell .nav-links a, html .site-shell .lang-menu.is-nav .lang-btn { color: #f4f1ed; }
+html .site-shell .eyebrow { color: var(--c-3); }
+/* tags on pictures: a muted pill like a caption chip */
+html .site-shell .results-grid span { padding: .45em .8em; border-radius: 999px; background: rgba(20,20,20,.55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #f2efea; font-weight: 500; }
+html .site-shell .results-grid span svg { display: none; }
+
+/* B. The hero title spans the width between the side margins */
+html .site-shell .hero > .hero-copy { width: calc(100% - 2 * var(--edge)); max-width: none; }
+html .site-shell .hero h1 { font-size: calc((100vw - 2 * var(--edge)) / var(--title-ems, 6.14)); font-weight: 650; letter-spacing: -.055em; line-height: .86; white-space: nowrap; margin: 0 0 .22em; }
+html .site-shell .hero .hero-sub { font-family: var(--font-mono), ui-monospace, monospace; font-size: var(--t-label); font-weight: 450; letter-spacing: .14em; text-transform: uppercase; color: #f2efea; margin: 0 0 18px; }
+
+/* C. Two tones: the sentence is quiet, the key words are bright; same size and weight */
+html .site-shell .tone { color: var(--c-3); }
+html .site-shell .tone .tone-hi { color: var(--c-1); }
+html .site-shell .hero .tone { color: rgba(242,239,234,.8); text-shadow: 0 1px 14px rgba(0,0,0,.35); }
+html .site-shell .hero .tone .tone-hi { color: #fff; }
+html .site-shell .hero-deck, html .site-shell .audience-sub, html .site-shell .results-heading .tone, html .site-shell .core-head .tone, html .site-shell .atl-sub {
+  font-size: var(--t-lead); font-weight: 450; line-height: 1.45; letter-spacing: -.012em; max-width: 34ch;
+}
+html .site-shell .hero-deck { max-width: 38ch; margin: 0 auto 28px; }
+html .site-shell .results-heading .tone { margin: 36px 0 0; }
+html .site-shell .core-head .tone { margin: 0; }
+/* Phones at any page zoom use the menu button, like the 780 px layout */
+html[data-phone] .site-shell .nav-links { display: none; position: absolute; top: calc(48px * var(--pk, 1)); left: var(--edge); right: var(--edge); padding: calc(14px * var(--pk, 1)); background: rgba(18,18,18,.96); border: 1px solid var(--line); border-radius: calc(12px * var(--pk, 1)); flex-direction: column; align-items: flex-start; gap: calc(14px * var(--pk, 1)); margin: 0; }
+html[data-phone] .site-shell .nav-links.mobile-visible { display: flex; }
+html[data-phone] .site-shell .menu-toggle { display: grid; place-items: center; border: 0; background: none; }

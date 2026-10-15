@@ -15,6 +15,7 @@ import AtlasWorkflow from "./AtlasWorkflow";
 import AtlasOrbitSection from "./AtlasOrbitSection";
 import CtaPromptCard from "./CtaPromptCard";
 import ScrollReveal from "./ScrollReveal";
+import Tone from "./Tone";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
@@ -85,10 +86,7 @@ export default function Landing() {
         <div className="hero-copy">
           <h1>Eclipse Studio</h1>
           <h2 className="hero-sub">AI Creative Suite</h2>
-          <p className="hero-deck">
-            Turn any idea into premium content, <br className="desktop-only" />
-            from a single prompt to finished work, all in one place.
-          </p>
+          <Tone className="hero-deck" text="Turn [[any idea]] into [[premium content]], from a single prompt to finished work, all in one place." />
           <Cta glint />
         </div>
         <IndustryStrip />
@@ -107,7 +105,7 @@ export default function Landing() {
           <div>
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
             <h2>What do you want<br /><em>to create?</em></h2>
-            <p className="audience-sub">Discover the latest frontier generative AI models.</p>
+            <Tone className="audience-sub" text="Discover the latest [[frontier generative AI models]]." />
           </div>
         </div>
         <div className="audience-grid">
@@ -144,7 +142,7 @@ export default function Landing() {
             <div className="eyebrow">CREATED WITH ECLIPSE</div>
             <h2>Made to look<br /><em>like you meant it.</em></h2>
           </div>
-          <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
+          <Tone text="From a [[rough thought]] to a [[finished visual]]. Every category, one prompt away." />
         </div>
         <div className="results-grid">
           {results.map((name, i) => (

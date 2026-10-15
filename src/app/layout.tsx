@@ -8,6 +8,8 @@ import "./globals.css";
 
 // Inter is kept in the repo (src/app/fonts) instead of downloaded from Google at build time: a failed download once broke a Vercel build.
 const inter = localFont({ src: "./fonts/Inter-latin.woff2", weight: "100 900", display: "swap", variable: "--font-sans" });
+// Labels (eyebrows, nav, tags, numbers) on the landing page: Geist Mono, self-hosted (SIL Open Font License, see fonts/GeistMono-OFL.txt).
+const mono = localFont({ src: "./fonts/GeistMono-latin.woff2", weight: "100 900", display: "swap", variable: "--font-mono", fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"] });
 
 // The address people share and search engines index: NEXT_PUBLIC_SITE_URL (Config value, the real domain once there is one), else Vercel's production address, else local.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
@@ -45,7 +47,7 @@ const LANGUAGE_SCRIPT = `try{var c=null;try{var v=JSON.parse(localStorage.getIte
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const page = (
-    <html lang="en" className={`${inter.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PHONE_LAYOUT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: STATUS_BAR_SCRIPT }} />
