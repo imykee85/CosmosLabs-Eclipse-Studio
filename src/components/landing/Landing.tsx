@@ -134,7 +134,6 @@ export default function Landing() {
         line1="have an idea?" line2="try it."
         placeholder={"What do you want to create?\n\nDescribe your idea…"}
         button="Create my idea" icon={<Lightbulb size={17} />}
-        caption="No prompt engineering. No blank canvas. Just start with what you’re imagining."
         onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}
       />
 

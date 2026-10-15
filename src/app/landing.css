@@ -620,3 +620,15 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 20px; font-weight: 500; line-height: 1.35; letter-spacing: -.01em; }
 @media (min-width: 801px) { .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 24px; } }
 .audience-sub { max-width: 600px; } .core-head p { max-width: 600px; } .results-heading p { max-width: 400px; }
+
+/* One reading size for the small texts (owner 2026-10-15): the size of "AI Creative Suite" (20px, 24px on desktop) now also sets the Core feature texts, the FAQ, the small
+   headings above the section headings (eyebrows) and the small line above the Create Yours button. Wide letter spacing is trimmed so the bigger capitals still fit on one line. */
+.eyebrow, .center-cta span { font-size: 20px; line-height: 1.3; letter-spacing: .16em; }
+.core-block p { font-size: 20px; line-height: 1.4; }
+.faq-item button { font-size: 20px; }
+.faq-item p { max-width: 640px; font-size: 20px; line-height: 1.45; }
+@media (min-width: 801px) { .eyebrow, .center-cta span, .core-block p, .faq-item button, .faq-item p { font-size: 24px; } }
+@media (max-width: 480px) { .eyebrow { letter-spacing: .16em; } }
+/* Core: the bigger feature texts need more room above and below the orbit on phones and in narrow windows */
+@media (max-width: 800px) { .core-stage { height: 980px; } .core-block p { font-size: 20px; } }
+@media (pointer: coarse) and (max-width: 1100px) { .core-stage { height: 980px; } }
