@@ -627,17 +627,17 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .site-shell {
   /* size                        desktop                              phone (as it looks on the phone) */
   --t-display:   max(clamp(56px, 6.2vw, 96px),                      calc(46px * var(--pk, 1)));
-  --t-h2:        max(clamp(44px, 4.9vw, 72px),                      calc(34px * var(--pk, 1)));
-  --t-stmt:      max(clamp(26px, 2.5vw, 36px),                      calc(22px * var(--pk, 1)));
-  --t-sub:       max(clamp(21px, 1.75vw, 26px),                     calc(19px * var(--pk, 1)));
-  --t-h3:        max(22px,                                          calc(18px * var(--pk, 1)));
-  --t-h4:        max(19px,                                          calc(16px * var(--pk, 1)));
-  --t-lead:      max(clamp(18px, 1.35vw, 21px),                     calc(16px * var(--pk, 1)));
-  --t-body:      max(17px,                                          calc(15px * var(--pk, 1)));
-  --t-small:     max(15px,                                          calc(13px * var(--pk, 1)));
-  --t-eyebrow:   max(13px,                                          calc(11px * var(--pk, 1)));
-  --t-button:    max(16px,                                          calc(15px * var(--pk, 1)));
-  --t-price:     max(56px,                                          calc(38px * var(--pk, 1)));
+  --t-h2:        max(clamp(44px, 4.9vw, 72px),                      calc(30px * var(--pk, 1)));
+  --t-stmt:      max(clamp(26px, 2.5vw, 36px),                      calc(19px * var(--pk, 1)));
+  --t-sub:       max(clamp(21px, 1.75vw, 26px),                     calc(15px * var(--pk, 1)));
+  --t-h3:        max(22px,                                          calc(14.5px * var(--pk, 1)));
+  --t-h4:        max(19px,                                          calc(13px * var(--pk, 1)));
+  --t-lead:      max(clamp(18px, 1.35vw, 21px),                     calc(13.5px * var(--pk, 1)));
+  --t-body:      max(17px,                                          calc(12px * var(--pk, 1)));
+  --t-small:     max(15px,                                          calc(11px * var(--pk, 1)));
+  --t-eyebrow:   max(13px,                                          calc(9.5px * var(--pk, 1)));
+  --t-button:    16px;
+  --t-price:     max(56px,                                          calc(30px * var(--pk, 1)));
   /* ink on the black sections */
   --c-1: #f5f5f7; --c-2: #c9c5bf; --c-3: #a39e97;
 }
@@ -717,30 +717,11 @@ html .site-shell .plan-tag { font-size: var(--t-eyebrow); font-weight: 600; lett
 html .site-shell .footer-links a, html .site-shell .footer-links .pill-btn { font-size: var(--t-button); }
 
 /* ---- Phones (the landing page at about half size): rows and blocks make room for the larger text ---- */
-html[data-phone] .site-shell .pill-btn, html[data-phone] .site-shell .create-btn { padding: .85em 1.5em; height: auto; }
-html[data-phone] .site-shell .atl-demo { --row: calc(76px * var(--pk, 1)); }
-html[data-phone] .site-shell .atl-demo li { grid-template-columns: calc(14px * var(--pk, 1)) calc(22px * var(--pk, 1)) 1fr; }
-html[data-phone] .site-shell .atl-section { grid-template-columns: 1fr; display: block; }
-html[data-phone] .site-shell .atl-demo { margin-top: 64px; }
-html[data-phone] .site-shell .core-stage { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: calc(28px * var(--pk, 1)) calc(18px * var(--pk, 1)); }
-html[data-phone] .site-shell .core-circles { position: relative; left: auto; top: auto; transform: none; grid-column: 1 / -1; justify-self: center; width: min(70%, 560px); margin-bottom: calc(10px * var(--pk, 1)); }
-html[data-phone] .site-shell .core-block { position: static; width: auto; text-align: left; }
-html[data-phone] .site-shell .core-block p { margin-left: 0; max-width: none; }
-html[data-phone] .site-shell .plan-grid { grid-template-columns: 1fr; max-width: 640px; }
-html[data-phone] .site-shell .results-heading p, html[data-phone] .site-shell .core-head p, html[data-phone] .site-shell .audience-sub { max-width: none; }
-html[data-phone] .site-shell .audience-grid { grid-template-columns: 1fr 1fr; }
-html[data-phone] .site-shell .nav-actions .pill-btn { font-size: calc(13px * var(--pk, 1)); padding: .7em 1.2em; height: auto; }
-html[data-phone] .site-shell .core-circles { order: -1; margin-bottom: calc(22px * var(--pk, 1)); }
-html[data-phone] .site-shell .atl-demo { --row: calc(104px * var(--pk, 1)); }
-html[data-phone] .site-shell .plan-card li svg, html[data-phone] .site-shell .faq-item button svg, html[data-phone] .site-shell .audience-arrow,
-html[data-phone] .site-shell .pill-btn svg, html[data-phone] .site-shell .create-btn svg { width: calc(14px * var(--pk, 1)); height: calc(14px * var(--pk, 1)); }
+html[data-phone] .site-shell .plan-card li svg, html[data-phone] .site-shell .faq-item button svg, html[data-phone] .site-shell .audience-arrow { width: calc(12px * var(--pk, 1)); height: calc(12px * var(--pk, 1)); }
 html .site-shell .plan-tag { top: 0; transform: translateY(-50%); }
-html[data-phone] .site-shell .atl-left, html[data-phone] .site-shell .atl-demo { max-width: none; margin-left: 0; }
-html[data-phone] .site-shell .atl-strengths p { max-width: none; }
 /* Headings break into even lines instead of leaving one word alone */
 html .site-shell h1, html .site-shell h2, html .site-shell .section-kicker, html .site-shell .atl-tag, html .site-shell h3 { text-wrap: balance; }
 html .site-shell p { text-wrap: pretty; }
-html[data-phone] .site-shell .atl-demo { --row: calc(84px * var(--pk, 1)); }
 html[data-phone] .site-shell .menu-toggle svg { width: calc(22px * var(--pk, 1)); height: calc(22px * var(--pk, 1)); }
 html[data-phone] .site-shell .menu-toggle { color: #f4f1ed; }
 
@@ -748,7 +729,7 @@ html[data-phone] .site-shell .menu-toggle { color: #f4f1ed; }
    the title across the full width, emphasis by colour, fewer sizes. ---- */
 .site-shell {
   --edge: clamp(20px, 5vw, 72px);                         /* the one side margin: nav, title, sections */
-  --t-label: max(12px, calc(10.5px * var(--pk, 1)));
+  --t-label: max(12px, calc(9px * var(--pk, 1)));
   --t-sub: var(--t-lead);                                 /* sub-headings and leads are one size now */
 }
 /* A. Labels: small mono capitals, quiet, slightly open */
@@ -781,6 +762,9 @@ html .site-shell .hero-deck { max-width: 38ch; margin: 0 auto 28px; }
 html .site-shell .results-heading .tone { margin: 36px 0 0; }
 html .site-shell .core-head .tone { margin: 0; }
 /* Phones at any page zoom use the menu button, like the 780 px layout */
-html[data-phone] .site-shell .nav-links { display: none; position: absolute; top: calc(48px * var(--pk, 1)); left: var(--edge); right: var(--edge); padding: calc(14px * var(--pk, 1)); background: rgba(18,18,18,.96); border: 1px solid var(--line); border-radius: calc(12px * var(--pk, 1)); flex-direction: column; align-items: flex-start; gap: calc(14px * var(--pk, 1)); margin: 0; }
-html[data-phone] .site-shell .nav-links.mobile-visible { display: flex; }
-html[data-phone] .site-shell .menu-toggle { display: grid; place-items: center; border: 0; background: none; }
+/* Nav row as before on every screen (owner 2026-10-15): fixed small labels and the earlier pill size, so the row fits at phone widths */
+html .site-shell .nav-links a, html .site-shell .lang-menu.is-nav .lang-btn { font-size: 13px; }
+html .site-shell .nav-actions .pill-btn { font-size: 14px; }
+/* Atlas steps in the two-column phone layout: rows tall enough for the readable text */
+html[data-phone] .site-shell .atl-demo { --row: calc(82px * var(--pk, 1)); }
+html[data-phone] .site-shell .atl-demo p { font-size: var(--t-small); line-height: 1.5; }
