@@ -8,6 +8,7 @@ import TranscriptView from "./Transcript";
 import { EffectsConsole, ModeTabs, MusicConsole, TranscribeConsole, type Mode } from "./Modes";
 import VoiceCreator from "./VoiceCreator";
 import VoicePicker from "./VoicePicker";
+import SheetPortal from "./SheetPortal";
 import { clock, orbStyle } from "./look";
 import { useCredits } from "@/lib/use-credits";
 import { readCurrentProject, timeAgo } from "@/lib/projects";
@@ -293,8 +294,8 @@ export default function VoiceStudio() {
         </div>}
       </div>
 
-      {picking && <VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} onNew={() => { setPicking(false); setCreating(true); }} onDelete={removeOwn} />}
-      {creating && models && <VoiceCreator models={models} provider={provider} costs={costs} consentText={consentText} onClose={() => setCreating(false)} onCreated={created} />}
+      {picking && <SheetPortal><VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} onNew={() => { setPicking(false); setCreating(true); }} onDelete={removeOwn} /></SheetPortal>}
+      {creating && models && <SheetPortal><VoiceCreator models={models} provider={provider} costs={costs} consentText={consentText} onClose={() => setCreating(false)} onCreated={created} /></SheetPortal>}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 /* Voice Studio (prefix vc-): a stage with the voice in the middle, a strip of voices, a quiet list of takes and one console docked at the bottom.
    Colours only from the --a-* theme vars (light and dark) plus the Eclipse red. */
-.vc { --vc-red: #c00707; --vc-red2: #d90b0b; display: flex; flex-direction: column; max-width: 760px; min-height: calc(100dvh - 180px); margin: 0 auto; }
+.vc, .vc-sheet-back { --vc-red: #c00707; --vc-red2: #d90b0b; }
+.vc { display: flex; flex-direction: column; max-width: 760px; min-height: calc(100dvh - 180px); margin: 0 auto; }
 .vc-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 /* Stage */
