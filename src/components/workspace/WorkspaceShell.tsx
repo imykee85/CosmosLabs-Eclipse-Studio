@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, Clapperboard, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Lightbulb, Menu, MessageSquareText, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, Share2, User, Video, Volume2, Workflow, X,
+  ArrowLeft, ChevronDown, Clapperboard, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Lightbulb, Menu, MessageSquareText, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, Share2, User, Video, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -25,28 +25,26 @@ import "./workspace.css";
 
 type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; soon?: boolean };
 
+// The sidebar follows the order of the work (user 2026-10-15): PLAN what you will make, CREATE it, keep it in FILES, and UTILITIES that make the whole process easier.
 const connectItem: Item = { label: "Core", hint: "Your creative computer", href: "/connect", icon: <ConnectMark size={20} /> };
-const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
-const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
-const photo: Item[] = [
-  { label: "Image Studio", hint: "Write a prompt", href: "/create", icon: <ImageStudioIcon size={22} /> },
-  { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> },
-  { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> },
-];
 const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} /> };
-// The four tools that work across Photo, Audio and Video, shown together under one heading at the top.
-const utilities: Item[] = [connectItem, agentsItem, canvasItem, ingredients];
-const video: Item[] = [
-  { label: "Treatment", hint: "Shape the concept", href: "/treatment", icon: <Lightbulb size={17} /> },
-  { label: "Prompts", hint: "Scene by scene", href: "/prompts", icon: <MessageSquareText size={17} /> },
-  { label: "Video Studio", hint: "Render the clips", href: "/generate", icon: <Clapperboard size={17} />, soon: true },
-  { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true },
-];
-const audio: Item[] = [
-  { label: "Voice Studio", hint: "Create and clone voices", href: "/voice", icon: <Mic size={17} />, soon: true },
-  { label: "Music", hint: "Score your content", icon: <Music size={17} />, soon: true },
-  { label: "Sound effects", hint: "Add the final touches", icon: <Volume2 size={17} />, soon: true },
-];
+const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
+const treatmentItem: Item = { label: "Treatment", hint: "Shape the concept", href: "/treatment", icon: <Lightbulb size={17} /> };
+const promptsItem: Item = { label: "Prompts", hint: "Scene by scene", href: "/prompts", icon: <MessageSquareText size={17} /> };
+const imageStudio: Item = { label: "Image Studio", hint: "Write a prompt", href: "/create", icon: <ImageStudioIcon size={22} /> };
+const videoStudio: Item = { label: "Video Studio", hint: "Render the clips", href: "/generate", icon: <Clapperboard size={17} />, soon: true };
+const voiceStudio: Item = { label: "Voice Studio", hint: "Voice, sound, music", href: "/voice", icon: <Mic size={17} />, soon: true };
+const libraryItem: Item = { label: "Library", hint: "Everything you made", href: "/library", icon: <Library size={17} /> };
+const gallery: Item = { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> };
+const assets: Item = { label: "Assets", hint: "Reference photos", href: "/assets", icon: <FolderOpen size={17} /> };
+const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
+const exportItem: Item = { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true };
+const plan: Item[] = [treatmentItem, promptsItem];
+const create: Item[] = [imageStudio, videoStudio, voiceStudio];
+// Library is in the desktop sidebar only: on a phone it is already the bottom tab.
+const files: Item[] = [libraryItem, gallery, assets, ingredients, exportItem];
+const filesPhone: Item[] = files.filter((i) => i !== libraryItem);
+const utilities: Item[] = [connectItem, agentsItem, canvasItem];
 
 function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onPick?: (item: Item) => void }) {
   const body = (
@@ -164,7 +162,7 @@ const tabIcon = (icon: React.ReactNode) => (isValidElement(icon) ? cloneElement(
 
 const SLOT_KEY = "eclipse-create-slot";
 // Shortcuts that can take over the Create tab.
-const SLOT_ITEMS: Item[] = [photo[0], agentsItem, canvasItem, ingredients, photo[1], photo[2], video[0], video[1], video[2], audio[0]];
+const SLOT_ITEMS: Item[] = [imageStudio, agentsItem, canvasItem, ingredients, gallery, assets, treatmentItem, promptsItem, videoStudio, voiceStudio];
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
@@ -187,14 +185,14 @@ function CreateTab({ pathname }: { pathname: string }) {
 
   return (
     <>
-      <Link ref={m.tabRef} href={slot?.href ?? photo[0].href ?? "/create"} className={`mb-tab ${here ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
-        aria-haspopup="menu" aria-expanded={m.open} title={`Opens ${(slot ?? photo[0]).label} (double-tap for shortcuts)`} onClick={m.onClick} onKeyDown={m.onKeyDown}>
+      <Link ref={m.tabRef} href={slot?.href ?? imageStudio.href ?? "/create"} className={`mb-tab ${here ? "is-active" : ""} ${m.open ? "is-open" : ""}`}
+        aria-haspopup="menu" aria-expanded={m.open} title={`Opens ${(slot ?? imageStudio).label} (double-tap for shortcuts)`} onClick={m.onClick} onKeyDown={m.onKeyDown}>
         <span className="mb-tab-icon">{plain ? <Plus size={24} strokeWidth={2.2} /> : tabIcon(slot.icon)}</span><span>{plain ? "Create" : slot.label}</span>
       </Link>
       <TabMenuBox m={m} label="Shortcuts">
-        <Section title="PHOTO" items={photo} pathname={pathname} defaultOpen={photo.some((i) => i.href === pathname)} />
-        <Section title="VIDEO" items={video} pathname={pathname} defaultOpen={video.some((i) => i.href === pathname)} />
-        <Section title="AUDIO" items={audio} pathname={pathname} defaultOpen={audio.some((i) => i.href === pathname)} />
+        <Section title="PLAN" items={plan} pathname={pathname} defaultOpen={plan.some((i) => i.href === pathname)} />
+        <Section title="CREATE" items={create} pathname={pathname} defaultOpen={create.some((i) => i.href === pathname)} />
+        <Section title="FILES" items={filesPhone} pathname={pathname} defaultOpen={filesPhone.some((i) => i.href === pathname)} />
       </TabMenuBox>
     </>
   );
@@ -302,9 +300,9 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="ws-icon-btn" aria-label="Collapse sidebar" onClick={() => setOpen(false)}><PanelLeft size={16} /></button>
         </div>
         <nav className="ws-nav">
-          <Section title="PHOTO" items={photo} pathname={pathname} />
-          <Section title="VIDEO" items={video} pathname={pathname} />
-          <Section title="AUDIO" items={audio} pathname={pathname} />
+          <Section title="PLAN" items={plan} pathname={pathname} />
+          <Section title="CREATE" items={create} pathname={pathname} />
+          <Section title="FILES" items={files} pathname={pathname} />
           <Section title="UTILITIES" items={utilities} pathname={pathname} />
         </nav>
         <UserMenu variant="sidebar" />
@@ -353,9 +351,9 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
             )}
           </AccountName>
           <nav className="mb-nav">
-            <Section title="PHOTO" items={photo} pathname={pathname} />
-            <Section title="VIDEO" items={video} pathname={pathname} />
-            <Section title="AUDIO" items={audio} pathname={pathname} />
+            <Section title="PLAN" items={plan} pathname={pathname} />
+            <Section title="CREATE" items={create} pathname={pathname} />
+            <Section title="FILES" items={filesPhone} pathname={pathname} />
             <Section title="UTILITIES" items={utilities} pathname={pathname} />
           </nav>
           <div className="mb-foot">

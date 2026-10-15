@@ -53,6 +53,27 @@ test.describe("signed-in app (demo mode)", () => {
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
+  test("the sidebar follows the work (PLAN, CREATE, FILES, UTILITIES); Library is in the desktop sidebar, not in the phone drawer", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], entries: [], balance: 0, models: [] } }));
+    await page.setViewportSize({ width: 1366, height: 800 });
+    await page.goto("/create");
+    const side = page.locator(".ws-sidebar");
+    expect((await side.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["PLAN", "CREATE", "FILES", "UTILITIES"]);
+    const rows = async (el: typeof side) => (await el.locator(".ws-item-text b").allInnerTexts()).map((t) => t.trim());
+    expect(await rows(side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Library", "Gallery", "Assets", "Ingredients", "Export", "Core", "Agents", "Canvas"]);
+    // phone: the same groups in the drawer, without Library (it is the bottom tab)
+    await page.setViewportSize({ width: 520, height: 900 });
+    await page.getByRole("button", { name: "Open menu" }).click();
+    const drawer = page.locator(".mb-nav");
+    expect((await drawer.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["PLAN", "CREATE", "FILES", "UTILITIES"]);
+    expect(await rows(drawer as typeof side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Gallery", "Assets", "Ingredients", "Export", "Core", "Agents", "Canvas"]);
+    await expect(page.locator(".mb-tabs").getByText("Library")).toBeVisible();
+  });
+
   test("a project opens the studios and the Library shows uniform tiles", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
