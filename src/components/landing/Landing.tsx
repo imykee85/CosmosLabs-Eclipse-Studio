@@ -97,7 +97,7 @@ export default function Landing() {
 
       <section id="examples" className="wow-section section-pad">
         <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
-        <ScrollReveal className="wow-reveal" text="One canvas, endless possibilities. Every idea opens another, every image leads to the next, and there is no edge to what you can create. Your imagination sets the only limit, and in Eclipse it never runs out." />
+        <ScrollReveal className="wow-reveal" text="Imagination has no edges. Now, neither does your canvas. Every idea. Every image. Every frame. All in one place. All yours." />
         <CanvasCarousel />
         <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
       </section>
