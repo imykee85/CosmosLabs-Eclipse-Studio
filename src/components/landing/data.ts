@@ -21,7 +21,7 @@ export const audience = [
   ["GPT IMAGE 2.5", "OpenAI's newest image model.", "OpenAI", "Image", "OpenAI's newest image model, with picture edits.", "GPT Image 2.5"],
 ] as const;
 
-export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising"];
+export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports"];
 
 // What Atlas is good at, shown under him in the "Meet Atlas" section. Only what Atlas really does today.
 export const atlasStrengths = [

@@ -114,7 +114,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <button className={`audience-card ${selected === i ? "selected" : ""}`} onClick={() => setSelected(i)}>
-                <div className={`tile tone-${i}`} />
+                <div className={`tile tone-${i % 10}`} />
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
@@ -148,7 +148,7 @@ export default function Landing() {
         <div className="results-grid">
           {results.map((name, i) => (
             <article key={name}>
-              <div className={`tile tone-${i}`} />
+              <div className={`tile tone-${i % 10}`} />
               <span>{name} <ArrowRight size={13} /></span>
             </article>
           ))}
