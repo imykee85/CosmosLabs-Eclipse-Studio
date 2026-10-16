@@ -138,22 +138,29 @@ export default function Landing() {
       />
 
       <section className="results-section section-pad">
-        <div className="section-heading-row results-heading">
+        <div className="results-head">
           <div>
-            <div className="eyebrow">CREATED WITH ECLIPSE</div>
-            <h2>made to look<br /><em>like you meant it.</em></h2>
+            <h2>Made to look <em>like you meant it.</em></h2>
+            <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
           </div>
-          <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
+          <Cta />
         </div>
-        <div className="results-grid">
-          {results.map((name, i) => (
-            <article key={name}>
-              <div className={`tile tone-${i % 10}`} />
-              <span>{name} <ArrowRight size={13} /></span>
-            </article>
-          ))}
+        {/* Four columns of tiles in different heights; the last row fades into the page under one button (after the owner's reference). */}
+        <div className="results-wall">
+          <div className="results-cols">
+            {[0, 1, 2, 3].map((c) => (
+              <div className="results-col" key={c}>
+                {results.filter((_, i) => i % 4 === c).map((name, j) => (
+                  <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
+                    <div className={`tile tone-${(c + j * 4) % 10}`} />
+                  </article>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="results-fade" aria-hidden="true" />
+          <div className="results-more"><Cta dark>Create Yours</Cta></div>
         </div>
-        <div className="center-cta" style={{ marginTop: 70 }}><Cta dark>Create Yours</Cta></div>
       </section>
 
       <section className="try-section try-cta section-pad">
