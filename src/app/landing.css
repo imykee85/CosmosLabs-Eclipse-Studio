@@ -646,3 +646,9 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 
 /* Atlas closing line: three lines, right aligned (owner 2026-10-16) */
 .atl-tag { text-align: right; }
+/* Atlas steps: the dot, the number and the vertical line sit level with the first line of each step's subtext (owner 2026-10-16). */
+.atl-demo { --dy: 61px; }
+.atl-demo .atl-dot { margin-top: calc(var(--dy) - 18px - 6px); }
+.atl-demo .atl-num { padding-top: calc(var(--dy) - 18px - 9px); }
+.atl-demo .atl-line { top: var(--dy); }
+@media (max-width: 800px) { .atl-demo { --dy: 60px; } }
