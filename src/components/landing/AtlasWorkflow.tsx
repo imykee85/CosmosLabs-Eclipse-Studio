@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { atlasStrengths, atlasSteps } from "./data";
+import { I18N_EVENT, translateText } from "@/lib/i18n/translator";
 
 // "Meet Atlas." Left: heading, subtext, Atlas (the 3D agent from the app, larger), his strengths, then the button. When the section comes into view
 // Atlas bounces once and then spins (the same moves as in the app).
@@ -10,6 +11,32 @@ import { atlasStrengths, atlasSteps } from "./data";
 // Under reduced motion every step is shown at once, with the full line.
 const STEP_MS = 1500;
 const HOLD_MS = 1800;
+const SAY = "Hi, I'm Atlas, your art director. I can art direct your ideas, build tools, connect to your apps and more.";
+
+// Atlas introduces himself: the line is typed out beside him once he comes into view (all at once under reduced motion). The full line is kept, invisible, so the bubble never changes size while it types.
+function AtlasSays({ go }: { go: boolean }) {
+  const [full, setFull] = useState(SAY);
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const update = () => setFull(translateText(SAY));
+    update();
+    window.addEventListener(I18N_EVENT, update);
+    return () => window.removeEventListener(I18N_EVENT, update);
+  }, []);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setN(full.length); return; }
+    if (!go) return;
+    let i = 0;
+    const t = window.setInterval(() => { i += 1; setN(i); if (i >= full.length) window.clearInterval(t); }, 32);
+    return () => window.clearInterval(t);
+  }, [go, full]);
+  return (
+    <p className="atl-say" translate="no" aria-label={full}>
+      <span className="atl-say-ghost" aria-hidden="true">{full}</span>
+      <span className="atl-say-type" aria-hidden="true">{full.slice(0, n)}<i className={n >= full.length ? "is-done" : ""} /></span>
+    </p>
+  );
+}
 
 export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
   const [active, setActive] = useState(0);
@@ -70,6 +97,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
         <h2>Meet <em>Atlas</em></h2>
         <p className="atl-sub">Your agentic creative partner.</p>
         {/* Atlas, drawn like the agent in the app (the eyes turn round the ball in 3D), only bigger. */}
+        <div className="atl-intro">
         <div className={`atl-bot${intro ? " is-intro" : ""}`} ref={bot} role="img" aria-label="Atlas, the Eclipse agent">
           <div className="atl-glow" />
           <div className="atl-hop">
@@ -84,6 +112,8 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
             </div>
           </div>
           <div className="atl-ground" />
+        </div>
+        <AtlasSays go={intro} />
         </div>
         <ul className="atl-strengths">
           {atlasStrengths.map(([q, a]) => (
@@ -106,7 +136,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
           ))}
         </ol>
       </div>
-      <p className="atl-tag">Imagine it.<br />Say it.<br /><em>Atlas</em> executes.</p>
+      <p className="atl-tag">Imagine it<br />Say it<br /><em>Atlas</em><br />Executes it</p>
       </div>
     </section>
   );

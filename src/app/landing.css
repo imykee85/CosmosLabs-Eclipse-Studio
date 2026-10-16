@@ -655,3 +655,24 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Meet Atlas headings (strength questions, step titles) at the Core feature heading size (owner 2026-10-16). */
 .atl-strengths b { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
 @media (max-width: 800px) { .atl-strengths b { font-size: 20px; } }
+/* "Made to look like you meant it": a gallery of tall tiles of different heights in four columns (owner 2026-10-16, after a reference screenshot). */
+.results-grid { display: block; columns: 4; column-gap: 12px; }
+.results-grid article { height: auto; margin: 0 0 12px; break-inside: avoid; aspect-ratio: 3 / 4; border-radius: 14px; }
+.results-grid article:nth-child(12n+1) { aspect-ratio: 3 / 4.1; } .results-grid article:nth-child(12n+2) { aspect-ratio: 3 / 3.3; } .results-grid article:nth-child(12n+3) { aspect-ratio: 3 / 3.9; }
+.results-grid article:nth-child(12n+4) { aspect-ratio: 3 / 3.4; } .results-grid article:nth-child(12n+5) { aspect-ratio: 3 / 4.2; } .results-grid article:nth-child(12n+6) { aspect-ratio: 3 / 3.5; }
+.results-grid article:nth-child(12n+7) { aspect-ratio: 3 / 4.3; } .results-grid article:nth-child(12n+8) { aspect-ratio: 3 / 3.2; } .results-grid article:nth-child(12n+9) { aspect-ratio: 3 / 3.8; }
+.results-grid article:nth-child(12n+10) { aspect-ratio: 3 / 3.6; } .results-grid article:nth-child(12n+11) { aspect-ratio: 3 / 4; } .results-grid article:nth-child(12n) { aspect-ratio: 3 / 3.9; }
+@media (max-width: 480px) { .results-grid { columns: 2; } .results-grid article { height: auto; } }
+/* Atlas closing line: four lines, left aligned. */
+.atl-tag { text-align: left; }
+/* Atlas introduces himself beside the ball. */
+.atl-intro { display: flex; align-items: center; gap: 22px; margin: 64px 0 50px 6px; }
+.atl-intro .atl-bot { margin: 0; flex: none; }
+.atl-say { position: relative; flex: 1; min-width: 0; margin: 0; padding: 16px 20px; border-radius: 18px; background: #fff; border: 1px solid #d6d1c9; color: #111; font-size: 17px; line-height: 1.4; letter-spacing: -.01em; box-shadow: 0 6px 24px rgba(0,0,0,.06); }
+.atl-say::before { content: ""; position: absolute; left: -7px; top: 50%; width: 12px; height: 12px; margin-top: -6px; background: #fff; border-left: 1px solid #d6d1c9; border-bottom: 1px solid #d6d1c9; transform: rotate(45deg); }
+.atl-say-ghost { visibility: hidden; }
+.atl-say-type { position: absolute; left: 20px; right: 20px; top: 16px; }
+.atl-say-type i { display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -.15em; background: var(--accent); animation: atl-caret 1s steps(1) infinite; }
+.atl-say-type i.is-done { animation: atl-caret 1s steps(1) infinite; }
+@keyframes atl-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .atl-say-type i { animation: none; opacity: 0; } }
