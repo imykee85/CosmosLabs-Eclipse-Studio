@@ -643,3 +643,6 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* "Trusted by teams at" above the logo reel has the same size as the other small headings (owner 2026-10-16): 18px, 16px at 800px and below. */
 .strip-label, .hero .strip-label { font-size: 16px; letter-spacing: .16em; line-height: 1.3; }
 @media (min-width: 801px) { .strip-label, .hero .strip-label { font-size: 18px; } }
+
+/* Atlas closing line: three lines, right aligned (owner 2026-10-16) */
+.atl-tag { text-align: right; }
