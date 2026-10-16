@@ -97,7 +97,7 @@ export default function Landing() {
 
       <section id="examples" className="wow-section section-pad">
         <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
-        <ScrollReveal className="wow-reveal" text="Eclipse brings your pictures, video, prompts and AI agents together in one creative studio, so an idea can become a finished piece without leaving the page." />
+        <ScrollReveal className="wow-reveal" text="Eclipse is the studio where ideas become finished work. Plan with Atlas, create images, video and voice with the world's best models, and keep it all in one place that is yours." />
         <CanvasCarousel />
         <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
       </section>
