@@ -652,3 +652,9 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-demo .atl-num { padding-top: calc(var(--dy) - 18px - 9px); }
 .atl-demo .atl-line { top: var(--dy); }
 @media (max-width: 800px) { .atl-demo { --dy: 60px; } }
+/* Meet Atlas headings (strength questions, step titles) at the Core feature heading size (owner 2026-10-16). */
+.atl-strengths b, .atl-demo b { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+@media (max-width: 800px) { .atl-strengths b, .atl-demo b { font-size: 20px; } }
+.atl-demo, .atl-section .atl-demo { --row: 128px; --dy: 73px; }
+@media (max-width: 800px) { .atl-demo, .atl-section .atl-demo { --row: 114px; --dy: 66px; } }
+@media (pointer: coarse) and (max-width: 1100px) and (min-width: 801px) { .atl-demo, .atl-section .atl-demo { --row: 128px; --dy: 73px; } }
