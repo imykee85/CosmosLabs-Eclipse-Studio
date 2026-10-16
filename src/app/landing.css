@@ -633,3 +633,9 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Core: the bigger feature texts need more room above and below the orbit on phones and in narrow windows */
 @media (max-width: 800px) { .core-stage { height: 980px; } .core-block p { font-size: 16px; } }
 @media (pointer: coarse) and (max-width: 1100px) { .core-stage { height: 980px; } }
+
+/* Meet Atlas: the five strength answers and the step descriptions use the Core feature text size (owner 2026-10-16): 18px, 16px at 800px and below. Rows are taller so a two-line step description fits. */
+.atl-strengths p, .atl-demo p { font-size: 18px; line-height: 1.45; }
+.atl-demo, .atl-section .atl-demo { --row: 112px; }
+@media (max-width: 800px) { .atl-strengths p, .atl-demo p { font-size: 16px; } .atl-demo, .atl-section .atl-demo { --row: 100px; } }
+@media (pointer: coarse) and (max-width: 1100px) { .atl-demo, .atl-section .atl-demo { --row: 112px; } }
