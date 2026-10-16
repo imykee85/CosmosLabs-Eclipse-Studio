@@ -106,7 +106,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
           ))}
         </ol>
       </div>
-      <p className="atl-tag">Imagine it.<br />Say it.<br /><em>Atlas executes.</em></p>
+      <p className="atl-tag">Imagine it.<br />Say it.<br /><em>Atlas</em> executes.</p>
       </div>
     </section>
   );
