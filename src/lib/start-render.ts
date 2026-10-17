@@ -11,6 +11,7 @@ import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, resolveReferences } from "@/lib/references";
 import { randomSeed, seedInRange } from "@/lib/seed";
 import { watchRender } from "@/lib/render-watch";
+import { soulIdFields } from "@/lib/soul-id";
 import { randomUUID } from "node:crypto";
 import { openaiUser } from "@/lib/providers/openai";
 import { syncProvider } from "@/lib/providers";
@@ -19,7 +20,7 @@ import { getObjectBytes, saveImageBytes, storageEnabled } from "@/lib/storage";
 import { sniffImageType } from "@/lib/uploads";
 import type { ReferenceItem } from "@/lib/references";
 
-export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown };
+export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown; soulId?: unknown; soulStrength?: unknown };
 export type StartRenderResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string };
 
 // The one place a render is validated and started, used by POST /api/generate and by the Connect agent, so both are
@@ -47,6 +48,9 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   if (refs.length < minRefs(model)) return { ok: false, status: 400, error: `${model.label} edits a picture. Choose at least one reference picture.` };
 
   const projectId = typeof input.projectId === "string" && input.projectId.length <= 64 ? input.projectId : null;
+  // A Soul ID (a character trained from the person's pictures) on Soul, Soul 2 or Soul Cinema: owner-checked, finished, trained for this model.
+  const soul = await soulIdFields(userId, model.id, input.soulId, input.soulStrength);
+  if (!soul.ok) return { ok: false, status: 400, error: soul.error };
 
   let aspectRatio = typeof input.aspectRatio === "string" ? input.aspectRatio : undefined;
   // "Auto": the result takes the first reference picture's shape (nearest ratio this model offers); with no reference, the usual 1:1.
@@ -99,11 +103,11 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, items: resolved.items, seedNote, cost });
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
-  const made = await createGenerationHeld(userId, cost, { userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform ? { conform } : undefined });
+  const made = await createGenerationHeld(userId, cost, { userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform || soul.fields ? { ...(conform ? { conform } : {}), ...(soul.fields ? { soulId: String(input.soulId), soulStrength: Number(soul.fields.custom_reference_strength) } : {}) } : undefined });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
   const pre = made.row;
   try {
-    const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: await deliverReferences(resolved.items), seed: seed ?? undefined });
+    const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: await deliverReferences(resolved.items), seed: seed ?? undefined, extra: soul.fields ?? undefined });
     const generation = await db.generation.update({ where: { id: pre.id }, data: { statusUrl, requestId: requestId || null } });
     watchRender(generation.id); // saves it in the background even if the person leaves right away
     return { ok: true, item: await toItem(generation), seedNote };

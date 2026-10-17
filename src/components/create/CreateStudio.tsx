@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUp, Camera, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Maximize2, Minimize2, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
+import { ArrowRight, ArrowUp, Camera, ScanFace, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Maximize2, Minimize2, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
@@ -24,6 +24,7 @@ import { useAgentHost } from "@/lib/agent-chat";
 import "./create.css";
 import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId, type ToolOption } from "@/lib/picture-tools";
+import SoulIdDialog from "./SoulIdDialog";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 215, "4:5": 188, "9:16": 134, "16:9": 304 };
@@ -204,7 +205,7 @@ export default function CreateStudio() {
     setSubmitting(true);
     try {
       const refList = refs.map((r) => ({ type: r.type, id: r.id }));
-      const { results, seed: firstSeed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt: text, ratio, tier, qty: count, refs: refList, seedOn, seedNum, projectId: readCurrentProject()?.id });
+      const { results, seed: firstSeed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt: text, ratio, tier, qty: count, refs: refList, seedOn, seedNum, projectId: readCurrentProject()?.id, soulId: soulVersion ? soul?.id ?? null : null, soulStrength });
       if (firstSeed != null) putSeed(String(firstSeed));
       const note = results.find((r) => r.note)?.note;
       if (note) setSeedNote(note);
@@ -277,6 +278,16 @@ export default function CreateStudio() {
   function newVariations() {
     if (toolPic) void generate({ prompt: toolPic.prompt });
   }
+  // Soul ID (Soul, Soul 2, Soul Cinema only): the chosen trained character and how closely to follow it, remembered per model version.
+  const soulVersion = modelId === "soul" ? "v1" : modelId === "soul_v2" ? "v2" : modelId === "soul_cinema" ? "cinema" : null;
+  const [soul, setSoul] = useState<{ id: string; name: string } | null>(null);
+  const [soulStrength, setSoulStrength] = useState(1);
+  const [soulOpen, setSoulOpen] = useState(false);
+  useEffect(() => {
+    if (!soulVersion) { setSoul(null); return; }
+    try { const s = JSON.parse(localStorage.getItem(`eclipse-soul-id-${soulVersion}`) ?? "null"); setSoul(s && typeof s.id === "string" ? s : null); } catch { setSoul(null); }
+  }, [soulVersion]);
+  const pickSoul = (id: string | null, name?: string) => { const v = id ? { id, name: name ?? "Soul ID" } : null; setSoul(v); try { if (soulVersion) localStorage.setItem(`eclipse-soul-id-${soulVersion}`, JSON.stringify(v)); } catch {} };
   const [toolNote, setToolNote] = useState("");
   const [toolMenu, setToolMenu] = useState<"relight" | "camera" | null>(null);
   useEffect(() => { setToolNote(""); setToolMenu(null); }, [toolPic?.id]);
@@ -433,6 +444,11 @@ export default function CreateStudio() {
           <button type="button" className="cr-chip" onClick={() => openIngredients()} title="Choose ingredients and pictures the model should work from">
             <Layers size={14} /> Ingredients{refs.length > 0 ? ` (${refs.length})` : ""}
           </button>
+          {soulVersion && (
+            <button type="button" className={`cr-chip ${soul ? "is-on" : ""}`} aria-haspopup="dialog" title="A character trained from your own pictures" onClick={() => setSoulOpen(true)}>
+              <ScanFace size={14} /> Soul ID{soul ? `: ${soul.name}` : ""}
+            </button>
+          )}
           <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas"
             onClick={async () => {
               // With a prompt typed, it becomes a new canvas (a text node feeding an image generator) and opens; otherwise the canvas library opens.
@@ -473,6 +489,7 @@ export default function CreateStudio() {
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
+      {soulOpen && soulVersion && <SoulIdDialog version={soulVersion} selected={soul?.id ?? null} strength={soulStrength} onPick={pickSoul} onStrength={setSoulStrength} onClose={() => setSoulOpen(false)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
       {expanded && (
         <div className="cr-full" style={vvh ? { height: vvh, bottom: "auto" } : undefined} role="dialog" aria-label="Write your prompt">

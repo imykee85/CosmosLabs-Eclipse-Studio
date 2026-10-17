@@ -84,3 +84,14 @@
 .ad-err { color: var(--a-danger); font-size: 14px; }
 .st-tabs button { display: inline-flex; align-items: center; gap: 8px; } .st-tabs .st-soon { font-size: 9px; padding: 1px 6px; }
 .st-upgrade { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+/* API keys */
+.st-keyform { display: flex; gap: 10px; margin-bottom: 14px; } .st-keyform .st-input { height: 44px; border-radius: 999px; }
+.st-fresh { display: grid; gap: 8px; margin: 0 0 16px; padding: 14px; border: 1px solid #c00707; border-radius: 18px; }
+.st-fresh b { font-size: 14px; font-weight: 600; }
+.st-keylist { display: grid; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+.st-keylist li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-input); color: var(--a-fg2); }
+.st-keylist b { display: block; color: var(--a-fg); font-size: 15px; font-weight: 600; } .st-keylist small { color: var(--a-muted2); font-size: 12.5px; }
+.st-iconbtn { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--a-line3); border-radius: 50%; background: transparent; color: var(--a-fg2); cursor: pointer; }
+.st-danger { border-color: #c00707; color: #e5484d; padding: 6px 14px; }
+.st-spin { animation: st-spin 1s linear infinite; } @keyframes st-spin { to { transform: rotate(360deg); } }
+@media (max-width: 600px) { .st-keyform { flex-direction: column; } }

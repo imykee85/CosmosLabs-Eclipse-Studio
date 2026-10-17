@@ -85,14 +85,14 @@ export const higgsfield: ImageProvider = {
   },
 };
 
-export type GenerateInput = { model: ImageModel; prompt: string; aspectRatio?: string; resolution?: string; references?: string[]; seed?: number };
+export type GenerateInput = { model: ImageModel; prompt: string; aspectRatio?: string; resolution?: string; references?: string[]; seed?: number; extra?: Record<string, unknown> }; // extra: checked model-specific fields (a Soul ID)
 
 // Starts a render on the model's own endpoint and returns at once; never substitutes another model. The render keeps
 // running at Higgsfield whether or not anyone is watching, and is picked up later with higgsfield.status(statusUrl).
 export async function startGeneration(input: GenerateInput, provider: ImageProvider = higgsfield): Promise<SubmitResult> {
   const { model, prompt, aspectRatio } = input;
   const resolution = input.resolution ?? model.defaultResolution;
-  const body = { ...model.extraBody, prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}), ...referenceBody(model, input.references ?? []), ...(input.seed != null && model.seed.supported ? { seed: input.seed } : {}) };
+  const body = { ...model.extraBody, prompt, ...(resolution ? { resolution } : {}), ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}), ...referenceBody(model, input.references ?? []), ...(input.seed != null && model.seed.supported ? { seed: input.seed } : {}), ...(input.extra ?? {}) };
   return withSlot(() => provider.submit(endpointFor(model), body, crypto.randomUUID()));
 }
 

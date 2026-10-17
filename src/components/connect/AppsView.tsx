@@ -183,7 +183,7 @@ export default function AppsView() {
             <h2>Connect {target.name}</h2>
             {spec ? (
               <>
-                <p>{spec.help} We send a test message first, and keep the credential encrypted.</p>
+                <p>{spec.help} {spec.verifyOnly ? "We check the key with the service first (nothing is posted)" : "We send a test message first"}, and keep the credential encrypted.</p>
                 {spec.fields.map((f) => (
                   <label key={f.key} className="cn-field">{f.label}
                     <input type={f.secret ? "password" : "text"} autoComplete="off" value={values[f.key] ?? ""} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })} placeholder={f.hint} />
@@ -194,7 +194,7 @@ export default function AppsView() {
             {error && <p className="cn-err" role="alert">{error}</p>}
             <div className="cn-actions">
               <button type="button" className="cn-btn" onClick={() => setTarget(null)}><X size={14} /> Cancel</button>
-              <button type="submit" className="cn-btn is-red" disabled={busy || (spec ? spec.fields.some((f) => !(values[f.key] ?? "").trim()) : false)}>{busy ? "Connecting…" : "Connect"}</button>
+              <button type="submit" className="cn-btn is-red" disabled={busy || (spec ? spec.fields.some((f) => !f.optional && !(values[f.key] ?? "").trim()) : false)}>{busy ? "Connecting…" : "Connect"}</button>
             </div>
           </form>
         </div>

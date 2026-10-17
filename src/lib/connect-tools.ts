@@ -1,14 +1,15 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { finalizeGeneration } from "@/lib/generation-jobs";
-import { checkFields, sendTo, SendError } from "@/lib/connector-send";
+import { checkFields, sendTo, SendError, verify, type Attachment } from "@/lib/connector-send";
 import { directConnectors } from "@/lib/connectors";
 import { enabledModels } from "@/lib/models";
 import { MEMORY_LIMIT, MEMORY_TEXT_MAX, MEMORY_TOPICS, isTopic } from "@/lib/memory";
 import { skills } from "@/lib/skills";
 import { runSessionTool, SESSION_TOOL_NAMES } from "@/lib/sandbox/core-session";
 import { startRender } from "@/lib/start-render";
-import { displayUrl, openImage } from "@/lib/storage";
+import { displayUrl, openImage, signedGetUrl, storageEnabled } from "@/lib/storage";
+import { fileNameFor } from "@/lib/generation-jobs";
 import { unseal } from "@/lib/secret-box";
 
 // The tools the Connect assistant can call. Each one runs as the signed-in user and goes through the same code as the buttons
@@ -146,7 +147,7 @@ export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
     input_schema: {
       type: "object",
       properties: {
-        app: { type: "string", description: "The app id, for example telegram or slack." },
+        app: { type: "string", description: "The app id from list_connected_apps, for example telegram, slack, discord, twilio, sendgrid, whatsapp-business, notion, linear, todoist, github or jira." },
         text: { type: "string" },
         generation_id: { type: "string", description: "A completed render to attach." },
       },
@@ -256,15 +257,25 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
         const app = str(args.app, 40);
         const link = await db.connectorLink.findUnique({ where: { userId_connector: { userId: ctx.userId, connector: app } } });
         if (!link || !directConnectors[app]) return { text: `${app} is not connected. Ask the user to connect it under Connectors.`, isError: true };
-        let imageUrl: string | undefined;
+        let image: Attachment | undefined;
         const genId = str(args.generation_id, 60);
         if (genId) {
           const g = await db.generation.findFirst({ where: { id: genId, userId: ctx.userId, deletedAt: null } });
           if (!g || g.status !== "completed") return { text: "That render is not finished yet (or does not exist). Check it with check_render first.", isError: true };
-          imageUrl = await displayUrl(g);
+          if (g.kind === "video") return { text: "Videos cannot be sent to apps yet; send a picture or a link instead.", isError: true };
+          image = { url: await displayUrl(g), type: g.contentType ?? "image/png", name: fileNameFor(g) };
+          // Apps that keep the picture get the file itself (Discord, email) or a 7-day link (pages, tasks, issues), never the 10-minute one.
+          if (app === "discord" || app === "sendgrid") {
+            const res = await openImage(g);
+            const buf = res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+            if (buf && buf.byteLength <= 8 * 1024 * 1024) image.bytes = buf;
+          }
+          if (directConnectors[app]?.verifyOnly) image.link7 = g.storageKey && storageEnabled ? await signedGetUrl(g.storageKey, 7 * 24 * 3600) : g.imageUrl;
         }
         const secrets = JSON.parse(unseal(link.secret)) as Record<string, unknown>;
-        const sent = await sendTo(app, checkFields(app, secrets), str(args.text, 3500), imageUrl);
+        const linkData = { ...checkFields(app, secrets), ...(typeof secrets.teamId === "string" ? { teamId: secrets.teamId } : {}) };
+        if (app === "linear" && !linkData.teamId) await verify(app, linkData);
+        const sent = await sendTo(app, linkData, str(args.text, 3500), image);
         return { text: JSON.stringify({ sent: true, to: sent }) };
       }
 

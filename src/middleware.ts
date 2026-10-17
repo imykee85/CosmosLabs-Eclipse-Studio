@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { detectLang } from "@/lib/i18n/geo";
 
-// The payment webhook and the scheduled jobs are called by services with no sign-in; each authenticates itself (signature, CRON_SECRET). Terms and privacy are public pages, and so are the files search engines and link previews fetch (robots, sitemap, share picture, icons): a new public route must be added here or a signed-out visitor is sent to sign-in.
-const isPublic = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/sso-callback(.*)", "/api/payments/webhook", "/api/locale", "/api/i18n/(.*)", "/api/cron/(.*)", "/terms", "/privacy", "/c/(.*)", "/p/(.*)", "/api/public/(.*)", "/robots.txt", "/sitemap.xml", "/opengraph-image(.*)", "/icon(.*)", "/apple-icon(.*)", "/manifest.webmanifest"]);
+// The payment webhook, the scheduled jobs and the public API / MCP endpoint are called with no browser sign-in; each authenticates itself (signature, CRON_SECRET, an API key). Terms and privacy are public pages, and so are the files search engines and link previews fetch (robots, sitemap, share picture, icons): a new public route must be added here or a signed-out visitor is sent to sign-in.
+const isPublic = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/sso-callback(.*)", "/api/payments/webhook", "/api/v1/(.*)", "/api/mcp", "/api/locale", "/api/i18n/(.*)", "/api/cron/(.*)", "/terms", "/privacy", "/c/(.*)", "/p/(.*)", "/api/public/(.*)", "/robots.txt", "/sitemap.xml", "/opengraph-image(.*)", "/icon(.*)", "/apple-icon(.*)", "/manifest.webmanifest"]);
 
 // First visit: remember the language for the visitor's country (Vercel's IP lookup header, else the browser's language) in a plain cookie, so the very first page can already be shown translated.
 // An existing cookie (set earlier, or by the person's own choice in the language menu) is never overwritten. Page requests only.
