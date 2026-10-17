@@ -16,8 +16,8 @@ export async function GET() {
   const on = audioCreditsOn();
   return NextResponse.json({
     models: audioModels().map((m) => ({
-      kind: kindOf(m),
-      options: { diarize: !!m.diarize, loop: !!m.loop, instrumental: !!m.instrumental, minSeconds: m.minSeconds ?? null, maxSeconds: m.kinds.includes("music") ? musicMaxSeconds(m) : m.maxSeconds ?? null, maxInputBytes: m.maxInputBytes ?? null, maxInputSeconds: m.maxInputSeconds ?? null, long: !!m.asyncAbove },
+      kind: kindOf(m), kinds: m.kinds,
+      options: { maxVariants: m.maxVariants ?? null, negativePrompt: !!m.negativePrompt, videoInput: !!m.videoInput, durationRequired: !!m.durationRequired, formats: m.formats ?? null, diarize: !!m.diarize, loop: !!m.loop, instrumental: !!m.instrumental, minSeconds: m.minSeconds ?? null, maxSeconds: m.kinds.includes("music") ? musicMaxSeconds(m) : m.maxSeconds ?? null, maxInputBytes: m.maxInputBytes ?? null, maxInputSeconds: m.maxInputSeconds ?? null, long: !!m.asyncAbove },
       id: m.id, label: m.label, provider: m.provider, providerLabel: PROVIDER_LABEL[m.provider], maxChars: m.maxChars, supports: m.supports, note: m.note ?? null,
       tags: m.supports.emotionTags ? m.tags ?? [] : [], voiceOptional: !!m.voiceOptional,
       ready: clerkEnabled && modelAvailable(m),

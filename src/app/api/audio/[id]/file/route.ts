@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fileNameOf, getAudioJob } from "@/lib/audio/jobs";
+import { fileNameOf, getAudioJob, variantsOf } from "@/lib/audio/jobs";
 import { audioUser } from "@/lib/audio/route-helpers";
 import { signedMediaUrl, storageEnabled } from "@/lib/storage";
 
@@ -11,7 +11,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if ("res" in u) return u.res;
   const j = await getAudioJob(u.userId, params.id);
   if (!j || j.status !== "completed" || !j.storageKey || !storageEnabled) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const download = new URL(req.url).searchParams.get("download") === "1";
-  const link = await signedMediaUrl(j.storageKey, { ttlSeconds: 120, contentType: j.contentType ?? "audio/mpeg", ...(download ? { download: fileNameOf(j) } : {}) });
+  const q = new URL(req.url).searchParams;
+  const download = q.get("download") === "1";
+  // ?variant=2 picks one of several alternatives (Mirelo); without it, the first.
+  const n = Number(q.get("variant"));
+  const v = Number.isInteger(n) && n >= 1 ? variantsOf(j)[n - 1] : undefined;
+  if (q.get("variant") && !v) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const link = await signedMediaUrl(v?.key ?? j.storageKey, { ttlSeconds: 120, contentType: v?.mime ?? j.contentType ?? "audio/mpeg", ...(download ? { download: fileNameOf({ ...j, contentType: v?.mime ?? j.contentType }, v ? n : undefined) } : {}) });
   return NextResponse.redirect(link, 302);
 }

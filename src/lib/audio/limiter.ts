@@ -35,7 +35,7 @@ export function limiterFor(provider: string): Limiter {
   let l = limiters.get(provider);
   if (!l) {
     const key = provider.toUpperCase().replace(/[^A-Z0-9]/g, "_");
-    l = new Limiter(num(`AUDIO_${key}_MAX_CONCURRENCY`, 2), num(`AUDIO_${key}_RPM`, 0));
+    l = new Limiter(num(`AUDIO_${key}_MAX_CONCURRENCY`, provider === "mirelo" ? 5 : 2), num(`AUDIO_${key}_RPM`, 0)); // Mirelo allows 5 jobs at once per key
     limiters.set(provider, l);
   }
   return l;

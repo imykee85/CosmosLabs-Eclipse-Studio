@@ -30,6 +30,7 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "MINIMAX_API_KEY", kind: "Secret", needed: "Voice Studio: MiniMax voices" },
   { name: "DASHSCOPE_API_KEY", kind: "Secret", needed: "Voice Studio: Qwen voices (Singapore/international key)" },
   { name: "BYTEPLUS_VOICE_API_KEY", kind: "Secret", needed: "Voice Studio: Seed Audio (Seed Speech console key, not ARK_API_KEY)" },
+  { name: "MIRELO_API_KEY", kind: "Secret", needed: "Voice Studio: Mirelo sound effects and Add sound to video" },
   { name: "CRON_SECRET", kind: "Secret", needed: "daily finishing job" },
   { name: "ADMIN_EMAILS", kind: "Config", needed: "these owner pages" },
   { name: "CREDITS_ENABLED", kind: "Config", needed: "charging for renders" },

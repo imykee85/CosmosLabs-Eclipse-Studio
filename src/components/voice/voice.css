@@ -1,6 +1,6 @@
 /* Voice Studio (prefix vc-): a stage with the voice in the middle, a strip of voices, a quiet list of takes and one console docked at the bottom.
    Colours only from the --a-* theme vars (light and dark) plus the Eclipse red. */
-.vc, .vc-sheet-back { --vc-red: #c00707; --vc-red2: #d90b0b; }
+.vc, .vc-sheet-back, .vc-as { --vc-red: #c00707; --vc-red2: #d90b0b; }
 .vc { display: flex; flex-direction: column; max-width: 760px; min-height: calc(100dvh - 180px); margin: 0 auto; }
 .vc-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
@@ -206,3 +206,24 @@
 .vc-tr-lines b { display: block; margin-bottom: 2px; color: var(--a-fg); font-size: 12px; font-weight: 600; }
 .vc-tr-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .vc-tr-actions .vc-pill { height: 32px; padding: 0 12px; }
+
+/* Sound for video and alternatives (Mirelo): the variant player and the Add sound dialog */
+.vc-st { grid-column: 1 / -1; display: grid; gap: 10px; margin-top: 2px; padding: 12px 14px; border: 1px solid var(--a-line); border-radius: 18px; background: var(--a-input); }
+.vc-st-video { display: block; width: 100%; max-height: 320px; border-radius: 12px; background: #000; object-fit: contain; }
+.vc-st-audio { width: 100%; }
+.vc-st-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.vc-st-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.vc-st .vc-pill { height: 32px; text-decoration: none; }
+.vc-pill.is-on { border-color: var(--vc-red); background: var(--vc-red); color: #fff; }
+.vc-as { position: relative; display: grid; gap: 14px; width: min(560px, 100%); max-height: calc(100dvh - 40px); overflow: auto; padding: 22px; border: 1px solid var(--a-line2); border-radius: 24px; background: var(--a-bg); color: var(--a-fg); }
+.vc-as h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 600; }
+.vc-as-field { display: grid; gap: 6px; font-size: 13px; color: var(--a-muted2); }
+.vc-as-field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 16px; resize: vertical; }
+.vc-as-field small { justify-self: end; font-size: 12px; }
+.vc-as-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.vc-as-go { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border: 0; border-radius: 999px; background: var(--vc-red); color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.vc-as-go:disabled { opacity: .5; cursor: not-allowed; }
+.vc-as-go .vc-cost { position: static; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 0; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-size: 12px; }
+.vc-as-wait { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--a-fg2); }
+.vc-as-note { margin: 0; font-size: 13px; color: var(--a-muted2); }
+.vc-leaveout { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 12px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 16px; }

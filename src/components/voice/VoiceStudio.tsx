@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowUp, Award, Coins, Download, FileText, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
 import SoonTag from "../SoonTag";
 import Stage from "./Stage";
+import SoundTake from "./SoundTake";
 import TranscriptView from "./Transcript";
 import { EffectsConsole, ModeTabs, MusicConsole, TranscribeConsole, type Mode } from "./Modes";
 import VoiceCreator from "./VoiceCreator";
@@ -23,7 +24,7 @@ const MODEL_KEY = "eclipse-voice-model";
 const VOICE_KEY = "eclipse-voice-voice";
 const DRAFT_KEY = "eclipse-draft-voice"; // cleared at sign-out with the other drafts
 const MODE_KEY = "eclipse-voice-mode";
-const KIND_LABEL = { tts: "Voice", stt: "Transcript", sfx: "Sound effect", music: "Music" } as const;
+const KIND_LABEL = { tts: "Voice", stt: "Transcript", sfx: "Sound effect", music: "Music", vsfx: "Sound for video" } as const;
 const MODE_HERO: Record<Exclude<Mode, "speak">, [string, string]> = { transcribe: ["Transcribe", "Turn a recording into text with times and speakers"], effects: ["Sound effects", "Describe a sound and get it"], music: ["Music", "Describe a track and get it"] };
 const SPEEDS = [0.7, 0.8, 0.9, 1, 1.1, 1.2];
 
@@ -255,6 +256,7 @@ export default function VoiceStudio() {
                   {t.status !== "pending" && <button type="button" className="vc-icon" aria-label="Delete" onClick={() => void remove(t.id)}><Trash2 size={16} /></button>}
                 </span>
                 {t.status === "completed" && t.kind === "stt" && t.transcript && <TranscriptView t={t.transcript} name={t.text} />}
+                {t.status === "completed" && (t.kind === "vsfx" || (t.variants?.length ?? 0) > 1) && <SoundTake item={t} />}
               </li>
             ))}
           </ul>

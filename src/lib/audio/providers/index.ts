@@ -4,10 +4,11 @@ import { elevenlabs } from "./elevenlabs";
 import { fake } from "./fake";
 import { fish } from "./fish";
 import { minimax } from "./minimax";
+import { mirelo } from "./mirelo";
 import { qwen } from "./qwen";
 import { seed } from "./seed";
 
-const PROVIDERS: Record<AudioProviderId, AudioProvider> = { elevenlabs, fish, minimax, qwen, seed, fake };
+const PROVIDERS: Record<AudioProviderId, AudioProvider> = { elevenlabs, fish, minimax, qwen, seed, mirelo, fake };
 
 export const providerFor = (m: AudioModel): AudioProvider => PROVIDERS[m.provider];
 export const providerById = (id: AudioProviderId): AudioProvider => PROVIDERS[id];
@@ -19,6 +20,7 @@ const ENV: Record<Exclude<AudioProviderId, "fake">, { key: string; base: string;
   fish: { key: "FISH_API_KEY", base: "FISH_BASE_URL", def: "https://api.fish.audio" },
   minimax: { key: "MINIMAX_API_KEY", base: "MINIMAX_BASE_URL", def: "https://api.minimax.io" },
   qwen: { key: "DASHSCOPE_API_KEY", base: "DASHSCOPE_BASE_URL", def: "https://dashscope-intl.aliyuncs.com" },
+  mirelo: { key: "MIRELO_API_KEY", base: "MIRELO_BASE_URL", def: "https://api.mirelo.ai" },
   seed: { key: "BYTEPLUS_VOICE_API_KEY", base: "BYTEPLUS_VOICE_BASE_URL", def: "https://voice.ap-southeast-1.bytepluses.com/api/v3" },
 };
 export const keyNameFor = (p: AudioProviderId) => (p === "fake" ? "AUDIO_FAKE_URL" : ENV[p].key);

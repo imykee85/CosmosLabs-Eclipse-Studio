@@ -12,3 +12,6 @@ Add each one in Vercel (Project Settings, Environment Variables) for **Productio
 | `WHOP_PLAN_SCALE` | Config value | Whop plan id for Scale | Scale checkout |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Config value | Your contact address | Contact line on Terms and Privacy |
 | `NEXT_PUBLIC_SITE_URL` | Config value | Your site address (the final domain once you have it) | Links and the sharing image |
+| `MIRELO_API_KEY` | Secret | Mirelo Studio, API Keys (starts with `sk-`, shown once); buy credits there too | Mirelo sound effects and "Add sound" on videos |
+
+Optional Config values for Mirelo (defaults are in the code): `MIRELO_CREDIT_USD` (USD per Mirelo credit, default 0.001; set it from the price you see in Mirelo Studio), `MIRELO_PRICE_PER_SECOND` (replaces the registry price), `MIRELO_BASE_URL`, `AUDIO_MIRELO_MAX_CONCURRENCY`.

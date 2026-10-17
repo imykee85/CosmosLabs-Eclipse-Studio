@@ -103,3 +103,25 @@ export const forSample = (map: (status: number, body: string) => ProviderError) 
   const e = map(status, body);
   return !e.retryable && !e.alert && (e.code === "invalid_request" || /^http_4\d\d$/.test(e.code) || e.code === "not_found") ? { ...e, userMessage: SAMPLE_HINT } : e;
 };
+
+// Mirelo: the error envelope is {error: {code, message, param, retryable, request_id}} (docs/audio-providers/mirelo.md section 2.7). Branch on `code`, then on the HTTP status.
+// 401 and 402 are for the owner (key, credits); an expired or missing job is a plain "try again".
+export function mapMireloError(status: number, body: string): ProviderError {
+  const j = jsonOf(body);
+  const e = (j?.error && typeof j.error === "object" ? j.error : {}) as { code?: unknown; retryable?: unknown };
+  const code = typeof e.code === "string" ? e.code : "";
+  const pc = code || status;
+  const BUSY_TRY = "The sound service is busy. Please try again in a moment.";
+  if (code === "insufficient_credits" || code === "max_credits_exceeded" || status === 402) return { retryable: false, alert: true, code: "insufficient_credits", providerCode: pc, userMessage: "Sound generation is unavailable right now." };
+  if (status === 401 || status === 403) return { retryable: false, alert: true, code: "auth", providerCode: pc, userMessage: "Sound generation is unavailable right now." };
+  if (status === 429 || code === "asset_not_ready" || code === "sync_too_long") return { retryable: true, code: code === "asset_not_ready" ? "asset_not_ready" : "rate_limited", providerCode: pc, userMessage: BUSY_TRY };
+  if (status >= 500) return { retryable: true, code: "provider_unavailable", providerCode: pc, userMessage: GENERIC_SOUND };
+  if (code === "invalid_video") return { retryable: false, code, providerCode: pc, userMessage: "That video could not be read. Try another clip." };
+  if (code === "capability_unsupported") return { retryable: false, code, providerCode: pc, userMessage: "That setting is not supported by this sound model. Try different settings." };
+  if (code === "idempotency_conflict" || status === 409) return { retryable: false, code: "idempotency_conflict", providerCode: pc, userMessage: GENERIC_SOUND };
+  if (code === "not_found" || status === 404) return { retryable: false, code: "not_found", providerCode: pc, userMessage: "That sound is no longer available. Please make it again." };
+  if (code === "result_unreadable") return { retryable: true, code, providerCode: pc, userMessage: GENERIC_SOUND };
+  if (code === "invalid_request" || status === 400 || status === 422) return { retryable: false, code: code || "invalid_request", providerCode: pc, userMessage: "Those settings were not accepted. Try different settings." };
+  return { retryable: e.retryable === true, code: code || `http_${status}`, providerCode: pc, userMessage: GENERIC_SOUND };
+}
+const GENERIC_SOUND = "The sound could not be made right now. Please try again in a moment.";

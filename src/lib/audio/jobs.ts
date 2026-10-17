@@ -37,16 +37,25 @@ export type AudioItem = {
   id: string; kind: AudioKind; status: "pending" | "completed" | "failed"; error: string | null; text: string; chars: number; model: string; modelLabel: string;
   voiceId: string | null; voiceName: string | null; createdAt: string; durationMs: number | null; contentType: string | null; sizeBytes: number | null; url: string | null; fileName: string;
   transcript: Transcript | null;
+  variants: { url: string | null; durationMs: number | null; contentType: string | null; fileName: string }[] | null; // alternatives (Mirelo); null for a single file
+  videoUrl: string | null;                                                                                      // the video a "sound for video" take belongs to
 };
 
-const EXT: Record<string, string> = { "audio/mpeg": "mp3", "audio/wav": "wav" };
-export const fileNameOf = (j: Pick<AudioJob, "id" | "model" | "createdAt" | "contentType">) => {
+const EXT: Record<string, string> = { "audio/mpeg": "mp3", "audio/wav": "wav", "audio/flac": "flac" };
+export const fileNameOf = (j: Pick<AudioJob, "id" | "model" | "createdAt" | "contentType">, variant?: number) => {
   const t = j.createdAt.toISOString().replace(/[-:T]/g, "").slice(0, 14);
-  return `${j.model.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${t.slice(0, 8)}-${t.slice(8)}-${j.id.slice(-6)}.${EXT[j.contentType ?? ""] ?? "mp3"}`;
+  return `${j.model.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${t.slice(0, 8)}-${t.slice(8)}-${j.id.slice(-6)}${variant ? `-v${variant}` : ""}.${EXT[j.contentType ?? ""] ?? "mp3"}`;
+};
+
+// A job that made several alternatives keeps them in `result.variants` (storage keys); variant 1 is also the job's own storageKey.
+type StoredVariant = { key: string; mime: string; sizeBytes: number; durationMs: number | null };
+export const variantsOf = (j: Pick<AudioJob, "result">): StoredVariant[] => {
+  const v = (asObj(j.result).variants as unknown);
+  return Array.isArray(v) ? (v as StoredVariant[]).filter((x) => x && typeof x.key === "string") : [];
 };
 
 const asObj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
-const kindOfJob = (j: Pick<AudioJob, "kind">): AudioKind => (j.kind === "stt" || j.kind === "sfx" || j.kind === "music" ? j.kind : "tts");
+const kindOfJob = (j: Pick<AudioJob, "kind">): AudioKind => (j.kind === "stt" || j.kind === "sfx" || j.kind === "music" || j.kind === "vsfx" ? j.kind : "tts");
 
 // A row for the browser: never the raw record (no storage key, provider usage or hashes).
 export async function toAudioItem(j: AudioJob): Promise<AudioItem> {
@@ -55,16 +64,28 @@ export async function toAudioItem(j: AudioJob): Promise<AudioItem> {
     try { url = await signedMediaUrl(j.storageKey, { ttlSeconds: SIGNED_TTL_S, contentType: j.contentType ?? "audio/mpeg" }); } catch (err) { console.error("signing an audio link failed", j.id, err); }
   }
   const t = asObj(j.result).transcript as Transcript | undefined;
+  let variants: AudioItem["variants"] = null;
+  const stored = variantsOf(j);
+  if (j.status === "completed" && stored.length > 1 && storageEnabled) {
+    variants = await Promise.all(stored.map(async (v, i) => ({ url: await signedMediaUrl(v.key, { ttlSeconds: SIGNED_TTL_S, contentType: v.mime }).catch(() => null), durationMs: v.durationMs, contentType: v.mime, fileName: fileNameOf({ ...j, contentType: v.mime }, i + 1) })));
+  }
+  let videoUrl: string | null = null;
+  const videoId = asObj(j.params).videoId;
+  if (j.kind === "vsfx" && typeof videoId === "string" && storageEnabled) {
+    const g = await db.generation.findFirst({ where: { id: videoId, userId: j.userId, deletedAt: null }, select: { storageKey: true, contentType: true } }).catch(() => null);
+    if (g?.storageKey) videoUrl = await signedMediaUrl(g.storageKey, { ttlSeconds: SIGNED_TTL_S, contentType: g.contentType ?? "video/mp4" }).catch(() => null);
+  }
   return {
     id: j.id, kind: kindOfJob(j), status: j.status === "completed" ? "completed" : j.status === "failed" ? "failed" : "pending", error: j.error, text: j.text, chars: j.chars, model: j.model,
     modelLabel: findAudioModel(j.model)?.label ?? j.model, voiceId: j.voiceId, voiceName: j.voiceName, createdAt: j.createdAt.toISOString(), durationMs: j.durationMs, contentType: j.contentType, sizeBytes: j.sizeBytes, url, fileName: fileNameOf(j),
-    transcript: t && typeof t.text === "string" ? t : null,
+    transcript: t && typeof t.text === "string" ? t : null, variants, videoUrl,
   };
 }
 
 export type StartAudioInput = {
   userId: string; kind?: unknown; text?: unknown; model: unknown; voiceId?: unknown; voiceName?: unknown; speed?: unknown; projectId?: unknown;
   durationSec?: unknown; loop?: unknown; instrumental?: unknown; inputKey?: unknown; inputName?: unknown; diarize?: unknown; language?: unknown;
+  videoId?: unknown; variants?: unknown; negativePrompt?: unknown; preserveSpeech?: unknown; format?: unknown; // Mirelo: sound for a video, several alternatives
 };
 export type StartAudioResult = { ok: true; item: AudioItem } | { ok: false; status: number; error: string };
 
@@ -73,11 +94,53 @@ export const inputKeyPattern = (userId: string) => new RegExp(`^audio/${userId.r
 
 const cleanName = (v: unknown, fallback: string) => (typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) : "") || fallback;
 
-export async function startAudioJob(input: StartAudioInput): Promise<StartAudioResult> {
+// ---- Mirelo: sound made for a video, and sound effects with several alternatives (docs/audio-providers/mirelo.md). Every Mirelo job runs on its side and is followed by polling.
+// Mirelo bills in ITS credits: USD per credit is a Config value (MIRELO_CREDIT_USD). The default $0.001 follows the partner listing ($0.015 a second at 15 credits a second) and is PROVISIONAL.
+const mireloCreditUsd = () => (Number(process.env.MIRELO_CREDIT_USD) > 0 ? Number(process.env.MIRELO_CREDIT_USD) : 0.001);
+const OUT_FORMAT = { wav: "wav", mp3: "mp3_192" } as const;
+const VSFX_LABEL = "Sound for your video";
+
+async function ownedVideo(userId: string, id: unknown): Promise<{ id: string; storageKey: string; durationSec: number | null; contentType: string | null } | null> {
+  if (typeof id !== "string" || !id || id.length > 64) return null;
+  const g = await db.generation.findFirst({ where: { id, userId, kind: "video", status: "completed", deletedAt: null, storageKey: { not: null } }, select: { id: true, storageKey: true, durationSec: true, contentType: true } });
+  return g?.storageKey ? { id: g.id, storageKey: g.storageKey, durationSec: g.durationSec, contentType: g.contentType } : null;
+}
+
+// The request Mirelo receives. For a video the signed link is made NOW (an hour), never stored.
+async function mireloRequest(userId: string, kind: AudioKind, model: AudioModel, text: string, params: Record<string, unknown>, idempotencyKey?: string): Promise<AudioRequest> {
+  const req: AudioRequest = {
+    kind, modelId: model.id, text: kind === "vsfx" ? String(params.prompt ?? "") : text, variants: typeof params.variants === "number" ? params.variants : 1,
+    outputFormat: OUT_FORMAT[(params.format === "mp3" ? "mp3" : "wav")], idempotencyKey,
+    durationSec: typeof params.durationMs === "number" ? params.durationMs / 1000 : typeof params.durationSec === "number" ? params.durationSec : undefined,
+    ...(typeof params.negativePrompt === "string" ? { negativePrompt: params.negativePrompt } : {}), ...(kind === "vsfx" ? { preserveSpeech: params.preserveSpeech !== false } : {}),
+  };
+  if (kind === "vsfx") {
+    const video = await ownedVideo(userId, params.videoId);
+    if (!video) throw new ProviderFailure({ retryable: false, code: "video_unavailable", userMessage: "That video is no longer available." });
+    req.videoUrl = await signedMediaUrl(video.storageKey, { ttlSeconds: 3600, contentType: video.contentType ?? "video/mp4" });
+  }
+  return req;
+}
+
+// The provider's own quote, in ITS credits. null = it could not say (the registry price is used); { fail } = the owner must act, so the person is told it is not set up.
+async function quoteFor(model: AudioModel, ctx: NonNullable<ReturnType<typeof ctxFor>>, req: AudioRequest): Promise<{ credits: number | null } | { fail: string }> {
+  const p = providerFor(model);
+  if (!p.preflight) return { credits: null };
+  try { const q = await withRetry(() => p.preflight!(req, ctx), { tries: 2 }); return { credits: q.credits }; }
+  catch (err) {
+    if (err instanceof ProviderFailure && err.error.alert) { console.error("AUDIO ALERT: provider needs the owner", model.provider, err.error.code); return { fail: "This is not set up yet." }; }
+    console.warn("audio quote failed; using the registry price", err instanceof ProviderFailure ? err.error.code : err);
+    return { credits: null };
+  }
+}
+
+export async function startAudioJob(input: StartAudioInput): Promise<StartAudioResult>;
+export async function startAudioJob(input: StartAudioInput, opts: { dryRun: true }): Promise<{ ok: true; quote: number | null } | { ok: false; status: number; error: string }>;
+export async function startAudioJob(input: StartAudioInput, opts?: { dryRun?: boolean }): Promise<StartAudioResult | { ok: true; quote: number | null }> {
   const { userId } = input;
   const cfg = audioSettings();
   if (cfg.paused) return { ok: false, status: 503, error: "Audio generation is paused right now. Please try again later." };
-  const kind: AudioKind = input.kind === "stt" || input.kind === "sfx" || input.kind === "music" ? input.kind : "tts";
+  const kind: AudioKind = input.kind === "stt" || input.kind === "sfx" || input.kind === "music" || input.kind === "vsfx" ? input.kind : "tts";
   const model = findAudioModel(input.model);
   if (!model || !model.kinds.includes(kind)) return { ok: false, status: 400, error: "That model is not available." };
   const ctx = ctxFor(model);
@@ -102,6 +165,18 @@ export async function startAudioJob(input: StartAudioInput): Promise<StartAudioR
       if (!model.supports.speed) return { ok: false, status: 400, error: `${model.label} has no speed control.` };
       params.speed = Math.round(input.speed * 100) / 100;
     }
+  } else if (kind === "vsfx") {
+    if (!model.videoInput) return { ok: false, status: 400, error: `${model.label} cannot add sound to a video.` };
+    const video = await ownedVideo(userId, input.videoId);
+    if (!video) return { ok: false, status: 404, error: "Choose one of your finished videos." };
+    const hi = model.maxSeconds ?? 600;
+    if (video.durationSec != null) {
+      if (video.durationSec > hi) return { ok: false, status: 400, error: `${model.label} takes videos up to ${Math.round(hi / 60)} minutes.` };
+      durationSec = Math.max(1, Math.round(video.durationSec * 10) / 10);
+      params.durationMs = Math.round(durationSec * 1000);
+    }
+    params.videoId = video.id; params.prompt = text;
+    if (!text) text = VSFX_LABEL;
   } else if (kind === "sfx" || kind === "music") {
     if (!text) return { ok: false, status: 400, error: kind === "sfx" ? "Describe the sound first." : "Describe the music first." };
     const lo = model.minSeconds ?? 0.5, hi = kind === "music" ? musicMaxSeconds(model) : model.maxSeconds ?? 30;
@@ -109,6 +184,7 @@ export async function startAudioJob(input: StartAudioInput): Promise<StartAudioR
       if (typeof input.durationSec !== "number" || !Number.isFinite(input.durationSec) || input.durationSec < lo || input.durationSec > hi) return { ok: false, status: 400, error: `Length must be between ${lo} and ${hi} seconds.` };
       durationSec = Math.round(input.durationSec * 10) / 10;
     } else if (kind === "music") durationSec = 60;
+    else if (model.durationRequired) durationSec = 5;
     if (durationSec != null) params.durationSec = durationSec;
     if (kind === "sfx" && input.loop === true) { if (!model.loop) return { ok: false, status: 400, error: `${model.label} cannot make loops.` }; params.loop = true; }
     if (kind === "music" && input.instrumental === true) { if (!model.instrumental) return { ok: false, status: 400, error: `${model.label} cannot leave vocals out.` }; params.instrumental = true; }
@@ -127,6 +203,22 @@ export async function startAudioJob(input: StartAudioInput): Promise<StartAudioR
     if (input.diarize === true) { if (!model.diarize) return { ok: false, status: 400, error: `${model.label} cannot tell speakers apart.` }; params.diarize = true; }
     if (typeof input.language === "string" && /^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?$/.test(input.language.trim())) params.language = input.language.trim();
   }
+  if (model.maxVariants && (kind === "sfx" || kind === "vsfx")) {
+    const v = input.variants == null ? 1 : Number(input.variants);
+    if (!Number.isInteger(v) || v < 1 || v > model.maxVariants) return { ok: false, status: 400, error: `Choose 1 to ${model.maxVariants} variants.` };
+    params.variants = v;
+    const fmt = input.format == null ? model.formats?.[0] : input.format;
+    if (typeof fmt !== "string" || !model.formats?.includes(fmt)) return { ok: false, status: 400, error: "That file format is not offered." };
+    params.format = fmt;
+    if (kind === "sfx" && typeof input.negativePrompt === "string" && input.negativePrompt.trim()) {
+      if (!model.negativePrompt) return { ok: false, status: 400, error: `${model.label} has no "leave out" field.` };
+      if (input.negativePrompt.trim().length > 1000) return { ok: false, status: 400, error: "What to leave out can be up to 1,000 characters." };
+      const n = checkPrompt(input.negativePrompt);
+      if (!n.ok) return { ok: false, status: 422, error: n.reason };
+      params.negativePrompt = input.negativePrompt.trim();
+    }
+    if (kind === "vsfx") params.preserveSpeech = input.preserveSpeech !== false;
+  }
   if (kind !== "stt") {
     if (text.length > model.maxChars) return { ok: false, status: 400, error: `${model.label} takes up to ${model.maxChars.toLocaleString("en-US")} characters (you wrote ${text.length.toLocaleString("en-US")}).` };
     const m = checkPrompt(text);
@@ -134,7 +226,16 @@ export async function startAudioJob(input: StartAudioInput): Promise<StartAudioR
   }
   const projectId = typeof input.projectId === "string" && input.projectId.length <= 64 ? input.projectId : null;
 
-  const cost = audioCreditsOn() ? creditsFor(usdFor(model, holdUnitsFor(model, { text, durationSec, inputBytes }))) : null;
+  let cost = audioCreditsOn() ? creditsFor(usdFor(model, holdUnitsFor(model, { text, durationSec, inputBytes, variants: typeof params.variants === "number" ? params.variants : undefined }))) : null;
+  // Mirelo: ask the provider for its own price first (no charge); it also tells us early when a video cannot be used.
+  if (cost != null && model.asyncAlways) {
+    try {
+      const q = await quoteFor(model, ctx, await mireloRequest(userId, kind, model, text, params));
+      if ("fail" in q) return { ok: false, status: 503, error: q.fail };
+      if (q.credits != null && q.credits > 0) cost = creditsFor(q.credits * mireloCreditUsd());
+    } catch (err) { if (err instanceof ProviderFailure) return { ok: false, status: 400, error: err.error.userMessage }; throw err; }
+  }
+  if (opts?.dryRun) return { ok: true, quote: cost };
   const release = async () => { if (typeof params.inputKey === "string") await deleteObject(params.inputKey).catch(() => {}); };
   const running = await db.audioJob.count({ where: { userId, status: "pending" } });
   if (running >= cfg.maxRunning) { await release(); return { ok: false, status: 429, error: `You already have ${running} jobs running. Wait for one to finish.` }; }
@@ -160,26 +261,46 @@ async function failJob(id: string, error: string, code?: string, base?: object):
   if (row?.status === "pending" && typeof inputKey === "string") await deleteObject(inputKey).catch(() => {});
 }
 
-type Produced = { audio?: Uint8Array; mime: string; durationMs?: number | null; units: number; usage: Record<string, unknown>; transcript?: Transcript };
+type Produced = { audio?: Uint8Array; mime: string; durationMs?: number | null; units: number; usage: Record<string, unknown>; transcript?: Transcript; usd?: number; variants?: { audio: Uint8Array; mime: string; durationMs?: number | null }[] };
 
 // Settles one finished job: the file is stored, the row completed and the price charged in ONE short transaction under the person's credit lock (the one spendCredits takes):
 // a finished job is always either charged exactly once or not finished, and a row that was failed meanwhile (stale) is neither kept nor charged.
 async function completeJob(job: AudioJob, model: AudioModel, p: Produced): Promise<void> {
   const id = job.id;
   let key: string | null = null;
-  if (p.audio) {
+  const savedKeys: string[] = [];
+  let stored: StoredVariant[] | null = null;
+  if (p.variants?.length) {
+    // Several alternatives: audio/<user>/<job>/variant-<n>.<ext>; the first is also the job's own file.
+    try {
+      stored = [];
+      for (let n = 0; n < p.variants.length; n++) {
+        const v = p.variants[n];
+        const k = `audio/${job.userId}/${job.id}/variant-${n + 1}.${EXT[v.mime] ?? "mp3"}`;
+        await putObject(k, v.audio, v.mime);
+        savedKeys.push(k);
+        stored.push({ key: k, mime: v.mime, sizeBytes: v.audio.length, durationMs: v.durationMs ?? null });
+      }
+      key = savedKeys[0];
+    } catch (err) {
+      console.error("saving audio failed", id, err);
+      for (const k of savedKeys) await deleteObject(k).catch(() => {});
+      return failJob(id, "It was made but could not be saved. Nothing was charged.");
+    }
+  } else if (p.audio) {
     key = `audio/${job.userId}/${job.id}.${EXT[p.mime] ?? "mp3"}`;
     try { await putObject(key, p.audio, p.mime); }
     catch (err) { console.error("saving audio failed", id, err); return failJob(id, "It was made but could not be saved. Nothing was charged."); }
+    savedKeys.push(key);
   }
-  const usd = usdFor(model, p.units);
+  const usd = p.usd ?? usdFor(model, p.units);
   const credits = audioCreditsOn() && job.creditsHeld != null ? creditsFor(usd) : null;
   const data = {
-    status: "completed", storageKey: key, contentType: key ? p.mime : null, sizeBytes: p.audio?.length ?? null, durationMs: p.durationMs ?? null, costUsd: usd, finishedAt: new Date(), lockedAt: null,
+    status: "completed", storageKey: key, contentType: key ? p.mime : null, sizeBytes: stored?.[0]?.sizeBytes ?? p.audio?.length ?? null, durationMs: p.durationMs ?? null, costUsd: usd, finishedAt: new Date(), lockedAt: null,
     usage: { chars: job.chars, units: p.units, ...p.usage } as Prisma.InputJsonValue,
-    ...(p.transcript ? { result: { transcript: p.transcript } as unknown as Prisma.InputJsonValue } : {}),
+    ...(p.transcript ? { result: { transcript: p.transcript } as unknown as Prisma.InputJsonValue } : stored ? { result: { variants: stored } as unknown as Prisma.InputJsonValue } : {}),
   };
-  const what = job.kind === "stt" ? `${model.label} transcript, ${Math.round(p.units)} s` : job.kind === "sfx" || job.kind === "music" ? `${model.label}, ${Math.round(p.units)} s` : `${model.label} voice, ${model.priceUnit === "second" ? `${Math.round(p.units)} s` : `${job.chars} characters`}`;
+  const what = job.kind === "stt" ? `${model.label} transcript, ${Math.round(p.units)} s` : job.kind === "sfx" || job.kind === "music" || job.kind === "vsfx" ? `${model.label}, ${Math.round(p.units)} s` : `${model.label} voice, ${model.priceUnit === "second" ? `${Math.round(p.units)} s` : `${job.chars} characters`}`;
   let completed = false;
   try {
     completed = await db.$transaction(async (tx) => {
@@ -199,10 +320,10 @@ async function completeJob(job: AudioJob, model: AudioModel, p: Produced): Promi
     });
   } catch (err) {
     console.error("completing an audio job failed", id, err);
-    if (key) await deleteObject(key).catch(() => {});
+    for (const k of savedKeys) await deleteObject(k).catch(() => {});
     return failJob(id, "It was made but could not be saved. Nothing was charged.");
   }
-  if (!completed && key) await deleteObject(key).catch(() => {}); // the row was failed (stale) meanwhile: do not keep the file
+  if (!completed) for (const k of savedKeys) await deleteObject(k).catch(() => {}); // the row was failed (stale) meanwhile: do not keep the files
   const inputKey = asObj(job.params).inputKey;
   if (typeof inputKey === "string") await deleteObject(inputKey).catch(() => {}); // the recording is not kept once it is transcribed
 }
@@ -239,6 +360,18 @@ export async function runAudioJob(id: string): Promise<void> {
   };
 
   try {
+    // Mirelo: start the job on its side (idempotent: the same key and body on a retry returns the original job), remember where to follow it, and look at it once now
+    // (a short sound is often finished inside the 25 seconds the create waits).
+    if (model.asyncAlways && provider.start && provider.poll && (kind === "sfx" || kind === "vsfx")) {
+      const req = await mireloRequest(job.userId, kind, model, job.text, params, job.id);
+      const release = await limiterFor(model.provider).acquire();
+      let started: { taskId: string; pollUrl?: string };
+      try { started = await withRetry(() => provider.start!(req, ctx)); } finally { release(); }
+      await db.audioJob.update({ where: { id }, data: { params: { ...params, task: { id: started.taskId, ...(started.pollUrl ? { pollUrl: started.pollUrl } : {}) } } as Prisma.InputJsonValue } });
+      const fresh = await db.audioJob.findUnique({ where: { id } });
+      if (fresh) await advanceAsyncJob(fresh);
+      return;
+    }
     if (kind === "stt") {
       const key = String(params.inputKey);
       const name = String(params.inputName ?? "recording");
@@ -303,9 +436,18 @@ async function advanceAsyncJob(job: AudioJob): Promise<void> {
   try {
     if (!model || !ctx) return void (await failJob(job.id, "This model is not available right now. Nothing was charged."));
     const provider = providerFor(model);
-    const r = await provider.poll!(task.id, ctx);
+    const r = await provider.poll!(task.id, ctx, typeof task.pollUrl === "string" ? task.pollUrl : undefined);
     if (r.status === "running") return;
     if (r.status === "failed") return void (await failJob(job.id, r.error?.userMessage ?? "That could not be made. Nothing was charged.", r.error?.code));
+    const variants = r.result?.variants;
+    if (variants?.length) {
+      // Billed per second per variant that SUCCEEDED, from Mirelo's own credits when it reports them (a failed variant is not charged).
+      const params = asObj(job.params);
+      const seconds = typeof params.durationMs === "number" ? params.durationMs / 1000 : typeof params.durationSec === "number" ? params.durationSec : 30;
+      const credits = r.result?.usage?.credits;
+      const withMs = variants.map((v) => ({ audio: v.bytes, mime: v.mime, durationMs: v.mime === "audio/wav" ? wavDurationMs(v.bytes) : params.durationMs != null ? Number(params.durationMs) : mp3DurationMs(v.bytes.length) }));
+      return await completeJob(job, model, { variants: withMs, mime: withMs[0].mime, durationMs: withMs[0].durationMs, units: seconds * variants.length, ...(typeof credits === "number" ? { usd: credits * mireloCreditUsd() } : {}), usage: { ...r.result?.usage, async: true } });
+    }
     const audio = r.result?.bytes;
     if (!audio?.length) return void (await failJob(job.id, "That could not be made. Nothing was charged.", "empty_audio"));
     await completeJob(job, model, { audio, mime: r.result!.mime, durationMs: mp3DurationMs(audio.length), units: settledUnits(model, job.text), usage: { async: true } });
@@ -344,7 +486,7 @@ export async function listAudioJobs(userId: string, limit = 30): Promise<AudioJo
 export async function deleteAudioJob(userId: string, id: string): Promise<boolean> {
   const j = await db.audioJob.findFirst({ where: { id, userId } });
   if (!j || j.status === "pending") return false;
-  if (j.storageKey && storageEnabled) await deleteObject(j.storageKey).catch((err) => console.error("deleting audio file failed", id, err));
+  if (storageEnabled) for (const k of new Set([...(j.storageKey ? [j.storageKey] : []), ...variantsOf(j).map((v) => v.key)])) await deleteObject(k).catch((err) => console.error("deleting audio file failed", id, err));
   await db.audioJob.delete({ where: { id } });
   return true;
 }

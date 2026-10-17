@@ -45,6 +45,7 @@ export function pagePricing(m: AudioModel): { unit: "char" | "byte"; perUnit: nu
   const margin = Number(process.env.AUDIO_MARGIN) > 0 ? Number(process.env.AUDIO_MARGIN) : 1.25;
   const creditUsd = Number(process.env.AUDIO_CREDIT_USD) > 0 ? Number(process.env.AUDIO_CREDIT_USD) : 0.008;
   if (m.priceUnit === "char" || m.priceUnit === "byte") return { unit: m.priceUnit, perUnit: ((priceOf(m) / m.per) * margin) / creditUsd };
+  if (m.priceUnit === "second" && m.maxVariants) return { unit: "sec", perSec: ((priceOf(m) / m.per) * margin) / creditUsd }; // per second per variant (the page multiplies)
   if (m.priceUnit === "second") return { unit: "max", credits: creditsFor(usdFor(m, m.maxSeconds ?? 120)) };
   if (m.priceUnit === "hour" || m.priceUnit === "minute") return { unit: "sec", perSec: ((priceOf(m) / m.per) * margin) / creditUsd }; // by the length of the audio
   return null;
@@ -53,7 +54,8 @@ export function pagePricing(m: AudioModel): { unit: "char" | "byte"; perUnit: nu
 // Audio length is not known before the work is done, so the hold uses a ceiling: the clip length asked for (sound effects and music), or an upper estimate from the size
 // of a recording (a compressed file is rarely above 128 kbit/s, so size x 8 / 128,000 is a safe over-estimate).
 export { estimateSeconds } from "./pricing-client";
-export function holdUnitsFor(m: AudioModel, b: { text?: string; durationSec?: number; inputBytes?: number }): number {
+export function holdUnitsFor(m: AudioModel, b: { text?: string; durationSec?: number; inputBytes?: number; variants?: number }): number {
+  if (m.maxVariants) return (b.durationSec ?? 30) * Math.min(m.maxVariants, Math.max(1, Math.floor(b.variants ?? 1))); // billed per second per variant
   if (m.kinds.includes("stt")) return Math.min(estimateSeconds(b.inputBytes ?? 0), m.maxInputSeconds ?? 36000);
   if (m.kinds.includes("sfx")) return b.durationSec ?? m.maxSeconds ?? 30;
   if (m.kinds.includes("music")) return b.durationSec ?? 60;

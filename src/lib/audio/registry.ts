@@ -2,7 +2,7 @@ import type { AudioKind } from "./types";
 
 // The audio model registry: model ids, limits, prices and which controls a model supports live HERE (config), never in adapters.
 // A control a model cannot use is greyed in the UI, not removed. Prices are USD: `price` per `per` units of `priceUnit`.
-export type AudioProviderId = "elevenlabs" | "fish" | "minimax" | "qwen" | "seed" | "fake";
+export type AudioProviderId = "elevenlabs" | "fish" | "minimax" | "qwen" | "seed" | "mirelo" | "fake";
 export type AudioModel = {
   id: string;
   provider: AudioProviderId;
@@ -25,6 +25,14 @@ export type AudioModel = {
   loop?: boolean;            // sfx: can make a clip that loops
   instrumental?: boolean;    // music: can leave vocals out
   asyncAbove?: number;       // text longer than this many characters runs as a long job on the provider's side (MiniMax)
+  maxVariants?: number;      // sound effects and sound for video: how many alternatives one job can make (billed per variant)
+  negativePrompt?: boolean;  // sfx: accepts "what to leave out"
+  videoInput?: boolean;      // can make sound for a video ("Add sound")
+  durationRequired?: boolean; // sfx: a length must be chosen (no Auto)
+  formats?: string[];        // output formats offered (first is the default): wav, mp3
+  asyncAlways?: boolean;     // always runs on the provider's side and is followed by polling (Mirelo)
+  promo?: { price: number; until: string }; // a lower launch price until this date (YYYY-MM-DD, inclusive)
+  priceEnv?: string;         // a Config value (USD per unit) that replaces the registry price
   needsEnv?: string;         // the model is listed only when this Config value is set (Fish drama-3's price)
   deprecatedOn?: string;
   endsOn?: string;           // the provider stops serving it after this date (YYYY-MM-DD)
@@ -32,7 +40,7 @@ export type AudioModel = {
 };
 
 // The provider names shown as groups in the model menu.
-export const PROVIDER_LABEL: Record<AudioProviderId, string> = { elevenlabs: "ElevenLabs", fish: "Fish Audio", minimax: "MiniMax", qwen: "Qwen", seed: "Seed Audio", fake: "Test" };
+export const PROVIDER_LABEL: Record<AudioProviderId, string> = { elevenlabs: "ElevenLabs", fish: "Fish Audio", minimax: "MiniMax", qwen: "Qwen", seed: "Seed Audio", mirelo: "Mirelo", fake: "Test" };
 
 const ELEVEN_TAGS = ["[whispers]", "[laughs]", "[sighs]", "[excited]", "[sarcastic]", "[crying]"];
 // Fish S2: free-form bracket cues at the start of a sentence; NEVER (parenthesis) tags (docs/audio-providers/fish-audio.md section 4).
@@ -83,6 +91,10 @@ export const AUDIO_MODELS: AudioModel[] = [
   { id: "asr-1.0", provider: "minimax", label: "MiniMax ASR 1.0", kinds: ["stt"], maxChars: 0, callChars: 0, priceUnit: "hour", price: 0.38, per: 3600, supports: NONE, maxInputBytes: 50 * MB, maxInputSeconds: 500, note: "Up to 500 seconds, paid MiniMax accounts" },
   { id: "eleven_text_to_sound_v2", provider: "elevenlabs", label: "ElevenLabs Sound Effects", kinds: ["sfx"], maxChars: 1000, callChars: 1000, priceUnit: "minute", price: 0.12, per: 60, supports: NONE, minSeconds: 0.5, maxSeconds: 30, loop: true, note: "0.5 to 30 seconds" },
   { id: "music_v2_5", provider: "elevenlabs", label: "ElevenLabs Music", kinds: ["music"], maxChars: 4100, callChars: 4100, priceUnit: "minute", price: 0.15, per: 60, supports: NONE, minSeconds: 3, maxSeconds: 600, instrumental: true, note: "Needs a paid ElevenLabs plan; no artist names or lyrics" },
+  // Mirelo (docs/audio-providers/mirelo.md): sound effects from text and sound made for a VIDEO, billed per second per variant. List price $0.015 per second per variant
+  // (15 credits a second) with a launch price of $0.010 until 2026-12-12; both are from a partner listing and PROVISIONAL until Mirelo's own credit price is read from its
+  // Studio (override with MIRELO_PRICE_PER_SECOND). sfx-1.6 (extend, inpaint, stems) is not registered. Loop is refused by sfx-2.0, so `loop` stays off.
+  { id: "sfx-2.0", provider: "mirelo", label: "Mirelo SFX 2.0", kinds: ["sfx", "vsfx"], maxChars: 2000, callChars: 2000, priceUnit: "second", price: 0.015, per: 1, promo: { price: 0.01, until: "2026-12-12" }, priceEnv: "MIRELO_PRICE_PER_SECOND", supports: NONE, minSeconds: 0.1, maxSeconds: 600, maxVariants: 4, negativePrompt: true, videoInput: true, durationRequired: true, formats: ["wav", "mp3"], asyncAlways: true, note: "Sound for video, or from text; keeps speech" },
   { id: "seed-audio-1.0", provider: "seed", label: "Seed Audio 1.0", kinds: ["tts"], maxChars: 3000, callChars: 3000, priceUnit: "second", price: 0.00263, per: 1, maxSeconds: 120, voiceOptional: true, supports: { emotionTags: false, speed: true, ...NO_EXTRAS }, note: "Speech plus sound and ambience, up to 120 s" },
 ];
 
@@ -96,7 +108,11 @@ const fishFreeOn = () => process.env.AUDIO_FISH_FREE_ENABLED !== "0" && process.
 const live = (m: AudioModel, today = new Date().toISOString().slice(0, 10)) => (!m.endsOn || today <= m.endsOn) && (m.id !== "s2.1-pro-free" || fishFreeOn()) && (!m.needsEnv || Number(process.env[m.needsEnv]) > 0);
 
 // The price of a model whose price comes from Config (Fish drama-3), else the registry's.
-export const priceOf = (m: AudioModel) => (m.needsEnv && Number(process.env[m.needsEnv]) > 0 ? Number(process.env[m.needsEnv]) : m.price);
+export const priceOf = (m: AudioModel, today = new Date().toISOString().slice(0, 10)) => {
+  if (m.needsEnv && Number(process.env[m.needsEnv]) > 0) return Number(process.env[m.needsEnv]);
+  if (m.priceEnv && Number(process.env[m.priceEnv]) > 0) return Number(process.env[m.priceEnv]);
+  return m.promo && today <= m.promo.until ? m.promo.price : m.price;
+};
 // The longest music clip allowed: the model's limit, or AUDIO_MUSIC_MAX_SECONDS (default 240, because a long clip must finish inside the 300 s function limit).
 export const musicMaxSeconds = (m: AudioModel) => Math.min(m.maxSeconds ?? 240, Number(process.env.AUDIO_MUSIC_MAX_SECONDS) > 0 ? Number(process.env.AUDIO_MUSIC_MAX_SECONDS) : 240);
 export const kindOf = (m: AudioModel): AudioKind => m.kinds[0];

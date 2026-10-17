@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2 } from "lucide-react";
+import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2 } from "lucide-react";
 import { getCertificate } from "@/lib/certificate-client";
 import { trashRender } from "@/lib/render-actions";
+import AddSoundDialog from "../voice/AddSoundDialog";
 import type { Render } from "@/lib/use-renders";
 import "./library.css";
 
@@ -21,6 +22,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState("");
   const [cert, setCert] = useState<{ busy: boolean; code: string | null }>({ busy: false, code: null });
+  const [sound, setSound] = useState(false);
 
   async function certify() {
     if (cert.code) { window.open(`/c/${cert.code}`, "_blank"); return; }
@@ -111,10 +113,12 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
         <button type="button" className="rd-btn" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={15} /> : <Copy size={15} />}<span className="rd-lbl">{copied ? "Copied" : "Copy prompt"}</span></button>
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined} aria-label="Download" title="Download"><Download size={15} /><span className="rd-lbl">Download</span></a>
         <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>
+        {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setSound(true)} aria-label="Add sound" title="Add sound to this video"><Volume2 size={15} /><span className="rd-lbl">Add sound</span></button>}
         <button type="button" className="rd-btn" onClick={certify} disabled={cert.busy} aria-label="Certificate" title="Certificate of origin"><Award size={15} /><span className="rd-lbl">{cert.busy ? "Issuing…" : cert.code ? "View certificate" : "Certificate"}</span></button>
         <button type="button" className="rd-btn rd-danger" onClick={remove} title="Move to the bin" aria-label="Delete"><Trash2 size={15} /><span className="rd-lbl">Delete</span></button>
       </div>
       {note && <p className="rd-note" role="status">{note}</p>}
+      {sound && <AddSoundDialog video={g} onClose={() => setSound(false)} />}
       {(!collapsible || info) && <dl className="rd-list">
         {rows.filter((r): r is [string, string] => Boolean(r[1])).map(([k, v]) => (
           <div key={k}><dt>{k}</dt><dd>{v}</dd></div>

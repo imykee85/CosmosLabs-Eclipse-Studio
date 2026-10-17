@@ -57,7 +57,8 @@ test("pricing by the length of audio: hold ceilings, per-second credit price, si
 
 test("registry: every kind has models, drama-3 waits for its price, music length is capped", () => {
   assert.deepEqual(modelsOfKind("stt").map((m) => m.provider).sort(), ["elevenlabs", "fish", "minimax"]);
-  assert.equal(modelsOfKind("sfx").length, 1);
+  assert.deepEqual(modelsOfKind("sfx").map((m) => m.id).sort(), ["eleven_text_to_sound_v2", "sfx-2.0"]); // ElevenLabs and Mirelo
+  assert.deepEqual(modelsOfKind("vsfx").map((m) => m.id), ["sfx-2.0"]); // only Mirelo makes sound for a video
   assert.equal(modelsOfKind("music").length, 1);
   assert.ok(!audioModels().some((m) => m.id === "drama-3"));
   process.env.FISH_DRAMA3_PRICE_PER_MILLION_BYTES = "20";
