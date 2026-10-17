@@ -502,3 +502,24 @@ model ApiKey {
   @@index([userId])
   @@map("api_keys")
 }
+
+// Soul ID: a character trained on Higgsfield from the person's own pictures (POST /v1/custom-references), used on Soul, Soul 2 and Soul Cinema renders
+// as custom_reference_id. One model version each (v1 = Soul, v2 = Soul 2, cinema = Soul Cinema). The pictures are the person's uploads or renders.
+model SoulId {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  modelVersion String   @map("model_version") // v1, v2 or cinema
+  providerId   String?  @map("provider_id") // Higgsfield's id for the trained reference
+  status       String   @default("pending") // pending, completed, failed
+  error        String?
+  imageCount   Int      @map("image_count")
+  thumbId      String?  @map("thumb_id") // the first picture (an upload or render id) for the card
+  thumbType    String?  @map("thumb_type")
+  credits      Int?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("soul_ids")
+}

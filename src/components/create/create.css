@@ -274,3 +274,22 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-edge.is-note { color: var(--a-fg2); }
 .cr-edge + .cr-box { margin-top: 0; }
 @media (max-width: 800px) { .cr-edge { margin: 36px 8px 8px; } }
+/* Soul ID dialog */
+.sid h2 { display: flex; align-items: center; gap: 8px; }
+.sid-list { display: grid; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; max-height: 44vh; overflow-y: auto; }
+.sid-list li { display: grid; grid-template-columns: 1fr auto; align-items: center; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); }
+.sid-list li.is-on { border-color: #c00707; }
+.sid-list li > button:first-child { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px; padding: 8px 12px; border: 0; background: none; color: var(--a-fg); font: inherit; text-align: left; cursor: pointer; }
+.sid-list li > button:first-child:disabled { cursor: default; opacity: .7; }
+.sid-list b { display: block; font-weight: 600; } .sid-list small { color: var(--a-muted2); font-size: 12.5px; }
+.sid-pic { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--a-input); display: block; }
+.sid-none { border: 1px dashed var(--a-line3); }
+.sid-del { display: grid; place-items: center; width: 34px; height: 34px; margin-right: 8px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; }
+.sid-wait { display: flex; gap: 8px; align-items: center; padding: 12px; color: var(--a-muted2); }
+.sid-strength { display: grid; gap: 6px; margin: 0 0 12px; color: var(--a-fg2); font-size: 14px; } .sid-strength em { float: right; font-style: normal; color: var(--a-muted2); }
+.sid-new { justify-self: start; }
+.sid-train { display: grid; gap: 12px; }
+.sid-field { display: grid; gap: 6px; color: var(--a-fg2); font-size: 14px; }
+.sid-field input { height: 44px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 16px; }
+.sid-pics { display: flex; flex-wrap: wrap; gap: 6px; } .sid-pics img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
+.sid-actions { display: flex; gap: 10px; justify-content: space-between; } .sid-go { width: auto; padding: 0 20px; }

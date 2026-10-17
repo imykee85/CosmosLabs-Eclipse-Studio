@@ -29,6 +29,8 @@ export type StartInput = {
   seedOn: boolean;
   seedNum: number | null;
   projectId?: string | null;
+  soulId?: string | null;   // a trained Soul ID (Soul models only)
+  soulStrength?: number;
 };
 
 // On Auto each image gets its own pick: a model that fits the task (pictures, shape, quality), chosen at random from the tested ones (or, when none
@@ -52,7 +54,7 @@ export async function startImages(o: StartInput): Promise<{ results: StartResult
     const m = pickFor(o);
     const lock = o.seedOn && m.seed.supported;
     const seed = lock && base != null ? m.seed.min + ((base - m.seed.min + i) % (m.seed.max - m.seed.min + 1)) : undefined;
-    const body = JSON.stringify({ prompt: o.prompt, aspectRatio: o.ratio, model: m.id, resolution: m.resolutions.length ? tierResolution(m.resolutions, o.tier) : undefined, projectId: o.projectId ?? undefined, references: o.refs, ...(lock ? { lockSeed: true, ...(seed != null ? { seed } : {}) } : {}) });
+    const body = JSON.stringify({ prompt: o.prompt, aspectRatio: o.ratio, model: m.id, resolution: m.resolutions.length ? tierResolution(m.resolutions, o.tier) : undefined, projectId: o.projectId ?? undefined, references: o.refs, ...(o.soulId && /^soul/.test(m.id) ? { soulId: o.soulId, soulStrength: o.soulStrength } : {}), ...(lock ? { lockSeed: true, ...(seed != null ? { seed } : {}) } : {}) });
     const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body });
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, error: res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again.", id: typeof data.id === "string" ? data.id : undefined, seed: typeof data.seed === "number" ? data.seed : undefined, note: typeof data.seedNote === "string" ? data.seedNote : undefined };

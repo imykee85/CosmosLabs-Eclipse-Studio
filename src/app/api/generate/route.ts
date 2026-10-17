@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => null);
-  const result = await startRender({ userId, prompt: body?.prompt, model: body?.model, aspectRatio: body?.aspectRatio, resolution: body?.resolution, projectId: body?.projectId, references: body?.references, seed: body?.seed, lockSeed: body?.lockSeed });
+  const result = await startRender({ userId, prompt: body?.prompt, model: body?.model, aspectRatio: body?.aspectRatio, resolution: body?.resolution, projectId: body?.projectId, references: body?.references, seed: body?.seed, lockSeed: body?.lockSeed, soulId: body?.soulId, soulStrength: body?.soulStrength });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
   return NextResponse.json(result.seedNote ? { ...result.item, seedNote: result.seedNote } : result.item);
 }
