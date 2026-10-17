@@ -222,10 +222,7 @@ export default function Landing() {
       </section>
 
       <footer id="footer" className="footer">
-        <div className="footer-top">
-          <Wordmark />
-        </div>
-        <div className="footer-bottom"><span>© 2026 Cosmos Labs AI. All rights reserved.</span><div><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
+        <div className="footer-bottom"><span className="footer-brand"><Logo className="footer-mark" size={40} /><span>© 2026 Cosmos Labs AI. All rights reserved.</span></span><div><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
       </footer>
     </main>
   );

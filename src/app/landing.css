@@ -711,3 +711,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Hero heading two steps bigger (owner 2026-10-17): 48 -> 64 on phones, 60 -> 76 on desktop */
 .site-shell .hero h1 { font-size: 64px; }
 @media (min-width: 801px) { .site-shell .hero h1 { font-size: 76px; } }
+/* Footer: the logo sits left of the copyright line (owner 2026-10-17); no separate logo row above */
+.footer-brand { display: inline-flex; align-items: center; gap: 14px; }
+.footer-mark { display: inline-flex; flex: none; }
+.footer-bottom { align-items: center; }
+@media (max-width: 800px) { .footer-bottom { align-items: flex-start; } }
