@@ -8,6 +8,7 @@ import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
+import { refreshCredits } from "@/lib/use-credits";
 import { readCurrentProject } from "@/lib/projects";
 import { cleanTreatment, EMPTY_TREATMENT, hasTreatment, treatmentText, type Treatment } from "@/lib/treatment";
 import "@/components/create/create.css";
@@ -115,7 +116,7 @@ export default function TreatmentView() {
       setMsgs((l) => [...l, { id: uid(), role: "assistant", text: String(data.text ?? "") }]);
     } catch {
       setMsgs((l) => [...l, { id: uid(), role: "assistant", text: "I couldn't reach the server. Check your connection and try again.", error: true }]);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); refreshCredits(); }
   }
   const continueToPrompts = () => {
     try { if (hasTreatment(plan)) sessionStorage.setItem("eclipse-treatment-handoff", treatmentText(plan)); } catch {}

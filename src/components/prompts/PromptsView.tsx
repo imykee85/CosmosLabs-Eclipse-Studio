@@ -7,6 +7,7 @@ import { PROMPT_ENGINES, type PromptEngine } from "@/lib/prompt-engines";
 import { readCurrentProject } from "@/lib/projects";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
+import { refreshCredits } from "@/lib/use-credits";
 import ImageStudioIcon from "../ImageStudioIcon";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import SoonTag from "../SoonTag";
@@ -86,7 +87,7 @@ export default function PromptsView() {
       commit([...history, res.ok ? { id: uid(), role: "assistant", text: String(data.text ?? "") } : { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The prompt engine couldn't answer. Please try again.", error: true }]);
     } catch {
       commit([...history, { id: uid(), role: "assistant", text: "I couldn't reach the server. Check your connection and try again.", error: true }]);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); refreshCredits(); }
   }
 
   async function uploadFromDevice(f: File | undefined) {

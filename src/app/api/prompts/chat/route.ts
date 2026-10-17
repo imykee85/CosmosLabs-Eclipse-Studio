@@ -6,6 +6,7 @@ import { connectModels } from "@/lib/connect-models";
 import { checkPrompt } from "@/lib/moderation";
 import { engineById } from "@/lib/prompt-engines";
 import { claimUsage } from "@/lib/usage";
+import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 
 export const maxDuration = 60;
@@ -18,6 +19,8 @@ export async function POST(req: Request) {
   const { userId } = auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The prompt engine isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
+  const broke = await chatCreditCheck(userId);
+  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
   if (!(await claimUsage(userId, "prompts", 12, 60_000))) return NextResponse.json({ error: "Slow down a little: try again in a minute." }, { status: 429 });
 
   const body = await req.json().catch(() => null);
@@ -55,10 +58,12 @@ export async function POST(req: Request) {
     return { role: t.role, content: t.text };
   });
 
+  const meter = new ChatMeter();
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
     const res = await client.messages.create({ model, max_tokens: 3000, system: engine.system, messages });
+    meter.add(res.model, res.usage);
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
     return NextResponse.json({ text: text || "I couldn't write a prompt from that. Tell me a little more." });
   } catch (err) {
@@ -69,5 +74,7 @@ export async function POST(req: Request) {
       : err instanceof Anthropic.AuthenticationError ? "The prompt engine's API key was rejected. The owner needs to check ANTHROPIC_API_KEY."
       : "The prompt engine couldn't answer. Please try again.";
     return NextResponse.json({ error: why }, { status: 502 });
+  } finally {
+    await chargeChat(userId, meter, "Prompts message");
   }
 }
