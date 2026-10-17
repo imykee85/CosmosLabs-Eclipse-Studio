@@ -683,3 +683,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-type i.is-still { display: none; }
 @keyframes atl-caret { 50% { opacity: 0; } }
 @media (max-width: 800px) { .atl-type { font-size: 16px; } .atl-intro { gap: 20px; } }
+/* The typed lines stretch out across the section (owner 2026-10-17: not packed at one side); the width is set by AtlasWorkflow when the columns sit side by side. */
+.atl-intro { position: relative; z-index: 1; max-width: none; }
+.atl-type { min-height: calc(2 * 1.4em); font-size: 20px; }
+@media (max-width: 800px) { .atl-type { font-size: 17px; } }

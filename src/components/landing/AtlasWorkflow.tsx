@@ -18,14 +18,18 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
   const bot = useRef<HTMLDivElement>(null);
   const right = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  const introRow = useRef<HTMLDivElement>(null);
 
-  // Side by side, the right column starts level with the strengths list (its first rule on the list's top rule); stacked, it just follows.
+  // Side by side, the right column starts level with the strengths list (its first rule on the list's top rule) and Atlas's typed lines stretch across
+  // the empty space above it to the right edge, like the owner's reference; stacked, both just follow.
   useEffect(() => {
     const align = () => {
-      const r = right.current, l = list.current;
+      const r = right.current, l = list.current, t = introRow.current;
       if (!r || !l) return;
       r.style.marginTop = "0px";
+      if (t) t.style.width = "";
       if (r.getBoundingClientRect().left <= l.getBoundingClientRect().left + 40) return;
+      if (t) t.style.width = `${Math.round(r.getBoundingClientRect().right - t.getBoundingClientRect().left)}px`;
       r.style.marginTop = `${Math.max(0, Math.round(l.getBoundingClientRect().top - r.getBoundingClientRect().top))}px`;
     };
     align();
@@ -71,7 +75,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
         <h2>Meet <em>Atlas</em></h2>
         <p className="atl-sub">Your agentic creative partner.</p>
         {/* Atlas, drawn like the agent in the app (the eyes turn round the ball in 3D), only bigger. Beside him, his art direction types out as if live. */}
-        <div className="atl-intro">
+        <div className="atl-intro" ref={introRow}>
         <div className={`atl-bot${intro ? " is-intro" : ""}`} ref={bot} role="img" aria-label="Atlas, the Eclipse agent">
           <div className="atl-glow" />
           <div className="atl-hop">
