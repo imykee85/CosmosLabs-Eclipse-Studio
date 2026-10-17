@@ -9,6 +9,7 @@ import { readCurrentProject } from "@/lib/projects";
 import { VIDEO_LIMIT_MB } from "@/lib/direct-upload-client";
 import "@/components/library/library.css";
 import "@/components/uploads/uploads.css";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 
 // A reference picture the user chose: one of their uploads (Ingredients, Assets) or one of their finished renders.
 export type RefPick = { type: "upload" | "render"; id: string; url: string; label: string };
@@ -127,7 +128,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
               return (
                 <button key={`${it.type}-${it.id}`} type="button" className={`rp-item ${on ? "is-on" : ""}`} aria-pressed={on} disabled={!on && max > 1 && picked.length >= max} onClick={() => toggle(it)} title={it.label}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={it.url} alt={it.label} loading="lazy" />
+                  <img src={thumbOf(it.type, it.id)} onError={fallbackTo(it.url)} alt={it.label} loading="lazy" decoding="async" />
                   {on && <span className="rp-check"><Check size={14} /></span>}
                   <span className="rp-name">{it.label}</span><small>{it.sub}</small>
                 </button>

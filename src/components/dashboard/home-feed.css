@@ -25,6 +25,11 @@
 .hf-thumbs .hf-empty { aspect-ratio: 1 / .9; border-radius: 6px; }
 .hf-thumbs .hf-empty:first-child { border-bottom-left-radius: 18px; }
 .hf-thumbs .hf-empty:last-child { border-bottom-right-radius: 18px; }
+.hf-series-btn { display: grid; gap: 3px; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
+.hf-series-btn img.hf-series-main { height: auto; width: 100%; }
+.hf-thumbs img.hf-pic { aspect-ratio: 1 / .9; height: auto; border-radius: 6px; }
+.hf-thumbs > :first-child { border-bottom-left-radius: 18px; }
+.hf-thumbs > :last-child { border-bottom-right-radius: 18px; }
 
 /* wide cards with a label inside */
 .hf-wide { position: relative; flex: 0 0 min(420px, 84%); aspect-ratio: 1.3 / 1; }

@@ -1,18 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, MoreVertical, Plus } from "lucide-react";
 import SoonTag from "@/components/SoonTag";
+import { useRenders } from "@/lib/use-renders";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
+import type { Project } from "@/lib/projects";
 import "./home-feed.css";
 
 // The lower half of the dashboard, laid out as a long home page: collections, series, video, looks, tools, questions.
-// The cards are EMPTY placeholders on purpose (no pictures, no invented counts) until real content exists; every section
-// that has nothing behind it yet carries a Soon tag. "Generate an image" is the one working card: it opens Image Studio
-// inside the latest project through `onGo` (or asks for a new project first). "Motion graphics" opens /motion.
+// Cards with no real content behind them stay EMPTY placeholders on purpose (no pictures, no invented counts) and their
+// sections carry a Soon tag. Working: the series row (the person's own latest projects with their newest pictures, opening
+// that project's Gallery), "Discover all videos" (/motion), "Discover all tools" (/tools), Generate an image and Generate
+// a video (Image or Video Studio inside the latest project through `onGo`, or the New Project popup first).
 const FAQ: [string, string][] = [
-  ["What can I create?", "Images today, with video and more creative tools on the roadmap. Anything tagged Soon is not ready yet."],
-  ["Where do my creations go?", "Each image is saved to your private Library, and to the Gallery of the project you made it in."],
+  ["What can I create?", "Images, videos, voices, sound effects and music. Anything tagged Soon is not ready yet."],
+  ["Where do my creations go?", "Everything you make is saved to your private Library; images and videos also go to the Gallery of the project you made them in."],
   ["What is Core?", "Your creative computer: a chat that can make images, follow skills, remember your style and send finished work to Telegram or Slack."],
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
 ];
@@ -41,7 +45,7 @@ function LoopVideo({ src, webm, poster, className = "" }: { src: string; webm: s
     return () => { events.forEach((e) => window.removeEventListener(e, retry)); document.removeEventListener("visibilitychange", vis); v.removeEventListener("loadeddata", go); v.removeEventListener("canplay", go); };
   }, []);
   return (
-    <video ref={ref} className={className} poster={poster} muted loop playsInline autoPlay={!still} preload="auto" aria-hidden="true">
+    <video ref={ref} className={className} poster={poster} muted loop playsInline autoPlay={!still} preload="metadata" aria-hidden="true">
       <source src={src} type="video/mp4" />
       <source src={webm} type="video/webm" />
     </video>
@@ -50,18 +54,35 @@ function LoopVideo({ src, webm, poster, className = "" }: { src: string; webm: s
 
 const Empty = ({ className = "" }: { className?: string }) => <span className={`hf-empty ${className}`} />;
 
-function Head({ title, sub, button, soon = true }: { title: string; sub?: string; button?: string; soon?: boolean }) {
+function Head({ title, sub, button, soon = true, onButton }: { title: string; sub?: string; button?: string; soon?: boolean; onButton?: () => void }) {
   return (
     <>
       <h2>{title}{soon && !button && <SoonTag />}</h2>
       {sub && <p className="hf-sub">{sub}</p>}
-      {button && <button type="button" className="hf-pill">{button}{soon && <SoonTag />}</button>}
+      {button && <button type="button" className="hf-pill" onClick={onButton}>{button}{soon && <SoonTag />}</button>}
     </>
   );
 }
 
-export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
+// The person's three most recently worked-on projects that have finished pictures, each with its four newest pictures.
+function useSeries(projects: Project[]) {
+  const { renders } = useRenders(undefined, 60);
+  return useMemo(() => {
+    const live = new Map(projects.filter((p) => !p.deletedAt).map((p) => [p.id, p]));
+    const out: { project: Project; pics: { id: string; url: string; full: string }[] }[] = [];
+    for (const r of renders ?? []) {
+      if (r.status !== "completed" || r.kind === "video" || !r.imageUrl || !r.projectId || !live.has(r.projectId)) continue;
+      let row = out.find((x) => x.project.id === r.projectId);
+      if (!row) { if (out.length >= 3) continue; row = { project: live.get(r.projectId)!, pics: [] }; out.push(row); }
+      if (row.pics.length < 4) row.pics.push({ id: r.id, url: thumbOf("render", r.id), full: r.imageUrl });
+    }
+    return out;
+  }, [renders, projects]);
+}
+
+export default function HomeFeed({ onGo, projects = [], onOpenProject }: { onGo: (path: string) => void; projects?: Project[]; onOpenProject?: (p: Project, path: string) => void }) {
   const [open, setOpen] = useState<number | null>(null);
+  const series = useSeries(projects);
   return (
     <section className="hf" aria-label="Home">
       <div className="hf-sec">
@@ -84,19 +105,33 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       </div>
 
       <div className="hf-sec">
-        <Head title="Keep every project consistent" sub="Find pictures from the same series and keep your work aligned." />
+        <Head title="Keep every project consistent" sub="Your latest projects side by side, so every series stays aligned." soon={!series.length} />
         <ul className="hf-row">
-          {[0, 1, 2].map((i) => (
-            <li key={i} className="hf-series">
-              <Empty className="hf-series-main" />
-              <div className="hf-thumbs"><Empty /><Empty /><Empty /></div>
-            </li>
-          ))}
+          {[0, 1, 2].map((i) => {
+            const row = series[i];
+            if (!row) return <li key={i} className="hf-series"><Empty className="hf-series-main" /><div className="hf-thumbs"><Empty /><Empty /><Empty /></div></li>;
+            const [main, ...rest] = row.pics;
+            return (
+              <li key={row.project.id} className="hf-series">
+                <button type="button" className="hf-series-btn" onClick={() => onOpenProject?.(row.project, "/gallery")} aria-label={`Open the Gallery of ${row.project.name}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="hf-series-main hf-pic" src={main.url} onError={fallbackTo(main.full)} alt="" loading="lazy" decoding="async" draggable={false} />
+                  <div className="hf-thumbs">
+                    {[0, 1, 2].map((k) => rest[k]
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img key={k} className="hf-pic" src={rest[k].url} onError={fallbackTo(rest[k].full)} alt="" loading="lazy" decoding="async" draggable={false} />
+                      : <Empty key={k} />)}
+                  </div>
+                </button>
+                <div className="hf-col-meta"><b>{row.project.name}</b></div>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
       <div className="hf-sec">
-        <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" />
+        <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" soon={false} onButton={() => onGo("/motion")} />
         <ul className="hf-row hf-row-2">
           <li className="hf-wide">
             <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
@@ -118,7 +153,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       </div>
 
       <div className="hf-sec">
-        <Head title="Tools to skyrocket your creative freedom" button="Discover all tools" />
+        <Head title="Tools to skyrocket your creative freedom" button="Discover all tools" soon={false} onButton={() => onGo("/tools")} />
         <ul className="hf-row hf-row-2">
           <li className="hf-tool">
             <Empty className="hf-fill" />
@@ -127,8 +162,8 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           </li>
           <li className="hf-tool">
             <Empty className="hf-fill" />
-            <span className="hf-tool-title">Generate a video <SoonTag /></span>
-            <button type="button" className="hf-try">Try it <ArrowRight size={15} /></button>
+            <span className="hf-tool-title">Generate a video</span>
+            <button type="button" className="hf-try" onClick={() => onGo("/generate")}>Try it <ArrowRight size={15} /></button>
           </li>
         </ul>
       </div>

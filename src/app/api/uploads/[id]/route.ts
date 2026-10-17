@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { deleteThumb } from "@/lib/thumbs";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { deleteObject, storageEnabled } from "@/lib/storage";
@@ -13,6 +14,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     const row = await db.upload.findFirst({ where: { id: params.id, userId } });
     if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (storageEnabled) {
+      await deleteThumb(row.storageKey);
       try { await deleteObject(row.storageKey); } catch (err) { console.error("deleting the uploaded file failed", row.id, err); return NextResponse.json({ error: "Could not remove the stored file. Please try again." }, { status: 502 }); }
     }
     await db.upload.deleteMany({ where: { id: row.id, userId } });

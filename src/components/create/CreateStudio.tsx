@@ -17,12 +17,13 @@ import PromptEdge, { type EdgeMessage } from "./PromptEdge";
 import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
 import ModelPicker, { AUTO } from "./ModelPicker";
 import AgentIcon from "../AgentIcon";
-import SoonTag from "../SoonTag";
 import AgentMenu from "./AgentMenu";
 import AgentWidget from "./AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "./create.css";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
+import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId, type ToolOption } from "@/lib/picture-tools";
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 215, "4:5": 188, "9:16": 134, "16:9": 304 };
@@ -276,9 +277,29 @@ export default function CreateStudio() {
   function newVariations() {
     if (toolPic) void generate({ prompt: toolPic.prompt });
   }
-  const soon = (label: string) => setToolNote(`${label} is coming soon.`);
   const [toolNote, setToolNote] = useState("");
-  useEffect(() => { setToolNote(""); }, [toolPic?.id]);
+  const [toolMenu, setToolMenu] = useState<"relight" | "camera" | null>(null);
+  useEffect(() => { setToolNote(""); setToolMenu(null); }, [toolPic?.id]);
+  // A picture tool makes a NEW image from this one (the original stays): the picture is the only ingredient, the instruction is fixed, the model is the best
+  // picture-editing model this account has, and "auto" keeps the picture's aspect ratio.
+  async function runTool(tool: ToolId, option?: ToolOption) {
+    if (!toolPic || submitting) return;
+    const m = toolModel(models ?? [], tool);
+    if (!m) { setToolNote(`${TOOL_LABEL[tool]} needs a model that edits pictures, and none is connected yet.`); return; }
+    setError(""); setToolNote(""); setSubmitting(true);
+    try {
+      const { results } = await startImages({ models: models ?? [], model: m, auto: false, prompt: toolPrompt(tool, option), ratio: "auto", tier: toolTier(m, tool), qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      const r = results[0];
+      if (!r?.ok) throw new Error(r?.error ?? "Something went wrong. Please try again.");
+      setToolMenu(null);
+      if (r.id) setWatched(r.id);
+      await reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="cr-wrap">
@@ -316,7 +337,7 @@ export default function CreateStudio() {
               {earlier.map((r) => (
                 <button key={r.id} type="button" className={r.id === latestDone?.id ? "is-on" : ""} aria-pressed={r.id === latestDone?.id} title={r.prompt} onClick={() => setWatched(r.id === latestDone?.id ? null : r.id)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={r.imageUrl ?? ""} alt={r.prompt} />
+                  <img src={thumbOf("render", r.id)} onError={fallbackTo(r.imageUrl)} alt={r.prompt} decoding="async" />
                 </button>
               ))}
               <Link href="/gallery" className="cr-seeall" aria-label="See all in your Gallery" title="See all in your Gallery"><ArrowRight size={16} /></Link>
@@ -327,12 +348,23 @@ export default function CreateStudio() {
 
       <div className="cr-dock">
       <div className={`cr-tray ${toolPic ? "is-open" : ""}`} role="toolbar" aria-label="Tools for this picture" aria-hidden={!toolPic}>
-        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={editPicture} title="Use this picture as an ingredient and describe the change"><Pencil size={14} /> Edit</button>
-        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={newVariations} disabled={submitting || !model} title="Make another image from the same prompt"><Shuffle size={14} /> Variations</button>
-        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Upscale")}><ZoomIn size={14} /> Upscale <SoonTag /></button>
-        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Remove background")}><Eraser size={14} /> Remove background <SoonTag /></button>
-        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Relight")}><Sun size={14} /> Relight <SoonTag /></button>
-        <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => soon("Change camera")}><Camera size={14} /> Change camera <SoonTag /></button>
+        {toolMenu ? (
+          <>
+            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => setToolMenu(null)} aria-label="Back to the tools"><X size={14} /> {TOOL_LABEL[toolMenu]}</button>
+            {(toolMenu === "relight" ? RELIGHT : CAMERA).map((o) => (
+              <button key={o.id} type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool(toolMenu, o)}>{o.label}</button>
+            ))}
+          </>
+        ) : (
+          <>
+            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={editPicture} title="Use this picture as an ingredient and describe the change"><Pencil size={14} /> Edit</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={newVariations} disabled={submitting || !model} title="Make another image from the same prompt"><Shuffle size={14} /> Variations</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("upscale")} title="A sharper, higher-resolution copy of this picture"><ZoomIn size={14} /> Upscale</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("removebg")} title="The subject on a plain white background"><Eraser size={14} /> Remove background</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => setToolMenu("relight")} title="Change the lighting"><Sun size={14} /> Relight</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => setToolMenu("camera")} title="See the same moment from another angle"><Camera size={14} /> Change camera</button>
+          </>
+        )}
       </div>
       {toolNote && toolPic && <p className="cr-hint" role="status">{toolNote}</p>}
       <PromptEdge message={edge} />

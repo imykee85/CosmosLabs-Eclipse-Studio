@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
 import RenderDialog from "./RenderDialog";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 
 const stamp = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const Caption = ({ g }: { g: Render }) => (
@@ -44,7 +45,7 @@ export default function RenderTile({ g, onChanged }: { g: Render; onChanged?: ()
             </span>
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={g.imageUrl} alt={g.prompt} loading="lazy" decoding="async" />
+            <img src={thumbOf("render", g.id)} onError={fallbackTo(g.imageUrl)} alt={g.prompt} loading="lazy" decoding="async" />
           )}
           <Caption g={g} />
         </button>
