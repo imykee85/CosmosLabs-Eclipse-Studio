@@ -61,15 +61,34 @@ export default function MemoryView() {
     setText("");
     setItems((l) => [data, ...(l ?? [])]);
   }
-  // The + uploads a text file (.txt, .md, .csv or .json): each line becomes a memory under the chosen topic, and lines that
-  // start with a label such as "Style:" go under that topic.
+  // The + adds memories from a file: a text file (.txt, .md, .csv or .json) or a Word file is read line by line here, a PDF or a picture is read by
+  // the assistant (/api/memory/extract), which answers with labelled lines. Each line becomes a memory under the chosen topic, and lines that start
+  // with a label such as "Style:" go under that topic.
   async function uploadFile(file: File | undefined) {
     if (!file || saving) return;
     setError(""); setNotice("");
-    if (file.size > MEMORY_FILE_MAX_BYTES) { setError("That file is larger than 200 KB. Please use a smaller one."); return; }
-    if (!/\.(txt|md|markdown|csv|json)$/i.test(file.name) && !file.type.startsWith("text/")) { setError("Upload a text file: .txt, .md, .csv or .json."); return; }
+    const isDocx = /\.docx$/i.test(file.name);
+    const isRead = /\.pdf$/i.test(file.name) || /^image\/(png|jpeg|webp)$/.test(file.type);
+    const isText = /\.(txt|md|markdown|csv|json)$/i.test(file.name) || file.type.startsWith("text/");
+    if (!isDocx && !isRead && !isText) { setError("Upload a text file (.txt, .md, .csv, .json), a Word file, a PDF or a picture."); return; }
+    if (isText && file.size > MEMORY_FILE_MAX_BYTES) { setError("That file is larger than 200 KB. Please use a smaller one."); return; }
+    if ((isRead || isDocx) && file.size > 3_000_000) { setError("PDFs, Word files and pictures up to 3 MB can be read."); return; }
     setSaving(true);
-    const body = memoryFileToText(file.name, await file.text());
+    let body: string;
+    try {
+      if (isDocx) {
+        const mammoth = await import("mammoth");
+        body = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
+      } else if (isRead) {
+        // A PDF or a picture is read by the assistant, which answers with labelled facts.
+        const buf = new Uint8Array(await file.arrayBuffer());
+        let bin = ""; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+        const r = await fetch("/api/memory/extract", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: btoa(bin) }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { setSaving(false); setError(d.error ?? "That file could not be read."); return; }
+        body = String(d.text ?? "");
+      } else body = memoryFileToText(file.name, await file.text());
+    } catch { setSaving(false); setError("That file could not be read."); return; }
     const res = await fetch("/api/memory/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: saveTopic, text: body }) });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
@@ -154,8 +173,8 @@ export default function MemoryView() {
       {notice && <p className="mm-error mm-notice" role="status">{notice}</p>}
       <button type="button" className="mm-grab" aria-label="Show history" onClick={() => setOpen((o) => !o)} {...swipe(() => setOpen(true), () => setOpen(false))}><i /></button>
       <form className="mm-add" {...swipe(() => setOpen(true))} onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <button type="button" className="mm-plus" aria-label="Upload a file" title="Upload a text file (.txt, .md, .csv, .json): each line becomes a memory" onClick={() => fileInput.current?.click()}><Plus size={18} /></button>
-        <input ref={fileInput} type="file" accept=".txt,.md,.markdown,.csv,.json,text/plain" hidden onChange={(e) => { void uploadFile(e.target.files?.[0]); e.target.value = ""; }} />
+        <button type="button" className="mm-plus" aria-label="Upload a file" title="Add memories from a file: text, Word, PDF or a picture" onClick={() => fileInput.current?.click()}><Plus size={18} /></button>
+        <input ref={fileInput} type="file" accept=".txt,.md,.markdown,.csv,.json,.docx,.pdf,image/png,image/jpeg,image/webp,text/plain" hidden onChange={(e) => { void uploadFile(e.target.files?.[0]); e.target.value = ""; }} />
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MEMORY_TEXT_MAX} placeholder="Add a memory" aria-label="Add a memory" />
         <select value={saveTopic} onChange={(e) => { setSaveTopic(e.target.value as MemoryTopic); setTopic(e.target.value as MemoryTopic); }} aria-label="Topic for this memory">
           {MEMORY_TOPICS.map((t) => <option key={t} value={t}>{TOPIC_LABEL[t]}</option>)}

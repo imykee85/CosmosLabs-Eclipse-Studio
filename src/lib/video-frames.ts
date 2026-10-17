@@ -61,6 +61,13 @@ export function spacedTimes(from: number, to: number, count: number): number[] {
 
 /** A picture redrawn as a JPEG no wider than `maxWidth` (for pictures too large to hand to the model as they are). Null when it cannot be done. */
 export async function shrinkPicture(bytes: Uint8Array, maxWidth = 1568, quality = 3): Promise<Buffer | null> {
+  // sharp first (it ships with every route that needs it, unlike the ffmpeg binary); ffmpeg only if sharp cannot read the picture.
+  try {
+    const sharp = (await import("sharp")).default;
+    const out = await sharp(Buffer.from(bytes), { failOn: "none", limitInputPixels: 200_000_000 }).rotate()
+      .resize({ width: Math.floor(maxWidth), withoutEnlargement: true }).jpeg({ quality: Math.max(50, Math.min(95, 100 - quality * 4)), mozjpeg: true }).toBuffer();
+    if (out.byteLength > 200) return out;
+  } catch {}
   try {
     const r = await run(["-v", "error", "-i", "pipe:0", "-frames:v", "1", "-vf", `scale='min(${Math.floor(maxWidth)},iw)':-2`, "-q:v", String(quality), "-f", "image2pipe", "-vcodec", "mjpeg", "-"], 45_000, bytes);
     return r.code === 0 && r.out.byteLength > 200 ? r.out : null;

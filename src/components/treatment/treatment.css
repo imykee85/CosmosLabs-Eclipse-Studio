@@ -49,11 +49,21 @@
 .tr-tool { display: grid; place-items: center; width: 40px; height: 34px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); cursor: pointer; transition: border-color .18s; }
 .tr-tool:hover:not(:disabled) { border-color: var(--a-line4); }
 .tr-tool:disabled { opacity: .5; cursor: default; }
+.tr-tool.is-on { border-color: var(--a-fg2); color: var(--a-fg); }
+.tr-tool.is-live { border-color: #c00707; background: #c00707; color: #fff; animation: tr-live 1.4s ease-in-out infinite; }
+@keyframes tr-live { 50% { box-shadow: 0 0 0 5px rgba(192, 7, 7, .18); } }
+@media (prefers-reduced-motion: reduce) { .tr-tool.is-live { animation: none; } }
 .tr-send { margin-left: auto; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #c00707; color: #fff; }
 .tr-send:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
 .tr-files { display: flex; flex-wrap: wrap; gap: 8px; }
 .tr-file { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: 30px; padding: 0 6px 0 11px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); font-size: 13px; }
 .tr-file > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.tr-file-pic { padding-left: 4px; }
+.tr-file-pic img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+.tr-linkrow { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); }
+.tr-linkrow input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; }
+.tr-linkadd { height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.tr-linkadd:disabled { opacity: .5; cursor: default; }
 .tr-file button { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; }
 
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
