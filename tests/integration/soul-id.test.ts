@@ -61,7 +61,7 @@ test("a Soul 2 render with a Soul ID sends custom_reference_id and strength", { 
   const { startRender } = await import("../../src/lib/start-render");
   const row = await lib.db.soulId.findFirst({ where: { userId: A, status: "completed" } });
   const r = await startRender({ userId: A, prompt: "Maya on a rooftop", model: "soul_v2", aspectRatio: "3:4", soulId: row.id, soulStrength: 0.8 });
-  assert.equal(r.ok, true, r.error);
+  assert.equal(r.ok, true, r.ok ? "" : r.error);
   const sent = seen.filter((x) => x.path.includes("soul/v2")).at(-1);
   assert.equal(sent?.body.custom_reference_id, "cref_1");
   assert.equal(sent?.body.custom_reference_strength, 0.8);

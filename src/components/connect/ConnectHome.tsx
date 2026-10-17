@@ -112,8 +112,9 @@ function ConnectChat() {
     started.current = true;
     const c = params.get("chat");
     const s = params.get("start");
+    const attach = (params.get("attach") ?? "").split(",").filter((x) => /^[\w-]{1,64}$/.test(x)).slice(0, 3); // pictures picked on the Tools page
     if (c) open(c);
-    else if (s) { router.replace("/connect"); send(s); }
+    else if (s) { router.replace("/connect"); send(s, attach); }
   }, [params, open, router, send]);
 
   // Atlas can fill the message box ("Use this prompt") and, when you press Generate on its card, send that message to the Core chat.

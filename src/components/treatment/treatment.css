@@ -110,3 +110,8 @@
 .tr-plan p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.5; }
 .tr-plan p em { display: block; font-style: normal; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--a-muted); }
 .tr-plan ol { margin: 12px 0 0; padding-left: 20px; font-size: 14.5px; line-height: 1.55; }
+
+.tr-morewrap { position: relative; }
+.tr-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; display: grid; min-width: 230px; padding: 6px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); box-shadow: 0 14px 40px rgba(0,0,0,.28); }
+.tr-menu button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.tr-menu button:hover:not(:disabled) { background: var(--a-active); } .tr-menu button:disabled { opacity: .45; cursor: default; }
