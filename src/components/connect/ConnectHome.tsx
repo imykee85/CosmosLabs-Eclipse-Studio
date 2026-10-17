@@ -17,6 +17,7 @@ import ChatThread, { type Line } from "./ChatThread";
 import ModelPicker from "./ModelPicker";
 import "@/components/create/create.css"; // the Atlas widget and its menu are styled there (Treatment does the same)
 import "./connect.css";
+import { refreshCredits } from "@/lib/use-credits";
 
 
 // Connect: the assistant. Chat with it, let it use skills, tools, memory and your connected apps, and send finished content on.
@@ -101,6 +102,7 @@ function ConnectChat() {
       patch((a) => ({ ...a, error: "The connection dropped. Reload this chat to see what was saved." }));
     } finally {
       setBusy(false);
+      refreshCredits();
     }
   }, [busy, chatId]);
 

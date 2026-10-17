@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { ChatMeter, chargeChat } from "@/lib/chat-credits";
 import { runTool, toolDefs } from "@/lib/connect-tools";
 import { openImage } from "@/lib/storage";
 
@@ -114,38 +115,45 @@ export async function runTurn(opts: {
   messages.push({ role: "user", content });
 
   const sdk = client();
-  const useFallback = opts.model !== "claude-haiku-5-5"; // Haiku has no server-side fallback
-  for (let step = 0; step < MAX_STEPS; step++) {
-    if (step > 0 && Date.now() - started > TIME_BUDGET_MS) {
-      emit({ t: "text", d: "\n\nI ran out of time on this one. Say \"continue\" and I will pick up where I stopped." });
-      break;
+  const meter = new ChatMeter();
+  try {
+    const useFallback = opts.model !== "claude-haiku-5-5"; // Haiku has no server-side fallback
+    for (let step = 0; step < MAX_STEPS; step++) {
+      if (step > 0 && Date.now() - started > TIME_BUDGET_MS) {
+        emit({ t: "text", d: "\n\nI ran out of time on this one. Say \"continue\" and I will pick up where I stopped." });
+        break;
+      }
+      const stream = sdk.beta.messages.stream({
+        model: opts.model,
+        max_tokens: 16000,
+        system: SYSTEM,
+        tools: toolDefs,
+        messages,
+        ...(useFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+      });
+      stream.on("text", (d) => emit({ t: "text", d }));
+      const msg = await stream.finalMessage();
+      meter.add(msg.model, msg.usage);
+
+      await store("assistant", msg.content);
+      messages.push({ role: "assistant", content: msg.content as Block[] });
+
+      if (msg.stop_reason === "refusal") return emit({ t: "error", message: "That request was declined. Try rephrasing it." });
+      if (msg.stop_reason === "max_tokens") { emit({ t: "text", d: "\n\n(That answer was cut short.)" }); break; }
+      if (msg.stop_reason !== "tool_use") break;
+
+      const calls = msg.content.filter((b): b is Anthropic.Beta.Messages.BetaToolUseBlock => b.type === "tool_use");
+      for (const c of calls) emit({ t: "tool", name: c.name });
+      const results = await Promise.all(calls.map(async (c) => {
+        const o = await runTool(c.name, c.input, { userId, projectId, chatId, onRender: (id) => emit({ t: "render", id }) });
+        const content = o.image ? [{ type: "text" as const, text: o.text }, { type: "image" as const, source: { type: "base64" as const, media_type: o.image.mediaType, data: o.image.data } }] : o.text;
+        return { type: "tool_result" as const, tool_use_id: c.id, content, ...(o.isError ? { is_error: true } : {}) };
+      }));
+      await store("tool", results);
+      messages.push({ role: "user", content: results });
     }
-    const stream = sdk.beta.messages.stream({
-      model: opts.model,
-      max_tokens: 16000,
-      system: SYSTEM,
-      tools: toolDefs,
-      messages,
-      ...(useFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
-    });
-    stream.on("text", (d) => emit({ t: "text", d }));
-    const msg = await stream.finalMessage();
-
-    await store("assistant", msg.content);
-    messages.push({ role: "assistant", content: msg.content as Block[] });
-
-    if (msg.stop_reason === "refusal") return emit({ t: "error", message: "That request was declined. Try rephrasing it." });
-    if (msg.stop_reason === "max_tokens") { emit({ t: "text", d: "\n\n(That answer was cut short.)" }); break; }
-    if (msg.stop_reason !== "tool_use") break;
-
-    const calls = msg.content.filter((b): b is Anthropic.Beta.Messages.BetaToolUseBlock => b.type === "tool_use");
-    for (const c of calls) emit({ t: "tool", name: c.name });
-    const results = await Promise.all(calls.map(async (c) => {
-      const o = await runTool(c.name, c.input, { userId, projectId, chatId, onRender: (id) => emit({ t: "render", id }) });
-      const content = o.image ? [{ type: "text" as const, text: o.text }, { type: "image" as const, source: { type: "base64" as const, media_type: o.image.mediaType, data: o.image.data } }] : o.text;
-      return { type: "tool_result" as const, tool_use_id: c.id, content, ...(o.isError ? { is_error: true } : {}) };
-    }));
-    await store("tool", results);
-    messages.push({ role: "user", content: results });
+  } finally {
+    // The reply is paid in Eclipse credits from what it really used, also when it stopped part-way.
+    await chargeChat(userId, meter, "Core message");
   }
 }

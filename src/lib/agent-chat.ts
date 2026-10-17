@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PERSONAS } from "./agent-personas";
+import { refreshCredits } from "@/lib/use-credits";
 
 // The conversation between the user and a studio agent. One chat per agent, kept in this browser and shared live by everything that shows it
 // (the floating agent's card, the Image Studio prompt box, a canvas generator). The agent only PROPOSES: its replies carry buttons, and the screen the
@@ -119,7 +120,7 @@ export function useAgentChat(agent: string | null) {
       add({ role: "agent", text: String(data.text ?? ""), actions, ...(frames.length ? { frames } : {}) });
     } catch {
       add({ role: "agent", text: "I couldn't reach the server. Check your connection and try again.", error: true });
-    } finally { setBusy(false); }
+    } finally { setBusy(false); refreshCredits(); }
   }, [agent, add]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The user pressed one of the agent's buttons.

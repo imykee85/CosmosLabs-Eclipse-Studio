@@ -5,6 +5,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { agentEnabled, dailyLimit, runTurn, type AgentEvent } from "@/lib/connect-agent";
 import { apiModelFor } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
+import { chatCreditCheck } from "@/lib/chat-credits";
 
 export const maxDuration = 120; // a build-machine step can wait 20 s on a command after the 48 s turn budget
 
@@ -23,6 +24,8 @@ export async function POST(req: Request) {
   const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
   const imageIds: string[] = Array.isArray(body?.images) ? body.images.filter((x: unknown): x is string => typeof x === "string").slice(0, 3) : [];
 
+  const broke = await chatCreditCheck(userId);
+  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
   // The daily limit is claimed under a lock, so parallel messages cannot all slip under it.
   if (!(await claimUsage(userId, "connect", dailyLimit(), 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${dailyLimit()} messages. It resets on a rolling 24 hours.` }, { status: 429 });
 

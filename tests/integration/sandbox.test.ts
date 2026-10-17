@@ -382,3 +382,22 @@ test("a failed smoke keeps its check list and leaves the snapshots alone", { ski
   assert.equal((await L.view.jobView(sj, true)).output.checks.ffmpeg.out, "not found");
   assert.equal(await L.sb.getSetting(L.sb.SETTING.previousSnapshot), "snap_old");
 });
+
+test("chat credits: a message needs free credits first; a reply is charged what it used, never below zero", { skip }, async () => {
+  await reset({ credits: 4 });
+  const cc = await import("../../src/lib/chat-credits");
+  assert.match(String(await cc.chatCreditCheck(U1)), /out of credits/); // 4 free, 5 needed to start
+  await L.credits.grantCredits(U1, 10, { reason: "GRANT" });
+  assert.equal(await cc.chatCreditCheck(U1), null);
+  const m = new cc.ChatMeter();
+  m.add("claude-sonnet-5-5", { input_tokens: 10_000, output_tokens: 1_000 });
+  assert.equal(await cc.chargeChat(U1, m, "Core message"), 5);
+  assert.equal(await balance(), 9);
+  const big = new cc.ChatMeter();
+  big.add("claude-opus-5-5", { output_tokens: 100_000 }); // 2 dollars = 313 credits
+  assert.equal(await cc.chargeChat(U1, big, "Atlas message"), 9); // only what is left
+  assert.equal(await balance(), 0);
+  process.env.CREDITS_ENABLED = "0";
+  assert.equal(await cc.chatCreditCheck(U1), null); // charging off: free
+  process.env.CREDITS_ENABLED = "1";
+});

@@ -57,3 +57,11 @@ export async function createSandboxJobHeld(userId: string, cost: number, data: P
     return { row: await tx.sandboxJob.create({ data }) };
   });
 }
+
+/** Credits the person can still use: the balance minus everything running jobs hold. */
+export async function freeCredits(userId: string): Promise<number> {
+  return db.$transaction(async (tx) => {
+    const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
+    return (sum._sum.delta ?? 0) - (await heldNow(tx, userId));
+  });
+}
