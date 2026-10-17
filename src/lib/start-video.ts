@@ -6,7 +6,7 @@ import { HiggsfieldError } from "@/lib/higgsfield";
 import { submitVideo } from "@/lib/higgsfield-video";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
 import { checkPrompt } from "@/lib/moderation";
-import { deliverReferences, parseReferenceRefs, parseVideoRefIds, resolveReferences, resolveVideoReferences, type ReferenceRef } from "@/lib/references";
+import { deliverReferences, parseReferenceRefs, parseVideoRefIds, resolveAudioReferences, resolveReferences, resolveVideoReferences, type ReferenceRef } from "@/lib/references";
 import { createGenerationHeld } from "@/lib/reservations";
 import { claimUsage } from "@/lib/usage";
 import { buildVideoBody, capsFor, findVideoModel, videoPrice, workflowFor } from "@/lib/video-models";
@@ -25,7 +25,7 @@ export const videoSettings = () => ({
 
 export type StartVideoInput = {
   userId: string; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
-  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown;
+  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; audioRefs?: unknown; shots?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown;
 };
 export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number };
 
@@ -57,6 +57,14 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   }
 
   let duration = typeof input.duration === "number" ? input.duration : NaN;
+  // Multi-shot (Kling 3.0): a list of { prompt, duration }; the length is their sum (checked by buildVideoBody with the model's limits).
+  let shots: { prompt: string; duration: number }[] | undefined;
+  if (input.shots != null) {
+    if (!Array.isArray(input.shots) || input.shots.length > 6 || input.shots.some((x) => !x || typeof x.prompt !== "string" || typeof x.duration !== "number")) return { ok: false, status: 400, error: "The shots were not understood." };
+    shots = (input.shots as { prompt: string; duration: number }[]).map((x) => ({ prompt: x.prompt.slice(0, 600), duration: x.duration }));
+    if (shots.length) duration = shots.reduce((a, x) => a + x.duration, 0); else shots = undefined;
+    for (const sh of shots ?? []) { const c = checkPrompt(sh.prompt); if (!c.ok) return { ok: false, status: 422, error: c.reason }; }
+  }
   const projectId = typeof input.projectId === "string" && input.projectId.length <= 64 ? input.projectId : null;
 
   // Start and end frames: ids of the person's own pictures, never addresses.
@@ -69,7 +77,9 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (refs === null) return { ok: false, status: 400, error: "The reference pictures were not understood." };
   const videoRefIds = parseVideoRefIds(input.videoRefs, 64); // the model's own limit (up to 10) is checked next
   if (videoRefIds === null) return { ok: false, status: 400, error: "The reference clips were not understood." };
-  const anyRefs = refs.length + videoRefIds.length > 0;
+  const audioRefIds = parseVideoRefIds(input.audioRefs, 10); // the person's own Voice Studio takes, [{ id }]
+  if (audioRefIds === null) return { ok: false, status: 400, error: "The reference sounds were not understood." };
+  const anyRefs = refs.length + videoRefIds.length + audioRefIds.length > 0;
   const motion = live.motion;
   if (motion) {
     // Motion transfer (the Motion chip): ONE subject picture (the start frame) and ONE motion clip, nothing else.
@@ -79,6 +89,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const caps = capsFor(model, wf);
   if (refs.length && !caps.refMax) return { ok: false, status: 400, error: `${model.label} takes no reference pictures yet.` };
   if (videoRefIds.length && !caps.refVideoMax) return { ok: false, status: 400, error: `${model.label} takes no reference clips.` };
+  if (audioRefIds.length && !caps.refAudioMax) return { ok: false, status: 400, error: `${model.label} takes no reference sounds.` };
   if (videoRefIds.length > caps.refVideoMax) return { ok: false, status: 400, error: `${model.label} takes up to ${caps.refVideoMax} reference clips (you chose ${videoRefIds.length}).` };
   if (refs.length > caps.refMax) return { ok: false, status: 400, error: `${model.label} takes up to ${caps.refMax} reference pictures (you chose ${refs.length}).` };
   if (end && !caps.endFrame) return { ok: false, status: 400, error: `${model.label} has no end frame.` };
@@ -135,7 +146,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   }
 
   // Check the request against the model BEFORE anything is held or limited (placeholder addresses stand in for the pictures).
-  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined });
+  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined, refAudioUrls: audioRefIds.length ? audioRefIds.map((_, i) => `https://x.invalid/a${i}`) : undefined, shots });
   if (!probe.ok) return { ok: false, status: 400, error: probe.error };
 
   const resolutionUsed = typeof probe.body.resolution === "string" ? probe.body.resolution : undefined;
@@ -159,6 +170,12 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   let endUrl: string | undefined;
   let refUrls: string[] | undefined;
   let refVideoUrls: string[] | undefined;
+  let refAudioUrls: string[] | undefined;
+  if (audioRefIds.length) {
+    const sounds = await resolveAudioReferences(userId, audioRefIds);
+    if (!sounds.ok) return { ok: false, status: 400, error: sounds.error };
+    refAudioUrls = sounds.urls;
+  }
   if (pictures.length) {
     const resolved = await resolveReferences(userId, pictures);
     if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
@@ -170,7 +187,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     if (!clips.ok) return { ok: false, status: 400, error: clips.error };
     refVideoUrls = clips.urls;
   }
-  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl, endUrl, refUrls, refVideoUrls });
+  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl, endUrl, refUrls, refVideoUrls, refAudioUrls, shots });
   if (!built.ok) return { ok: false, status: 400, error: built.error };
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel starts cannot all pass the balance check.
@@ -180,7 +197,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     userId, projectId, kind: "video", prompt, status: "pending", statusUrl: null, requestId: null, provider: "higgsfield", model: model.id,
     aspectRatio: aspect, resolution: resolutionUsed ?? null, seed, seedLocked, durationSec: duration, hasAudio: motion ? (motion.kind === "kling" ? keepSound : null) : caps.audio ? audioUsed : null,
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
-    params: { conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
+    params: { conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, audioRefs: audioRefIds.length ? audioRefIds : undefined, shots, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
   });
   if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
 

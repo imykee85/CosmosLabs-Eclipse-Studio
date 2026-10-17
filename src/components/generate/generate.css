@@ -102,3 +102,19 @@
 
 .vs-motion > * { min-width: 0; }
 @media (max-width: 400px) { .vs-motion { grid-template-columns: minmax(0, 1fr); } }
+
+/* Reference sounds (Seedance): the person's own Voice Studio takes, shown as small chips under the pictures and clips. */
+.vs-sounds { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 4px 0; }
+.vs-sound { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; height: 28px; padding: 0 4px 0 10px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); font-size: 12.5px; }
+.vs-sound b { color: var(--a-fg); font-weight: 600; } .vs-sound > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-sound button { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; }
+
+/* Multi-shot (Kling 3.0): one row per shot under the prompt box. */
+.vs-shots { display: grid; gap: 6px; padding: 6px 4px 0; }
+.vs-shot { display: grid; grid-template-columns: 22px 1fr auto auto; align-items: center; gap: 6px; }
+.vs-shot b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--a-card); color: var(--a-fg2); font-size: 12px; }
+.vs-shot input, .vs-shot select { height: 32px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; min-width: 0; }
+.vs-shot button, .vs-shot-add { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 28px; border: 0; border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 13px; cursor: pointer; }
+.vs-shot button { width: 28px; } .vs-shot button:disabled { opacity: .35; cursor: default; }
+.vs-shot-add { justify-self: start; padding: 0 10px; color: var(--a-fg2); }
+.vs-shot-err { margin: 0; color: #e5484d; font-size: 13px; }

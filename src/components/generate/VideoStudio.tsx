@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Coins, Image as ImageIcon, Film, Layers, Loader2, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Coins, Image as ImageIcon, Film, Layers, Loader2, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import MotionMenu, { type MotionMode } from "./MotionMenu";
 import VideoSettingsMenu from "./VideoSettingsMenu";
 import AgentWidget from "../create/AgentWidget";
-import ReferencePicker, { type ClipPick, type RefPick } from "../create/ReferencePicker";
+import ReferencePicker, { type ClipPick, type RefPick, type SoundPick } from "../create/ReferencePicker";
 import PromptEdge, { type EdgeMessage } from "../create/PromptEdge";
 import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
 import RenderDetails from "../library/RenderDetails";
@@ -72,6 +72,8 @@ export default function VideoStudio() {
   const [target, setTarget] = useState<Target | null>(null);
   const [pickingModel, setPickingModel] = useState(false);
   const [vrefs, setVrefs] = useState<ClipPick[]>([]);        // reference clips: the person's own finished videos
+  const [arefs, setArefs] = useState<SoundPick[]>([]);       // reference sounds: the person's own Voice Studio takes (Seedance)
+  const [shots, setShots] = useState<{ prompt: string; duration: number }[] | null>(null); // multi-shot (Kling 3.0); null = off
   // The box survives a refresh: text, settings, start and end frames, pictures, clips and the Motion choice are kept as they change and put back on the next visit.
   const [draftReady, setDraftReady] = useState(false);
   useEffect(() => {
@@ -118,7 +120,7 @@ export default function VideoStudio() {
   const box = useRef<HTMLTextAreaElement>(null);
 
   // The way the model is used decides what it offers: a start frame makes it image-to-video (its own length range, no shape choice, an end frame on some models).
-  const wf = workflowFor(model, !!start, refs.length > 0 || vrefs.length > 0);
+  const wf = workflowFor(model, !!start, refs.length > 0 || vrefs.length > 0 || arefs.length > 0);
   const caps = capsFor(model, wf);
 
   // This project's videos. A running one is followed (the list asks the status route every few seconds and fills the video in when it is done).
@@ -191,6 +193,8 @@ export default function VideoStudio() {
     if (!model.startFrame) setStart(null);
     if (!caps.refMax) setRefs([]); else setRefs((r) => r.slice(0, caps.refMax));
     if (!caps.refVideoMax) setVrefs([]); else setVrefs((r) => r.slice(0, caps.refVideoMax));
+    if (!caps.refAudioMax) setArefs([]); else setArefs((r) => r.slice(0, caps.refAudioMax));
+    if (!caps.multiShot) setShots(null);
   }, [model, wf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pickModel(m: VideoModel) {
@@ -236,10 +240,13 @@ export default function VideoStudio() {
   const hasSound = live && caps.audio && sound;
   // Motion transfer is priced by the length of the motion clip (cut to 30 s), which is recorded on the clip.
   const clipSec = vrefs[0]?.sec ?? null;
-  const priceSeconds = mc ? (clipSec != null ? Math.min(Math.ceil(clipSec), 30) : null) : duration;
+  const shotList = caps.multiShot && shots?.length ? shots : null;
+  const shotSum = shotList ? shotList.reduce((a, x) => a + x.duration, 0) : 0;
+  const shotsBad = !!shotList && (shotList.some((x) => !x.prompt.trim()) || !caps.durations.includes(shotSum));
+  const priceSeconds = mc ? (clipSec != null ? Math.min(Math.ceil(clipSec), 30) : null) : shotList ? shotSum : duration;
   const price = live && config?.creditsOn && priceSeconds != null ? videoPrice(model, caps.qualities.length ? quality : undefined, priceSeconds, mc ? false : hasSound) : null;
   const motionReady = !mc || (!!start && vrefs.length === 1);
-  const canGo = (!!prompt.trim() || (live && !caps.promptRequired)) && motionReady;
+  const canGo = (!!prompt.trim() || (live && !caps.promptRequired)) && motionReady && !shotsBad;
 
   const generate = useCallback(async (confirm = false): Promise<void> => {
     setError(""); setNote("");
@@ -252,11 +259,11 @@ export default function VideoStudio() {
       const res = await fetch("/api/video", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: prompt.trim(), model: model.id, duration, projectId: readCurrentProject()?.id ?? undefined,
+          prompt: prompt.trim(), model: model.id, duration: shotList ? shotSum : duration, shots: shotList ?? undefined, projectId: readCurrentProject()?.id ?? undefined,
           resolution: caps.qualities.length ? quality : undefined, aspectRatio: caps.ratios.length ? ratio : undefined, audio: caps.audio ? sound : undefined,
           ...(caps.seed && seedLocked ? { lockSeed: true, ...(seedNumber != null ? { seed: seedNumber } : {}) } : {}),
           negativePrompt: caps.negativePrompt != null && negative.trim() ? negative.trim() : undefined, cfgScale: caps.cfgScale && creative != null ? creative : undefined,
-          start: start ? { type: start.type, id: start.id } : undefined, end: end ? { type: end.type, id: end.id } : undefined, refs: refs.length ? refs.map((r) => ({ type: r.type, id: r.id })) : undefined, videoRefs: vrefs.length ? vrefs.map((v) => ({ id: v.id })) : undefined, motion: mc ? { orientation: mcOrient, keepSound: mcSound } : undefined, confirm: confirm || undefined,
+          start: start ? { type: start.type, id: start.id } : undefined, end: end ? { type: end.type, id: end.id } : undefined, refs: refs.length ? refs.map((r) => ({ type: r.type, id: r.id })) : undefined, videoRefs: vrefs.length ? vrefs.map((v) => ({ id: v.id })) : undefined, audioRefs: arefs.length ? arefs.map((a) => ({ id: a.id })) : undefined, motion: mc ? { orientation: mcOrient, keepSound: mcSound } : undefined, confirm: confirm || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -272,7 +279,7 @@ export default function VideoStudio() {
       await reload();
     } catch { setError("Could not reach the server. Check your connection and try again."); }
     finally { setSubmitting(false); }
-  }, [live, model.label, config?.paused, config?.creditsOn, caps, prompt, seedBad, model.id, mc, mcOrient, mcSound, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, refs, vrefs, reload]);
+  }, [live, model.label, config?.paused, config?.creditsOn, caps, prompt, seedBad, model.id, mc, mcOrient, mcSound, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, refs, vrefs, arefs, shotList, shotSum, reload]);
 
   async function cancel(g: Render) {
     setCancelling(g.id); setError("");
@@ -323,7 +330,7 @@ export default function VideoStudio() {
     setVrefs((l) => [...l].sort((a, b) => at(`v:${a.id}`) - at(`v:${b.id}`)));
   }
   // The settings icon shows a dot when a setting inside it is in use.
-  const settingsInUse = (seedLocked && !!caps.seed) || (caps.negativePrompt != null && !!negative.trim()) || (caps.cfgScale && creative != null);
+  const settingsInUse = !!shotList || (seedLocked && !!caps.seed) || (caps.negativePrompt != null && !!negative.trim()) || (caps.cfgScale && creative != null);
 
   return (
     <div className="cr-wrap">
@@ -373,6 +380,31 @@ export default function VideoStudio() {
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }} />
           </div>
           {shown.length > 0 && <OrderedRefs items={shown} onReorder={reorder} />}
+          {shotList && (
+            <div className="vs-shots" aria-label="Shots">
+              {shotList.map((sh, i) => (
+                <div key={i} className="vs-shot">
+                  <b>{i + 1}</b>
+                  <input value={sh.prompt} maxLength={caps.multiShot?.promptMax ?? 512} placeholder={`Shot ${i + 1}: what happens`} aria-label={`Shot ${i + 1}`} onChange={(e) => setShots((l) => l && l.map((x, j) => (j === i ? { ...x, prompt: e.target.value } : x)))} />
+                  <select value={sh.duration} aria-label={`Length of shot ${i + 1}`} onChange={(e) => setShots((l) => l && l.map((x, j) => (j === i ? { ...x, duration: Number(e.target.value) } : x)))}>
+                    {Array.from({ length: 15 }, (_, k) => k + 1).map((d) => <option key={d} value={d}>{d} s</option>)}
+                  </select>
+                  <button type="button" aria-label={`Remove shot ${i + 1}`} disabled={shotList.length <= 1} onClick={() => setShots((l) => l && l.filter((_, j) => j !== i))}><X size={13} /></button>
+                </div>
+              ))}
+              {!caps.durations.includes(shotSum) && <p className="vs-shot-err" role="alert">The shots add up to {shotSum} s; {model.label} makes clips of {caps.durations[0]} to {caps.durations[caps.durations.length - 1]} seconds.</p>}
+              {shotList.length < (caps.multiShot?.max ?? 6) && <button type="button" className="vs-shot-add" onClick={() => setShots((l) => [...(l ?? []), { prompt: "", duration: 3 }])}><Plus size={13} /> Add a shot</button>}
+            </div>
+          )}
+          {arefs.length > 0 && (
+            <div className="vs-sounds" aria-label="Reference sounds">
+              {arefs.map((a, i) => (
+                <span key={a.id} className="vs-sound" title={`Sound ${i + 1}: ${a.label}`}><Music size={13} /><b>A{i + 1}</b><span>{a.label}</span>
+                  <button type="button" aria-label={`Remove sound ${i + 1}`} onClick={() => setArefs((l) => l.filter((x) => x.id !== a.id))}><X size={12} /></button>
+                </span>
+              ))}
+            </div>
+          )}
           {mc && (
             <div className="vs-motion" role="group" aria-label="Motion transfer">
               <label><span>Engine</span>
@@ -416,7 +448,7 @@ export default function VideoStudio() {
                 </select>
               </label>}
               <label className="cr-chip cr-select"><span className="sr-only">Length</span>
-                <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} aria-label="Length of the clip" disabled={!caps.durations.length} title={mc ? "The length follows the motion clip" : undefined}>{caps.durations.map((d) => <option key={d} value={d}>{secs(d)}</option>)}</select>
+                <select value={shotList ? shotSum : duration} onChange={(e) => setDuration(Number(e.target.value))} aria-label="Length of the clip" disabled={!caps.durations.length || !!shotList} title={mc ? "The length follows the motion clip" : shotList ? "The length is the sum of the shots" : undefined}>{shotList && !caps.durations.includes(shotSum) && <option value={shotSum}>{secs(shotSum)}</option>}{caps.durations.map((d) => <option key={d} value={d}>{secs(d)}</option>)}</select>
               </label>
               <label className="cr-chip cr-select" title={caps.qualities.length ? "Video quality" : "This model has one fixed quality"}><span className="sr-only">Quality</span>
                 <select value={quality} onChange={(e) => setQuality(e.target.value)} aria-label="Video quality" disabled={!caps.qualities.length}>
@@ -440,11 +472,11 @@ export default function VideoStudio() {
                 </label>
               ) : (
                 <>
-              <button type="button" className="cr-chip" disabled={!model.startFrame || (!mc && (refs.length > 0 || vrefs.length > 0))} title={!model.startFrame ? `${model.label} has no start frame` : mc ? "Choose the picture that should move" : refs.length > 0 || vrefs.length > 0 ? "Use either a start frame or Ingredients, not both" : "Choose the first frame of the clip"} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
+              <button type="button" className="cr-chip" disabled={!model.startFrame || (!mc && (refs.length > 0 || vrefs.length > 0 || arefs.length > 0))} title={!model.startFrame ? `${model.label} has no start frame` : mc ? "Choose the picture that should move" : refs.length > 0 || vrefs.length > 0 ? "Use either a start frame or Ingredients, not both" : "Choose the first frame of the clip"} onClick={() => openPicker("start")}><ImageIcon size={14} /> Start frame{start ? " (1)" : ""}</button>
               <button type="button" className="cr-chip" disabled={!caps.endFrame} title={caps.endFrame ? "Choose the last frame of the clip" : start ? `${model.label} has no end frame` : "An end frame needs a start frame first"} onClick={() => openPicker("end")}><ImageIcon size={14} /> End frame{end ? " (1)" : ""}</button>
                 </>
               )}
-              <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax && !mc) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax && !mc ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose a picture (who or what appears) and the video whose movement should be copied" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length + vrefs.length + (mc && start ? 1 : 0) ? ` (${refs.length + vrefs.length + (mc && start ? 1 : 0)})` : ""}</button>
+              <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax && !mc) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax && !mc ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose a picture (who or what appears) and the video whose movement should be copied" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""}${caps.refAudioMax ? ` and ${caps.refAudioMax} sounds` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length + vrefs.length + arefs.length + (mc && start ? 1 : 0) ? ` (${refs.length + vrefs.length + arefs.length + (mc && start ? 1 : 0)})` : ""}</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Atlas"}</span></button>
@@ -461,7 +493,7 @@ export default function VideoStudio() {
         </form>
       </div>
 
-      {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : caps.refMax) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? caps.refVideoMax : 0} pickedVideos={vrefs} onVideosChange={setVrefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose a picture (who or what appears in the result) and one of your finished videos (its movement is copied). One of each, in either order." : undefined} />}
+      {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : caps.refMax) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? caps.refVideoMax : 0} pickedVideos={vrefs} onVideosChange={setVrefs} audioMax={target === "refs" && !mc ? caps.refAudioMax : 0} pickedAudio={arefs} onAudioChange={setArefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose a picture (who or what appears in the result) and one of your finished videos (its movement is copied). One of each, in either order." : undefined} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => {
         if (m === "scene") { setMotion(null); setNote("3D scene isn't connected yet."); return; }
@@ -469,7 +501,7 @@ export default function VideoStudio() {
         setNote("");
       }} onClose={() => setMotionAnchor(null)} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
-      {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} onClose={() => setSettingsAnchor(null)} />}
+      {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} multiShot={!!caps.multiShot && !mc} shotsOn={!!shots} onShots={(on) => setShots(on ? [{ prompt: "", duration: 3 }, { prompt: "", duration: 3 }] : null)} onClose={() => setSettingsAnchor(null)} />}
       {styleOpen && <StyleLibrary onClose={() => setStyleOpen(false)} />}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
     </div>

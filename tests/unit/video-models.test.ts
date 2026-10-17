@@ -75,3 +75,33 @@ test("Genjutsu motion transfer sends the picture as a list", () => {
   assert.equal(r.ok, true);
   if (r.ok) { assert.deepEqual(r.body.image_urls, ["https://example.test/a.png"]); assert.equal(r.body.video_url, "https://example.test/v.mp4"); }
 });
+
+test("reference sounds go to Seedance reference-to-video as audio_urls", async () => {
+  const { buildVideoBody, capsFor, findVideoModel } = await import("../../src/lib/video-models");
+  const s25 = findVideoModel("seedance_2_5")!, s20 = findVideoModel("seedance_2_0")!, kling = findVideoModel("kling_3_pro")!;
+  assert.equal(capsFor(s25, "ref").refAudioMax, 10);
+  assert.equal(capsFor(s20, "ref").refAudioMax, 3);
+  assert.equal(capsFor(kling, "t2v").refAudioMax, 0);
+  const ok = buildVideoBody(s25, { prompt: "dance to it", duration: 5, refAudioUrls: ["https://x/a.mp3"] });
+  assert.equal(ok.ok, true);
+  if (ok.ok) { assert.equal(ok.workflow, "ref"); assert.deepEqual(ok.body.audio_urls, ["https://x/a.mp3"]); }
+  const alone20 = buildVideoBody(s20, { prompt: "x", duration: 5, refAudioUrls: ["https://x/a.mp3"] });
+  assert.equal(alone20.ok, false, "Seedance 2.0 needs a picture or clip with the sound");
+  const with20 = buildVideoBody(s20, { prompt: "x", duration: 5, refUrls: ["https://x/p.png"], refAudioUrls: ["https://x/a.mp3"] });
+  assert.equal(with20.ok, true);
+  assert.equal(buildVideoBody(kling, { prompt: "x", duration: 5, refAudioUrls: ["https://x/a.mp3"] }).ok, false);
+});
+
+test("Kling 3.0 multi-shot: shots in order, their sum is the length", async () => {
+  const { buildVideoBody, capsFor, findVideoModel } = await import("../../src/lib/video-models");
+  const k = findVideoModel("kling_3_pro")!;
+  assert.equal(capsFor(k, "t2v").multiShot?.max, 6);
+  const shots = [{ prompt: "wide street", duration: 3 }, { prompt: "close on her face", duration: 4 }];
+  const ok = buildVideoBody(k, { prompt: "a rainy night", duration: 7, shots });
+  assert.equal(ok.ok, true);
+  if (ok.ok) { assert.equal(ok.body.multi_shots, true); assert.deepEqual(ok.body.multi_prompt, shots); assert.equal(ok.body.duration, 7); }
+  assert.equal(buildVideoBody(k, { prompt: "x", duration: 6, shots }).ok, false, "length must equal the sum");
+  assert.equal(buildVideoBody(k, { prompt: "x", duration: 20, shots: [{ prompt: "a", duration: 10 }, { prompt: "b", duration: 10 }] }).ok, false, "over 15 s");
+  assert.equal(buildVideoBody(k, { prompt: "x", duration: 3, shots: [{ prompt: "", duration: 3 }] }).ok, false);
+  assert.equal(buildVideoBody(findVideoModel("seedance_2_5")!, { prompt: "x", duration: 5, shots: [{ prompt: "a", duration: 5 }] }).ok, false, "only Kling 3.0");
+});

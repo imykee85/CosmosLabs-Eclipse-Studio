@@ -16,20 +16,42 @@ export type RefPick = { type: "upload" | "render"; id: string; url: string; labe
 
 // A reference clip: one of the person's own finished videos, with its recorded length (seconds; motion transfer prices and checks by it).
 export type ClipPick = RefPick & { sec?: number | null };
+// A reference sound: one of the person's own finished Voice Studio takes (voice, sound effect or music).
+export type SoundPick = { id: string; label: string; url: string };
 
-type Tab = "ingredients" | "assets" | "images" | "videos";
+type Tab = "ingredients" | "assets" | "images" | "videos" | "audio";
 const TABS: { id: Tab; label: string }[] = [{ id: "ingredients", label: "Ingredients" }, { id: "assets", label: "Assets" }, { id: "images", label: "My images" }];
 const VIDEO_TAB: { id: Tab; label: string } = { id: "videos", label: "My videos" };
+const AUDIO_TAB: { id: Tab; label: string } = { id: "audio", label: "My audio" };
 
 // Dialog for choosing up to `max` pictures to send to the model along with the prompt. Video models can also take the person's own finished videos: they are
 // the last tab ("My videos", up to `videoMax`); `videosOnly` shows just that tab (motion transfer, or a model whose references are clips only).
-export default function ReferencePicker({ max, picked, onChange, onClose, videoMax = 0, pickedVideos = [], onVideosChange, videosOnly = false, note }: {
+export default function ReferencePicker({ max, picked, onChange, onClose, videoMax = 0, pickedVideos = [], onVideosChange, videosOnly = false, note, audioMax = 0, pickedAudio = [], onAudioChange }: {
   max: number; picked: RefPick[]; onChange: (next: RefPick[]) => void; onClose: () => void;
   videoMax?: number; pickedVideos?: ClipPick[]; onVideosChange?: (next: ClipPick[]) => void; videosOnly?: boolean;
+  audioMax?: number; pickedAudio?: SoundPick[]; onAudioChange?: (next: SoundPick[]) => void; // a model that takes reference sounds (Seedance): the "My audio" tab
   note?: string; // replaces the usual line under the heading
 }) {
   const withVideos = videoMax > 0 && !!onVideosChange;
-  const tabs = videosOnly ? [VIDEO_TAB] : withVideos ? [...TABS, VIDEO_TAB] : TABS;
+  const withAudio = audioMax > 0 && !!onAudioChange && !videosOnly;
+  const tabs = videosOnly ? [VIDEO_TAB] : [...TABS, ...(withVideos ? [VIDEO_TAB] : []), ...(withAudio ? [AUDIO_TAB] : [])];
+  const [sounds, setSounds] = useState<{ id: string; label: string; sub: string; url: string }[] | null>(null);
+  useEffect(() => {
+    if (!withAudio) return;
+    let live = true;
+    fetch("/api/audio", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => {
+      if (!live) return;
+      const list = (Array.isArray(d.items) ? d.items : []) as { id: string; kind: string; status: string; url?: string | null; text?: string | null; modelLabel?: string; voiceName?: string | null }[];
+      setSounds(list.filter((a) => a.status === "completed" && a.url && (a.kind === "tts" || a.kind === "sfx" || a.kind === "music")).map((a) => ({ id: a.id, label: (a.text ?? "").slice(0, 60) || a.modelLabel || "Sound", sub: a.kind === "tts" ? `Voice${a.voiceName ? ` · ${a.voiceName}` : ""}` : a.kind === "sfx" ? "Sound effect" : "Music", url: a.url! })));
+    }).catch(() => { if (live) setSounds([]); });
+    return () => { live = false; };
+  }, [withAudio]);
+  const hasSound = (id: string) => pickedAudio.some((a) => a.id === id);
+  function toggleSound(a: SoundPick) {
+    if (!onAudioChange) return;
+    if (hasSound(a.id)) onAudioChange(pickedAudio.filter((x) => x.id !== a.id));
+    else if (pickedAudio.length < audioMax) onAudioChange([...pickedAudio, a]);
+  }
   const [tab, setTab] = useState<Tab>(videosOnly ? "videos" : "ingredients");
   const [adding, setAdding] = useState(false);
   const knownIds = useRef<Set<string> | null>(null); // ids present before an upload, to spot the new one
@@ -98,13 +120,29 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
         ) : videosOnly ? (
           <p className="rp-note">Choose up to {videoMax} of your finished videos. The model follows them for your prompt (call them video 1, video 2…). <b>{pickedVideos.length} of {videoMax}</b> chosen.</p>
         ) : (
-          <p className="rp-note">Choose up to {max} pictures{withVideos ? ` and ${videoMax} of your videos` : ""}. The model uses them as a starting point for your prompt. <b>{picked.length} of {max}</b> pictures{withVideos ? <>, <b>{pickedVideos.length} of {videoMax}</b> videos</> : null} chosen.</p>
+          <p className="rp-note">Choose up to {max} pictures{withVideos ? ` and ${videoMax} of your videos` : ""}{withAudio ? ` and ${audioMax} sounds` : ""}. The model uses them as a starting point for your prompt. <b>{picked.length} of {max}</b> pictures{withVideos ? <>, <b>{pickedVideos.length} of {videoMax}</b> videos</> : null}{withAudio ? <>, <b>{pickedAudio.length} of {audioMax}</b> sounds</> : null} chosen.</p>
         )}
         <div className="lib-roles" role="tablist" aria-label="Where from">
           {tabs.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? "is-active" : ""} onClick={() => setTab(t.id)}>{t.label}</button>)}
         </div>
         {error && <p className="up-error" role="alert">{error}</p>}
-        {tab === "videos" ? (
+        {tab === "audio" ? (
+          sounds === null ? <p className="rp-note">Loading…</p> : sounds.length === 0 ? <p className="rp-note">You have no voices, sounds or music yet. Make them in Voice Studio.</p> : (
+            <ul className="rp-sounds">
+              {sounds.map((a) => {
+                const on = hasSound(a.id);
+                return (
+                  <li key={a.id} className={on ? "is-on" : ""}>
+                    <button type="button" aria-pressed={on} disabled={!on && pickedAudio.length >= audioMax} onClick={() => toggleSound({ id: a.id, label: a.label, url: a.url })}>
+                      <span className="rp-sound-check">{on && <Check size={13} />}</span><span className="rp-name">{a.label}</span><small>{a.sub}</small>
+                    </button>
+                    <audio controls preload="none" src={a.url} />
+                  </li>
+                );
+              })}
+            </ul>
+          )
+        ) : tab === "videos" ? (
           loading ? <p className="rp-note">Loading…</p> : videos.length === 0 ? <p className="rp-note">You have no videos yet. Make one in Video Studio, or upload one below.</p> : (
             <div className="rp-grid">
               {videos.map((g) => {
