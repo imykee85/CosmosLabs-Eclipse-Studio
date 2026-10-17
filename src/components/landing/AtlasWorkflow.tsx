@@ -98,6 +98,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
             <li key={q}><b>{q}</b><p>{a}</p></li>
           ))}
         </ul>
+        <div className="atl-cta">{cta}</div>
       </div>
 
       <div className="atl-right" ref={right}>
@@ -115,7 +116,6 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
       </div>
       <p className="atl-tag">Imagine it<br />Say it<br /><em>Atlas</em><br />Executes it</p>
       </div>
-      <div className="atl-cta">{cta}</div>
     </section>
   );
 }
