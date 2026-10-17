@@ -1,6 +1,5 @@
 "use client";
 
-import SoonTag from "@/components/SoonTag";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -28,7 +27,7 @@ import "./canvas.css";
 const ICONS: Record<string, React.ReactNode> = {
   text: <Type size={20} />, character: <User size={20} />, product: <Package size={20} />, scene: <Mountain size={20} />, style: <Palette size={20} />,
   fullbody: <PersonStanding size={20} />, generator: <ImageIcon size={20} />, note: <StickyNote size={20} />,
-  video: <Clapperboard size={20} />, sheet: <Shirt size={20} />, image: <ImageIcon size={20} />, clip: <Film size={20} />,
+  video: <Clapperboard size={20} />, videogen: <Clapperboard size={20} />, sheet: <Shirt size={20} />, image: <ImageIcon size={20} />, clip: <Film size={20} />,
 };
 const DOUBLE_TAP_MS = 320;
 
@@ -253,8 +252,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   // Wires run while their source is still making an image, and are dashed while the source has nothing to give yet.
   const shownEdges = useMemo(() => edges.map((e) => {
     const src = nodes.find((n) => n.id === e.source);
-    const waiting = !!src && isGen(src.type) && !(src.data.gens?.length) && !(src.data.pending?.length);
-    const running = !!src && isGen(src.type) && (src.data.pending?.length ?? 0) > 0;
+    const makes = !!src && (isGen(src.type) || src.type === "videogen");
+    const waiting = makes && !(src!.data.gens?.length) && !(src!.data.pending?.length);
+    const running = makes && (src!.data.pending?.length ?? 0) > 0;
     return { ...e, animated: running, className: waiting ? "cv-wire-wait" : "" };
   }), [edges, nodes]);
 
@@ -350,7 +350,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
                       <div className="cv-grid">
                         {g.items.map((i) => (
                           <button key={i.id} type="button" className="cv-tile" title={i.blurb} onClick={() => i.kind && addNode(i.kind)}>
-                            {ICONS[i.id]}<span>{i.label}</span>{!i.kind && <SoonTag className="cv-soon" />}
+                            {ICONS[i.id]}<span>{i.label}</span>
                           </button>
                         ))}
                       </div>
@@ -436,6 +436,11 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
               if (p) patchNode(ask.nodeId, { ref: { type: p.type, id: p.id, label: p.label } });
               setAsk(null);
             }} />
+        )}
+        {ask?.kind === "clip" && (
+          <ReferencePicker max={0} picked={[]} onChange={() => {}} videoMax={1} pickedVideos={[]} videosOnly note="Choose one of your videos for this node."
+            onVideosChange={(next) => { const v = next[0]; if (v) patchNode(ask.nodeId, { clip: { id: v.id, label: v.label, sec: v.sec ?? null } }); setAsk(null); }}
+            onClose={() => setAsk(null)} />
         )}
         {ask?.kind === "refs" && askNode && refsMax > 0 && (
           <ReferencePicker max={refsMax} picked={(askNode.data.refs ?? []).map((r) => ({ ...r, url: refFileUrl(r) }))} onClose={() => setAsk(null)}

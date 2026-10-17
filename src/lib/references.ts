@@ -86,3 +86,17 @@ export async function deliverReferences(items: ReferenceItem[]): Promise<string[
     }
   }));
 }
+
+// Reference audio (Seedance reference-to-video `audio_urls`): the person's own finished Voice Studio takes (voices, sound effects, music; not
+// transcripts, not binned), as one-hour signed links. Ids only, owner-checked.
+export async function resolveAudioReferences(userId: string, ids: string[]): Promise<{ ok: true; urls: string[] } | { ok: false; error: string }> {
+  if (!ids.length) return { ok: true, urls: [] };
+  if (!storageEnabled) return { ok: false, error: "Storage is not set up, so reference audio cannot be used." };
+  const urls: string[] = [];
+  for (const id of ids) {
+    const a = await db.audioJob.findFirst({ where: { id, userId, status: "completed", deletedAt: null, kind: { in: ["tts", "sfx", "music"] } }, select: { storageKey: true } });
+    if (!a?.storageKey) return { ok: false, error: "One of your reference sounds could not be found. It may have been deleted." };
+    urls.push(await signedGetUrl(a.storageKey, REFERENCE_LINK_SECONDS));
+  }
+  return { ok: true, urls };
+}

@@ -30,3 +30,29 @@ test("wires never loop, repeat or run into themselves", () => {
   assert.equal(canWire(nodes, edges, { source: "t", target: "g1", targetHandle: "description" }), true);
   assert.equal(canWire(nodes, edges, { source: "t", target: "t" }), false);
 });
+
+test("the new nodes: Image, Video, Character sheet and Video generator", async () => {
+  const { composePrompt, inputsOf } = await import("../../src/lib/canvas-flow");
+  assert.equal(portFor("image", "generator"), "ingredients");
+  assert.equal(portFor("image", "videogen"), "start", "a picture is the video's start frame by default");
+  assert.equal(portFor("generator", "videogen"), "start");
+  assert.equal(portFor("clip", "videogen"), "clips");
+  assert.equal(portFor("clip", "generator"), null, "a clip never goes into an image generator");
+  assert.equal(portFor("videogen", "videogen"), "clips");
+  assert.ok(!inPortsOf("sheet").some((p) => p.id === "scene"));
+  assert.deepEqual(inPortsOf("videogen").map((p) => p.id), ["description", "start", "ingredients", "clips"]);
+  assert.equal(accepts("character", "start"), true);
+  assert.equal(accepts("text", "clips"), false);
+  const nodes = [
+    { ...node("c", "clip"), data: { clip: { id: "v1", label: "walk" } } },
+    { ...node("i", "image"), data: { ref: { type: "upload", id: "u1", label: "hero" } } },
+    node("v", "videogen"),
+  ] as unknown as CNode[];
+  const edges = [edge("c", "v", "clips"), edge("i", "v", "start")];
+  assert.equal(canWire(nodes, [], { source: "c", target: "v", targetHandle: "clips" }), true);
+  assert.equal(canWire(nodes, [], { source: "c", target: "v", targetHandle: "ingredients" }), false);
+  const ins = inputsOf(nodes, edges, "v");
+  assert.equal(ins.find((x) => x.port === "start")?.pic?.id, "u1");
+  assert.equal(ins.find((x) => x.port === "clips")?.clip?.id, "v1");
+  assert.match(composePrompt("sheet", "a knight", [], [], 2000), /^a knight\. Character reference sheet/);
+});

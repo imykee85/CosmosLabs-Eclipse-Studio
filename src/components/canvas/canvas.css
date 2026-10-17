@@ -223,7 +223,9 @@
 .cv-n-card { position: relative; width: 100%; min-height: 264px; border: 1px solid var(--a-line3); border-radius: 24px; background: var(--a-card); box-shadow: 0 6px 20px var(--a-shadow); transition: border-color .15s, box-shadow .15s; }
 .cv-n.is-selected .cv-n-card { border-color: #c00707; box-shadow: 0 0 0 1px #c00707, 0 6px 20px var(--a-shadow); }
 .cv-disp { position: absolute; inset: 8px; display: grid; overflow: hidden; border-radius: 17px; background: var(--a-input); }
-.cv-disp > img, .cv-disp .cv-res { width: 100%; height: 100%; object-fit: cover; }
+.cv-disp > img, .cv-disp .cv-res, .cv-disp > .cv-clip { width: 100%; height: 100%; object-fit: cover; }
+.cv-disp > .cv-clip { display: block; background: #000; }
+.cv-wide { display: flex; width: 100%; } .cv-wide select { flex: 1; min-width: 0; }
 .cv-disp .cv-res { border: 0; border-radius: 0; box-shadow: none; aspect-ratio: auto !important; }
 .cv-disp-empty { display: grid; align-content: center; justify-items: center; gap: 10px; padding: 16px; color: var(--a-muted2); font-size: 13px; text-align: center; }
 .cv-disp-text { width: 100%; height: 100%; padding: 16px 18px; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; line-height: 1.5; resize: none; }

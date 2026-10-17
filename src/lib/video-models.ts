@@ -14,7 +14,7 @@ type WfOverride = { resolution?: ResSpec | null; aspect?: AspectSpec | null; see
 
 export type VideoLive = {
   endpoints: Partial<Record<Workflow, string>>;     // path after the API base address
-  refs?: { max: number; videos?: { max: number }; total?: number }; // reference pictures, reference clips (the user's own finished videos), and the most of both together
+  refs?: { max: number; videos?: { max: number }; audio?: { max: number; alone?: boolean }; total?: number }; // reference pictures, clips (the user's own finished videos), sounds (their Voice Studio takes; `alone`: a sound with no picture or clip is allowed), and the most in all
   promptMax: number;                                // longer prompts are refused here (some endpoints truncate silently)
   promptRequired: Record<"t2v" | "i2v", boolean> & { ref?: boolean };
   durations: Record<"t2v" | "i2v", { min: number; max: number; values?: number[] }> & { ref?: { min: number; max: number; values?: number[] } };  // `values` = only these lengths (e.g. 5 or 10)
@@ -29,6 +29,9 @@ export type VideoLive = {
   byWf?: Partial<Record<"t2v" | "i2v" | "ref", WfOverride>>;
   fixed?: Record<string, unknown>;                  // always sent as is (e.g. a watermark switch the API wants off)
   endFrameField?: string;                           // name of the last-frame field on the image-to-video endpoint; absent = no end frame
+  // Multi-shot (Kling 3.0 Std/Pro/4K): `multi_shots: true` and `multi_prompt` [{ prompt, duration }] (1 to `max` shots, each prompt up to `promptMax`, each 1 to 15 s);
+  // the summed shot length replaces `duration` and is what is billed. Field names from the owner's Kling reference; the item shape is NOT verified live.
+  multiShot?: { max: number; promptMax: number; minSec: number; maxSec: number };
   // Motion transfer (the Motion chip): the subject picture is the start frame, the motion clip is the one reference clip; the length follows the clip.
   motion?: { kind: "kling" | "genjutsu"; minSec: number; maxSec: number; trimsAbove?: boolean };
   // PROVISIONAL credit price (the video docs publish no prices): credits per second by resolution ("default" when there is no resolution field),
@@ -70,6 +73,7 @@ const kling3 = (tier: "std" | "pro" | "4k"): VideoLive => ({
   audio: { field: "sound", kind: "onoff", default: true },
   cfgScale: true,
   endFrameField: "last_image_url",
+  multiShot: { max: 6, promptMax: 512, minSec: 1, maxSec: 15 },
   price: { perSecond: { default: tier === "4k" ? 40 : tier === "pro" ? 22 : 14 }, audioFactor: 1.5 },
   timeoutMinutes: SLOW,
 });
@@ -117,7 +121,7 @@ const kling25t = (tier: "pro" | "standard"): VideoLive => ({
 const SEEDANCE_RES = ["480p", "720p", "1080p", "4k"];
 const seedance2: VideoLive = {
   endpoints: { t2v: "bytedance/seedance-2.0/text-to-video", i2v: "bytedance/seedance-2.0/image-to-video", ref: "bytedance/seedance-2.0/reference-to-video" },
-  refs: { max: 9, videos: { max: 3 } },
+  refs: { max: 9, videos: { max: 3 }, audio: { max: 3 } },
   promptMax: 5000, // the pages state no limit; kept at the app-wide cap
   promptRequired: { t2v: true, i2v: false, ref: false },
   durations: { t2v: { min: 4, max: 15 }, i2v: { min: 4, max: 15 }, ref: { min: 4, max: 15 } },
@@ -135,7 +139,7 @@ const seedance2: VideoLive = {
 // no 4k, no seed, negative prompt or cfg. `bitrate_mode` (default "high") and `output_format` (default "mp4", text-to-video only) are left to their defaults.
 const seedance25: VideoLive = {
   endpoints: { t2v: "bytedance/seedance-2.5/text-to-video", i2v: "bytedance/seedance-2.5/image-to-video", ref: "bytedance/seedance-2.5/reference-to-video" },
-  refs: { max: 30, videos: { max: 10 } },
+  refs: { max: 30, videos: { max: 10 }, audio: { max: 10, alone: true }, total: 50 },
   promptMax: 5000, // the pages state no limit; kept at the app-wide cap
   promptRequired: { t2v: true, i2v: false, ref: false },
   durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 }, ref: { min: 4, max: 30 } },
@@ -443,6 +447,8 @@ export type Caps = {
   endFrame: boolean;
   refMax: number;            // reference pictures the model takes (0 = none, or not connected)
   refVideoMax: number;       // reference clips the model takes (0 = none)
+  refAudioMax: number;       // reference sounds the model takes (0 = none)
+  multiShot: { max: number; promptMax: number; minSec: number; maxSec: number } | null; // several shots in one clip (Kling 3.0)
   promptRequired: boolean;
   promptMax: number;
 };
@@ -451,11 +457,11 @@ export type Caps = {
 export function capsFor(m: VideoModel, wf: Workflow): Caps {
   const l = m.live;
   if (!l) {
-    return { durations: m.durations, defaultDuration: m.durations.includes(5) ? 5 : m.durations[0], qualities: m.qualities, defaultQuality: m.qualities.length ? m.qualities[Math.min(1, m.qualities.length - 1)] : "", ratios: m.ratios, defaultRatio: m.ratios.includes("16:9") ? "16:9" : m.ratios[0], audio: m.sound === "toggle", audioDefault: true, seed: null, negativePrompt: null, cfgScale: false, endFrame: m.endFrame, refMax: 0, refVideoMax: 0, promptRequired: true, promptMax: 5000 };
+    return { durations: m.durations, defaultDuration: m.durations.includes(5) ? 5 : m.durations[0], qualities: m.qualities, defaultQuality: m.qualities.length ? m.qualities[Math.min(1, m.qualities.length - 1)] : "", ratios: m.ratios, defaultRatio: m.ratios.includes("16:9") ? "16:9" : m.ratios[0], audio: m.sound === "toggle", audioDefault: true, seed: null, negativePrompt: null, cfgScale: false, endFrame: m.endFrame, refMax: 0, refVideoMax: 0, refAudioMax: 0, multiShot: null, promptRequired: true, promptMax: 5000 };
   }
   if (wf === "motion") {
     const e = eff(l, wf);
-    return { durations: [], defaultDuration: 5, qualities: e.resolution?.values ?? [], defaultQuality: e.resolution?.default ?? "", ratios: [], defaultRatio: "", audio: false, audioDefault: false, seed: null, negativePrompt: null, cfgScale: false, endFrame: false, refMax: 0, refVideoMax: l.refs?.videos?.max ?? 0, promptRequired: false, promptMax: l.promptMax };
+    return { durations: [], defaultDuration: 5, qualities: e.resolution?.values ?? [], defaultQuality: e.resolution?.default ?? "", ratios: [], defaultRatio: "", audio: false, audioDefault: false, seed: null, negativePrompt: null, cfgScale: false, endFrame: false, refMax: 0, refVideoMax: l.refs?.videos?.max ?? 0, refAudioMax: 0, multiShot: null, promptRequired: false, promptMax: l.promptMax };
   }
   const d = (wf === "ref" ? l.durations.ref : undefined) ?? l.durations[wf === "i2v" ? "i2v" : "t2v"];
   const e = eff(l, wf);
@@ -474,6 +480,8 @@ export function capsFor(m: VideoModel, wf: Workflow): Caps {
     endFrame: wf === "i2v" && !!l.endFrameField,
     refMax: l.endpoints.ref ? l.refs?.max ?? 0 : 0,
     refVideoMax: l.endpoints.ref ? l.refs?.videos?.max ?? 0 : 0,
+    refAudioMax: l.endpoints.ref ? l.refs?.audio?.max ?? 0 : 0,
+    multiShot: wf !== "ref" && l.multiShot ? l.multiShot : null,
     promptRequired: (wf === "ref" ? l.promptRequired.ref : l.promptRequired[wf === "i2v" ? "i2v" : "t2v"]) ?? false,
     promptMax: l.promptMax,
   };
@@ -509,6 +517,8 @@ export type VideoInput = {
   endUrl?: string;     // last frame
   refUrls?: string[];  // reference pictures, in order (makes it reference-to-video; not together with a start frame)
   refVideoUrls?: string[]; // reference clips, in order (also reference-to-video)
+  refAudioUrls?: string[]; // reference sounds, in order (reference-to-video, Seedance)
+  shots?: { prompt: string; duration: number }[]; // multi-shot (Kling 3.0): the shots in order; their summed length is the duration
   keepSound?: boolean;     // motion transfer (Kling): keep the sound of the motion clip
   orientation?: "image" | "video"; // motion transfer (Kling): whose facing direction the result follows
 };
@@ -520,9 +530,17 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   if (!l) return { ok: false, error: `${m.label} is not connected yet.` };
   const refs = input.refUrls ?? [];
   const refVideos = input.refVideoUrls ?? [];
+  const refAudio = input.refAudioUrls ?? [];
   if (l.motion) return buildMotionBody(m, l, input);
-  if ((refs.length || refVideos.length) && (input.startUrl || input.endUrl)) return { ok: false, error: "Use either a start frame or reference pictures, not both." };
-  const wf = workflowOf(!!input.startUrl, refs.length > 0 || refVideos.length > 0);
+  if ((refs.length || refVideos.length || refAudio.length) && (input.startUrl || input.endUrl)) return { ok: false, error: "Use either a start frame or reference pictures, not both." };
+  const wf = workflowOf(!!input.startUrl, refs.length > 0 || refVideos.length > 0 || refAudio.length > 0);
+  if (refAudio.length) {
+    const a = l.refs?.audio;
+    if (!a || !l.endpoints.ref) return { ok: false, error: `${m.label} takes no reference sounds.` };
+    if (refAudio.length > a.max) return { ok: false, error: `${m.label} takes up to ${a.max} reference sounds (you chose ${refAudio.length}).` };
+    if (!a.alone && !refs.length && !refVideos.length) return { ok: false, error: `${m.label} needs a reference picture or clip as well as the sound.` };
+    if (l.refs?.total != null && refs.length + refVideos.length + refAudio.length > l.refs.total) return { ok: false, error: `${m.label} takes up to ${l.refs.total} references in all.` };
+  }
   const endpoint = l.endpoints[wf];
   if (!endpoint) return { ok: false, error: wf === "ref" ? `${m.label} takes no reference pictures yet.` : `${m.label} has no ${wf === "i2v" ? "start-frame" : "text-to-video"} mode connected.` };
   if (wf === "ref" && refVideos.length > (l.refs?.videos?.max ?? 0)) return { ok: false, error: l.refs?.videos ? `${m.label} takes up to ${l.refs.videos.max} reference clips (you chose ${refVideos.length}).` : `${m.label} takes no reference clips.` };
@@ -530,13 +548,29 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   if (wf === "ref" && refs.length > (l.refs?.max ?? 0)) return { ok: false, error: `${m.label} takes up to ${l.refs?.max ?? 0} reference pictures (you chose ${refs.length}).` };
   const caps = capsFor(m, wf);
   const prompt = input.prompt.trim();
+  const shots = input.shots ?? [];
+  if (shots.length) {
+    const ms = l.multiShot;
+    if (!ms) return { ok: false, error: `${m.label} has no multi-shot mode.` };
+    if (wf === "ref") return { ok: false, error: "Multi-shot does not work with reference pictures." };
+    if (shots.length > ms.max) return { ok: false, error: `${m.label} takes up to ${ms.max} shots.` };
+    for (const [i, sh] of shots.entries()) {
+      if (!sh.prompt?.trim()) return { ok: false, error: `Shot ${i + 1} needs a description.` };
+      if (sh.prompt.trim().length > ms.promptMax) return { ok: false, error: `Shot ${i + 1} can be up to ${ms.promptMax} characters.` };
+      if (!Number.isInteger(sh.duration) || sh.duration < ms.minSec || sh.duration > ms.maxSec) return { ok: false, error: `Shot ${i + 1} must be ${ms.minSec} to ${ms.maxSec} seconds.` };
+    }
+    const total = shots.reduce((a, sh) => a + sh.duration, 0);
+    if (total !== input.duration) return { ok: false, error: "The length must be the sum of the shots." };
+    if (!caps.durations.includes(total)) return { ok: false, error: `The shots add up to ${total} s; ${m.label} makes clips of ${caps.durations[0]} to ${caps.durations[caps.durations.length - 1]} seconds.` };
+  }
   if (caps.promptRequired && !prompt) return { ok: false, error: `${m.label} needs a prompt${wf === "i2v" ? " (even with a start frame)" : ""}.` };
   if (prompt.length > caps.promptMax) return { ok: false, error: `${m.label} accepts prompts up to ${caps.promptMax} characters (yours is ${prompt.length}).` };
-  if (!Number.isInteger(input.duration) || !caps.durations.includes(input.duration)) return { ok: false, error: caps.durations.length === 2 && caps.durations[1] - caps.durations[0] > 1 ? `${m.label} makes clips of ${caps.durations[0]} or ${caps.durations[1]} seconds.` : `${m.label} makes clips of ${caps.durations[0]} to ${caps.durations[caps.durations.length - 1]} seconds.` };
+  if (!shots.length && (!Number.isInteger(input.duration) || !caps.durations.includes(input.duration))) return { ok: false, error: caps.durations.length === 2 && caps.durations[1] - caps.durations[0] > 1 ? `${m.label} makes clips of ${caps.durations[0]} or ${caps.durations[1]} seconds.` : `${m.label} makes clips of ${caps.durations[0]} to ${caps.durations[caps.durations.length - 1]} seconds.` };
 
   const body: Record<string, unknown> = {};
   if (prompt || caps.promptRequired) body.prompt = prompt;
   body.duration = input.duration;
+  if (shots.length) { body.multi_shots = true; body.multi_prompt = shots.map((sh) => ({ prompt: sh.prompt.trim(), duration: sh.duration })); }
   if (caps.qualities.length) {
     const res = input.resolution ?? caps.defaultQuality;
     if (!caps.qualities.includes(res)) return { ok: false, error: `${m.label} does not support the ${res} quality.` };
@@ -568,6 +602,7 @@ export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   if (wf === "ref") {
     if (refs.length) body.image_urls = refs;
     if (refVideos.length) body.video_urls = refVideos;
+    if (refAudio.length) body.audio_urls = refAudio;
   } else if (wf === "i2v") {
     body.image_url = input.startUrl;
     if (input.endUrl) {

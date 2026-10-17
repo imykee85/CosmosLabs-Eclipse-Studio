@@ -4,7 +4,8 @@ import { createContext, useContext } from "react";
 
 // What a node can ask of the canvas. The pickers and the add menu are drawn by the canvas itself, outside the zoomed and moved node layer.
 export type AskRequest =
-  | { kind: "picture"; nodeId: string }   // choose a Library picture for a Character, Product or Scene node
+  | { kind: "picture"; nodeId: string }   // choose a Library picture for a Character, Product, Scene or Image node
+  | { kind: "clip"; nodeId: string }      // choose one of the person's own finished videos for a Video node
   | { kind: "refs"; nodeId: string }      // choose reference pictures for a generator
   | { kind: "model"; nodeId: string }     // open the model sheet for a generator
   | { kind: "details"; genId: string }    // show a finished image with its details

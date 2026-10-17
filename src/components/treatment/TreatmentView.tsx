@@ -6,6 +6,8 @@ import { ArrowRight, Copy, FileText, Loader2, Trash2, Link2, MessagesSquare, Map
 import AgentIcon from "@/components/AgentIcon";
 import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
+import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import { refreshCredits } from "@/lib/use-credits";
@@ -49,6 +51,20 @@ const MEDIA = [
 type Msg = { id: string; role: "user" | "assistant"; text: string; full?: string; error?: boolean };
 const uid = () => Math.random().toString(36).slice(2, 10);
 const TEXT_FILE = /\.(txt|md|csv|json)$/i;
+const DOCX = /\.docx$/i;
+const PDF = /\.pdf$/i;
+const MAX_PDF = 3_000_000;
+type Pic = RefPick & { role: string };
+// Reads a Word file's text in the browser (mammoth is only loaded when someone attaches one).
+async function docxText(f: File): Promise<string> {
+  const mammoth = await import("mammoth");
+  const r = await mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() });
+  return r.value.trim();
+}
+const toBase64 = (buf: ArrayBuffer) => { let bin = ""; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(bin); };
+// Speech to text in the browser (Chrome, Edge, Safari). Words appear in the message box as they are recognised.
+type Rec = { lang: string; continuous: boolean; interimResults: boolean; start: () => void; stop: () => void; onresult: ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null; onend: (() => void) | null; onerror: ((e: { error: string }) => void) | null };
+const speechApi = (): (new () => Rec) | null => { const w = window as unknown as Record<string, unknown>; return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as (new () => Rec) | null; };
 const KEY = (project: string) => `eclipse-treatment-${project}`;
 
 export default function TreatmentView() {
@@ -57,6 +73,13 @@ export default function TreatmentView() {
   const [mode, setMode] = useState<Mode | null>(null);
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
   const [files, setFiles] = useState<File[]>([]);
+  const [pics, setPics] = useState<Pic[]>([]);
+  const [pickRole, setPickRole] = useState<string | null>(null);
+  const [links, setLinks] = useState<string[]>([]);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkDraft, setLinkDraft] = useState("");
+  const [listening, setListening] = useState(false);
+  const rec = useRef<Rec | null>(null);
   const [text, setText] = useDraftText("treatment");
   // The conversation and the plan built from it (a treatment), kept in this browser per project.
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -90,35 +113,71 @@ export default function TreatmentView() {
   const agentChip = useRef<HTMLButtonElement>(null);
   useAgentHost({
     page: "treatment",
-    context: () => ({ prompt: text, settings: treatmentText(plan).split("\n").slice(0, 14) }),
+    context: () => ({ prompt: text, settings: treatmentText(plan).split("\n").slice(0, 14), pictures: pics.map((p) => ({ type: p.type, id: p.id, role: p.role })) }),
     setPrompt: setText,
     generate: async () => "Pictures are made in Image Studio. Open it and I can start the render there.",
   });
   const picker = useRef<HTMLInputElement>(null);
   async function send() {
     const typed = text.trim();
-    if ((!typed && !files.length) || busy) return;
+    if ((!typed && !files.length && !pics.length && !links.length) || busy) return;
     setError("");
-    // Text files are read here and sent with the message; other kinds of file cannot be read yet.
-    const readable = files.filter((f) => TEXT_FILE.test(f.name) && f.size <= 200_000);
-    if (files.length && readable.length < files.length) setError("Only text files (.txt, .md, .csv, .json, up to 200 KB) can be read for now. Paste the text of other files instead.");
+    rec.current?.stop();
+    // Text and Word files are read here and sent as text; one PDF (up to 3 MB) is sent as a document the model reads itself.
     let full = typed;
-    for (const f of readable) full += `\n\n[Attached file: ${f.name}]\n${(await f.text()).slice(0, 8000)}`;
-    if (!full.trim()) return;
-    const shown = typed || (readable.length ? `(${readable.map((f) => f.name).join(", ")})` : "");
-    const mine: Msg = { id: uid(), role: "user", text: shown + (typed && readable.length ? `\n(attached: ${readable.map((f) => f.name).join(", ")})` : ""), full };
+    let pdf: { name: string; data: string } | null = null;
+    const skipped: string[] = [];
+    for (const f of files) {
+      try {
+        if (TEXT_FILE.test(f.name) && f.size <= 200_000) full += `\n\n[Attached file: ${f.name}]\n${(await f.text()).slice(0, 8000)}`;
+        else if (DOCX.test(f.name) && f.size <= 10_000_000) full += `\n\n[Attached file: ${f.name}]\n${(await docxText(f)).slice(0, 12000)}`;
+        else if (PDF.test(f.name) && f.size <= MAX_PDF && !pdf) pdf = { name: f.name, data: toBase64(await f.arrayBuffer()) };
+        else skipped.push(f.name);
+      } catch { skipped.push(f.name); }
+    }
+    if (skipped.length) setError(`Could not read ${skipped.join(", ")}. Text, Word (.docx) and one PDF up to 3 MB per message can be read.`);
+    const attached = [...files.filter((f) => !skipped.includes(f.name)).map((f) => f.name), ...pics.map((p) => `${p.role}: ${p.label}`), ...links];
+    if (!full.trim() && !pdf && !pics.length && !links.length) return;
+    const shown = typed || (attached.length ? `(${attached.join(", ")})` : "");
+    const mine: Msg = { id: uid(), role: "user", text: shown + (typed && attached.length ? `\n(attached: ${attached.join(", ")})` : ""), full: full || shown };
     const history = [...msgs, mine];
-    setMsgs(history); setText(""); setFiles([]); setBusy(true);
+    const sentPics = pics, sentLinks = links;
+    setMsgs(history); setText(""); setFiles([]); setPics([]); setLinks([]); setLinkOpen(false); setBusy(true);
     try {
-      const res = await fetch("/api/treatment/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: active.id, treatment: plan, messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, text: m.full ?? m.text })) }) });
+      const res = await fetch("/api/treatment/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: active.id, treatment: plan, messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, text: m.full ?? m.text })), pictures: sentPics.map((p) => ({ type: p.type, id: p.id, role: p.role })), links: sentLinks, pdf }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMsgs((l) => [...l, { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The planner couldn't answer. Please try again.", error: true }]); return; }
+      // A linked page's text is kept with the message, so later turns still have it.
+      if (typeof data.linkText === "string" && data.linkText) setMsgs((l) => l.map((m) => (m.id === mine.id ? { ...m, full: `${m.full ?? m.text}\n\n${data.linkText}`.slice(0, 20000) } : m)));
       if (data.treatment) setPlan(cleanTreatment(data.treatment));
       setMsgs((l) => [...l, { id: uid(), role: "assistant", text: String(data.text ?? "") }]);
     } catch {
       setMsgs((l) => [...l, { id: uid(), role: "assistant", text: "I couldn't reach the server. Check your connection and try again.", error: true }]);
     } finally { setBusy(false); refreshCredits(); }
   }
+  function addLink() {
+    const v = linkDraft.trim();
+    if (!v) return;
+    let u: URL | null = null;
+    try { u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`); } catch {}
+    if (!u || !/^https?:$/.test(u.protocol) || !u.hostname.includes(".")) { setError("That doesn't look like a web address."); return; }
+    if (links.length >= 2) { setError("Two links per message at most."); return; }
+    setLinks((l) => (l.includes(u!.toString()) ? l : [...l, u!.toString()])); setLinkDraft(""); setLinkOpen(false); setError("");
+  }
+  function toggleMic() {
+    if (listening) { rec.current?.stop(); return; }
+    const Api = speechApi();
+    if (!Api) { setError("Voice input is not available in this browser. Try Chrome, Edge or Safari."); return; }
+    const r = new Api();
+    r.lang = navigator.language || "en-US"; r.continuous = true; r.interimResults = false;
+    const base = text.trim();
+    let said = "";
+    r.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) said += `${said ? " " : ""}${e.results[i][0].transcript.trim()}`; setText(`${base}${base && said ? " " : ""}${said}`); };
+    r.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed") setError("Allow the microphone for this site to talk instead of typing."); };
+    r.onend = () => { setListening(false); rec.current = null; };
+    try { r.start(); rec.current = r; setListening(true); setError(""); } catch { setError("Voice input could not start."); }
+  }
+  useEffect(() => () => rec.current?.stop(), []);
   const continueToPrompts = () => {
     try { if (hasTreatment(plan)) sessionStorage.setItem("eclipse-treatment-handoff", treatmentText(plan)); } catch {}
     router.push("/prompts");
@@ -187,7 +246,7 @@ export default function TreatmentView() {
             {active.media && (
               <div className="tr-media">
                 <span>Add media:</span>
-                {MEDIA.map((x) => <button key={x.label} type="button" className="tr-chip">{x.icon}{x.label}</button>)}
+                {MEDIA.map((x) => <button key={x.label} type="button" className="tr-chip" onClick={() => { if (pics.length >= 4) { setError("Four pictures per message at most."); return; } setPickRole(x.label); }}>{x.icon}{x.label}</button>)}
               </div>
             )}
           </div>
@@ -217,8 +276,20 @@ export default function TreatmentView() {
         )}
 
         <form className="tr-composer" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-          {files.length > 0 && (
+          {(files.length > 0 || pics.length > 0 || links.length > 0) && (
             <div className="tr-files">
+              {pics.map((p) => (
+                <span key={`${p.type}-${p.id}`} className="tr-file tr-file-pic">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={thumbOf(p.type, p.id)} onError={fallbackTo(p.url)} alt="" /><span>{p.role}</span>
+                  <button type="button" aria-label={`Remove ${p.role} picture`} onClick={() => setPics(pics.filter((x) => x !== p))}><X size={13} /></button>
+                </span>
+              ))}
+              {links.map((l) => (
+                <span key={l} className="tr-file"><Link2 size={14} /><span>{l.replace(/^https?:\/\//, "")}</span>
+                  <button type="button" aria-label={`Remove ${l}`} onClick={() => setLinks(links.filter((x) => x !== l))}><X size={13} /></button>
+                </span>
+              ))}
               {files.map((f, i) => (
                 <span key={f.name + i} className="tr-file"><FileText size={14} /><span>{f.name}</span>
                   <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles(files.filter((_, j) => j !== i))}><X size={13} /></button>
@@ -226,15 +297,23 @@ export default function TreatmentView() {
               ))}
             </div>
           )}
+          {linkOpen && (
+            <div className="tr-linkrow">
+              <Link2 size={15} />
+              <input type="url" inputMode="url" autoFocus value={linkDraft} placeholder="Paste a link to a brief, a reference or a page" aria-label="Link"
+                onChange={(e) => setLinkDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } if (e.key === "Escape") setLinkOpen(false); }} />
+              <button type="button" className="tr-linkadd" onClick={addLink} disabled={!linkDraft.trim()}>Add</button>
+            </div>
+          )}
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Your message"
             placeholder={active.id === "brief" ? "Paste your brief or attach a file..." : "Type your answer..."}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
           {error && <p className="tr-error" role="alert">{error}</p>}
           <div className="tr-tools">
-            <input ref={picker} type="file" multiple hidden accept=".txt,.md,.csv,.json" onChange={(e) => addFiles(e.target.files)} />
+            <input ref={picker} type="file" multiple hidden accept=".txt,.md,.csv,.json,.pdf,.docx" onChange={(e) => addFiles(e.target.files)} />
             <button type="button" className="tr-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
-            <button type="button" className="tr-tool" aria-label="Add a link"><Link2 size={16} /></button>
-            <button type="button" className="tr-tool" aria-label="Voice input"><Mic size={16} /></button>
+            <button type="button" className={`tr-tool ${linkOpen ? "is-on" : ""}`} aria-label="Add a link" title="Add a link" aria-pressed={linkOpen} onClick={() => setLinkOpen((v) => !v)}><Link2 size={16} /></button>
+            <button type="button" className={`tr-tool ${listening ? "is-live" : ""}`} aria-label={listening ? "Stop voice input" : "Voice input"} title={listening ? "Stop" : "Talk instead of typing"} aria-pressed={listening} onClick={toggleMic}><Mic size={16} /></button>
             <div className="tr-agent">
               <button ref={agentChip} type="button" className="tr-tool tr-agentchip" aria-label="Choose your agent" aria-haspopup="menu" title="Choose your agent" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
                 <AgentIcon size={14} /> <span>{agent.agent ?? "Atlas"}</span>
@@ -242,11 +321,17 @@ export default function TreatmentView() {
               <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                 onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
             </div>
-            <button type="submit" className="tr-send" aria-label="Send" disabled={busy || (!text.trim() && !files.length)}>{busy ? <Loader2 size={16} className="cr-spin" /> : <Send size={16} />}</button>
+            <button type="submit" className="tr-send" aria-label="Send" disabled={busy || (!text.trim() && !files.length && !pics.length && !links.length)}>{busy ? <Loader2 size={16} className="cr-spin" /> : <Send size={16} />}</button>
           </div>
         </form>
       </section>
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
+      {pickRole && (
+        <ReferencePicker max={Math.max(1, 4 - pics.length) + pics.filter((p) => p.role === pickRole).length} picked={pics.filter((p) => p.role === pickRole)}
+          note={`Pictures of the ${pickRole.toLowerCase()} for the planner to look at.`}
+          onChange={(next) => setPics((cur) => [...cur.filter((p) => p.role !== pickRole), ...next.map((n) => ({ ...n, role: pickRole }))].slice(0, 4))}
+          onClose={() => setPickRole(null)} />
+      )}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
     </div>
   );
