@@ -268,3 +268,4 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 - **Meet Atlas button back in place (2026-10-17, owner: "Revert it back to its old place"):** the centred-under-both-columns version was reverted; the button sits in the left column under the strengths again. Do not move it unasked.
 - **Nav menu text at the subtext size (2026-10-17, owner):** the nav links (How it Works, Pricing, FAQ), the language button and Log in are 24px above 800px and 20px at 800px and below (the phone menu), weight 500, like the section subtexts. The Sign Up/Log In pill keeps its size. Measured at 1280 and 1440: one line, no overlap.
 - **"Made to look" fade shorter (2026-10-17, owner: "the bottom fade goes up too much"):** `.results-fade` is 18% of the wall (was 32%), solid paper from 82%; Create Yours sits 4% from the bottom (was 9%).
+- **Nav menu text one step smaller (2026-10-17, owner):** 20px above 800px, 18px in the phone menu (was 24 / 20).
