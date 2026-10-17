@@ -23,15 +23,13 @@ export const audience = [
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports"];
 
-// The black "Start creating with Eclipse." card: the steps of the work, lit one after another while each column's bar rises.
-// [step, where in Eclipse it happens, bar height in stripes]
-export const studioFlow = [
-  ["Idea", "With Atlas", 2],
-  ["Plan", "Treatment", 4],
-  ["Prompt", "Prompts", 6],
-  ["Image", "Image Studio", 8],
-  ["Video", "Video Studio", 10],
-  ["Voice", "Voice Studio", 12],
+// The black "Start creating with Eclipse." card: three counters that run up while their striped bars rise. Real counts from our own model lists
+// (src/lib/audio/registry.ts AUDIO_MODELS, src/lib/video-models.ts connected models, src/lib/models.ts image models, 2026-10-17); update when they change.
+// [number, caption, bar height in stripes]
+export const studioStats = [
+  [22, "Voice and audio models", 8],
+  [27, "Video models", 10],
+  [32, "Image models", 12],
 ] as const;
 
 // Lines Atlas "types" beside himself on the homepage: examples of his art direction.
