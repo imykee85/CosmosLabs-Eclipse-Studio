@@ -719,3 +719,6 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Nav menu text at the section subtext size (owner 2026-10-17): 20px, 24px above 800px */
 .nav-links a, .nav-actions .login, .lang-menu.is-nav .lang-btn { font-size: 20px; }
 @media (min-width: 801px) { .nav-links a, .nav-actions .login, .lang-menu.is-nav .lang-btn { font-size: 24px; } }
+/* "Made to look": shorter bottom fade (owner 2026-10-17: it went up too far) */
+.results-fade { height: 18%; background: linear-gradient(180deg, rgba(240,237,232,0) 0%, var(--paper) 82%); }
+.results-more { bottom: 4%; }
