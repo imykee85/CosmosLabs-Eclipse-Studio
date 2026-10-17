@@ -5,7 +5,8 @@
 export type NetworkMode =
   | { kind: "none" }
   | { kind: "allowlist"; domains: string[] }
-  | { kind: "internet" }; // the internet minus private address ranges
+  | { kind: "internet" } // the internet minus private address ranges
+  | { kind: "open" }; // everything, private ranges included (the sandbox's own name lookups live there): ONLY the owner's base build, a throwaway machine with nothing of ours on it
 
 export interface SandboxSpec {
   name: string;

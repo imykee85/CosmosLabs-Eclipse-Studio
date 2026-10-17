@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, Clapperboard, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Lightbulb, Menu, MessageSquareText, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, Share2, User, Video, Workflow, X,
+  ArrowLeft, ChevronDown, Clapperboard, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Lightbulb, Menu, MessageSquareText, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, User, Video, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -38,11 +38,10 @@ const libraryItem: Item = { label: "Library", hint: "Everything you made", href:
 const gallery: Item = { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> };
 const assets: Item = { label: "Assets", hint: "Your uploads", href: "/assets", icon: <FolderOpen size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
-const exportItem: Item = { label: "Export", hint: "Deliver and share", href: "/export", icon: <Share2 size={17} /> };
 const plan: Item[] = [treatmentItem, promptsItem];
 const create: Item[] = [imageStudio, videoStudio, voiceStudio];
 // Library is in the desktop sidebar only: on a phone it is already the bottom tab.
-const files: Item[] = [libraryItem, gallery, assets, ingredients, exportItem];
+const files: Item[] = [libraryItem, gallery, assets, ingredients];
 const filesPhone: Item[] = files.filter((i) => i !== libraryItem);
 const utilities: Item[] = [connectItem, agentsItem, canvasItem];
 

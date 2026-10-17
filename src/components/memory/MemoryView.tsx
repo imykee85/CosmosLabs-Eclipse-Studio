@@ -32,6 +32,8 @@ export default function MemoryView() {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState("");
+  const [open, setOpen] = useState(false); // phones: the history sheet (hidden until swiped up)
+  const touch = useRef<{ x: number; y: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -81,13 +83,23 @@ export default function MemoryView() {
     const res = await fetch(`/api/memory/${id}`, { method: "DELETE" });
     if (!res.ok) { setError("Could not delete that."); load(); }
   }
+  // A swipe up on the add bar (or its handle) shows the history; a swipe down on the sheet's handle, or a tap outside it, hides it again.
+  const swipe = (onUp?: () => void, onDown?: () => void) => ({
+    onTouchStart: (e: React.TouchEvent) => { const t = e.touches[0]; touch.current = { x: t.clientX, y: t.clientY }; },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const a = touch.current; touch.current = null; const t = e.changedTouches[0];
+      if (!a || !t) return;
+      const dy = t.clientY - a.y, dx = Math.abs(t.clientX - a.x);
+      if (dx < 60 && dy < -36) onUp?.(); else if (dx < 60 && dy > 36) onDown?.();
+    },
+  });
   const ringNodes = (ring: 0 | 1, back: boolean, seconds: number) => MEMORY_TOPICS.filter((t) => RING[t].ring === ring).map((t) => (
     <div key={t} className="mm-slot" style={{ transform: `rotate(${RING[t].angle}deg)` }}>
       <div className="mm-pt">
         <div style={{ transform: `rotate(${-RING[t].angle}deg)` }}>
           <div className={back ? "mm-cw" : "mm-ccw"} style={{ animationDuration: `${seconds}s` }}>
             <button type="button" className={`mm-node ${saveTopic === t ? "is-on" : ""}`} title={`${TOPIC_LABEL[t]} (${counts[t]})`}
-              aria-label={`${TOPIC_LABEL[t]}, ${counts[t]}`} aria-pressed={saveTopic === t} onClick={() => { setSaveTopic(t); setTopic(topic === t ? "all" : t); }}>
+              aria-label={`${TOPIC_LABEL[t]}, ${counts[t]}`} aria-pressed={saveTopic === t} onClick={() => { const next = topic === t ? "all" : t; setSaveTopic(t); setTopic(next); setOpen(next !== "all"); }}>
               {ICON[t]}{counts[t] > 0 && <i>{counts[t]}</i>}
             </button>
           </div>
@@ -122,7 +134,9 @@ export default function MemoryView() {
         <p>{items === null ? "Loading…" : items.length === 0 ? "Nothing remembered yet" : `${items.length} thing${items.length > 1 ? "s" : ""} remembered`}</p>
       </div>
 
-      <div className="mm-side">
+      {open && <div className="mm-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
+      <div className={`mm-side${open ? " is-open" : ""}`}>
+        <button type="button" className="mm-sheet-grab" aria-label="Hide history" onClick={() => setOpen(false)} {...swipe(undefined, () => setOpen(false))}><i /></button>
         <ConnectNav current="/memory" />
         <ul className="mm-list">
           {shown.map((i) => (
@@ -138,7 +152,8 @@ export default function MemoryView() {
 
       {error && <p className="mm-error" role="alert">{error}</p>}
       {notice && <p className="mm-error mm-notice" role="status">{notice}</p>}
-      <form className="mm-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
+      <button type="button" className="mm-grab" aria-label="Show history" onClick={() => setOpen((o) => !o)} {...swipe(() => setOpen(true), () => setOpen(false))}><i /></button>
+      <form className="mm-add" {...swipe(() => setOpen(true))} onSubmit={(e) => { e.preventDefault(); add(); }}>
         <button type="button" className="mm-plus" aria-label="Upload a file" title="Upload a text file (.txt, .md, .csv, .json): each line becomes a memory" onClick={() => fileInput.current?.click()}><Plus size={18} /></button>
         <input ref={fileInput} type="file" accept=".txt,.md,.markdown,.csv,.json,text/plain" hidden onChange={(e) => { void uploadFile(e.target.files?.[0]); e.target.value = ""; }} />
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MEMORY_TEXT_MAX} placeholder="Add a memory" aria-label="Add a memory" />
