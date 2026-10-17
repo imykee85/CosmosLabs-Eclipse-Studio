@@ -17,7 +17,7 @@ import "./home-feed.css";
 const FAQ: [string, string][] = [
   ["What can I create?", "Images, videos, voices, sound effects and music. Anything tagged Soon is not ready yet."],
   ["Where do my creations go?", "Everything you make is saved to your private Library; images and videos also go to the Gallery of the project you made them in."],
-  ["What is Core?", "Your creative computer: a chat that can make images, follow skills, remember your style and send finished work to Telegram or Slack."],
+  ["What is Core?", "Your creative computer: a chat that can make images, follow skills, remember your style and send finished work to apps such as Telegram, Slack, Discord, email, Notion or Linear."],
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
 ];
 

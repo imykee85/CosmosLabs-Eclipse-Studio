@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         <li><strong>Your answers at sign-up:</strong> the short onboarding questions (how you plan to use Eclipse and similar).</li>
         <li><strong>Your work:</strong> projects, prompts, the images you generate or upload, canvases, notes and memories you save, and chats with the Core assistant.</li>
         <li><strong>Credits and payments:</strong> your credit balance and history. Card details go to our payment provider and are never stored by us.</li>
-        <li><strong>Connected apps:</strong> if you connect an app such as Telegram or Slack, the credential you give us is stored encrypted and used only to send what you ask it to send.</li>
+        <li><strong>Connected apps:</strong> if you connect an app such as Telegram, Slack, Discord, Twilio, SendGrid, WhatsApp, Notion, Linear, Todoist, GitHub or Jira, the credential you give us is stored encrypted and used only to send what you ask it to send.</li>
         <li><strong>Technical data:</strong> basic logs (such as errors and request times) that help us keep the service running and secure.</li>
       </ul>
 
