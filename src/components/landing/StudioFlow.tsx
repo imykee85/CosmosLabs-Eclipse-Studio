@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { studioStats } from "./data";
 
 // The black "Start creating with Eclipse." card (owner 2026-10-17, after a screen recording of running numbers and a striped bar-chart screenshot):
-// three white striped bars; under each, its number runs up from 0 while the bar rises stripe by stripe, one after another, with the category below.
+// three white striped bars; under each, its number runs up from 0 while the bar rises stripe by stripe, all at the same time, with the category below.
 // It runs again each time the card comes back into view; under reduced motion everything is shown in full.
-const RUN_MS = 1400, GAP_MS = 350;
+const RUN_MS = 1600;
 const MAX = Math.max(...studioStats.map((s) => s[3]));
 export default function StudioFlow() {
   const ref = useRef<HTMLDivElement>(null);
@@ -19,7 +19,7 @@ export default function StudioFlow() {
     const tick = (now: number) => {
       if (!start) start = now;
       const t = now - start;
-      const next = studioStats.map((_, i) => ease(Math.min(1, Math.max(0, (t - i * (RUN_MS * 0.6 + GAP_MS)) / RUN_MS))));
+      const next = studioStats.map(() => ease(Math.min(1, t / RUN_MS)));
       setP(next);
       if (next[next.length - 1] < 1) raf = requestAnimationFrame(tick);
     };
