@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDownAZ, ArrowUp, ChevronLeft, ChevronRight, Film, Image as ImageIcon, Inbox, LayoutGrid, List, Plus, Search, Shapes, Type, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ConnectNav from "@/components/connect/ConnectNav";
+import { useRenders } from "@/lib/use-renders";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { tools, type Tool } from "@/lib/tools";
 import "@/components/connect/connect.css";
 import "@/components/skills/skills.css";
@@ -12,12 +14,26 @@ import "./tools.css";
 
 const VIEW_KEY = "eclipse-tools-view";
 const RECENT_KEY = "eclipse-tools-recent";
-const startLink = (message: string) => `/connect?start=${encodeURIComponent(message)}`;
+const startLink = (message: string, attach: string[] = []) => `/connect?start=${encodeURIComponent(message)}${attach.length ? `&attach=${attach.join(",")}` : ""}`;
 type Tab = "explore" | "eclipse" | "mine";
+const KINDS = ["Auto", "Page in the browser", "Runs on a computer"];
+const INPUTS = ["Any input", "Pictures", "Text", "Videos", "Numbers or tables"];
+const LOOKS = ["Any look", "Minimal", "Bold", "Playful", "Editorial"];
 
 export default function ToolsView() {
   const router = useRouter();
   const [idea, setIdea] = useState("");
+  // The three choices in the box shape the request Core receives ("Auto" leaves that part to Core).
+  const [kind, setKind] = useState(KINDS[0]);
+  const [input, setInput] = useState(INPUTS[0]);
+  const [look, setLook] = useState(LOOKS[0]);
+  const brief = (t: string) => `Build me a mini tool that does this: ${t}${kind !== KINDS[0] ? `\nKind: ${kind.toLowerCase()}.` : ""}${input !== INPUTS[0] ? `\nIt works on: ${input.toLowerCase()}.` : ""}${look !== LOOKS[0] ? `\nLook: ${look.toLowerCase()}.` : ""}`;
+  // The + attaches up to 3 finished pictures from the Library; they go with the first message of the Core chat.
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const { renders } = useRenders(attachOpen || picked.length ? undefined : null, 16);
+  const done = (renders ?? []).filter((r) => r.status === "completed" && r.kind !== "video" && r.imageUrl).slice(0, 12);
+  const togglePick = (id: string) => setPicked((l) => (l.includes(id) ? l.filter((x) => x !== id) : l.length < 3 ? [...l, id] : l));
   const [recent, setRecent] = useState<string[]>([]);
   useEffect(() => { try { setRecent(JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]")); } catch {} }, []);
   function openTool(t: Tool) {
@@ -62,16 +78,37 @@ export default function ToolsView() {
 
       <section className="tl-hero" aria-label="Describe a tool">
         <h2><span className="tl-mark"><Wrench size={22} /></span> What do you want to build?</h2>
-        <form className="tl-box" onSubmit={(e) => { e.preventDefault(); if (idea.trim()) router.push(startLink(`Build me a mini tool that does this: ${idea.trim()}`)); }}>
+        <form className="tl-box" onSubmit={(e) => { e.preventDefault(); if (idea.trim()) router.push(startLink(brief(idea.trim()), picked)); }}>
           <textarea rows={2} value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="Describe a tool, for example: turn my product photo into a lookbook" aria-label="Describe a tool" />
           <div className="tl-row">
-            <button type="button" className="tl-plus" aria-label="Attach"><Plus size={18} /></button>
-            <span className="tl-opt"><Shapes size={15} /> Auto</span>
-            <span className="tl-opt"><Type size={15} /> Type</span>
-            <span className="tl-opt tl-hide"><Film size={15} /> Style</span>
+            <button type="button" className="tl-plus" aria-label="Attach pictures from your Library" aria-expanded={attachOpen} onClick={() => setAttachOpen((v) => !v)}><Plus size={18} />{picked.length > 0 && <i className="tl-count">{picked.length}</i>}</button>
+            <label className="tl-opt"><Shapes size={15} /><span className="sr-only">Kind of tool</span>
+              <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Kind of tool">{KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
+            </label>
+            <label className="tl-opt"><Type size={15} /><span className="sr-only">What it works on</span>
+              <select value={input} onChange={(e) => setInput(e.target.value)} aria-label="What it works on">{INPUTS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
+            </label>
+            <label className="tl-opt tl-hide"><Film size={15} /><span className="sr-only">Look</span>
+              <select value={look} onChange={(e) => setLook(e.target.value)} aria-label="Look">{LOOKS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
+            </label>
             <button type="submit" className="tl-send" aria-label="Create" disabled={!idea.trim()}><ArrowUp size={18} /></button>
           </div>
         </form>
+        {attachOpen && (
+          <div className="cn-pop cn-attach tl-attach" role="dialog" aria-label="Attach pictures from your Library">
+            <p className="cn-pop-note">Pick up to 3 pictures from your Library</p>
+            {renders === null ? <p className="cn-pop-note">Loading…</p> : done.length === 0 ? <p className="cn-pop-note">You have no finished renders yet.</p> : (
+              <div className="cn-grid">
+                {done.map((r) => (
+                  <button key={r.id} type="button" className={picked.includes(r.id) ? "is-on" : ""} onClick={() => togglePick(r.id)} aria-pressed={picked.includes(r.id)} title={r.prompt}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumbOf("render", r.id)} onError={fallbackTo(r.imageUrl)} alt={r.prompt} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <ConnectNav current="/tools" />

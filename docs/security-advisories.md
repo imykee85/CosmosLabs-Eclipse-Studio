@@ -26,3 +26,8 @@
 ## What the major upgrade involves (not done: needs the owner's sign-in test)
 
 `next` 16 and React 19; async `params`, `cookies()`, `headers()`; `middleware.ts` becomes `proxy.ts`; `next lint` is removed (use the ESLint CLI); `@clerk/nextjs` 7 changes (`auth()` is async, hooks and components changed). 39 files import Clerk (6 client, 33 server). It cannot be fully verified without a real Clerk sign-in, so it should be done on a branch and tried by the owner before merging.
+
+## Update 2026-10-17
+- New packages from the finishing pass were moved to their fixed versions: `sharp` 0.35.5 (libvips, libheif and librsvg advisories fixed; used only to make tile thumbnails and to shrink pictures for the chats) and `mammoth` 1.13.0 (Word briefs, read in the browser). `undici` 7.30.1 is now a direct dependency (the link reader's guarded connection).
+- Still listed: `sprintf-js` (DoS with unbounded precision specifiers) through `mammoth` > `argparse`. No fixed version exists. Not reachable: `argparse` is only used by mammoth's command-line tool, which the app never runs; the browser bundle reads .docx files only.
+- The `next` 16 / `@clerk/nextjs` 7 upgrade described above is still the only fix for the rest, and it still needs the owner's real sign-in test before it can merge (every merge goes straight to production).
