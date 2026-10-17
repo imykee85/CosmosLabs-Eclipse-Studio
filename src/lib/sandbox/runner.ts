@@ -182,7 +182,7 @@ async function step(job: SandboxJob, provider: SandboxProvider, def: KindDef): P
       return save(job, { cmdId, step: `stage:${i}:poll`, state: asJson({ ...st, allowFail: s.allowFail ? [...(st.allowFail ?? []), i] : st.allowFail }) });
     }
     const s = await provider.status(name, job.cmdId!);
-    if (!s.done) return save(job, {});
+    if (!s.done) return save(job, s.info ? { message: `Working: ${s.info}` } : {});
     const result: StageResult = { exitCode: s.exitCode ?? -1, stdout: tail(s.stdoutTail, 16_384), stderr: tail(s.stderrTail, 8192) };
     const results = [...ctx.results.slice(0, i), result];
     await audit(job, `stage ${i} ended`, null, { exitCode: result.exitCode, ok: result.exitCode === 0 });

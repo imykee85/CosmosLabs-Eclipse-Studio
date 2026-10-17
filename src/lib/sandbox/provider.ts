@@ -19,7 +19,7 @@ export interface SandboxSpec {
 export type CmdOpts = { cwd?: string; env?: Record<string, string>; sudo?: boolean };
 export interface RunResult { exitCode: number; stdout: string; stderr: string; durationMs: number }
 export interface StartedCommand { cmdId: string }
-export interface CommandStatus { done: boolean; exitCode: number | null; stdoutTail: string; stderrTail: string }
+export interface CommandStatus { done: boolean; exitCode: number | null; stdoutTail: string; stderrTail: string; info?: string }
 export interface SandboxUsage { activeCpuMs?: number; networkBytes?: number }
 
 export type SandboxErrorCode = "unavailable" | "quota" | "timeout" | "not_found" | "image_not_ready" | "unknown";

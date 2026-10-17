@@ -99,8 +99,17 @@ export class VercelSandboxProvider implements SandboxProvider {
 
   async status(name: string, cmdId: string) {
     const sb = await this.live(name);
-    const c = await this.call("status", () => sb.getCommand(cmdId));
-    if (c.exitCode === null || c.exitCode === undefined) return { done: false, exitCode: null, stdoutTail: "", stderrTail: "" };
+    let c = await this.call("status", () => sb.getCommand(cmdId));
+    // A command that has finished should already carry its exit code; if it does not, ask the service to wait a moment for it (short: this runs inside a poll).
+    if ((c.exitCode === null || c.exitCode === undefined) && typeof (c as { wait?: unknown }).wait === "function") {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 2500);
+      try { const fin = await (c as unknown as { wait(p: { signal: AbortSignal }): Promise<typeof c> }).wait({ signal: ac.signal }); if (fin) c = fin; } catch { /* still running: that is the normal answer */ } finally { clearTimeout(timer); }
+    }
+    if (c.exitCode === null || c.exitCode === undefined) {
+      const started = (c as { startedAt?: number }).startedAt;
+      return { done: false, exitCode: null, stdoutTail: "", stderrTail: "", info: `command ${cmdId.slice(-6)} running${started ? ` for ${Math.round((Date.now() - started) / 1000)} s` : ""}, no exit code yet` };
+    }
     const [stdout, stderr] = await this.call("output", () => Promise.all([c.stdout(), c.stderr()]));
     return { done: true, exitCode: c.exitCode, stdoutTail: tail(stdout), stderrTail: tail(stderr) };
   }
