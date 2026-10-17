@@ -701,7 +701,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .sf-col { display: flex; flex-direction: column; align-items: stretch; text-align: center; }
 .sf-plot { height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
 .sf-bar { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; }
-.sf-bar i { display: block; flex: 1 1 0; min-height: 4px; border-radius: 1px; background: #fff; opacity: 0; transform: scaleX(.5); transform-origin: left; transition: opacity .2s ease, transform .3s cubic-bezier(.23,1,.32,1); }
+.sf-bar i { display: block; flex: 1 1 0; min-height: 4px; border-radius: 1px; background: #f4f1ed; opacity: 0; transform: scaleX(.5); transform-origin: left; transition: opacity .2s ease, transform .3s cubic-bezier(.23,1,.32,1); }
 .sf-bar i.on { opacity: 1; transform: none; }
 .sf-col b { display: block; margin-top: 26px; color: #fff; font-size: 64px; font-weight: 700; letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sf-col span { margin-top: 10px; color: rgba(240,237,232,.6); font-size: 17px; font-weight: 500; }
