@@ -8,6 +8,7 @@ import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import AgentWidget from "../create/AgentWidget";
 import { MODEL_KEY } from "@/lib/connect-models";
+import { useDraftText } from "@/lib/use-draft-text";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
@@ -24,7 +25,7 @@ import { refreshCredits } from "@/lib/use-credits";
 function ConnectChat() {
   const router = useRouter();
   const params = useSearchParams();
-  const [text, setText] = useState("");
+  const [text, setText] = useDraftText("core");
   // Atlas: the same shared agent choice and switch as every other prompt box; switched on, the floating Atlas appears and its card is the chat.
   const agent = useAgent();
   const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
@@ -104,7 +105,7 @@ function ConnectChat() {
       setBusy(false);
       refreshCredits();
     }
-  }, [busy, chatId]);
+  }, [busy, chatId, setText]);
 
   useEffect(() => {
     if (started.current) return;

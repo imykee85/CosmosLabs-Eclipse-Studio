@@ -10,6 +10,7 @@ import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import { refreshCredits } from "@/lib/use-credits";
 import { readCurrentProject } from "@/lib/projects";
+import { useDraftText } from "@/lib/use-draft-text";
 import { cleanTreatment, EMPTY_TREATMENT, hasTreatment, treatmentText, type Treatment } from "@/lib/treatment";
 import "@/components/create/create.css";
 import "./treatment.css";
@@ -56,7 +57,7 @@ export default function TreatmentView() {
   const [mode, setMode] = useState<Mode | null>(null);
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
   const [files, setFiles] = useState<File[]>([]);
-  const [text, setText] = useState("");
+  const [text, setText] = useDraftText("treatment");
   // The conversation and the plan built from it (a treatment), kept in this browser per project.
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [plan, setPlan] = useState<Treatment>(EMPTY_TREATMENT);

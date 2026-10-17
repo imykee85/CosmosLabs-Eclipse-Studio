@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
   const live = !process.env.VERCEL_ENV || process.env.VERCEL_ENV === "production";
   if (!live) return { rules: { userAgent: "*", disallow: "/" } };
   return {
-    rules: { userAgent: "*", allow: ["/", "/terms", "/privacy"], disallow: ["/api/", "/dashboard", "/create", "/generate", "/gallery", "/library", "/assets", "/ingredients", "/canvas", "/connect", "/memory", "/skills", "/tools", "/agents", "/prompts", "/treatment", "/project", "/settings", "/portfolio", "/certificates", "/avatars", "/admin", "/motion", "/onboarding", "/tutorial", "/sign-in", "/sign-up", "/sso-callback"] },
+    rules: { userAgent: "*", allow: ["/", "/terms", "/privacy"], disallow: ["/api/", "/dashboard", "/create", "/generate", "/gallery", "/export", "/library", "/assets", "/ingredients", "/canvas", "/connect", "/memory", "/skills", "/tools", "/agents", "/prompts", "/treatment", "/project", "/settings", "/portfolio", "/certificates", "/avatars", "/admin", "/motion", "/onboarding", "/tutorial", "/sign-in", "/sign-up", "/sso-callback"] },
     sitemap: `${site}/sitemap.xml`,
   };
 }

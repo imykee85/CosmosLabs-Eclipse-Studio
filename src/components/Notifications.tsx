@@ -1,14 +1,35 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, Bell, Check } from "lucide-react";
 import "./notifications.css";
 
-// Bell in the headers (or, with `label`, a row with the bell next to a text such as "Notifications" in the phone side menu). Opens a small panel; there is nothing to show until the backend produces notifications
-// (finished renders, shared work, credits), so it explains what will appear here.
+// Bell in the headers (or, with `label`, a row with the bell next to a text such as "Notifications" in the phone side menu). Opens a small panel listing what finished or failed
+// in the last 3 days (renders, videos, voice takes); a red dot shows when something ended since the panel was last opened (the time is kept in this browser).
+type Item = { id: string; ok: boolean; title: string; body: string; href: string; at: string };
+const SEEN = "eclipse-notif-seen";
+const readSeen = () => { try { return Number(localStorage.getItem(SEEN)) || 0; } catch { return 0; } };
 export default function NotificationsButton({ className, up = false, label }: { className?: string; up?: boolean; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [seen, setSeen] = useState(0);
+  useEffect(() => {
+    setSeen(readSeen());
+    let live = true;
+    const load = () => { if (document.visibilityState === "hidden") return; fetch("/api/notifications", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => { if (live && Array.isArray(d.items)) setItems(d.items); }).catch(() => {}); };
+    load();
+    const t = setInterval(load, 60_000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  const unread = items.filter((i) => Date.parse(i.at) > seen).length;
+  function toggle() {
+    setOpen((o) => {
+      if (!o) { const now = Date.now(); try { localStorage.setItem(SEEN, String(now)); } catch {} setTimeout(() => setSeen(now), 1500); } // the dot stays while the list is first read
+      return !o;
+    });
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -22,17 +43,29 @@ export default function NotificationsButton({ className, up = false, label }: { 
 
   return (
     <span className={`nt ${label ? "nt-row" : ""}`} ref={ref}>
-      <button type="button" className={className} aria-label="Notifications" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        {label ? <><Bell size={19} /> {label}</> : <Bell size={16} />}
+      <button type="button" className={className} aria-label="Notifications" aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
+        {label ? <><Bell size={19} /> {label}</> : <Bell size={16} />}{unread > 0 && <i className="nt-dot" aria-label={`${unread} new`} />}
       </button>
       {open && (
         <div className={`nt-pop ${up ? "is-up" : ""}`} role="dialog" aria-label="Notifications">
           <h2>Notifications</h2>
-          <div className="nt-empty">
-            <Bell size={30} strokeWidth={1.5} aria-hidden="true" />
-            <p>You&apos;re all caught up</p>
-            <small>Finished renders, shared work and credit updates will show up here.</small>
-          </div>
+          {items.length === 0 ? (
+            <div className="nt-empty">
+              <Bell size={30} strokeWidth={1.5} aria-hidden="true" />
+              <p>You&apos;re all caught up</p>
+            </div>
+          ) : (
+            <ul className="nt-list">
+              {items.map((i) => (
+                <li key={i.id}>
+                  <Link href={i.href} onClick={() => setOpen(false)} className={Date.parse(i.at) > seen ? "is-new" : ""}>
+                    <span className={`nt-ico ${i.ok ? "ok" : "bad"}`}>{i.ok ? <Check size={13} /> : <AlertCircle size={13} />}</span>
+                    <span className="nt-txt"><b>{i.title}</b><small>{i.body}</small></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </span>
