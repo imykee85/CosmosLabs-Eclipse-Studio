@@ -164,9 +164,9 @@ export default function Landing() {
       </section>
 
       <section className="try-section try-cta section-pad">
+        <div className="try-inner"><div className="eyebrow sf-eyebrow">YOUR STUDIO IS WAITING</div></div>
         <StudioFlow />
         <div className="try-inner">
-          <div className="eyebrow">YOUR STUDIO IS WAITING</div>
           <h2>start creating<br /><em>with Eclipse.</em></h2>
           <div className="section-cta"><Cta /></div>
         </div>
