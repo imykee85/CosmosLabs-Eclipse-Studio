@@ -183,3 +183,24 @@
 html:not([data-app-theme="light"]) .mm-stage .mm-node { color: #141414; box-shadow: 0 10px 26px rgba(0,0,0,.5), 0 0 18px rgba(255,255,255,.12);
   background: radial-gradient(circle at 34% 28%, #ffffff 0%, #f1efec 42%, #d8d4ce 82%, #bdb8b1 100%); }
 html:not([data-app-theme="light"]) .mm-stage .mm-node:hover, html:not([data-app-theme="light"]) .mm-stage .mm-node.is-on { box-shadow: 0 0 0 3px #c00707, 0 10px 26px rgba(0,0,0,.5); }
+
+/* Phones (owner 2026-10-17): the history list is hidden; swipe up on the add bar to bring it up, swipe down on its handle (or tap outside) to hide it.
+   The add bar is fixed above the tab bar and never moves. Desktop keeps the list on the right. */
+.mm-grab, .mm-sheet-grab, .mm-scrim { display: none; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .mm-add { position: fixed; z-index: 14; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); }
+  .mm-error { position: fixed; z-index: 14; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 74px); }
+  .mm-grab { position: fixed; z-index: 14; display: grid; place-items: center; left: 50%; width: min(420px, calc(100% - 36px)); height: 30px; padding: 0; transform: translateX(-50%); border: 0; background: transparent; cursor: pointer;
+    bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 66px); }
+  .mm-grab i, .mm-sheet-grab i { display: block; width: 38px; height: 5px; border-radius: 999px; background: var(--a-line3); }
+  .mm-wrap.is-empty .mm-grab { display: none; }
+  .mm-stage, .mm-wrap.is-empty .mm-stage { bottom: 100px; } /* the list is hidden now: the orbit gets that room */
+  .mm-scrim { display: block; position: fixed; inset: 0; z-index: 11; background: transparent; }
+  .mm-side { position: fixed; z-index: 12; top: auto; left: 14px; right: 14px; width: auto; max-height: min(50dvh, 420px); padding: 0 10px 12px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-card); box-shadow: 0 -10px 40px var(--a-shadow);
+    bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 82px); transform: translateY(calc(100% + 140px)); visibility: hidden; pointer-events: none; transition: transform .28s cubic-bezier(.2, .8, .2, 1), visibility 0s .28s; }
+  .mm-side.is-open { transform: none; visibility: visible; pointer-events: auto; transition: transform .28s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
+  .mm-sheet-grab { display: grid; place-items: center; flex: none; width: 100%; height: 30px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+  .mm-side .mm-list li { background: var(--a-input); }
+}
+@media (prefers-reduced-motion: reduce) { .mm-side { transition: none !important; } }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .mm-wrap:has(.mm-side.is-open) .mm-grab { opacity: 0; pointer-events: none; } }
