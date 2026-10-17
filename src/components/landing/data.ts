@@ -23,13 +23,13 @@ export const audience = [
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports"];
 
-// The black "Start creating with Eclipse." card: three counters that run up while their striped bars rise. Real counts from our own model lists
-// (src/lib/audio/registry.ts AUDIO_MODELS, src/lib/video-models.ts connected models, src/lib/models.ts image models, 2026-10-17); update when they change.
-// [number, caption, bar height in stripes]
+// The black "Start creating with Eclipse." card: three white striped bars, each with a number under it that runs up as the bar rises.
+// Categories are the owner's (2026-10-17). THE NUMBERS ARE PLACEHOLDERS from the owner's reference recording, NOT Eclipse's real figures:
+// replace them with real counts before launch. [value, suffix, caption, bar height in stripes]
 export const studioStats = [
-  [22, "Voice and audio models", 8],
-  [27, "Video models", 10],
-  [32, "Image models", 12],
+  [10, "k+", "Creators", 8],
+  [500, "k+", "Creations", 12],
+  [100, "+", "Countries", 10],
 ] as const;
 
 // Lines Atlas "types" beside himself on the homepage: examples of his art direction.

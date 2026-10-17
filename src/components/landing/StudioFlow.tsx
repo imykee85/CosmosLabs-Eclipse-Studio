@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { studioStats } from "./data";
 
 // The black "Start creating with Eclipse." card (owner 2026-10-17, after a screen recording of running numbers and a striped bar-chart screenshot):
-// three columns; when the card comes into view each number runs up from 0 while its striped bar rises stripe by stripe, one column after another.
-// It runs again each time the card comes back into view; under reduced motion the numbers and bars are shown in full.
+// three white striped bars; under each, its number runs up from 0 while the bar rises stripe by stripe, one after another, with the category below.
+// It runs again each time the card comes back into view; under reduced motion everything is shown in full.
 const RUN_MS = 1400, GAP_MS = 350;
-const MAX = Math.max(...studioStats.map((s) => s[2]));
+const MAX = Math.max(...studioStats.map((s) => s[3]));
 export default function StudioFlow() {
   const ref = useRef<HTMLDivElement>(null);
   const [p, setP] = useState<number[]>(studioStats.map(() => 0));
@@ -33,16 +33,16 @@ export default function StudioFlow() {
 
   return (
     <div className="sf" ref={ref}>
-      {studioStats.map(([value, caption, n], i) => {
+      {studioStats.map(([value, suffix, caption, n], i) => {
         const lit = Math.round(p[i] * n);
         return (
-          <div className={`sf-col${p[i] > 0 ? " is-up" : ""}`} key={caption}>
-            <b aria-label={`${value} ${caption}`}>{Math.round(p[i] * value)}</b>
+          <div className="sf-col" key={caption}>
             <div className="sf-plot" aria-hidden="true">
               <div className="sf-bar" style={{ height: `${(n / MAX) * 100}%` }}>
                 {Array.from({ length: n }, (_, k) => <i key={k} className={n - 1 - k < lit ? "on" : ""} />)}
               </div>
             </div>
+            <b aria-label={`${value}${suffix} ${caption}`}>{Math.round(p[i] * value)}{suffix}</b>
             <span>{caption}</span>
           </div>
         );
