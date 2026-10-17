@@ -24,7 +24,7 @@ function Set({ hidden = false }: { hidden?: boolean }) {
       {logos.length > 0
         ? logos.map(({ name, src, h }) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <li key={name} className="strip-logo"><img src={src} alt={hidden ? "" : name} style={{ ["--h" as string]: h ?? 36 }} /></li>
+            <li key={name} className="strip-logo" style={{ ["--logo" as string]: `url(${src})` }}><img src={src} alt={hidden ? "" : name} style={{ ["--h" as string]: h ?? 36 }} /></li>
           ))
         : items.map(({ name, Icon }) => (
             <li key={name}><Icon size={22} strokeWidth={1.6} /><span>{name}</span></li>
