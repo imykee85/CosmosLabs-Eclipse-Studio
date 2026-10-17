@@ -26,12 +26,14 @@
     "@prisma/client": "^5.22.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.0.0",
+    "@vercel/sandbox": "3.8.0",
     "@xyflow/react": "^12.12.0",
     "lucide-react": "^1.51.0",
     "next": "^14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "simple-icons": "^13.21.0"
+    "simple-icons": "^13.21.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",

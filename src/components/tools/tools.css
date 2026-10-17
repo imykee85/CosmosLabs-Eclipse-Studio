@@ -23,7 +23,45 @@
 .sk-list .sk-name small { display: block; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .sk-list.is-list .tl-art .tl-headline { font-size: 16px; }
 
+.tl-built { display: grid; gap: 8px; margin: 0 0 22px; padding: 0; list-style: none; }
+.tl-built li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--a-line); border-radius: 16px; background: var(--a-card); }
+.tl-built .sk-name { flex: 1; min-width: 0; }
+.tl-built .tl-open { text-decoration: none; }
+.tl-built .sk-name small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .tl-hide { display: none; }
   .tl-hero h2 { font-size: 26px; }
 }
+
+/* One mini tool (MiniToolView). */
+.mt-wrap .cn-head { align-items: flex-start; }
+.mt-del { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid var(--a-line); border-radius: 12px; background: transparent; color: var(--a-muted); font: inherit; font-size: 14px; cursor: pointer; }
+.mt-del.is-armed { border-color: #c00707; color: #e5484d; }
+.mt-card { margin-top: 20px; padding: 18px; border: 1px solid var(--a-line); border-radius: 20px; background: var(--a-card); }
+.mt-card h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.mt-card p { margin: 0 0 14px; color: var(--a-muted); }
+.mt-frame { display: block; width: 100%; height: min(72vh, 820px); margin-top: 20px; border: 1px solid var(--a-line); border-radius: 20px; background: #fff; }
+.mt-form { display: grid; gap: 14px; }
+.mt-field { display: grid; gap: 6px; }
+.mt-field > span:first-child { font-size: 14px; font-weight: 500; }
+.mt-field input:not([type="checkbox"]):not([type="file"]), .mt-field textarea, .mt-field select { width: 100%; padding: 10px 12px; border: 1px solid var(--a-line2); border-radius: 12px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 16px; }
+.mt-field input[type="checkbox"] { width: 22px; height: 22px; accent-color: #c00707; }
+.mt-files { display: grid; gap: 4px; }
+.mt-files small { color: var(--a-muted); }
+.mt-pick { position: relative; display: inline-flex; align-items: center; gap: 8px; width: fit-content; height: 40px; padding: 0 14px; border: 1px dashed var(--a-line2); border-radius: 12px; color: var(--a-fg); cursor: pointer; }
+.mt-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.mt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mt-run { display: inline-flex; align-items: center; gap: 8px; }
+.mt-run:disabled { opacity: .7; cursor: default; }
+.mt-ghost { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; border: 1px solid var(--a-line); border-radius: 12px; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; text-decoration: none; cursor: pointer; }
+.mt-err { margin: 0; color: #e5484d; font-size: 14px; }
+.mt-out ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.mt-out li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--a-input); }
+.mt-out li small { color: var(--a-muted); }
+.mt-log { max-height: 240px; margin: 10px 0 0; padding: 12px; overflow: auto; border-radius: 12px; background: var(--a-input); color: var(--a-muted); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+.mt-link { display: inline-block; margin-top: 12px; text-decoration: none; }
+.mt-spin { animation: mt-spin 1s linear infinite; }
+@keyframes mt-spin { to { transform: rotate(360deg); } }
+/* On phones the top bar says "Tools", so the tool's own name stays visible on the page. */
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ws-main h1.pg-title.mt-title { display: block; margin: 0; font-size: 22px; } }

@@ -44,6 +44,12 @@ function r2() {
 
 const bucket = () => process.env.R2_BUCKET!;
 
+/** The host name signed storage links point at (what a sandbox must be allowed to reach to fetch or upload a file). */
+export function storageHost(): string | null {
+  if (!storageEnabled) return null;
+  try { return new URL(process.env.R2_ENDPOINT ?? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`).hostname; } catch { return null; }
+}
+
 export async function putObject(key: string, body: Uint8Array, contentType: string): Promise<void> {
   await r2().send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType }));
 }

@@ -6,7 +6,7 @@ import { agentEnabled, dailyLimit, runTurn, type AgentEvent } from "@/lib/connec
 import { apiModelFor } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
 
-export const maxDuration = 60;
+export const maxDuration = 120; // a build-machine step can wait 20 s on a command after the 48 s turn budget
 
 // Sends one message to the assistant and streams back what it does: lines of JSON, one event each (text, tool, render, error, done).
 export async function POST(req: Request) {

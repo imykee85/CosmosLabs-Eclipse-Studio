@@ -25,6 +25,13 @@ export default function ToolsView() {
     router.push(startLink(t.start));
   }
   const [tab, setTab] = useState<Tab>("explore");
+  // Mini tools the person built with Core (private to them).
+  const [built, setBuilt] = useState<{ id: string; name: string; description: string; kind: string }[]>([]);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/core/tools").then((r) => (r.ok ? r.json() : null)).then((d) => { if (live && Array.isArray(d?.tools)) setBuilt(d.tools); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"cards" | "list">("cards");
   const [sort, setSort] = useState<"name" | "kind">("name");
@@ -55,7 +62,7 @@ export default function ToolsView() {
 
       <section className="tl-hero" aria-label="Describe a tool">
         <h2><span className="tl-mark"><Wrench size={22} /></span> What do you want to build?</h2>
-        <form className="tl-box" onSubmit={(e) => { e.preventDefault(); if (idea.trim()) router.push(startLink(`I want a tool that does this: ${idea.trim()}. Do the job now with the tools you have.`)); }}>
+        <form className="tl-box" onSubmit={(e) => { e.preventDefault(); if (idea.trim()) router.push(startLink(`Build me a mini tool that does this: ${idea.trim()}`)); }}>
           <textarea rows={2} value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="Describe a tool, for example: turn my product photo into a lookbook" aria-label="Describe a tool" />
           <div className="tl-row">
             <button type="button" className="tl-plus" aria-label="Attach"><Plus size={18} /></button>
@@ -92,7 +99,22 @@ export default function ToolsView() {
         )}
       </div>
 
-      {tab === "mine" && recent.length === 0 ? (
+      {tab === "mine" && built.length > 0 && (
+        <section aria-labelledby="tl-built">
+          <h2 id="tl-built" className="cn-h2"><Wrench size={22} className="cn-badge" /> Built with Core</h2>
+          <ul className="tl-built">
+            {built.map((t) => (
+              <li key={t.id}>
+                <span className="sk-ico">{t.kind === "browser" ? <LayoutGrid size={18} /> : <Wrench size={18} />}</span>
+                <span className="sk-name"><b>{t.name}</b><small>{t.description}</small></span>
+                <Link className="tl-open" href={`/tools/mine/${t.id}`}>Open</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {tab === "mine" && recent.length === 0 && built.length > 0 ? null : tab === "mine" && recent.length === 0 ? (
         <div className="cn-empty">
           <Inbox size={44} strokeWidth={1.4} aria-hidden="true" />
           <h2>No tools opened yet</h2>

@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { checkPrompt } from "@/lib/moderation";
 import { createAudioJobHeld } from "@/lib/reservations";
 import { deleteObject, getObjectBytes, headObjectInfo, putObject, signedGetUrl, signedMediaUrl, storageEnabled } from "@/lib/storage";
+import { muxEnabled } from "@/lib/sandbox/flags";
 import { claimUsage } from "@/lib/usage";
 import { joinMp3, joinWav, mp3DurationMs, splitForTts, wavDurationMs } from "./chunk";
 import { limiterFor } from "./limiter";
@@ -39,6 +40,7 @@ export type AudioItem = {
   transcript: Transcript | null;
   variants: { url: string | null; durationMs: number | null; contentType: string | null; fileName: string }[] | null; // alternatives (Mirelo); null for a single file
   videoUrl: string | null;                                                                                      // the video a "sound for video" take belongs to
+  canMux: boolean;                                                                                              // "Download video with sound" is offered (sandbox platform on)
 };
 
 const EXT: Record<string, string> = { "audio/mpeg": "mp3", "audio/wav": "wav", "audio/flac": "flac" };
@@ -78,7 +80,7 @@ export async function toAudioItem(j: AudioJob): Promise<AudioItem> {
   return {
     id: j.id, kind: kindOfJob(j), status: j.status === "completed" ? "completed" : j.status === "failed" ? "failed" : "pending", error: j.error, text: j.text, chars: j.chars, model: j.model,
     modelLabel: findAudioModel(j.model)?.label ?? j.model, voiceId: j.voiceId, voiceName: j.voiceName, createdAt: j.createdAt.toISOString(), durationMs: j.durationMs, contentType: j.contentType, sizeBytes: j.sizeBytes, url, fileName: fileNameOf(j),
-    transcript: t && typeof t.text === "string" ? t : null, variants, videoUrl,
+    transcript: t && typeof t.text === "string" ? t : null, variants, videoUrl, canMux: Boolean(videoUrl) && muxEnabled(),
   };
 }
 

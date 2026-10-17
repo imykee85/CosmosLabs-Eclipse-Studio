@@ -37,15 +37,15 @@ const nextConfig = {
   images: { unoptimized: true },
   // Atlas's video watching runs ffmpeg: keep its binary out of the bundle and make sure it is shipped with that one route.
   experimental: {
-    serverComponentsExternalPackages: ["@ffmpeg-installer/ffmpeg"],
+    serverComponentsExternalPackages: ["@ffmpeg-installer/ffmpeg", "@vercel/sandbox"],
     outputFileTracingIncludes: {
       ...Object.fromEntries(["/api/agent/chat", "/api/uploads/direct/finish"].map((r) => [r, ["./node_modules/@ffmpeg-installer/ffmpeg/**", "./node_modules/@ffmpeg-installer/linux-x64/**"]])),
-      // Core's built-in skill folders are read from disk at run time (about 1.8 MB), so they ship with the routes that read them.
-      ...Object.fromEntries(["/api/connect/chat", "/api/core/sandbox-runs", "/api/core/sandbox-runs/[id]", "/api/cron/finalize-renders"].map((r) => [r, ["./core/skills/**"]])),
     },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // A person's browser mini tool is shown in a locked-down frame on Eclipse's own pages, so its address is the one page that may be framed
+    // (by Eclipse only); that route sets its own strict rules (src/app/api/core/tools/[id]/frame/route.ts).
+    return [{ source: "/((?!api/core/tools/[^/]+/frame$).*)", headers: securityHeaders }];
   },
 };
 

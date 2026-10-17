@@ -8,7 +8,7 @@ export type Transcript = { text: string; language?: string; durationSec?: number
 export type AudioItem = {
   id: string; kind: AudioKind; transcript: Transcript | null; status: "pending" | "completed" | "failed"; error: string | null; text: string; chars: number; model: string; modelLabel: string;
   voiceId: string | null; voiceName: string | null; createdAt: string; durationMs: number | null; contentType: string | null; sizeBytes: number | null; url: string | null; fileName: string;
-  variants: { url: string | null; durationMs: number | null; contentType: string | null; fileName: string }[] | null; videoUrl: string | null;
+  variants: { url: string | null; durationMs: number | null; contentType: string | null; fileName: string }[] | null; videoUrl: string | null; canMux?: boolean;
 };
 export type VoicePricing = { unit: "char" | "byte"; perUnit: number } | { unit: "max"; credits: number } | { unit: "sec"; perSec: number } | null;
 export type ModelOptions = { maxVariants: number | null; negativePrompt: boolean; videoInput: boolean; durationRequired: boolean; formats: string[] | null; diarize: boolean; loop: boolean; instrumental: boolean; minSeconds: number | null; maxSeconds: number | null; maxInputBytes: number | null; maxInputSeconds: number | null; long: boolean };

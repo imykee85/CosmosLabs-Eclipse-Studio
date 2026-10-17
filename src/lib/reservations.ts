@@ -1,4 +1,4 @@
-import type { AudioJob, Generation, Prisma } from "@prisma/client";
+import type { AudioJob, Generation, Prisma, SandboxJob } from "@prisma/client";
 import { db } from "@/lib/db";
 import { chargeFor, getModelById } from "@/lib/models";
 
@@ -6,12 +6,16 @@ import { chargeFor, getModelById } from "@/lib/models";
 // balance and all go ahead. The render row is created inside the same per-person lock that reads the balance, and a running render (pending or
 // saving) counts as holding its price. Returns the row, or the numbers for the "not enough credits" message.
 // Voice Studio jobs hold their price the same way (AudioJob.creditsHeld while "pending"), and count against the same balance as renders.
+export const SANDBOX_OPEN = ["queued", "creating", "running", "collecting"];
+
 async function heldNow(tx: Prisma.TransactionClient, userId: string): Promise<number> {
   const running = await tx.generation.findMany({ where: { userId, status: { in: ["pending", "saving"] } }, select: { model: true, creditsHeld: true } });
   // A video row carries its own price (it depends on length, quality and sound); an image row uses its model's.
   const renders = running.reduce((n, r) => n + (r.creditsHeld ?? chargeFor(getModelById(r.model)) ?? 0), 0);
   const audio = await tx.audioJob.aggregate({ where: { userId, status: "pending" }, _sum: { creditsHeld: true } });
-  return renders + (audio._sum.creditsHeld ?? 0);
+  // Sandbox jobs (merging sound into a video, running a mini tool, a Core build session) hold their price until they settle.
+  const sandbox = await tx.sandboxJob.aggregate({ where: { userId, status: { in: SANDBOX_OPEN }, creditsCharged: 0 }, _sum: { creditsReserved: true } });
+  return renders + (audio._sum.creditsHeld ?? 0) + (sandbox._sum.creditsReserved ?? 0);
 }
 
 export async function createGenerationHeld(userId: string, cost: number | null, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number }> {
@@ -35,5 +39,21 @@ export async function createAudioJobHeld(userId: string, cost: number | null, da
     const held = await heldNow(tx, userId);
     if (have - held < cost) return { have, held };
     return { row: await tx.audioJob.create({ data }) };
+  });
+}
+
+/** A sandbox job row, created only when the person's balance (minus everything already held) covers its price. Runs `check` inside the same lock. */
+export async function createSandboxJobHeld(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number } | { refused: string }> {
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+    const why = check ? await check(tx) : null;
+    if (why) return { refused: why };
+    if (cost > 0) {
+      const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
+      const have = sum._sum.delta ?? 0;
+      const held = await heldNow(tx, userId);
+      if (have - held < cost) return { have, held };
+    }
+    return { row: await tx.sandboxJob.create({ data }) };
   });
 }

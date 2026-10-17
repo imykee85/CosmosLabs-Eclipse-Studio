@@ -10,41 +10,41 @@ datasource db {
 
 // Users live in Clerk; userId is the Clerk user id.
 model Generation {
-  id         String   @id @default(cuid())
-  userId     String   @map("user_id")
-  prompt     String
-  imageUrl   String   @default("") @map("image_url") // where the provider produced it; only a fallback, never shown once the file is in our storage; empty while the render is still running
-  status     String   @default("completed") // pending (running at the provider), saving (being copied into storage), completed, failed
-  statusUrl  String?  @map("status_url") // where to ask the provider how the render is going
-  error      String?  // why a render failed, in words for the user
-  aspectRatio String? @map("aspect_ratio")
-  resolution String?  // the resolution tier that was requested, when the model has one
-  contentType String? @map("content_type") // image/png, image/jpeg or image/webp
-  sizeBytes  Int?     @map("size_bytes")
-  width      Int?
-  height     Int?
-  deletedAt  DateTime? @map("deleted_at") // set when moved to the Bin; the file is only removed when deleted forever
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
-  storageKey String?  @map("storage_key") // the file in the private R2 bucket; served only through short-lived signed links
-  projectId  String?  @map("project_id") // the project it was made in; the Gallery shows only its own project, the Library shows all
-  model      String?  // registry id of the model that REALLY ran
-  provider   String?  // who made it: higgsfield, google, openai (null on renders from before providers were recorded)
-  providerUsage Json? @map("provider_usage") // the provider's own usage numbers for this render (tokens), kept so real costs can be worked out later
-  requestId  String?  @map("request_id") // Higgsfield's request id
-  seed       Int?     // the seed ACTUALLY sent to the provider; null when the model has no seed
-  seedLocked Boolean  @default(false) @map("seed_locked") // true when the user locked it (Fixed seed on, or a seed named for a re-run)
-  references Json?    // the pictures used as references: [{ type: "upload" | "render", id }]
-  costUsd    Float?   @map("cost_usd") // real cost once measured; blank until then
-  kind       String   @default("image") // image or video; a video row is finished by its own lazy status route (src/lib/video-jobs.ts)
-  cancelUrl  String?  @map("cancel_url") // Higgsfield's cancel address for a running video
-  idemKey    String?  @map("idem_key") // the Idempotency-Key of this submit (one per render attempt)
-  creditsHeld Int?    @map("credits_held") // the price held while a video runs and charged when it completes (a video's price depends on length, quality and sound)
-  durationSec Float?  @map("duration_sec") // length of a finished or requested video
-  hasAudio   Boolean? @map("has_audio") // whether sound was requested
-  params     Json?    // the settings a video was made with (workflow, endpoint, duration, resolution, rights acceptance), kept for re-runs and cost tables
-  startedAt  DateTime? @map("started_at") // when the provider first reported the video running
-  finishedAt DateTime? @map("finished_at") // when the provider reported it finished
-  createdAt  DateTime @default(now()) @map("created_at")
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  prompt        String
+  imageUrl      String    @default("") @map("image_url") // where the provider produced it; only a fallback, never shown once the file is in our storage; empty while the render is still running
+  status        String    @default("completed") // pending (running at the provider), saving (being copied into storage), completed, failed
+  statusUrl     String?   @map("status_url") // where to ask the provider how the render is going
+  error         String? // why a render failed, in words for the user
+  aspectRatio   String?   @map("aspect_ratio")
+  resolution    String? // the resolution tier that was requested, when the model has one
+  contentType   String?   @map("content_type") // image/png, image/jpeg or image/webp
+  sizeBytes     Int?      @map("size_bytes")
+  width         Int?
+  height        Int?
+  deletedAt     DateTime? @map("deleted_at") // set when moved to the Bin; the file is only removed when deleted forever
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+  storageKey    String?   @map("storage_key") // the file in the private R2 bucket; served only through short-lived signed links
+  projectId     String?   @map("project_id") // the project it was made in; the Gallery shows only its own project, the Library shows all
+  model         String? // registry id of the model that REALLY ran
+  provider      String? // who made it: higgsfield, google, openai (null on renders from before providers were recorded)
+  providerUsage Json?     @map("provider_usage") // the provider's own usage numbers for this render (tokens), kept so real costs can be worked out later
+  requestId     String?   @map("request_id") // Higgsfield's request id
+  seed          Int? // the seed ACTUALLY sent to the provider; null when the model has no seed
+  seedLocked    Boolean   @default(false) @map("seed_locked") // true when the user locked it (Fixed seed on, or a seed named for a re-run)
+  references    Json? // the pictures used as references: [{ type: "upload" | "render", id }]
+  costUsd       Float?    @map("cost_usd") // real cost once measured; blank until then
+  kind          String    @default("image") // image or video; a video row is finished by its own lazy status route (src/lib/video-jobs.ts)
+  cancelUrl     String?   @map("cancel_url") // Higgsfield's cancel address for a running video
+  idemKey       String?   @map("idem_key") // the Idempotency-Key of this submit (one per render attempt)
+  creditsHeld   Int?      @map("credits_held") // the price held while a video runs and charged when it completes (a video's price depends on length, quality and sound)
+  durationSec   Float?    @map("duration_sec") // length of a finished or requested video
+  hasAudio      Boolean?  @map("has_audio") // whether sound was requested
+  params        Json? // the settings a video was made with (workflow, endpoint, duration, resolution, rights acceptance), kept for re-runs and cost tables
+  startedAt     DateTime? @map("started_at") // when the provider first reported the video running
+  finishedAt    DateTime? @map("finished_at") // when the provider reported it finished
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, projectId, createdAt(sort: Desc)])
@@ -118,7 +118,7 @@ model CreditLedger {
   reason     String // GRANT | PURCHASE | CHARGE | REFUND | ADJUST
   provider   String?
   externalId String?  @map("external_id")
-  note       String?  // what it was for, in words (e.g. "Soul 2 image", "Added by the owner")
+  note       String? // what it was for, in words (e.g. "Soul 2 image", "Added by the owner")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@unique([provider, externalId])
@@ -128,12 +128,12 @@ model CreditLedger {
 
 // Connect: one chat with the assistant. Messages are kept exactly as the model produced them, so a thread can be continued later.
 model ConnectChat {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  projectId String?  @map("project_id")
-  title     String   @default("New chat")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  projectId String?          @map("project_id")
+  title     String           @default("New chat")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @default(now()) @updatedAt @map("updated_at")
   messages  ConnectMessage[]
 
   @@index([userId, updatedAt(sort: Desc)])
@@ -239,35 +239,35 @@ model UsageEvent {
 // One Voice Studio job (text to speech first; speech to text, effects and music later). Kept apart from Generation so Library, Gallery and Image Studio never see audio rows.
 // pending = running (the price is HELD while it runs), completed, failed. Audio is stored privately at audio/<userId>/<id>.<ext>.
 model AudioJob {
-  id            String    @id @default(cuid())
-  userId        String    @map("user_id")
-  projectId     String?   @map("project_id")
-  kind          String    @default("tts") // tts, later stt, sfx, music
-  provider      String    // elevenlabs, later fish, minimax...
-  model         String    // registry id (src/lib/audio/registry.ts)
-  voiceId       String?   @map("voice_id") // the provider's voice id
-  voiceName     String?   @map("voice_name")
-  text          String    // the script that was sent
-  textHash      String    @map("text_hash")
-  chars         Int       // characters of the script (bytes for byte-priced models are counted at billing time)
-  status        String    @default("pending")
-  error         String?   // why it failed, in words for the person
-  params        Json?     // speed, language, chunks, copy tries
-  storageKey    String?   @map("storage_key")
-  contentType   String?   @map("content_type")
-  sizeBytes     Int?      @map("size_bytes")
-  durationMs    Int?      @map("duration_ms")
-  creditsHeld   Int?      @map("credits_held") // the price held while it runs and charged when it completes
-  creditsCharged Int?     @map("credits_charged")
-  costUsd       Float?    @map("cost_usd") // provider cost computed from the registry price and the units used
-  usage         Json?     // the provider's own usage numbers (kept to reconcile real costs)
-  result        Json?     // a transcript (speech to text) with its timed segments; null for jobs that make an audio file
-  lockedAt      DateTime? @map("locked_at") // one worker at a time advances a long (async) job; a lock older than 2 minutes is stale
-  deletedAt     DateTime? @map("deleted_at")
-  startedAt     DateTime? @map("started_at")
-  finishedAt    DateTime? @map("finished_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  projectId      String?   @map("project_id")
+  kind           String    @default("tts") // tts, later stt, sfx, music
+  provider       String // elevenlabs, later fish, minimax...
+  model          String // registry id (src/lib/audio/registry.ts)
+  voiceId        String?   @map("voice_id") // the provider's voice id
+  voiceName      String?   @map("voice_name")
+  text           String // the script that was sent
+  textHash       String    @map("text_hash")
+  chars          Int // characters of the script (bytes for byte-priced models are counted at billing time)
+  status         String    @default("pending")
+  error          String? // why it failed, in words for the person
+  params         Json? // speed, language, chunks, copy tries
+  storageKey     String?   @map("storage_key")
+  contentType    String?   @map("content_type")
+  sizeBytes      Int?      @map("size_bytes")
+  durationMs     Int?      @map("duration_ms")
+  creditsHeld    Int?      @map("credits_held") // the price held while it runs and charged when it completes
+  creditsCharged Int?      @map("credits_charged")
+  costUsd        Float?    @map("cost_usd") // provider cost computed from the registry price and the units used
+  usage          Json? // the provider's own usage numbers (kept to reconcile real costs)
+  result         Json? // a transcript (speech to text) with its timed segments; null for jobs that make an audio file
+  lockedAt       DateTime? @map("locked_at") // one worker at a time advances a long (async) job; a lock older than 2 minutes is stale
+  deletedAt      DateTime? @map("deleted_at")
+  startedAt      DateTime? @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, status])
@@ -281,10 +281,10 @@ model AudioJob {
 model UserVoice {
   id              String    @id @default(cuid())
   userId          String    @map("user_id")
-  provider        String    // elevenlabs, fish, minimax
+  provider        String // elevenlabs, fish, minimax
   providerVoiceId String    @map("provider_voice_id")
   name            String
-  kind            String    // cloned | designed
+  kind            String // cloned | designed
   description     String?
   consentAt       DateTime? @map("consent_at")
   consentVersion  String?   @map("consent_version")
@@ -314,6 +314,7 @@ model Translation {
   @@map("translations")
 }
 
+// SHELVED (2026-10-17, owner: Core is not used for website builds): the old Taste Skill build runs. Kept only so no table is dropped; nothing writes it.
 // Core sandbox: one run of a sandbox-backed skill (for example the website design skill). The user confirms it, credits are charged
 // step by step (creditsCharged), and the row is the only way the sandbox tools find a sandbox: one active run per person.
 model SandboxRun {
@@ -328,7 +329,7 @@ model SandboxRun {
   turns          Int       @default(0)
   note           String?
   resultKey      String?   @map("result_key") // R2 key of the saved zip
-  credits        String?   // the pictures' credit lines, kept with the result
+  credits        String? // the pictures' credit lines, kept with the result
   createdAt      DateTime  @default(now()) @map("created_at")
   deadlineAt     DateTime  @map("deadline_at")
   lastActiveAt   DateTime  @default(now()) @map("last_active_at")
@@ -349,10 +350,13 @@ model SandboxAudit {
   durationMs Int      @map("duration_ms")
   exitCode   Int?     @map("exit_code")
   ok         Boolean
+  jobId      String?  @map("job_id") // the SandboxJob this command belongs to (the platform's audit; runId is the shelved build runs')
+  note       String?
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([runId])
+  @@index([jobId])
   @@map("sandbox_audit")
 }
 
@@ -387,13 +391,13 @@ model Certificate {
   userId      String   @map("user_id")
   sourceType  String   @map("source_type") // render (image or video) or audio
   sourceId    String   @map("source_id")
-  kind        String   // image, video or audio
+  kind        String // image, video or audio
   title       String
   creator     String
   sha256      String
   sizeBytes   Int?     @map("size_bytes")
   contentType String?  @map("content_type")
-  facts       Json     // model, dimensions, length, prompt, when it was made ...
+  facts       Json // model, dimensions, length, prompt, when it was made ...
   showPrompt  Boolean  @default(false) @map("show_prompt") // the public page shows the prompt only when the owner chose to
   showMedia   Boolean  @default(false) @map("show_media") // ... and the picture, video or sound only when the owner chose to
   issuedAt    DateTime @default(now()) @map("issued_at")
@@ -401,4 +405,85 @@ model Certificate {
   @@unique([userId, sourceType, sourceId])
   @@index([userId, issuedAt(sort: Desc)])
   @@map("certificates")
+}
+
+// The sandbox platform (Vercel Sandbox first, behind src/lib/sandbox/provider.ts): one job = one throwaway Linux sandbox doing one piece of work
+// (merging sound into a video, running a person's mini tool, a Core build session). The runner moves a job one short step at a time; `lockedAt`
+// stops two invocations running the same step. Inputs hold ids and storage keys only, never secrets or signed links.
+model SandboxJob {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  kind            String // media.mux | core.exec | core.tool.run | smoke | build.base
+  status          String    @default("queued") // queued | creating | running | collecting | succeeded | failed | canceled | expired
+  step            String? // the runner's next step
+  provider        String
+  sandboxName     String?   @map("sandbox_name")
+  cmdId           String?   @map("cmd_id")
+  vcpus           Int       @default(2)
+  input           Json
+  state           Json? // the runner's own notes between steps (stage index, timings); never signed links
+  output          Json?
+  error           Json? // { code, message, retryable, detail? } (detail is admin-only)
+  message         String? // a short line the person sees while it waits
+  creditsReserved Int       @default(0) @map("credits_reserved")
+  creditsCharged  Int       @default(0) @map("credits_charged")
+  activeCpuMs     Int?      @map("active_cpu_ms")
+  networkBytes    BigInt?   @map("network_bytes")
+  attempts        Int       @default(0)
+  cancelRequested Boolean   @default(false) @map("cancel_requested")
+  lockedAt        DateTime? @map("locked_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  startedAt       DateTime? @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  deadlineAt      DateTime  @map("deadline_at")
+
+  @@index([userId, createdAt])
+  @@index([status, updatedAt])
+  @@map("sandbox_jobs")
+}
+
+// Running totals per calendar month (UTC, "2026-10"), compared with the plan's free allowance. Alerts fire once a month at 80 percent.
+model SandboxUsageMonth {
+  id           String    @id @default(cuid())
+  month        String    @unique
+  activeCpuMs  BigInt    @default(0) @map("active_cpu_ms")
+  gbHours      Float     @default(0) @map("gb_hours")
+  creations    Int       @default(0)
+  networkBytes BigInt    @default(0) @map("network_bytes")
+  alertedAt    DateTime? @map("alerted_at")
+
+  @@map("sandbox_usage_months")
+}
+
+// Owner settings for the sandbox platform kept in the database (the base snapshot id and the browser path found by build-base). An env var wins when set.
+model SandboxSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sandbox_settings")
+}
+
+// A small program a person built with Core and can run again. Browser tools run in their own browser (a locked-down frame); sandbox tools run as
+// core.tool.run jobs. Source files live in private storage. `approvedNet` is the version whose internet use the owner approved (null = none).
+model CoreTool {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  name        String
+  description String
+  kind        String // browser | sandbox
+  runtime     String? // node | python (sandbox tools)
+  entry       String
+  files       Json // [{ path, key, bytes }]
+  inputSchema Json      @map("input_schema")
+  network     String    @default("none") // none | internet
+  approvedNet Int?      @map("approved_net")
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@map("core_tools")
 }

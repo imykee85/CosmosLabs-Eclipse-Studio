@@ -319,7 +319,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         </header>
         <header className="mb-top">
           <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
-          <h1 className="mb-title">{TITLES[pathname] ?? "Eclipse Studio"}</h1>
+          <h1 className="mb-title">{TITLES[pathname] ?? (pathname.startsWith("/tools/") ? "Tools" : "Eclipse Studio")}</h1>
           <div className="mb-right">
             <CreditsPill className="mb-pill" />
             <ThemeToggle className="mb-theme" />
