@@ -237,6 +237,8 @@ test("deleting a take removes every alternative from storage", { skip }, async (
   const r = await sfx();
   const j = await waitDone(r.item.id);
   assert.equal([...objects.keys()].filter((k) => k.includes(j.id)).length, 2);
-  assert.equal(await lib.jobs.deleteAudioJob(USER, j.id), true);
+  assert.equal(await lib.jobs.deleteAudioJob(USER, j.id), true); // goes to the Bin, files stay
+  assert.equal([...objects.keys()].filter((k) => k.includes(j.id)).length, 2);
+  assert.equal(await lib.jobs.deleteAudioJob(USER, j.id, true), true);
   assert.equal([...objects.keys()].filter((k) => k.includes(j.id)).length, 0);
 });

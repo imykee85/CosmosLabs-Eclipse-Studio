@@ -40,6 +40,7 @@ export type AudioItem = {
   transcript: Transcript | null;
   variants: { url: string | null; durationMs: number | null; contentType: string | null; fileName: string }[] | null; // alternatives (Mirelo); null for a single file
   videoUrl: string | null;                                                                                      // the video a "sound for video" take belongs to
+  deletedAt: string | null;                                                                                     // set while the take is in the Bin
   canMux: boolean;                                                                                              // "Download video with sound" is offered (sandbox platform on)
 };
 
@@ -80,7 +81,7 @@ export async function toAudioItem(j: AudioJob): Promise<AudioItem> {
   return {
     id: j.id, kind: kindOfJob(j), status: j.status === "completed" ? "completed" : j.status === "failed" ? "failed" : "pending", error: j.error, text: j.text, chars: j.chars, model: j.model,
     modelLabel: findAudioModel(j.model)?.label ?? j.model, voiceId: j.voiceId, voiceName: j.voiceName, createdAt: j.createdAt.toISOString(), durationMs: j.durationMs, contentType: j.contentType, sizeBytes: j.sizeBytes, url, fileName: fileNameOf(j),
-    transcript: t && typeof t.text === "string" ? t : null, variants, videoUrl, canMux: Boolean(videoUrl) && muxEnabled(),
+    transcript: t && typeof t.text === "string" ? t : null, variants, videoUrl, deletedAt: j.deletedAt ? j.deletedAt.toISOString() : null, canMux: Boolean(videoUrl) && muxEnabled(),
   };
 }
 
@@ -485,12 +486,28 @@ export async function listAudioJobs(userId: string, limit = 30): Promise<AudioJo
   return db.audioJob.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: "desc" }, take: Math.min(Math.max(limit, 1), 100) });
 }
 
-export async function deleteAudioJob(userId: string, id: string): Promise<boolean> {
+// Delete moves a finished take to the Bin (it can be restored); a failed take has no file worth keeping and goes at once. `forever` removes the file and the row, and only works
+// on a take that is already in the Bin (or failed).
+export async function deleteAudioJob(userId: string, id: string, forever = false): Promise<boolean> {
   const j = await db.audioJob.findFirst({ where: { id, userId } });
   if (!j || j.status === "pending") return false;
+  if (!forever && j.status !== "failed") {
+    if (!j.deletedAt) await db.audioJob.update({ where: { id }, data: { deletedAt: new Date() } });
+    return true;
+  }
+  if (forever && !j.deletedAt && j.status !== "failed") return false;
   if (storageEnabled) for (const k of new Set([...(j.storageKey ? [j.storageKey] : []), ...variantsOf(j).map((v) => v.key)])) await deleteObject(k).catch((err) => console.error("deleting audio file failed", id, err));
   await db.audioJob.delete({ where: { id } });
   return true;
+}
+
+export async function restoreAudioJob(userId: string, id: string): Promise<boolean> {
+  const r = await db.audioJob.updateMany({ where: { id, userId, deletedAt: { not: null } }, data: { deletedAt: null } });
+  return r.count > 0;
+}
+
+export function listBinnedAudio(userId: string, limit = 100): Promise<AudioJob[]> {
+  return db.audioJob.findMany({ where: { userId, deletedAt: { not: null } }, orderBy: { deletedAt: "desc" }, take: Math.min(Math.max(limit, 1), 100) });
 }
 
 export type { AudioModel };
