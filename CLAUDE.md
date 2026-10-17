@@ -264,3 +264,4 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 - **Start creating card order (2026-10-17, owner):** "YOUR STUDIO IS WAITING" now sits ABOVE the bars (`.sf-eyebrow`), then the bars and numbers, then "Start creating with Eclipse." and the button.
 - **Hero heading two steps bigger (2026-10-17, owner):** "Eclipse Studio" is 64px on phones and 76px on desktop (was 48 / 60; rule at the end of `landing.css`). One line at 780 and 1440 px, no sideways scroll.
 - **Footer logo (2026-10-17, owner):** the logo row above the footer line was removed; the logo (40 px) now sits left of the copyright text in `.footer-bottom` (`.footer-brand`), Terms and Privacy stay on the right (under it on phones). Checked at 1440 and the 780 touch layout.
+- **One canvas line wording (2026-10-17, owner):** "Every picture, film and voice" is now "Every image, video and sound" in the `ScrollReveal` sentence.
