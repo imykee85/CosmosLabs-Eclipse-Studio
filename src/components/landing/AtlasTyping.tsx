@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { I18N_EVENT, translateText } from "@/lib/i18n/translator";
 
 // Beside Atlas: his art direction typed out as if live (after the owner's screen recording). Each line types, the caret blinks a moment, the line
-// is deleted and the next one types. Plain text, no box, opening with a quote mark like the reference. It only runs while on screen; under reduced motion the first line shows still.
+// is deleted and the next one types. Plain text, no box, between quote marks. It only runs while on screen; under reduced motion the first line shows still.
 const TYPE_MS = 55, DELETE_MS = 22, HOLD_MS = 1800, GAP_MS = 400;
 export default function AtlasTyping({ lines }: { lines: string[] }) {
   const ref = useRef<HTMLParagraphElement>(null);
@@ -50,7 +50,7 @@ export default function AtlasTyping({ lines }: { lines: string[] }) {
 
   return (
     <p className="atl-type" ref={ref} translate="no" aria-label={shown.join(" ")}>
-      <span aria-hidden="true">&ldquo;{text}<i className={still ? "is-still" : ""} /></span>
+      <span aria-hidden="true">&ldquo;{text}<i className={still ? "is-still" : ""} />&rdquo;</span>
     </p>
   );
 }

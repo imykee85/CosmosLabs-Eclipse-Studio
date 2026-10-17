@@ -691,3 +691,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-section { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
 .atl-left { min-width: 0; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .atl-intro { gap: 16px; } .atl-type { font-size: 16px; } }
+/* Atlas's typed line: a little further from him, in the subtext grey (owner 2026-10-17). */
+.atl-intro { gap: 52px; }
+.atl-type { color: #6f6a63; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .atl-intro { gap: 28px; } }
+.atl-type i { margin-right: 1px; }
