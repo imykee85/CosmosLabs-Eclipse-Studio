@@ -1,14 +1,10 @@
-# Missing keys and settings
+# Missing keys and settings (updated 2026-10-17)
 
-Add each one in Vercel (Project Settings, Environment Variables) for **Production and Preview**, then redeploy. Never paste a key in chat.
+Add each one in Vercel (Project Settings, Environment Variables) for **Production and Preview**; save secrets with Sensitive on. Redeploy once after the last key. Never paste a key in chat, and crop keys out of screenshots.
 
 | Name | Type | Where to get it | Unlocks |
 |---|---|---|---|
-| `ELEVENLABS_API_KEY` | Secret | ElevenLabs account, API keys | ElevenLabs voices, Transcribe, Effects, Music |
-| `FISH_API_KEY` | Secret | Fish Audio account, API keys | Fish voices |
-| `MINIMAX_API_KEY` | Secret | MiniMax platform, API keys | MiniMax voices and long text |
-| `DASHSCOPE_API_KEY` | Secret | Alibaba Cloud Model Studio, the Singapore/international key | Qwen voices |
-| `BYTEPLUS_VOICE_API_KEY` | Secret | BytePlus Seed Speech console (not the Ark key) | Seed Audio |
+| `DASHSCOPE_API_KEY` | Secret | Alibaba Cloud Model Studio, API Key page, region **Singapore**; check the API host in the key dialog (the app's default is `dashscope-intl.aliyuncs.com`) | Qwen voices |
 | `WHOP_API_KEY` | Secret | Whop dashboard, developer API keys | Payments |
 | `WHOP_WEBHOOK_SECRET` | Secret | Whop dashboard, webhook signing secret | Crediting plan payments |
 | `WHOP_PLAN_STARTER` | Config value | Whop plan id for Starter | Starter checkout |
