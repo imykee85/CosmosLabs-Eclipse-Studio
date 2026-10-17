@@ -735,4 +735,4 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
    colour filters, so every browser draws the same colour. The image stays only to give each logo its size. */
 .hero .strip-logo { position: relative; }
 .hero .strip-logo img { opacity: 0; filter: none; }
-.hero .strip-logo::after { content: ""; position: absolute; inset: 0; background: rgba(120, 214, 218, .9); -webkit-mask: var(--logo) center / contain no-repeat; mask: var(--logo) center / contain no-repeat; }
+.hero .strip-logo::after { content: ""; position: absolute; inset: 0; background: rgba(255, 255, 255, .6); -webkit-mask: var(--logo) center / contain no-repeat; mask: var(--logo) center / contain no-repeat; }
