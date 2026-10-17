@@ -171,7 +171,17 @@ test("deleting a finished voice removes its file", { skip }, async () => {
   const r = await start();
   const j = await waitDone(r.item.id);
   assert.equal(objects.size, 1);
+  assert.equal(await lib.jobs.deleteAudioJob(USER, j.id, true), false); // not in the Bin yet: cannot be removed for good
+  assert.equal(await lib.jobs.deleteAudioJob(OTHER, j.id), false);
+  assert.equal(await lib.jobs.deleteAudioJob(USER, j.id), true); // moved to the Bin
+  assert.equal(objects.size, 1);
+  assert.equal(await lib.jobs.getAudioJob(USER, j.id), null);
+  assert.equal((await lib.jobs.listBinnedAudio(USER)).some((x: { id: string }) => x.id === j.id), true);
+  assert.equal(await lib.jobs.restoreAudioJob(OTHER, j.id), false);
+  assert.equal(await lib.jobs.restoreAudioJob(USER, j.id), true);
+  assert.notEqual(await lib.jobs.getAudioJob(USER, j.id), null);
   assert.equal(await lib.jobs.deleteAudioJob(USER, j.id), true);
+  assert.equal(await lib.jobs.deleteAudioJob(USER, j.id, true), true);
   assert.equal(objects.size, 0);
   assert.equal(await lib.jobs.getAudioJob(USER, j.id), null);
 });

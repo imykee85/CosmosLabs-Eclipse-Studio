@@ -6,10 +6,11 @@ import { connectModels } from "@/lib/connect-models";
 import { checkPrompt } from "@/lib/moderation";
 import { cleanTreatment, mergeTreatment, treatmentText } from "@/lib/treatment";
 import { claimUsage } from "@/lib/usage";
+import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
 
 export const maxDuration = 60;
 
-// One turn of the Treatment chat. The reply is words plus an update to the treatment (the plan built so far); the browser keeps both. Nothing here costs credits.
+// One turn of the Treatment chat. The reply is words plus an update to the treatment (the plan built so far); the browser keeps both. The reply is paid in Eclipse credits from the tokens it used (chat-credits.ts).
 const MODES = {
   brief: "The person has a brief (pasted or from a file). Read it closely: pull out the goals, the audience, the requirements and any gaps or contradictions, then fill in the treatment from it and suggest two or three concepts to build on. Ask about what the brief leaves out, one question at a time.",
   concept: "The person has an idea, even a rough one. Shape it into a concept together: push on it, offer perspective, point out weak spots honestly, suggest a stronger angle or a surprising twist, and keep the treatment up to date as it gets sharper. Ask one sharp question at a time.",
@@ -64,14 +65,18 @@ export async function POST(req: Request) {
   const check = checkPrompt(latest);
   if (!check.ok) return NextResponse.json({ error: check.reason }, { status: 422 });
 
+  const broke = await chatCreditCheck(userId);
+  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
   const limit = Number(process.env.TREATMENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.TREATMENT_DAILY_MESSAGES)) : 100;
   if (!(await claimUsage(userId, "treatment", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} planner messages. It resets on a rolling 24 hours.` }, { status: 429 });
 
   const current = cleanTreatment(body?.treatment);
+  const meter = new ChatMeter();
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
     const res = await client.messages.create({ model, max_tokens: 3000, system: SYSTEM(mode, treatmentText(current)), tools: [TOOL], messages });
+    meter.add(res.model, res.usage);
     let text = "";
     let treatment = current;
     let updated = false;
@@ -91,5 +96,7 @@ export async function POST(req: Request) {
       : err instanceof Anthropic.AuthenticationError ? "The planner's API key was rejected. The owner needs to check ANTHROPIC_API_KEY."
       : "The planner couldn't answer. Please try again.";
     return NextResponse.json({ error: why }, { status: 502 });
+  } finally {
+    await chargeChat(userId, meter, "Treatment message");
   }
 }

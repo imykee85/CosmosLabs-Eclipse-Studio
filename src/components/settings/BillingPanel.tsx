@@ -1,10 +1,10 @@
 import { CreditCard, Inbox, Zap } from "lucide-react";
-import SoonTag from "@/components/SoonTag";
+import UpgradeButton from "./UpgradeButton";
 import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import { CreditBalance, CreditHistory, CreditNotes } from "./BillingLive";
 
-// Plans are not connected to payment yet (the plan is always "Trial"); the credit balance and history are real.
+// The Upgrade buttons open the payment provider's checkout (needs the Whop keys); the credit balance and history are real.
 export default function BillingPanel() {
   return (
     <>
@@ -34,7 +34,7 @@ export default function BillingPanel() {
               <p className="st-price">${p.price}<small>/mo</small></p>
               <PriceBadge usd={p.price} className="badge-row" />
               <p className="st-meta">{p.credits.toLocaleString("en-US")} credits/mo · {p.seats} seat{p.seats === 1 ? "" : "s"}</p>
-              <button type="button" className="st-upgrade">Upgrade <SoonTag /></button>
+              <UpgradeButton planId={p.id} />
             </article>
           ))}
         </div>

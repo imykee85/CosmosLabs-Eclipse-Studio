@@ -48,3 +48,16 @@ export async function spendCredits(userId: string, amount: number, note?: string
     return balance - amount;
   });
 }
+
+/** Takes up to `amount` credits (what is left when the balance is lower), never going below zero. Used for chat replies, whose real cost is
+ * only known after the answer. Returns what was taken. */
+export async function spendUpTo(userId: string, amount: number, note?: string): Promise<number> {
+  if (!Number.isInteger(amount) || amount <= 0) return 0;
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+    const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
+    const take = Math.min(amount, Math.max(0, sum._sum.delta ?? 0));
+    if (take > 0) await tx.creditLedger.create({ data: { userId, delta: -take, reason: "CHARGE", note: note ?? null } });
+    return take;
+  });
+}

@@ -64,7 +64,7 @@ export default function LocaleProvider({ children }: { children: ReactNode }) {
     (early ?? fetchDict(loc.lang)).then((d) => {
       if (off) return;
       if (!stored) { apply(d); done(); } // first visit: translated, then shown
-      else if (d && !stop) apply(d);
+      else if (d) { stop?.(); stop = undefined; apply(d); } // a returning visitor: switch to the fresh copy at once, so wording translated since their last visit shows now, not on the next load
       if (!d) done();
     });
     return () => { off = true; clearTimeout(fallback); stop?.(); };

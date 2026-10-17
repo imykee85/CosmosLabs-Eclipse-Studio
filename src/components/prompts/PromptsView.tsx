@@ -5,8 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Check, Clapperboard, Copy, Layers, Loader2, Plus, Trash2, X } from "lucide-react";
 import { PROMPT_ENGINES, type PromptEngine } from "@/lib/prompt-engines";
 import { readCurrentProject } from "@/lib/projects";
+import { useDraftText } from "@/lib/use-draft-text";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
+import { refreshCredits } from "@/lib/use-credits";
 import ImageStudioIcon from "../ImageStudioIcon";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import SoonTag from "../SoonTag";
@@ -52,7 +54,7 @@ export default function PromptsView() {
   const [engineId, setEngineId] = useState<PromptEngine["id"]>("kling");
   const engine = useMemo(() => PROMPT_ENGINES.find((e) => e.id === engineId)!, [engineId]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [text, setText] = useState("");
+  const [text, setText] = useDraftText("prompts");
   const [pics, setPics] = useState<RefPick[]>([]);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -66,7 +68,7 @@ export default function PromptsView() {
   useEffect(() => { setMsgs(load(engineId)); setNote(""); try { localStorage.setItem("eclipse-prompts-engine", engineId); } catch {} }, [engineId]);
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, busy]);
   // A treatment sent over from the Treatment step arrives as the first message to write.
-  useEffect(() => { try { const t = sessionStorage.getItem("eclipse-treatment-handoff"); if (t) { sessionStorage.removeItem("eclipse-treatment-handoff"); setText(`Write the video prompt for this treatment:\n${t}`.slice(0, 4000)); } } catch {} }, []);
+  useEffect(() => { try { const t = sessionStorage.getItem("eclipse-treatment-handoff"); if (t) { sessionStorage.removeItem("eclipse-treatment-handoff"); setText(`Write the video prompt for this treatment:\n${t}`.slice(0, 4000)); } } catch {} }, [setText]);
 
   const commit = (list: Msg[]) => { setMsgs(list); save(engineId, list); };
 
@@ -86,7 +88,7 @@ export default function PromptsView() {
       commit([...history, res.ok ? { id: uid(), role: "assistant", text: String(data.text ?? "") } : { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The prompt engine couldn't answer. Please try again.", error: true }]);
     } catch {
       commit([...history, { id: uid(), role: "assistant", text: "I couldn't reach the server. Check your connection and try again.", error: true }]);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); refreshCredits(); }
   }
 
   async function uploadFromDevice(f: File | undefined) {

@@ -14,7 +14,7 @@ import "./user-menu.css";
 const ITEMS = [
   { label: "Tutorial", href: "", icon: GraduationCap, soon: false },
   { label: "Portfolio", href: "/portfolio", icon: LayoutGrid, soon: false },
-  { label: "Certificates", href: "/certificates", icon: Award, soon: true },
+  { label: "Certificates", href: "/certificates", icon: Award, soon: false },
   { label: "Settings", href: "/settings", icon: Settings, soon: false },
 ];
 

@@ -21,7 +21,24 @@ export const audience = [
   ["GPT IMAGE 2.5", "OpenAI's newest image model.", "OpenAI", "Image", "OpenAI's newest image model, with picture edits.", "GPT Image 2.5"],
 ] as const;
 
-export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising"];
+export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports"];
+
+// The black "Start creating with Eclipse." card: three white striped bars, each with a number under it that runs up as the bar rises.
+// Categories are the owner's (2026-10-17). The numbers are the owner's (2026-10-17). [value, suffix, caption, bar height in stripes]
+export const studioStats = [
+  [3, "k+", "Creators", 8],
+  [100, "k+", "Creations", 12],
+  [50, "+", "Countries", 10],
+] as const;
+
+// Lines Atlas "types" beside himself on the homepage: examples of his art direction.
+export const atlasDirections = [
+  "Shoot it low at golden hour and let the steam catch the light.",
+  "Swap the white backdrop for raw concrete. It reads more premium.",
+  "Open on the hands, then pull back to reveal the whole kitchen.",
+  "Push the reds, deepen the shadows, keep the skin soft.",
+  "35mm, shallow focus on the label, a slow push in.",
+];
 
 // What Atlas is good at, shown under him in the "Meet Atlas" section. Only what Atlas really does today.
 export const atlasStrengths = [

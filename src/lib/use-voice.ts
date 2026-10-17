@@ -2,16 +2,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // The browser side of Voice Studio's routes (src/app/api/audio). A voice is a job: POST /api/audio/generate returns a "pending" item, GET /api/audio/<id> follows it.
-export type AudioKind = "tts" | "stt" | "sfx" | "music";
+export type AudioKind = "tts" | "stt" | "sfx" | "music" | "vsfx"; // vsfx: sound made for a video
 export type TranscriptSegment = { text: string; start: number; end: number; speaker?: string };
 export type Transcript = { text: string; language?: string; durationSec?: number; segments: TranscriptSegment[] };
 export type AudioItem = {
   id: string; kind: AudioKind; transcript: Transcript | null; status: "pending" | "completed" | "failed"; error: string | null; text: string; chars: number; model: string; modelLabel: string;
   voiceId: string | null; voiceName: string | null; createdAt: string; durationMs: number | null; contentType: string | null; sizeBytes: number | null; url: string | null; fileName: string;
+  variants: { url: string | null; durationMs: number | null; contentType: string | null; fileName: string }[] | null; videoUrl: string | null; canMux?: boolean;
 };
 export type VoicePricing = { unit: "char" | "byte"; perUnit: number } | { unit: "max"; credits: number } | { unit: "sec"; perSec: number } | null;
-export type ModelOptions = { diarize: boolean; loop: boolean; instrumental: boolean; minSeconds: number | null; maxSeconds: number | null; maxInputBytes: number | null; maxInputSeconds: number | null; long: boolean };
-export type VoiceModel = { id: string; label: string; kind: AudioKind; options: ModelOptions; provider: string; providerLabel: string; ready: boolean; canClone: boolean; canDesign: boolean; maxChars: number; note: string | null; tags: string[]; voiceOptional: boolean; pricing: VoicePricing; supports: { emotionTags: boolean; speed: boolean; pitch: boolean; voiceClone: boolean; streaming: boolean; subtitles: boolean } };
+export type ModelOptions = { maxVariants: number | null; negativePrompt: boolean; videoInput: boolean; durationRequired: boolean; formats: string[] | null; diarize: boolean; loop: boolean; instrumental: boolean; minSeconds: number | null; maxSeconds: number | null; maxInputBytes: number | null; maxInputSeconds: number | null; long: boolean };
+export type VoiceModel = { id: string; label: string; kind: AudioKind; kinds: AudioKind[]; options: ModelOptions; provider: string; providerLabel: string; ready: boolean; canClone: boolean; canDesign: boolean; maxChars: number; note: string | null; tags: string[]; voiceOptional: boolean; pricing: VoicePricing; supports: { emotionTags: boolean; speed: boolean; pitch: boolean; voiceClone: boolean; streaming: boolean; subtitles: boolean } };
 export type VoiceOption = { voiceId: string; name: string; category?: string; language?: string; gender?: string; accent?: string; age?: string; descriptive?: string; previewUrl?: string; own?: boolean; ownId?: string; kind?: "cloned" | "designed" };
 export type VoiceCosts = { clone: number | null; design: number | null };
 
@@ -133,4 +134,19 @@ export async function uploadRecording(file: File, onProgress: (p: number) => voi
     x.onerror = () => resolve({ ok: false, error: "The recording could not be uploaded. Check your connection, then try again." });
     x.send(file);
   });
+}
+
+// The price of a sound job before it is started (credits; null when credits are off or the server cannot say). Nothing is held.
+export async function quoteSound(body: Record<string, unknown>): Promise<{ ok: true; credits: number | null } | { ok: false; error: string }> {
+  try {
+    const r = await fetch("/api/audio/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => null);
+    if (!r.ok) return { ok: false, error: typeof d?.error === "string" ? d.error : "The price could not be checked." };
+    return { ok: true, credits: typeof d?.credits === "number" ? d.credits : null };
+  } catch { return { ok: false, error: "Check your connection and try again." }; }
+}
+
+// One take followed until it finishes (used by the Add sound dialog): asks GET /api/audio/<id> every 3 seconds.
+export async function fetchAudioItem(id: string): Promise<AudioItem | null> {
+  try { const r = await fetch(`/api/audio/${id}`, { cache: "no-store" }); return r.ok ? ((await r.json()) as AudioItem) : null; } catch { return null; }
 }

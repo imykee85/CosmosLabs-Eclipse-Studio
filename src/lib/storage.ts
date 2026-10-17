@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -44,6 +44,12 @@ function r2() {
 
 const bucket = () => process.env.R2_BUCKET!;
 
+/** The host name signed storage links point at (what a sandbox must be allowed to reach to fetch or upload a file). */
+export function storageHost(): string | null {
+  if (!storageEnabled) return null;
+  try { return new URL(process.env.R2_ENDPOINT ?? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`).hostname; } catch { return null; }
+}
+
 export async function putObject(key: string, body: Uint8Array, contentType: string): Promise<void> {
   await r2().send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType }));
 }
@@ -58,6 +64,17 @@ export async function getObjectBytes(key: string, maxBytes = 15 * 1024 * 1024): 
   const bytes = await res.Body?.transformToByteArray();
   if (!bytes || bytes.byteLength === 0 || bytes.byteLength > maxBytes) throw new Error("Stored file is empty or too large");
   return bytes;
+}
+
+/** The SHA-256 fingerprint and byte size of a stored file, read as a stream (a 500 MB video is never held in memory). */
+export async function sha256OfObject(key: string): Promise<{ sha256: string; size: number }> {
+  const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+  if (!res.Body) throw new Error("Stored file is empty");
+  const hash = createHash("sha256");
+  let size = 0;
+  for await (const chunk of res.Body as Readable) { hash.update(chunk as Buffer); size += (chunk as Buffer).length; }
+  if (size === 0) throw new Error("Stored file is empty");
+  return { sha256: hash.digest("hex"), size };
 }
 
 /** A one-time link the BROWSER can PUT a file to directly (so it never passes through our server's request-size limit). Works for `ttlSeconds`. */

@@ -5,6 +5,8 @@ import { getAdmin } from "@/lib/admin";
 import { connectModels } from "@/lib/connect-models";
 import { db } from "@/lib/db";
 import { safeText } from "@/lib/safe-text";
+import { baseSnapshotId, getSetting, SETTING } from "@/lib/sandbox";
+import { usageNow } from "@/lib/sandbox/usage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -30,12 +32,14 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "MINIMAX_API_KEY", kind: "Secret", needed: "Voice Studio: MiniMax voices" },
   { name: "DASHSCOPE_API_KEY", kind: "Secret", needed: "Voice Studio: Qwen voices (Singapore/international key)" },
   { name: "BYTEPLUS_VOICE_API_KEY", kind: "Secret", needed: "Voice Studio: Seed Audio (Seed Speech console key, not ARK_API_KEY)" },
+  { name: "MIRELO_API_KEY", kind: "Secret", needed: "Voice Studio: Mirelo sound effects and Add sound to video" },
   { name: "CRON_SECRET", kind: "Secret", needed: "daily finishing job" },
   { name: "ADMIN_EMAILS", kind: "Config", needed: "these owner pages" },
   { name: "CREDITS_ENABLED", kind: "Config", needed: "charging for renders" },
   { name: "NEXT_PUBLIC_CONTACT_EMAIL", kind: "Config", needed: "contact on legal pages" },
   { name: "NEXT_PUBLIC_SITE_URL", kind: "Config", needed: "links and sharing image" },
   { name: "WHOP_API_KEY", kind: "Secret", needed: "payments" },
+  { name: "SANDBOX_PROVIDER", kind: "Config", needed: "the sandbox platform (set to vercel)" },
 ];
 
 export async function POST() {
@@ -102,6 +106,19 @@ export async function POST() {
     if (last) add(null, `Latest voice failure (${last.model}, code ${(last.params as { failCode?: string } | null)?.failCode ?? "none"}): ${safeText(last.error ?? "no text")}`);
   } catch {
     add(null, "Voices: could not be counted");
+  }
+
+  // Sandbox platform (Vercel Sandbox): set-up and this month's use of the free allowance
+  try {
+    if (!process.env.SANDBOX_PROVIDER) add(null, "Sandbox: switched off (SANDBOX_PROVIDER is not set)");
+    else {
+      const [snap, smoke, u, failed] = await Promise.all([baseSnapshotId(), getSetting(SETTING.smokePassed), usageNow(), db.sandboxJob.findFirst({ where: { status: { in: ["failed", "expired"] } }, orderBy: { updatedAt: "desc" }, select: { kind: true, error: true } })]);
+      add(Boolean(snap), snap ? `Sandbox base snapshot: ${snap}${smoke === snap ? " (smoke test passed)" : " (smoke test NOT passed yet: run it from /admin/sandbox)"}` : "Sandbox: no base snapshot yet (Build the base on /admin/sandbox)");
+      add(u.share < 0.8, `Sandbox use this month: ${Math.round(u.share * 100)}% of the free allowance (${u.used.creations} sandboxes, ${(u.used.activeCpuMs / 3_600_000).toFixed(2)} CPU hours)`);
+      if (failed) add(null, `Latest sandbox failure (${failed.kind}): ${safeText((failed.error as { message?: string; detail?: string } | null)?.detail ?? (failed.error as { message?: string } | null)?.message ?? "no text")}`);
+    }
+  } catch {
+    add(null, "Sandbox: could not be checked");
   }
 
   return NextResponse.json({ lines, at: new Date().toISOString() });

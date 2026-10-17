@@ -544,7 +544,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-right { align-self: start; }
 .atl-tag { margin: 72px 0 0; font-family: var(--font-display); font-size: clamp(47px,6.1vw,84px); line-height: .92; letter-spacing: -.03em; font-weight: 600; }
 .atl-demo ol { list-style: none; margin: 0; padding: 0; }
-.atl-demo li { position: relative; height: var(--row); display: grid; grid-template-columns: 26px 34px 1fr; gap: 0 10px; align-items: start; padding-top: 18px; border-top: 1px solid #c5c0b8; }
+.atl-demo li { position: relative; height: var(--row); display: grid; grid-template-columns: 26px 34px 1fr; gap: 0 10px; align-items: start; padding-top: 18px; }
+.atl-demo li::before { content: ""; position: absolute; top: 0; left: 36px; right: 0; height: 1px; background: #c5c0b8; } /* row rules start at the number column, never left of the vertical line (owner 2026-10-16) */
 .atl-line { position: absolute; left: 5px; top: 24px; width: 2px; height: calc((var(--n) - 1) * var(--row)); background: rgba(0,0,0,.12); }
 .atl-fill { width: 100%; height: calc(var(--atl-p, 0) * 100%); background: var(--accent); transition: height 1.1s var(--ease); }
 .atl-dot { width: 12px; height: 12px; margin-top: 1px; border-radius: 50%; background: #c9c4bc; position: relative; z-index: 1; transition: background .35s ease .35s, box-shadow .35s ease .35s; }
@@ -604,3 +605,120 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .nav-links { gap: clamp(14px, 2.2vw, 36px); margin-right: clamp(14px, 3vw, 60px); }
 .nav-actions { gap: 12px; }
 .nav-actions .pill-btn { padding: 10px 16px; gap: 8px; }
+
+/* Brighter nav text; the language picker has the same size, weight, colour and centre line as the links (owner 2026-10-15) */
+.nav-links a, .nav-actions .login, .lang-menu.is-nav .lang-btn { color: #f4f1ed; }
+.nav-links a:hover, .nav-actions .login:hover, .lang-menu.is-nav .lang-btn:hover { color: #fff; }
+.lang-menu.is-nav { display: flex; align-items: center; }
+.lang-menu.is-nav .lang-btn { font-size: 16px; font-weight: 500; letter-spacing: 0; line-height: inherit; }
+.lang-menu.is-nav .lang-btn svg:first-child { opacity: 1; }
+.lang-menu.is-nav .lang-btn svg:last-child { opacity: .85; }
+/* Hero heading block brighter */
+.site-shell .hero h1 { color: #fff; }
+.site-shell .hero .hero-sub { color: #f2efea; }
+
+/* Every heading subtext on the homepage has the size of "AI Creative Suite" (owner 2026-10-15): 20px, 24px on desktop, weight 500. */
+.audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 20px; font-weight: 500; line-height: 1.35; letter-spacing: -.01em; }
+@media (min-width: 801px) { .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 24px; } }
+.audience-sub { max-width: 600px; } .core-head p { max-width: 600px; } .results-heading p { max-width: 400px; }
+
+/* One reading size for the small texts (owner 2026-10-15): the size of "AI Creative Suite" (20px, 24px on desktop) now also sets the Core feature texts, the FAQ, the small
+   headings above the section headings (eyebrows) and the small line above the Create Yours button. Wide letter spacing is trimmed so the bigger capitals still fit on one line. */
+.eyebrow, .center-cta span { font-size: 16px; line-height: 1.3; letter-spacing: .16em; }
+.core-block p { font-size: 16px; line-height: 1.4; }
+.faq-item button { font-size: 20px; }
+.faq-item p { max-width: 640px; font-size: 20px; line-height: 1.45; }
+@media (min-width: 801px) { .faq-item button, .faq-item p { font-size: 24px; } .eyebrow, .center-cta span { font-size: 18px; } .core-block p { font-size: 18px; } }
+@media (max-width: 480px) { .eyebrow { letter-spacing: .16em; } }
+/* Core: the bigger feature texts need more room above and below the orbit on phones and in narrow windows */
+@media (max-width: 800px) { .core-stage { height: 980px; } .core-block p { font-size: 16px; } }
+@media (pointer: coarse) and (max-width: 1100px) { .core-stage { height: 980px; } }
+
+/* Meet Atlas: the five strength answers and the step descriptions use the Core feature text size (owner 2026-10-16): 18px, 16px at 800px and below. Rows are taller so a two-line step description fits. */
+.atl-strengths p, .atl-demo p { font-size: 18px; line-height: 1.45; }
+.atl-demo, .atl-section .atl-demo { --row: 112px; }
+@media (max-width: 800px) { .atl-strengths p, .atl-demo p { font-size: 16px; } .atl-demo, .atl-section .atl-demo { --row: 100px; } }
+@media (pointer: coarse) and (max-width: 1100px) { .atl-demo, .atl-section .atl-demo { --row: 112px; } }
+
+/* "Trusted by teams at" above the logo reel has the same size as the other small headings (owner 2026-10-16): 18px, 16px at 800px and below. */
+.strip-label, .hero .strip-label { font-size: 16px; letter-spacing: .16em; line-height: 1.3; }
+@media (min-width: 801px) { .strip-label, .hero .strip-label { font-size: 18px; } }
+
+/* Atlas closing line: three lines, right aligned (owner 2026-10-16) */
+.atl-tag { text-align: right; }
+/* Atlas steps: the dot, the number and the vertical line sit level with the first line of each step's subtext (owner 2026-10-16). */
+.atl-demo { --dy: 61px; }
+.atl-demo .atl-dot { margin-top: calc(var(--dy) - 18px - 6px); }
+.atl-demo .atl-num { padding-top: calc(var(--dy) - 18px - 9px); }
+.atl-demo .atl-line { top: var(--dy); }
+@media (max-width: 800px) { .atl-demo { --dy: 60px; } }
+/* Meet Atlas headings (strength questions, step titles) at the Core feature heading size (owner 2026-10-16). */
+.atl-strengths b { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+@media (max-width: 800px) { .atl-strengths b { font-size: 20px; } }
+/* "Made to look like you meant it", after the owner's reference: title and line on the left, the button on the right, then four columns of
+   tiles in different heights with no labels; the last row fades into the page under one centred button. Four columns at every width. */
+.results-head { max-width: 1165px; margin: 0 auto 28px; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.results-head h2 { margin: 0; }
+.results-head h2 em { font-style: normal; }
+.results-head p { margin: 12px 0 0; color: #6b665f; font-size: 20px; line-height: 1.35; font-weight: 500; letter-spacing: -.01em; max-width: 560px; }
+@media (min-width: 801px) { .results-head p { font-size: 24px; } }
+.results-head > a, .results-head > .pill-btn { flex: none; }
+.results-wall { position: relative; max-width: 1165px; margin: 0 auto; aspect-ratio: 1165 / 1310; overflow: hidden; }
+.results-cols { display: flex; gap: 8px; align-items: flex-start; }
+.results-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.results-col article { position: relative; overflow: hidden; border-radius: 8px; background: #ccc; aspect-ratio: 9 / 16; }
+.results-col article .tile { position: absolute; inset: 0; height: 100%; border-radius: 0; transition: transform .5s var(--ease); }
+.results-col article:hover .tile { transform: scale(1.05); }
+.rt-1-0 { aspect-ratio: 3 / 4 !important; }
+.rt-2-1 { aspect-ratio: 1 / 1 !important; }
+.results-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; background: linear-gradient(180deg, rgba(240,237,232,0) 0%, var(--paper) 88%); pointer-events: none; }
+.results-more { position: absolute; left: 0; right: 0; bottom: 9%; display: flex; justify-content: center; }
+/* Atlas closing line: four lines, right aligned. */
+.atl-tag { text-align: right; }
+/* Beside Atlas: his art direction typed out as if live (owner 2026-10-17, after a screen recording). Plain text, no box; room for three lines so nothing jumps. */
+.atl-intro { display: flex; align-items: center; gap: 28px; margin: 64px 0 50px 6px; }
+.atl-intro .atl-bot { margin: 0; flex: none; }
+.atl-type { flex: 1; min-width: 0; min-height: calc(3 * 1.4em); margin: 0; display: flex; align-items: center; color: #47433e; font-size: 18px; line-height: 1.4; letter-spacing: -.01em; }
+.atl-type i { display: inline-block; width: 2px; height: 1.1em; margin-left: 2px; vertical-align: -.2em; background: var(--accent, #c00707); animation: atl-caret 1s steps(1) infinite; }
+.atl-type i.is-still { display: none; }
+@keyframes atl-caret { 50% { opacity: 0; } }
+@media (max-width: 800px) { .atl-type { font-size: 16px; } .atl-intro { gap: 20px; } }
+/* The typed lines stretch out across the section (owner 2026-10-17: not packed at one side); the width is set by AtlasWorkflow when the columns sit side by side. */
+.atl-intro { position: relative; z-index: 1; max-width: none; }
+.atl-type { min-height: calc(2 * 1.4em); font-size: 20px; }
+@media (max-width: 800px) { .atl-type { font-size: 17px; } }
+/* The stretched typing row must not widen the left grid column (it pushed the steps off a phone's screen): tracks and the left column may shrink below their content. */
+.atl-section { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.atl-left { min-width: 0; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .atl-intro { gap: 16px; } .atl-type { font-size: 16px; } }
+/* Atlas's typed line: a little further from him, in the subtext grey (owner 2026-10-17). */
+.atl-intro { gap: 52px; }
+.atl-type { color: #6f6a63; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .atl-intro { gap: 28px; } }
+.atl-type i { margin-right: 1px; }
+/* "Start creating with Eclipse." card: three white striped bars, each with its running number and category underneath (StudioFlow.tsx, owner 2026-10-17). No boxes. */
+.sf { max-width: 900px; margin: 0 auto 84px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 28px; }
+.sf-col { display: flex; flex-direction: column; align-items: stretch; text-align: center; }
+.sf-plot { height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
+.sf-bar { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; }
+.sf-bar i { display: block; flex: 1 1 0; min-height: 4px; border-radius: 1px; background: #f4f1ed; opacity: 0; transform: scaleX(.5); transform-origin: left; transition: opacity .2s ease, transform .3s cubic-bezier(.23,1,.32,1); }
+.sf-bar i.on { opacity: 1; transform: none; }
+.sf-col b { display: block; margin-top: 26px; color: #fff; font-size: 64px; font-weight: 700; letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sf-col span { margin-top: 10px; color: rgba(240,237,232,.6); font-size: 17px; font-weight: 500; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .sf { margin-bottom: 64px; gap: 18px; } .sf-plot { height: 220px; } .sf-col b { font-size: 52px; margin-top: 22px; } .sf-col span { font-size: 16px; } .sf-bar { gap: 5px; } }
+@media (prefers-reduced-motion: reduce) { .sf-bar i { transition: none; } }
+.sf-eyebrow { margin-bottom: 44px; }
+/* Hero heading two steps bigger (owner 2026-10-17): 48 -> 64 on phones, 60 -> 76 on desktop */
+.site-shell .hero h1 { font-size: 64px; }
+@media (min-width: 801px) { .site-shell .hero h1 { font-size: 76px; } }
+/* Footer: the logo sits left of the copyright line (owner 2026-10-17); no separate logo row above */
+.footer-brand { display: inline-flex; align-items: center; gap: 14px; }
+.footer-mark { display: inline-flex; flex: none; }
+.footer-bottom { align-items: center; }
+@media (max-width: 800px) { .footer-bottom { align-items: flex-start; } }
+/* Nav menu text at the section subtext size (owner 2026-10-17): 20px, 24px above 800px */
+.nav-links a, .nav-actions .login, .lang-menu.is-nav .lang-btn { font-size: 17px; }
+@media (min-width: 801px) { .nav-links a, .nav-actions .login, .lang-menu.is-nav .lang-btn { font-size: 18px; } }
+/* "Made to look": shorter bottom fade (owner 2026-10-17: it went up too far) */
+.results-fade { height: 18%; background: linear-gradient(180deg, rgba(240,237,232,0) 0%, var(--paper) 82%); }
+.results-more { bottom: 4%; }

@@ -15,6 +15,7 @@ import AtlasWorkflow from "./AtlasWorkflow";
 import AtlasOrbitSection from "./AtlasOrbitSection";
 import CtaPromptCard from "./CtaPromptCard";
 import ScrollReveal from "./ScrollReveal";
+import StudioFlow from "./StudioFlow";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
@@ -97,7 +98,7 @@ export default function Landing() {
 
       <section id="examples" className="wow-section section-pad">
         <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
-        <ScrollReveal className="wow-reveal" text="Eclipse brings your pictures, video, prompts and AI agents together in one creative studio, so an idea can become a finished piece without leaving the page." />
+        <ScrollReveal className="wow-reveal" text="The only limit is the one you imagine. And you just stopped imagining it. Every image, video and sound you have ever had in your head is now one sentence away. No crew, no budget, no waiting. Just you, and everything you can create." />
         <CanvasCarousel />
         <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
       </section>
@@ -107,14 +108,14 @@ export default function Landing() {
           <div>
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
             <h2>what do you want<br /><em>to create?</em></h2>
-            <p className="audience-sub">Discover the latest frontier generative AI models.</p>
+            <p className="audience-sub">Discover the frontier of generative AI.</p>
           </div>
         </div>
         <div className="audience-grid">
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <button className={`audience-card ${selected === i ? "selected" : ""}`} onClick={() => setSelected(i)}>
-                <div className={`tile tone-${i}`} />
+                <div className={`tile tone-${i % 10}`} />
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
@@ -134,32 +135,38 @@ export default function Landing() {
         line1="have an idea?" line2="try it."
         placeholder={"What do you want to create?\n\nDescribe your idea…"}
         button="Create my idea" icon={<Lightbulb size={17} />}
-        caption="No prompt engineering. No blank canvas. Just start with what you’re imagining."
         onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}
       />
 
       <section className="results-section section-pad">
-        <div className="section-heading-row results-heading">
+        <div className="results-head">
           <div>
-            <div className="eyebrow">CREATED WITH ECLIPSE</div>
-            <h2>made to look<br /><em>like you meant it.</em></h2>
+            <h2>Made to look <em>like you meant it.</em></h2>
+            <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
           </div>
-          <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
         </div>
-        <div className="results-grid">
-          {results.map((name, i) => (
-            <article key={name}>
-              <div className={`tile tone-${i}`} />
-              <span>{name} <ArrowRight size={13} /></span>
-            </article>
-          ))}
+        {/* Four columns of tiles in different heights; the last row fades into the page under one button (after the owner's reference). */}
+        <div className="results-wall">
+          <div className="results-cols">
+            {[0, 1, 2, 3].map((c) => (
+              <div className="results-col" key={c}>
+                {results.filter((_, i) => i % 4 === c).map((name, j) => (
+                  <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
+                    <div className={`tile tone-${(c + j * 4) % 10}`} />
+                  </article>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="results-fade" aria-hidden="true" />
+          <div className="results-more"><Cta dark>Create Yours</Cta></div>
         </div>
-        <div className="center-cta" style={{ marginTop: 70 }}><Cta dark>Create Yours</Cta></div>
       </section>
 
       <section className="try-section try-cta section-pad">
+        <div className="try-inner"><div className="eyebrow sf-eyebrow">YOUR STUDIO IS WAITING</div></div>
+        <StudioFlow />
         <div className="try-inner">
-          <div className="eyebrow">YOUR STUDIO IS WAITING</div>
           <h2>start creating<br /><em>with Eclipse.</em></h2>
           <div className="section-cta"><Cta /></div>
         </div>
@@ -215,10 +222,7 @@ export default function Landing() {
       </section>
 
       <footer id="footer" className="footer">
-        <div className="footer-top">
-          <Wordmark />
-        </div>
-        <div className="footer-bottom"><span>© 2026 Cosmos Labs AI. All rights reserved.</span><div><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
+        <div className="footer-bottom"><span className="footer-brand"><Logo className="footer-mark" size={40} /><span>© 2026 Cosmos Labs AI. All rights reserved.</span></span><div><a href="/terms">Terms of Use</a><a href="/privacy">Privacy Policy</a></div></div>
       </footer>
     </main>
   );

@@ -15,18 +15,13 @@ import "./memory.css";
 const ICON: Record<MemoryTopic, React.ReactNode> = {
   projects: <Folder size={20} />, products: <Package size={20} />, characters: <User size={20} />, style: <Palette size={20} />, tastes: <Heart size={20} />,
 };
-const POS: Record<MemoryTopic, { x: number; y: number }> = {
-  projects: { x: 40, y: 38 }, products: { x: 76, y: 45 }, characters: { x: 20, y: 52 }, style: { x: 76, y: 63 }, tastes: { x: 40, y: 70 },
+// The homepage's Core animation (owner 2026-10-15): two dashed rings turning opposite ways round the glowing core, with the five
+// topics travelling on them. Each ring turns one way and its nodes turn back at the same speed, so the icons stay upright.
+const RING: Record<MemoryTopic, { ring: 0 | 1; angle: number }> = {
+  projects: { ring: 0, angle: -30 }, products: { ring: 0, angle: 90 }, style: { ring: 0, angle: 210 },
+  characters: { ring: 1, angle: 30 }, tastes: { ring: 1, angle: 210 },
 };
-
-// Faint placeholders hanging off each topic, as in the original map: [topic, x, y, width %]. The ones of the chosen category light up.
-const PILLS: [MemoryTopic, number, number, number][] = [
-  ["projects", 40, 5, 28], ["projects", 64, 4, 26], ["projects", 3, 30, 22],
-  ["products", 82, 24, 24], ["products", 92, 36, 26], ["products", 96, 49, 20],
-  ["characters", -4, 41, 18], ["characters", -6, 62, 22], ["characters", 5, 76, 28],
-  ["style", 92, 70, 22], ["style", 88, 86, 26], ["style", 64, 90, 22],
-  ["tastes", 8, 84, 30], ["tastes", 24, 94, 26], ["tastes", 48, 95, 20],
-];
+const OUTER_S = 60, INNER_S = 44;
 
 export default function MemoryView() {
   const [items, setItems] = useState<MemoryItem[] | null>(null);
@@ -86,8 +81,22 @@ export default function MemoryView() {
     const res = await fetch(`/api/memory/${id}`, { method: "DELETE" });
     if (!res.ok) { setError("Could not delete that."); load(); }
   }
+  const ringNodes = (ring: 0 | 1, back: boolean, seconds: number) => MEMORY_TOPICS.filter((t) => RING[t].ring === ring).map((t) => (
+    <div key={t} className="mm-slot" style={{ transform: `rotate(${RING[t].angle}deg)` }}>
+      <div className="mm-pt">
+        <div style={{ transform: `rotate(${-RING[t].angle}deg)` }}>
+          <div className={back ? "mm-cw" : "mm-ccw"} style={{ animationDuration: `${seconds}s` }}>
+            <button type="button" className={`mm-node ${saveTopic === t ? "is-on" : ""}`} title={`${TOPIC_LABEL[t]} (${counts[t]})`}
+              aria-label={`${TOPIC_LABEL[t]}, ${counts[t]}`} aria-pressed={saveTopic === t} onClick={() => { setSaveTopic(t); setTopic(topic === t ? "all" : t); }}>
+              {ICON[t]}{counts[t] > 0 && <i>{counts[t]}</i>}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ));
   return (
-    <div className="mm-wrap">
+    <div className={`mm-wrap${shown.length ? "" : " is-empty"}`}>
       <div className="mm-top">
         <div className="mm-left">
           <Link href="/connect" className="mm-back" aria-label="Back to Core"><ChevronLeft size={24} /></Link>
@@ -97,18 +106,15 @@ export default function MemoryView() {
       </div>
 
       <div className="mm-stage">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          {MEMORY_TOPICS.map((t) => <line key={t} className={saveTopic === t ? "is-on" : ""} x1={50} y1={52} x2={POS[t].x} y2={POS[t].y} />)}
-          {PILLS.map(([t, x, y, w], k) => <line key={`l${k}`} className={saveTopic === t ? "is-on" : ""} x1={POS[t].x} y1={POS[t].y} x2={x + w / 2} y2={y} />)}
-        </svg>
-        {PILLS.map(([t, x, y, w], k) => <i key={`p${k}`} className={`mm-pill ${saveTopic === t ? "is-on" : ""}`} style={{ left: `${x}%`, top: `${y}%`, width: `${w}%` }} />)}
-        {MEMORY_TOPICS.map((t) => (
-          <button key={t} type="button" className={`mm-node ${saveTopic === t ? "is-on" : ""}`} style={{ left: `${POS[t].x}%`, top: `${POS[t].y}%` }}
-            title={`${TOPIC_LABEL[t]} (${counts[t]})`} aria-pressed={saveTopic === t} onClick={() => { setSaveTopic(t); setTopic(topic === t ? "all" : t); }}>
-            {ICON[t]}{counts[t] > 0 && <i>{counts[t]}</i>}
-          </button>
-        ))}
-        <GlowOrb className="mm-orb" />
+        <div className="mm-circles">
+          <div className="mm-ring" />
+          <div className="mm-cw mm-fill" style={{ animationDuration: `${OUTER_S}s` }}>{ringNodes(0, false, OUTER_S)}</div>
+          <div className="mm-inner">
+            <div className="mm-ring mm-ring-in" />
+            <div className="mm-ccw mm-fill" style={{ animationDuration: `${INNER_S}s` }}>{ringNodes(1, true, INNER_S)}</div>
+          </div>
+          <div className="mm-core"><GlowOrb /></div>
+        </div>
       </div>
 
       <div className="mm-copy">

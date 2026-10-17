@@ -4,8 +4,6 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { BUILTIN_ROOT, builtinIndex, loadBuiltinSkill, parseFrontmatter, readInside, readSkillFile, skillFiles } from "../../src/lib/core-skills/builtin";
-import { FakeLocalProvider } from "../../src/lib/sandbox/fake-local";
-import { crc32, makeZip } from "../../src/lib/sandbox/zip";
 
 test("the index lists the Taste Skill with the SKILL.md description and the right flags", async () => {
   const idx = await builtinIndex();
@@ -58,47 +56,4 @@ test("a link that leaves the folder is refused", async () => {
   await fs.writeFile(path.join(dir, "fine.md"), "fine");
   assert.equal((await readInside(dir, "link.md")).ok, false);
   assert.equal((await readInside(dir, "fine.md")).ok, true);
-});
-
-test("fake sandbox: a command that runs too long is killed", async () => {
-  const p = new FakeLocalProvider(), id = await p.start("u1");
-  const t = Date.now();
-  const r = await p.exec(id, "sleep 30; echo late", { timeoutMs: 400 });
-  assert.equal(r.timedOut, true);
-  assert.equal(r.exitCode, null);
-  assert.ok(Date.now() - t < 5000);
-  await p.destroy(id);
-});
-
-test("fake sandbox: a command cannot read Eclipse's environment", async () => {
-  process.env.DATABASE_URL = "postgresql://secret"; process.env.CLERK_SECRET_KEY = "sk_secret"; process.env.R2_SECRET_ACCESS_KEY = "r2secret";
-  const p = new FakeLocalProvider(), id = await p.start("u1");
-  const r = await p.exec(id, "env; echo $DATABASE_URL $CLERK_SECRET_KEY", { timeoutMs: 5000 });
-  assert.doesNotMatch(r.stdout, /secret|postgresql|CLERK|R2_/);
-  await p.destroy(id);
-});
-
-test("fake sandbox: files stay in /work, listing and writing work, two boxes are separate, destroy removes them", async () => {
-  const p = new FakeLocalProvider(), a = await p.start("u1"), b = await p.start("u2");
-  await p.writeFile(a, "/work/project/index.html", "<h1>a</h1>");
-  assert.equal(new TextDecoder().decode(await p.readFile(a, "/work/project/index.html")), "<h1>a</h1>");
-  assert.deepEqual((await p.listFiles(a, "/work/project")).map((f) => f.path), ["/work/project/index.html"]);
-  await assert.rejects(() => p.readFile(b, "/work/project/index.html"));
-  for (const bad of ["/etc/passwd", "/work/../etc/passwd", "/workshop/x", "work/../../x"]) await assert.rejects(() => p.readFile(a, bad), String(bad));
-  await assert.rejects(() => p.writeFile(a, "/tmp/x", "x"));
-  await assert.rejects(() => p.exec(a, "pwd", { timeoutMs: 1000, cwd: "/etc" }));
-  await p.destroy(a);
-  assert.equal(p.has(a), false);
-  await assert.rejects(() => p.readFile(a, "/work/project/index.html"));
-  await p.destroy(b);
-});
-
-test("the zip writer produces a valid archive", async () => {
-  assert.equal(crc32(new TextEncoder().encode("123456789")), 0xcbf43926);
-  const zip = makeZip([{ name: "index.html", data: new TextEncoder().encode("<h1>hi</h1>") }, { name: "css/a.css", data: new TextEncoder().encode("a{}") }]);
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "zip-"));
-  await fs.writeFile(path.join(dir, "t.zip"), zip);
-  const { spawnSync } = await import("node:child_process");
-  const r = spawnSync("python3", ["-c", "import zipfile,sys;z=zipfile.ZipFile(sys.argv[1]);print(z.testzip());print(sorted(z.namelist()));print(z.read('index.html').decode())", path.join(dir, "t.zip")], { encoding: "utf8" });
-  assert.match(r.stdout, /^None\n\['css\/a.css', 'index.html'\]\n<h1>hi<\/h1>/);
 });

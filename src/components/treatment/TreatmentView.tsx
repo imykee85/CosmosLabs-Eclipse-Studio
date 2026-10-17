@@ -8,7 +8,9 @@ import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
+import { refreshCredits } from "@/lib/use-credits";
 import { readCurrentProject } from "@/lib/projects";
+import { useDraftText } from "@/lib/use-draft-text";
 import { cleanTreatment, EMPTY_TREATMENT, hasTreatment, treatmentText, type Treatment } from "@/lib/treatment";
 import "@/components/create/create.css";
 import "./treatment.css";
@@ -55,7 +57,7 @@ export default function TreatmentView() {
   const [mode, setMode] = useState<Mode | null>(null);
   const active = MODES.find((m) => m.id === (mode ?? "brief"))!;
   const [files, setFiles] = useState<File[]>([]);
-  const [text, setText] = useState("");
+  const [text, setText] = useDraftText("treatment");
   // The conversation and the plan built from it (a treatment), kept in this browser per project.
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [plan, setPlan] = useState<Treatment>(EMPTY_TREATMENT);
@@ -115,7 +117,7 @@ export default function TreatmentView() {
       setMsgs((l) => [...l, { id: uid(), role: "assistant", text: String(data.text ?? "") }]);
     } catch {
       setMsgs((l) => [...l, { id: uid(), role: "assistant", text: "I couldn't reach the server. Check your connection and try again.", error: true }]);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); refreshCredits(); }
   }
   const continueToPrompts = () => {
     try { if (hasTreatment(plan)) sessionStorage.setItem("eclipse-treatment-handoff", treatmentText(plan)); } catch {}

@@ -1,0 +1,21 @@
+.pp { --bg: #050505; --fg: #f4f1ed; --sub: #a8a39c; --line: #2a2a2a; min-height: 100vh; background: var(--bg); color: var(--fg); font-family: var(--font-inter), Inter, system-ui, sans-serif; padding-bottom: 60px; }
+.pp-light { --bg: #f4f1ed; --fg: #111; --sub: #5e5953; --line: #d8d3cb; }
+.pp > section, .pp-head { width: min(1100px, 100% - 40px); margin: 0 auto; }
+.pp-cover { height: min(46vh, 420px); background-size: cover; background-position: center; margin-bottom: 40px; }
+.pp-head { padding: 56px 0 24px; }
+.pp-head h1 { margin: 0; font-size: clamp(40px, 8vw, 84px); font-weight: 700; letter-spacing: -.035em; line-height: 1; overflow-wrap: anywhere; }
+.pp-tag { margin: 18px 0 0; font-size: clamp(18px, 2.4vw, 26px); color: var(--sub); font-weight: 500; }
+.pp-meta { margin: 10px 0 0; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); }
+.pp-head blockquote { margin: 28px 0 0; font-size: clamp(20px, 3vw, 30px); font-weight: 500; line-height: 1.35; max-width: 760px; }
+.pp h2 { margin: 56px 0 18px; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; color: var(--sub); }
+.pp-work ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; align-items: start; }
+.pp-work li { border-radius: 10px; overflow: hidden; background: var(--line); }
+.pp-work img, .pp-work video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pp-about-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.pp-about-grid:has(.pp-photo) { grid-template-columns: minmax(180px, 320px) 1fr; }
+.pp-photo { aspect-ratio: 4 / 5; background-size: cover; background-position: center; border-radius: 12px; }
+.pp p { font-size: 18px; line-height: 1.65; margin: 0 0 16px; }
+.pp-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; font-size: 18px; line-height: 1.5; }
+.pp a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.pp-foot { width: min(1100px, 100% - 40px); margin: 80px auto 0; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--sub); }
+@media (max-width: 640px) { .pp-about-grid:has(.pp-photo) { grid-template-columns: 1fr; } }

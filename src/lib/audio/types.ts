@@ -1,5 +1,5 @@
 // Voice Studio: the provider-neutral types (docs/audio-providers/build-brief.md section 2). Plain fetch adapters only; no provider SDKs.
-export type AudioKind = "tts" | "stt" | "sfx" | "music";
+export type AudioKind = "tts" | "stt" | "sfx" | "music" | "vsfx"; // vsfx: sound made for a video ("Add sound")
 
 export type AudioRequest = {
   kind: AudioKind;
@@ -18,6 +18,13 @@ export type AudioRequest = {
   instrumental?: boolean;    // music: no vocals
   // speech to text: the input lives in private storage. `url` is a short-lived signed link, `bytes()` loads it for providers that need the file itself.
   input?: { url: string; name: string; mime: string; bytes: () => Promise<Uint8Array> };
+  // Mirelo (docs in docs/audio-providers/mirelo.md): sound for a video, or sound effects from text with several variants.
+  videoUrl?: string;         // vsfx: a short-lived signed link to the video in private storage
+  negativePrompt?: string;   // sfx: what the sound should not contain (experimental)
+  variants?: number;         // 1 to 4 alternatives made in one job
+  preserveSpeech?: boolean;  // vsfx: keep the speech that is in the video
+  outputFormat?: "wav" | "flac" | "mp3_128" | "mp3_192" | "mp3_256" | "mp3_320";
+  idempotencyKey?: string;   // the same key and body on a retry returns the original job instead of making (and billing) a second one
   diarize?: boolean;         // speech to text: tell speakers apart
   language?: string;         // speech to text: a language code when the person knows it
 };
@@ -38,6 +45,7 @@ export type AudioResult = {
   raw?: unknown;
   subtitles?: unknown;
   transcript?: Transcript;
+  variants?: { bytes: Uint8Array; mime: string; durationMs?: number }[]; // several alternatives (Mirelo); `bytes` is the first one
 };
 
 // retryable: worth another try after a pause. alert: the owner must act (key, balance, plan), so the person sees only a generic message.
@@ -60,8 +68,11 @@ export interface AudioProvider {
   saveDesign?(token: string, input: { name: string; description: string }, ctx: ProviderCtx): Promise<{ voiceId: string }>; // makes a previewed design a voice
   deleteVoice?(voiceId: string, kind: "cloned" | "designed", ctx: ProviderCtx): Promise<void>;
   // Long jobs the provider runs on its side (MiniMax long text): start returns a task id, poll is asked until it is done.
-  start?(req: AudioRequest, ctx: ProviderCtx): Promise<{ taskId: string }>;
-  poll?(taskId: string, ctx: ProviderCtx): Promise<{ status: "running" | "done" | "failed"; result?: AudioResult; error?: ProviderError }>;
+  // `pollUrl` is the address the provider gave for following the job (Mirelo `urls.self`); only an address on the provider's own host is ever followed.
+  start?(req: AudioRequest, ctx: ProviderCtx): Promise<{ taskId: string; pollUrl?: string }>;
+  poll?(taskId: string, ctx: ProviderCtx, pollUrl?: string): Promise<{ status: "running" | "done" | "failed"; result?: AudioResult; error?: ProviderError }>;
+  // The provider's own price quote for a request, in ITS credits (null when it cannot say). Used before a job is held.
+  preflight?(req: AudioRequest, ctx: ProviderCtx): Promise<{ credits: number | null }>;
 }
 
 // What adapters throw: a normalised ProviderError. Callers branch on `.error`, never on the provider's own text.

@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { finalizeGeneration, purgeFailed } from "@/lib/generation-jobs";
-import { sweepRuns } from "@/lib/sandbox/runs";
+import { sweep } from "@/lib/sandbox/runner";
 import { finalizeVideo, isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
 
 export const maxDuration = 300;
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     const rescued = (await Promise.allSettled(late.map(rescueLateVideo))).filter((r) => r.status === "fulfilled" && r.value.status === "completed").length;
     const done = results.filter((r) => r.status === "fulfilled" && r.value.status !== "pending" && r.value.status !== "saving").length;
     const cleared = await purgeFailed().catch(() => 0);
-    const sweptBuilds = await sweepRuns().catch(() => 0);
+    const sweptBuilds = (await sweep(20).catch(() => null))?.advanced ?? 0; // sandbox jobs nobody is following (also its own cron, /api/cron/sandbox-sweeper)
     return NextResponse.json({ checked: rows.length, finished: done, rescuedLate: rescued, clearedFailed: cleared, sweptBuilds, more: rows.length === BATCH });
   } catch (err) {
     console.error("render finishing job failed", err);

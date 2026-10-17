@@ -5,8 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { FolderOpen, Search } from "lucide-react";
 import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library";
 import { useRenders } from "@/lib/use-renders";
-import SoonTag from "@/components/SoonTag";
 import UploadPanel from "@/components/uploads/UploadPanel";
+import LibraryAudio from "./LibraryAudio";
 import MoreSentinel from "./MoreSentinel";
 import RenderTile from "./RenderTile";
 import "./library.css";
@@ -34,7 +34,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
 
       <div className="lib-tabs" role="tablist" aria-label="Filter by type">
         {LIBRARY_KINDS.map((k) => (
-          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}{k === "Audio" && <SoonTag className="lib-soon" />}</button>
+          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => router.replace(k === "All" ? "/library" : `/library?kind=${k}`, { scroll: false })}>{k}</button>
         ))}
       </div>
 
@@ -53,6 +53,8 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
 
       {kind === "Ingredients" ? (
         <UploadPanel show="ingredients" addKinds={["character", "product", "scene"]} addLabel="Add ingredient" role={role === "All" ? "all" : (role.toLowerCase() as "character" | "product" | "scene")} empty={{ title: "No ingredients yet", copy: "Characters, products and scenes you add appear here, ready to reuse in any project." }} />
+      ) : kind === "Audio" ? (
+        <LibraryAudio query={query} />
       ) : (kind === "All" || kind === "Images" || kind === "Videos") && shown.length > 0 ? (
         <>
           <div className="lib-grid">

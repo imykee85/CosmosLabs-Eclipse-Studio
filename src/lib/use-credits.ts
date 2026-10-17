@@ -24,6 +24,11 @@ function publish(d: Credits) {
   listeners.forEach((fn) => fn(d));
 }
 
+/** Fetches the balance again for every header showing it (after something was charged, such as a Core or Atlas reply). */
+export function refreshCredits() {
+  fetch("/api/credits").then((r) => (r.ok ? r.json() : null)).then((d) => { if (d && typeof d.balance === "number") publish(d); }).catch(() => {});
+}
+
 // The signed-in user's credit balance and recent activity (null until the first load, or when signed out / in preview mode).
 export function useCredits(): { credits: Credits | null; reload: () => void } {
   const [credits, setCredits] = useState<Credits | null>(cache);

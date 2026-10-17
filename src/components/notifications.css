@@ -8,3 +8,17 @@
 .nt.nt-row { display: block; }
 .nt-row > button { width: 100%; text-align: left; border: 0; background: transparent; font: inherit; cursor: pointer; }
 .nt-row .nt-pop { left: 10px; right: auto; }
+
+.nt > button { position: relative; }
+.nt-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: #c00707; box-shadow: 0 0 0 2px var(--a-bg, #000); }
+.nt-row .nt-dot { top: 12px; left: 28px; right: auto; }
+.nt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 360px; overflow-y: auto; }
+.nt-list a { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: 12px; color: inherit; text-decoration: none; }
+.nt-list a:hover { background: var(--a-hover, rgba(127,127,127,.12)); }
+.nt-list a.is-new .nt-txt b::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: #c00707; vertical-align: middle; }
+.nt-ico { flex: none; display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border-radius: 50%; color: #fff; }
+.nt-ico.ok { background: #1f9d55; }
+.nt-ico.bad { background: #c00707; }
+.nt-txt { display: grid; gap: 2px; min-width: 0; }
+.nt-txt b { font-size: 13.5px; font-weight: 600; }
+.nt-txt small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--a-muted); font-size: 12.5px; }

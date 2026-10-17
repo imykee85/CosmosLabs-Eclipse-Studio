@@ -14,6 +14,7 @@ import {
 import ThemeToggle from "@/components/ThemeToggle";
 import CreditsPill from "@/components/CreditsPill";
 import NewProjectModal from "./NewProjectModal";
+import BinAudio from "./BinAudio";
 import BinImages from "./BinImages";
 import HomeFeed from "./HomeFeed";
 import ProjectDetailsModal from "./ProjectDetailsModal";
@@ -60,7 +61,7 @@ export default function DashboardView() {
   const [creating, setCreating] = useState(false);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState("");
-  const [binSection, setBinSection] = useState<"projects" | "images">("projects");
+  const [binSection, setBinSection] = useState<"projects" | "images" | "audio">("projects");
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ project: Project; top: number; right: number } | null>(null);
   const [renaming, setRenaming] = useState<Project | null>(null);
@@ -169,10 +170,13 @@ export default function DashboardView() {
           <div className="db-subtabs" role="tablist" aria-label="Bin sections">
             <button role="tab" aria-selected={binSection === "projects"} className={binSection === "projects" ? "is-active" : ""} onClick={() => setBinSection("projects")}>Projects</button>
             <button role="tab" aria-selected={binSection === "images"} className={binSection === "images" ? "is-active" : ""} onClick={() => setBinSection("images")}>Images</button>
+            <button role="tab" aria-selected={binSection === "audio"} className={binSection === "audio" ? "is-active" : ""} onClick={() => setBinSection("audio")}>Audio</button>
           </div>
         )}
 
-        {tab === "bin" && binSection === "images" ? (
+        {tab === "bin" && binSection === "audio" ? (
+          <BinAudio query={query} />
+        ) : tab === "bin" && binSection === "images" ? (
           <BinImages projects={projects ?? []} projectFilter={projectFilter} query={query} onClearFilter={() => setProjectFilter(null)} />
         ) : projects === null ? (
           <p className="db-loading" aria-live="polite">Loading your projects…</p>

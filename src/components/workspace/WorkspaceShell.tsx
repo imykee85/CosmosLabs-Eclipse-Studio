@@ -38,7 +38,7 @@ const libraryItem: Item = { label: "Library", hint: "Everything you made", href:
 const gallery: Item = { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> };
 const assets: Item = { label: "Assets", hint: "Your uploads", href: "/assets", icon: <FolderOpen size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
-const exportItem: Item = { label: "Export", hint: "Deliver and share", icon: <Share2 size={17} />, soon: true };
+const exportItem: Item = { label: "Export", hint: "Deliver and share", href: "/export", icon: <Share2 size={17} /> };
 const plan: Item[] = [treatmentItem, promptsItem];
 const create: Item[] = [imageStudio, videoStudio, voiceStudio];
 // Library is in the desktop sidebar only: on a phone it is already the bottom tab.
@@ -265,7 +265,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/voice": "Voice Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/export": "Export", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/voice": "Voice Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -319,7 +319,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
         </header>
         <header className="mb-top">
           <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
-          <h1 className="mb-title">{TITLES[pathname] ?? "Eclipse Studio"}</h1>
+          <h1 className="mb-title">{TITLES[pathname] ?? (pathname.startsWith("/tools/") ? "Tools" : "Eclipse Studio")}</h1>
           <div className="mb-right">
             <CreditsPill className="mb-pill" />
             <ThemeToggle className="mb-theme" />

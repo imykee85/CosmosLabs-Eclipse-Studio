@@ -133,6 +133,7 @@ export function TranscribeConsole({ models, onStart, setError }: Props) {
 }
 
 const SFX_LENGTHS = [1, 2, 3, 5, 8, 10, 15, 20, 30];
+const SFX_LONG_LENGTHS = [1, 2, 3, 5, 8, 10, 15, 20, 30, 60, 120, 300, 600]; // models that make sounds longer than 30 seconds (Mirelo)
 const MUSIC_LENGTHS = [15, 30, 60, 90, 120, 180, 240, 300, 420, 600];
 const lengthLabel = (s: number) => (s < 60 ? `${s} s` : s % 60 === 0 ? `${s / 60} min` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 
@@ -143,22 +144,29 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
   const [len, setLen] = useState<number | null>(music ? 60 : null);
   const [loop, setLoop] = useState(false);
   const [instrumental, setInstrumental] = useState(false);
+  const [variants, setVariants] = useState(1);
+  const [leaveOut, setLeaveOut] = useState("");
+  const [format, setFormat] = useState("wav");
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { const el = box.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 200)}px`; }, [text]);
-  const lengths = useMemo(() => (music ? MUSIC_LENGTHS : SFX_LENGTHS).filter((s) => s >= (model?.options.minSeconds ?? 0) && s <= (model?.options.maxSeconds ?? 9999)), [music, model]);
+  const lengths = useMemo(() => (music ? MUSIC_LENGTHS : (model?.options.maxSeconds ?? 30) > 30 ? SFX_LONG_LENGTHS : SFX_LENGTHS).filter((s) => s >= (model?.options.minSeconds ?? 0) && s <= (model?.options.maxSeconds ?? 9999)), [music, model]);
   useEffect(() => { if (len != null && lengths.length && !lengths.includes(len)) setLen(lengths.includes(60) ? 60 : lengths[lengths.length - 1]); }, [lengths, len]);
+  // A model that needs a length (Mirelo) has no Auto: pick 5 seconds when none is set. Variants and format follow what the model offers.
+  useEffect(() => { if (!music && model?.options.durationRequired && len == null) setLen(5); }, [music, model, len]);
+  useEffect(() => { if (model && variants > (model.options.maxVariants ?? 1)) setVariants(1); if (model?.options.formats && !model.options.formats.includes(format)) setFormat(model.options.formats[0]); }, [model, variants, format]);
   useEffect(() => { if (model && !model.options.loop && loop) setLoop(false); if (model && !model.options.instrumental && instrumental) setInstrumental(false); }, [model, loop, instrumental]);
 
   const over = model ? text.length > model.maxChars : false;
-  const price = text.trim() ? priceFor(model, len ?? (music ? 60 : 30)) : null;
+  const price = text.trim() ? priceFor(model, (len ?? (music ? 60 : 30)) * (model?.options.maxVariants ? variants : 1)) : null;
   async function go() {
     if (!model) return;
     if (!model.ready) { setError(notReadyText(model.providerLabel)); return; }
     if (!text.trim()) { setError(music ? "Describe the music first." : "Describe the sound first."); return; }
     if (over) return;
     setBusy(true); setError("");
-    const err = await onStart({ kind, model: model.id, text: text.trim(), durationSec: len ?? undefined, ...(music ? { instrumental } : { loop }) });
+    const err = await onStart({ kind, model: model.id, text: text.trim(), durationSec: len ?? undefined, ...(music ? { instrumental } : { loop }),
+      ...(model.options.maxVariants ? { variants, format, ...(leaveOut.trim() ? { negativePrompt: leaveOut.trim() } : {}) } : {}) });
     setBusy(false);
     if (err) setError(err); else setText("");
   }
@@ -169,18 +177,35 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
       <textarea id={`vc-${kind}-text`} ref={box} rows={2} value={text} onChange={(e) => { setText(e.target.value); setError(""); }}
         placeholder={music ? "Warm, slow piano with soft strings, for a quiet morning" : "Rain on a tin roof with distant thunder"}
         onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void go(); } }} />
+      {!music && model?.options.negativePrompt && (
+        <input className="vc-leaveout" aria-label="Leave out (experimental)" value={leaveOut} maxLength={1000} onChange={(e) => setLeaveOut(e.target.value)} placeholder="Leave out (experimental): music, voices" />
+      )}
       <div className="vc-controls">
         <ModelSelect models={models} model={model} onChange={choose} />
         <label className="vc-pill vc-select" title="Length">
           <span className="sr-only">Length</span>
           <select aria-label="Length" value={len ?? ""} onChange={(e) => setLen(e.target.value === "" ? null : Number(e.target.value))}>
-            {!music && <option value="">Auto</option>}
+            {!music && !model?.options.durationRequired && <option value="">Auto</option>}
             {lengths.map((s) => <option key={s} value={s}>{lengthLabel(s)}</option>)}
           </select>
         </label>
+        {model?.options.maxVariants ? (
+          <label className="vc-pill vc-select" title="Variants">
+            <span className="sr-only">Variants</span>
+            <select aria-label="Variants" value={variants} onChange={(e) => setVariants(Number(e.target.value))}>
+              {Array.from({ length: model.options.maxVariants }, (_, i) => i + 1).map((v) => <option key={v} value={v}>{v} {v === 1 ? "variant" : "variants"}</option>)}
+            </select>
+          </label>
+        ) : null}
+        {model?.options.formats && model.options.formats.length > 1 ? (
+          <label className="vc-pill vc-select" title="File format">
+            <span className="sr-only">File format</span>
+            <select aria-label="File format" value={format} onChange={(e) => setFormat(e.target.value)}>{model.options.formats.map((f) => <option key={f} value={f}>{f.toUpperCase()}</option>)}</select>
+          </label>
+        ) : null}
         {music
           ? <button type="button" className={`vc-pill ${instrumental ? "is-on" : ""}`} aria-pressed={instrumental} disabled={!model?.options.instrumental} onClick={() => setInstrumental((v) => !v)}>Instrumental</button>
-          : <button type="button" className={`vc-pill ${loop ? "is-on" : ""}`} aria-pressed={loop} disabled={!model?.options.loop} title={model?.options.loop ? "A clip that loops cleanly" : `${model?.label ?? "This model"} cannot make loops`} onClick={() => setLoop((v) => !v)}><Repeat size={14} /> Loop</button>}
+          : <button type="button" className={`vc-pill ${loop ? "is-on" : ""}`} aria-pressed={loop} disabled={!model?.options.loop} title={model?.options.loop ? "A clip that loops cleanly" : `Not supported by ${model?.label ?? "this model"}`} onClick={() => setLoop((v) => !v)}><Repeat size={14} /> Loop</button>}
         <span className="vc-count">{text.length.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
         <Go label={music ? "Make music" : "Make sound"} busy={busy} disabled={!model || over} price={price} onClick={() => void go()} />
       </div>

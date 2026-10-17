@@ -8,6 +8,12 @@ import { hash, lift, restore, skipPath, translatable } from "./text";
 
 export type Dict = Record<string, string>;
 
+// The running translator's look-up, so a component that splits its text into pieces (the scroll-reveal sentence, one span per word) can ask for the whole sentence's translation instead.
+let active: ((value: string) => string | null) | null = null;
+export const I18N_EVENT = "eclipse-i18n";
+/** The translation of a whole piece of interface wording, or the same text when there is none (or no translator is running). */
+export function translateText(value: string): string { return active?.(value) ?? value; }
+
 const SKIP_SELECTOR = '[translate="no"],[data-no-translate],script,style,noscript,code,pre,textarea,svg,[contenteditable=""],[contenteditable="true"]';
 const ATTRS = ["placeholder", "title", "aria-label", "alt"] as const;
 
@@ -66,6 +72,9 @@ export function startTranslator(dict: Dict): () => void {
     for (let n = walker.nextNode(); n; n = walker.nextNode()) visitText(n as Text);
   }
 
+  active = lookup;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(I18N_EVENT));
+
   const observer = new MutationObserver((records) => {
     if (stopped || skipPath(location.pathname)) return;
     const seen = new Set<Node>();
@@ -83,7 +92,7 @@ export function startTranslator(dict: Dict): () => void {
   };
   if (document.body) start(); else document.addEventListener("DOMContentLoaded", start, { once: true });
 
-  return () => { stopped = true; observer.disconnect(); };
+  return () => { stopped = true; observer.disconnect(); if (active === lookup) active = null; };
 }
 
 // ---- Getting the dictionary: from this browser's copy at once, refreshed from the server (which is cached at the edge) for next time.
