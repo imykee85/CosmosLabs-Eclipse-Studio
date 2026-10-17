@@ -687,3 +687,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-intro { position: relative; z-index: 1; max-width: none; }
 .atl-type { min-height: calc(2 * 1.4em); font-size: 20px; }
 @media (max-width: 800px) { .atl-type { font-size: 17px; } }
+/* The stretched typing row must not widen the left grid column (it pushed the steps off a phone's screen): tracks and the left column may shrink below their content. */
+.atl-section { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.atl-left { min-width: 0; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .atl-intro { gap: 16px; } .atl-type { font-size: 16px; } }
