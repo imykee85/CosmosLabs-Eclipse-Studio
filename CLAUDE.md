@@ -301,3 +301,4 @@ Agents are skilled creative partners the user picks on the Agents page (currentl
 
 - **Image, video and audio generation WORK live (owner 2026-10-17, said twice):** Image Studio, Video Studio and Voice Studio have been run live by the owner and work. Do NOT list their live tests, smoke tests or provider checks as open in PVU, FVU or any to-do again.
 - **Logo reel is grey, not teal (2026-10-17, owner: "reduce the teal to the grey I had on mine"):** the hero reel mask colour is `rgba(255,255,255,.6)`, the plain grey the reel had before the teal tint. Same on every phone. Do not tint it again unasked.
+- **Logo reel heading grey too (2026-10-17, owner):** "Trusted by teams at" over the hero reel is `rgba(255,255,255,.6)`, the same grey as the logos (was a teal-grey `rgba(176,212,218,.72)`).
