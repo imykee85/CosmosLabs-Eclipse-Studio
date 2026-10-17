@@ -11,6 +11,7 @@ import PriceBadge from "@/components/i18n/PriceBadge";
 import LanguageMenu from "@/components/i18n/LanguageMenu";
 import HeroImage from "./HeroImage";
 import BarTint from "./BarTint";
+import NavFit from "./NavFit";
 import CanvasCarousel from "./CanvasCarousel";
 import AtlasWorkflow from "./AtlasWorkflow";
 import AtlasOrbitSection from "./AtlasOrbitSection";
@@ -84,6 +85,7 @@ export default function Landing() {
 
       <section id="top" className="hero section-pad">
         <BarTint />
+        <NavFit />
         <HeroImage />
         <div className="hero-copy">
           <h1>Eclipse Studio</h1>
