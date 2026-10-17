@@ -8,6 +8,7 @@ import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import type { UploadKind } from "@/lib/uploads";
 import "@/components/library/library.css";
 import "./uploads.css";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 
 const LABEL: Record<UploadKind, string> = { asset: "Asset", character: "Character", product: "Product", scene: "Scene" };
 const size = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -56,7 +57,7 @@ export default function UploadPanel({ show, addKinds, openWith, onOpened, addLab
           {rows.map((u) => (
             <figure key={u.id} className="up-tile">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u.imageUrl} alt={u.name} loading="lazy" />
+              <img src={thumbOf("upload", u.id)} onError={fallbackTo(u.imageUrl)} alt={u.name} loading="lazy" decoding="async" />
               <figcaption><strong>{u.name}</strong><span>{[LABEL[u.kind], u.width && u.height ? `${u.width}×${u.height}` : null, size(u.sizeBytes)].filter(Boolean).join(" · ")}</span></figcaption>
               {!readOnly && <button type="button" className="up-del" disabled={busyId === u.id} onClick={() => remove(u)} aria-label={`Delete ${u.name}`}><Trash2 size={15} /></button>}
             </figure>

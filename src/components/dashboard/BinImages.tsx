@@ -5,6 +5,7 @@ import { Clock, RotateCcw, Trash2, X } from "lucide-react";
 import { deleteRenderForever, restoreRender } from "@/lib/render-actions";
 import { timeAgo, type Project } from "@/lib/projects";
 import { useRenders } from "@/lib/use-renders";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 
 // Images moved to the Bin from any project's Gallery or the Library. Restoring puts one back where it came from.
 export default function BinImages({ projects, projectFilter, query, onClearFilter }: { projects: Project[]; projectFilter: string | null; query: string; onClearFilter: () => void }) {
@@ -35,7 +36,7 @@ export default function BinImages({ projects, projectFilter, query, onClearFilte
                 <div className="bi-pic" style={{ aspectRatio: (g.aspectRatio ?? "1:1").replace(":", " / ") }}>
                   {g.imageUrl && g.kind === "video" ? <video src={`${g.imageUrl}#t=0.1`} muted playsInline preload="metadata" aria-label={g.prompt} />
                     // eslint-disable-next-line @next/next/no-img-element
-                    : g.imageUrl ? <img src={g.imageUrl} alt={g.prompt} loading="lazy" /> : <span>{g.status === "failed" ? "Failed render" : "No preview"}</span>}
+                    : g.imageUrl ? <img src={thumbOf("render", g.id)} onError={fallbackTo(g.imageUrl)} alt={g.prompt} loading="lazy" decoding="async" /> : <span>{g.status === "failed" ? "Failed render" : "No preview"}</span>}
                 </div>
                 <p className="bi-prompt" title={g.prompt}>{g.prompt}</p>
                 <p className="db-meta"><Clock size={13} /> Deleted {g.deletedAt ? timeAgo(g.deletedAt) : ""}</p>

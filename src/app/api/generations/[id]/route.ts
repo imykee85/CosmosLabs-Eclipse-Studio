@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { deleteThumb } from "@/lib/thumbs";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { finalizeGeneration, toItem } from "@/lib/generation-jobs";
@@ -56,6 +57,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     const g = await db.generation.findFirst({ where: { id: params.id, userId: u.userId, deletedAt: { not: null } } });
     if (!g) return NextResponse.json({ error: "Image not found in the bin" }, { status: 404 });
     if (g.storageKey && storageEnabled) {
+      await deleteThumb(g.storageKey);
       try { await deleteObject(g.storageKey); } catch (err) { console.error("deleting the stored file failed", g.id, err); return NextResponse.json({ error: "Could not remove the stored file. Please try again." }, { status: 502 }); }
     }
     await db.generation.deleteMany({ where: { id: g.id, userId: u.userId } });

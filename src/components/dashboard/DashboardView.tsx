@@ -238,7 +238,7 @@ export default function DashboardView() {
           </section>
         )}
         </div>
-        {tab === "projects" && projects !== null && !query.trim() && <HomeFeed onGo={goTo} />}
+        {tab === "projects" && projects !== null && !query.trim() && <HomeFeed onGo={goTo} projects={projects} onOpenProject={(p, path) => { setCurrentProject(p); router.push(path); }} />}
       </main>
       {menu && (
         <>

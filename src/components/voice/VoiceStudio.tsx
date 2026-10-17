@@ -3,7 +3,6 @@
 import { getCertificate } from "@/lib/certificate-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowUp, Award, Coins, Download, FileText, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
-import SoonTag from "../SoonTag";
 import Stage from "./Stage";
 import SoundTake from "./SoundTake";
 import TranscriptView from "./Transcript";
@@ -299,7 +298,6 @@ export default function VoiceStudio() {
               {price != null && <span className="vc-cost"><Coins size={11} />{price}</span>}
             </button>
           </div>
-          <span className="vc-soon"><SoonTag /></span>
         </div>}
       </div>
 
