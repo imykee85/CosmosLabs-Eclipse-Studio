@@ -675,3 +675,11 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .results-more { position: absolute; left: 0; right: 0; bottom: 9%; display: flex; justify-content: center; }
 /* Atlas closing line: four lines, right aligned. */
 .atl-tag { text-align: right; }
+/* Beside Atlas: his art direction typed out as if live (owner 2026-10-17, after a screen recording). Plain text, no box; room for three lines so nothing jumps. */
+.atl-intro { display: flex; align-items: center; gap: 28px; margin: 64px 0 50px 6px; }
+.atl-intro .atl-bot { margin: 0; flex: none; }
+.atl-type { flex: 1; min-width: 0; min-height: calc(3 * 1.4em); margin: 0; display: flex; align-items: center; color: #47433e; font-size: 18px; line-height: 1.4; letter-spacing: -.01em; }
+.atl-type i { display: inline-block; width: 2px; height: 1.1em; margin-left: 2px; vertical-align: -.2em; background: var(--accent, #c00707); animation: atl-caret 1s steps(1) infinite; }
+.atl-type i.is-still { display: none; }
+@keyframes atl-caret { 50% { opacity: 0; } }
+@media (max-width: 800px) { .atl-type { font-size: 16px; } .atl-intro { gap: 20px; } }

@@ -23,6 +23,15 @@ export const audience = [
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports"];
 
+// Lines Atlas "types" beside himself on the homepage: examples of his art direction.
+export const atlasDirections = [
+  "Shoot it low at golden hour and let the steam catch the light.",
+  "Swap the white backdrop for raw concrete. It reads more premium.",
+  "Open on the hands, then pull back to reveal the whole kitchen.",
+  "Push the reds, deepen the shadows, keep the skin soft.",
+  "35mm, shallow focus on the label, a slow push in.",
+];
+
 // What Atlas is good at, shown under him in the "Meet Atlas" section. Only what Atlas really does today.
 export const atlasStrengths = [
   ["Don't know where to start?", "Brainstorm with Atlas, or hand over your brief. Atlas pulls out the goal, the audience and the gaps, and shapes them into a plan."],
