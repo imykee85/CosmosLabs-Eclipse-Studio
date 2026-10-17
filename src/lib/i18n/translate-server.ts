@@ -122,9 +122,14 @@ export async function warmLanguage(lang: string, n = 180): Promise<{ added: numb
   return { added, remaining: Math.max(todo.length - added, 0), total: ALLOWED.size };
 }
 
+/** How many of the CURRENT interface strings each language has. Rows for wording that has since changed or been removed are not counted:
+ *  counting them made a language look complete while its new wording was still English, so the build step skipped it. */
 export async function translationCounts(): Promise<Record<string, number>> {
-  const rows = await db.translation.groupBy({ by: ["lang"], _count: { _all: true } });
-  return Object.fromEntries(rows.map((r) => [r.lang, r._count._all]));
+  const current = new Set([...ALLOWED].map((t) => sha(t)));
+  const rows = await db.translation.findMany({ select: { lang: true, sourceHash: true } });
+  const out: Record<string, number> = {};
+  for (const r of rows) if (current.has(r.sourceHash)) out[r.lang] = (out[r.lang] ?? 0) + 1;
+  return out;
 }
 
 // ---- The dictionary the browser downloads: every stored translation of one language, keyed by the browser's own hash of the English template.
