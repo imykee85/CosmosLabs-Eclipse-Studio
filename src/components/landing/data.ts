@@ -23,6 +23,17 @@ export const audience = [
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports"];
 
+// The black "Start creating with Eclipse." card: the steps of the work, lit one after another while each column's bar rises.
+// [step, where in Eclipse it happens, bar height in stripes]
+export const studioFlow = [
+  ["Idea", "With Atlas", 2],
+  ["Plan", "Treatment", 4],
+  ["Prompt", "Prompts", 6],
+  ["Image", "Image Studio", 8],
+  ["Video", "Video Studio", 10],
+  ["Voice", "Voice Studio", 12],
+] as const;
+
 // Lines Atlas "types" beside himself on the homepage: examples of his art direction.
 export const atlasDirections = [
   "Shoot it low at golden hour and let the steam catch the light.",

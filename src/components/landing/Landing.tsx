@@ -15,6 +15,7 @@ import AtlasWorkflow from "./AtlasWorkflow";
 import AtlasOrbitSection from "./AtlasOrbitSection";
 import CtaPromptCard from "./CtaPromptCard";
 import ScrollReveal from "./ScrollReveal";
+import StudioFlow from "./StudioFlow";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import "@/app/landing.css";
@@ -143,7 +144,6 @@ export default function Landing() {
             <h2>Made to look <em>like you meant it.</em></h2>
             <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
           </div>
-          <Cta />
         </div>
         {/* Four columns of tiles in different heights; the last row fades into the page under one button (after the owner's reference). */}
         <div className="results-wall">
@@ -164,6 +164,7 @@ export default function Landing() {
       </section>
 
       <section className="try-section try-cta section-pad">
+        <StudioFlow />
         <div className="try-inner">
           <div className="eyebrow">YOUR STUDIO IS WAITING</div>
           <h2>start creating<br /><em>with Eclipse.</em></h2>
