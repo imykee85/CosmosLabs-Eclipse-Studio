@@ -708,3 +708,6 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .sf { margin-bottom: 64px; gap: 18px; } .sf-plot { height: 220px; } .sf-col b { font-size: 52px; margin-top: 22px; } .sf-col span { font-size: 16px; } .sf-bar { gap: 5px; } }
 @media (prefers-reduced-motion: reduce) { .sf-bar i { transition: none; } }
 .sf-eyebrow { margin-bottom: 44px; }
+/* Hero heading two steps bigger (owner 2026-10-17): 48 -> 64 on phones, 60 -> 76 on desktop */
+.site-shell .hero h1 { font-size: 64px; }
+@media (min-width: 801px) { .site-shell .hero h1 { font-size: 76px; } }
