@@ -14,13 +14,14 @@ export default function ProjectGate({ children }: { children: React.ReactNode })
     const current = readCurrentProject();
     const leave = () => { clearCurrentProject(); router.replace("/dashboard"); };
     if (!current) { leave(); return; }
+    setOk(true); // show the studio at once; the check below sends the person away only if the project is gone (no blank screen first)
     listProjects()
       .then((all) => {
         if (!live) return;
         const p = all.find((x) => x.id === current.id);
-        if (!p || p.deletedAt) leave(); else setOk(true);
+        if (!p || p.deletedAt) leave();
       })
-      .catch(() => { if (live) setOk(true); }); // can't verify (offline / server error): keep the open project
+      .catch(() => {}); // can't verify (offline / server error): keep the open project
     return () => { live = false; };
   }, [router]);
 
