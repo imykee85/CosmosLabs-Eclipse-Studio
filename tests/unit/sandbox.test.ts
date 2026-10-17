@@ -38,6 +38,7 @@ test("vercel: network modes map to the SDK's policies; private ranges are always
   assert.deepEqual(toPolicy({ kind: "allowlist", domains: ["acct.r2.cloudflarestorage.com"] }), { allow: ["acct.r2.cloudflarestorage.com"] });
   assert.equal(toPolicy({ kind: "allowlist", domains: [] }), "deny-all");
   assert.deepEqual(toPolicy({ kind: "internet" }), { subnets: { deny: PRIVATE_RANGES } });
+  assert.equal(toPolicy({ kind: "open" }), "allow-all");
   assert.ok(PRIVATE_RANGES.includes("169.254.0.0/16") && PRIVATE_RANGES.includes("100.64.0.0/10"));
 });
 

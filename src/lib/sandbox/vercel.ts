@@ -21,8 +21,9 @@ const realSdk: Sdk = {
 
 const CALL_MS = 25_000; // every control-plane call; each runner step stays well under a function's limit
 
-export function toPolicy(n: NetworkMode): "deny-all" | { allow: string[] } | { subnets: { deny: string[] } } {
+export function toPolicy(n: NetworkMode): "allow-all" | "deny-all" | { allow: string[] } | { subnets: { deny: string[] } } {
   if (n.kind === "none") return "deny-all";
+  if (n.kind === "open") return "allow-all";
   if (n.kind === "allowlist") return n.domains.length ? { allow: n.domains } : "deny-all";
   return { subnets: { deny: PRIVATE_RANGES } };
 }

@@ -92,7 +92,7 @@ export const buildBase: KindDef<Empty> = {
   schema: Empty,
   vcpus: 2,
   deadlineMs: 25 * 60_000,
-  network: () => ({ kind: "internet" }), // public internet (minus private ranges) for the package installs; owner-only job
+  network: () => ({ kind: "open" }), // full internet for the package installs: with private ranges blocked the sandbox could not even look up names (seen live 2026-10-17); owner-only job, nothing of ours on the machine
   base: "image",
   price: () => 0,
   stageCount: () => 4,
