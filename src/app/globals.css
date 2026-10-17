@@ -4,8 +4,8 @@
 
 /* iPhone Safari zooms into any text box under 16px when tapped (login, onboarding, dialogs and menus included). */
 @media (pointer: coarse), (max-width: 800px) {
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):focus { font-size: max(var(--in-fs, 16px), 1em) !important; }
-  textarea:focus, select:focus { font-size: max(var(--in-fs, 16px), 1em) !important; }
+  html[data-fz] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):focus { font-size: max(var(--in-fs, 16px), 1em) !important; }
+  html[data-fz] textarea:focus, html[data-fz] select:focus { font-size: max(var(--in-fs, 16px), 1em) !important; }
 }
 
 /* The red glowing orb (Memory page and the landing "Atlas, at the core." section). */
