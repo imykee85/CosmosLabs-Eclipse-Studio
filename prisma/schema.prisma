@@ -487,3 +487,18 @@ model CoreTool {
   @@index([userId])
   @@map("core_tools")
 }
+
+// Personal API keys (Settings > API/MCP): the key is shown once; only its SHA-256 is stored. Used as "Authorization: Bearer ecl_..." on /api/v1/* and /api/mcp.
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  name       String
+  prefix     String // the first characters, shown in the list so a key can be recognised
+  hash       String    @unique
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  @@index([userId])
+  @@map("api_keys")
+}

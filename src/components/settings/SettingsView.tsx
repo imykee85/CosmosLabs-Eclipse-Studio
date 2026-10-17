@@ -19,7 +19,7 @@ export default function SettingsView({ initialTab = "Profile" }: { initialTab?: 
 
       <div className="st-tabs" role="tablist" aria-label="Settings sections">
         {TABS.map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "is-active" : ""} onClick={() => setTab(t)}>{t}{(t === "Team" || t === "API/MCP") && <SoonTag className="st-soon" />}</button>
+          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "is-active" : ""} onClick={() => setTab(t)}>{t}{t === "Team" && <SoonTag className="st-soon" />}</button>
         ))}
       </div>
 
