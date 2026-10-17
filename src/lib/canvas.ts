@@ -2,19 +2,23 @@ import type { Edge, Node } from "@xyflow/react";
 import { makeEdge, migrateEdges, type PortId } from "./canvas-flow";
 
 // Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
-export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator";
+export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator" | "sheet" | "image" | "clip" | "videogen";
 
 export type PicRef = { type: "upload" | "render"; id: string; label: string };
 
 export type CanvasNodeData = {
   text?: string;      // text node: the prompt
   desc?: string;      // ingredient nodes: a short description
-  ref?: PicRef;       // ingredient nodes: a picture chosen from the Library
+  ref?: PicRef;       // ingredient nodes and the Image node: a picture chosen from the Library
+  clip?: { id: string; label: string; sec?: number | null }; // the Video node: one of the person's own finished videos
+  duration?: number;  // video generator: length in seconds
+  quality?: string;   // video generator: resolution
+  sound?: boolean;    // video generator: make sound
   style?: string;     // style node
   // Image generators (and full-body generators) work like Image Studio's prompt box:
   prompt?: string;    // what is typed into the node itself
   ratio?: string;
-  model?: string;     // an image model id, or "auto"
+  model?: string;     // an image model id, or "auto" (the video generator: a video model id)
   qty?: number;       // images per press of Generate (1 to 4)
   tier?: string;      // quality: 1k, 1.5k, 2k, 4k
   refs?: PicRef[];    // reference pictures chosen on the node itself (the wired-in ones come on top of these)
@@ -38,7 +42,7 @@ export type CatalogItem = { id: string; kind?: NodeKind; label: string; blurb: s
 export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
   { title: "Generators", items: [
     { id: "generator", kind: "generator", label: "Image generator", blurb: "Turns the wired-in nodes into a picture" },
-    { id: "video", label: "Video generator", blurb: "Turns a picture into motion" },
+    { id: "video", kind: "videogen", label: "Video generator", blurb: "Turns a picture into motion" },
   ] },
   { title: "Input", items: [
     { id: "character", kind: "character", label: "Character", blurb: "Who is in it" },
@@ -48,13 +52,13 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
   ] },
   { title: "Utility", items: [
     { id: "fullbody", kind: "fullbody", label: "Full-body generator", blurb: "A head-to-toe look of the character" },
-    { id: "sheet", label: "Character sheet generator", blurb: "Several angles of one character" },
+    { id: "sheet", kind: "sheet", label: "Character sheet generator", blurb: "Several angles of one character" },
     { id: "text", kind: "text", label: "Text prompt", blurb: "Describe the shot" },
     { id: "note", kind: "note", label: "Note", blurb: "A reminder that is not sent anywhere" },
   ] },
   { title: "Media", items: [
-    { id: "image", label: "Image", blurb: "Bring in a picture" },
-    { id: "clip", label: "Video", blurb: "Bring in a clip" },
+    { id: "image", kind: "image", label: "Image", blurb: "Bring in a picture" },
+    { id: "clip", kind: "clip", label: "Video", blurb: "Bring in a clip" },
   ] },
 ];
 
@@ -63,7 +67,7 @@ export const STYLES = ["None", "Editorial", "Cinematic", "Minimal studio", "Film
 const uid = () => `n-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 export function newNode(kind: NodeKind, position: { x: number; y: number }, data: CanvasNodeData = {}): CNode {
-  const base: CanvasNodeData = kind === "generator" || kind === "fullbody" ? { ratio: kind === "fullbody" ? "9:16" : "4:5" } : kind === "style" ? { style: "None" } : {};
+  const base: CanvasNodeData = kind === "generator" || kind === "fullbody" || kind === "sheet" ? { ratio: kind === "fullbody" ? "9:16" : kind === "sheet" ? "16:9" : "4:5" } : kind === "videogen" ? { ratio: "16:9" } : kind === "style" ? { style: "None" } : {};
   return { id: uid(), type: kind, position, data: { ...base, ...data } };
 }
 

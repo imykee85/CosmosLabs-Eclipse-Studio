@@ -1,13 +1,14 @@
 "use client";
 
-import SoonTag from "@/components/SoonTag";
 import AgentIcon from "@/components/AgentIcon";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { ArrowUp, Check, ChevronDown, Coins, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Sprout, StickyNote, Trash2, Type, User, Wand2, X } from "lucide-react";
+import { ArrowUp, Check, Clapperboard, ChevronDown, Coins, Film, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shirt, Sprout, StickyNote, Trash2, Type, User, Volume2, VolumeX, Wand2, X } from "lucide-react";
 import { AUTO } from "@/components/create/ModelPicker";
 import { refFileUrl, STYLES, type CanvasNodeData, type CNode, type NodeKind } from "@/lib/canvas";
-import { composePrompt, inPortsOf, inputsOf, isGen, outLabelOf, OUT_HANDLE, picturesOf, TITLES } from "@/lib/canvas-flow";
+import { composePrompt, inPortsOf, inputsOf, isGen, outLabelOf, OUT_HANDLE, picturesOf, takesInputs, TITLES } from "@/lib/canvas-flow";
+import { DEFAULT_VIDEO_MODEL, VIDEO_MODELS, capsFor, isLive, videoModelById, videoPrice, workflowFor } from "@/lib/video-models";
+import { refreshCredits } from "@/lib/use-credits";
 import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { readCurrentProject } from "@/lib/projects";
 import { useAgent } from "@/lib/use-agent";
@@ -17,10 +18,12 @@ import { useCanvas } from "./CanvasContext";
 const ICONS: Record<NodeKind, React.ReactNode> = {
   character: <User size={15} />, product: <Package size={15} />, scene: <Mountain size={15} />, text: <Type size={15} />, style: <Palette size={15} />,
   note: <StickyNote size={15} />, fullbody: <PersonStanding size={15} />, generator: <ImageIcon size={15} />,
+  sheet: <Shirt size={15} />, image: <ImageIcon size={15} />, clip: <Film size={15} />, videogen: <Clapperboard size={15} />,
 };
 const BIG: Record<NodeKind, React.ReactNode> = {
   character: <User size={34} strokeWidth={1.3} />, product: <Package size={34} strokeWidth={1.3} />, scene: <Mountain size={34} strokeWidth={1.3} />, text: <Type size={34} strokeWidth={1.3} />, style: <Palette size={34} strokeWidth={1.3} />,
   note: <StickyNote size={34} strokeWidth={1.3} />, fullbody: <Wand2 size={34} strokeWidth={1.3} />, generator: <Wand2 size={34} strokeWidth={1.3} />,
+  sheet: <Shirt size={34} strokeWidth={1.3} />, image: <ImageIcon size={34} strokeWidth={1.3} />, clip: <Film size={34} strokeWidth={1.3} />, videogen: <Clapperboard size={34} strokeWidth={1.3} />,
 };
 
 // Ports sit on the edges of the display card, first one near the top, evenly spaced; their labels show when the node is selected.
@@ -59,7 +62,7 @@ function Shell({ id, kind, selected, className = "", display, controls, cardStyl
             <span className="cv-port-label cv-port-r" style={{ top: PORT_TOP }}>{out}</span>
           </>
         )}
-        {isGen(kind) && <button type="button" className="cv-plus cv-plus-in nodrag" aria-label={`Add a node that feeds ${title}`} title="Add a node that feeds this one" onClick={(e) => addBefore(id, e.currentTarget.getBoundingClientRect())}><Plus size={14} /></button>}
+        {takesInputs(kind) && <button type="button" className="cv-plus cv-plus-in nodrag" aria-label={`Add a node that feeds ${title}`} title="Add a node that feeds this one" onClick={(e) => addBefore(id, e.currentTarget.getBoundingClientRect())}><Plus size={14} /></button>}
         {out && <button type="button" className="cv-plus cv-plus-out nodrag" aria-label={`Add the next node after ${title}`} title="Add the next node, already connected" onClick={(e) => addAfter(id, e.currentTarget.getBoundingClientRect())}><Plus size={14} /></button>}
       </div>
       {controls && <div className="cv-n-controls">{controls}</div>}
@@ -98,12 +101,76 @@ const CharacterNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="characte
 const ProductNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="product" />;
 const SceneNode = (p: NodeProps<CNode>) => <Ingredient {...p} kind="scene" />;
 
+// Polish prompt: the text is rewritten into a fuller, clearer prompt for the generator it feeds (an image or a video); the person can keep editing it.
 function TextNode({ id, data, selected }: NodeProps<CNode>) {
   const { updateNodeData } = useReactFlow();
+  const edges = useEdges();
+  const nodes = useNodes() as CNode[];
+  const [polishing, setPolishing] = useState(false);
+  const feedsVideo = edges.some((e) => e.source === id && nodes.find((n) => n.id === e.target)?.type === "videogen");
+  async function polish() {
+    const text = (data.text ?? "").trim();
+    if (!text || polishing) return;
+    setPolishing(true);
+    updateNodeData(id, { error: undefined });
+    try {
+      const res = await fetch("/api/prompts/polish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, target: feedsVideo ? "video" : "image" }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || typeof d.text !== "string") throw new Error(typeof d.error === "string" ? d.error : "The prompt could not be polished. Please try again.");
+      updateNodeData(id, { text: d.text.slice(0, 2000) });
+    } catch (e) { updateNodeData(id, { error: e instanceof Error ? e.message : "The prompt could not be polished." }); }
+    finally { setPolishing(false); refreshCredits(); }
+  }
   return (
     <Shell id={id} kind="text" selected={selected}
       display={<div className="cv-disp"><textarea className="cv-disp-text nodrag nowheel" value={data.text ?? ""} maxLength={2000} placeholder="Describe the shot you imagine..." aria-label="Prompt" onChange={(e) => updateNodeData(id, { text: e.target.value })} /></div>}
-      controls={<button type="button" className="cv-ctl"><Lightbulb size={14} /> Polish prompt <SoonTag /></button>} />
+      controls={<>
+        <button type="button" className="cv-ctl nodrag" disabled={polishing || !(data.text ?? "").trim()} onClick={() => void polish()}>{polishing ? <Loader2 size={14} className="cv-spin" /> : <Lightbulb size={14} />} Polish prompt</button>
+        {data.error && <p className="cv-error" role="alert">{data.error}</p>}
+      </>} />
+  );
+}
+
+// Image: a picture from the Library brought onto the canvas; it plugs into a generator's Ingredients or the video generator's Start frame.
+function ImageNode({ id, data, selected }: NodeProps<CNode>) {
+  const { updateNodeData } = useReactFlow();
+  const { ask } = useCanvas();
+  return (
+    <Shell id={id} kind="image" selected={selected}
+      display={
+        <div className="cv-disp">
+          {data.ref ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={refFileUrl(data.ref)} alt={data.ref.label} />
+              <span className="cv-disp-cap" title={data.ref.label}>{data.ref.label}</span>
+              <button type="button" className="cv-pic-x nodrag" aria-label="Remove picture" title="Remove picture" onClick={() => updateNodeData(id, { ref: undefined })}><X size={13} /></button>
+            </>
+          ) : <div className="cv-disp-empty">{BIG.image}<span>No picture selected</span></div>}
+        </div>
+      }
+      controls={<button type="button" className="cv-ctl nodrag" onClick={() => ask({ kind: "picture", nodeId: id })}>{data.ref ? "Change picture" : "Select picture"}</button>} />
+  );
+}
+
+// Video: one of the person's own finished videos; it plugs into the video generator's Clips port as a reference clip.
+function ClipNode({ id, data, selected }: NodeProps<CNode>) {
+  const { updateNodeData } = useReactFlow();
+  const { ask } = useCanvas();
+  return (
+    <Shell id={id} kind="clip" selected={selected}
+      display={
+        <div className="cv-disp">
+          {data.clip ? (
+            <>
+              <video src={`/api/generations/${data.clip.id}/file`} muted loop playsInline autoPlay preload="metadata" className="cv-clip" />
+              <span className="cv-disp-cap" title={data.clip.label}>{data.clip.label}</span>
+              <button type="button" className="cv-pic-x nodrag" aria-label="Remove clip" title="Remove clip" onClick={() => updateNodeData(id, { clip: undefined })}><X size={13} /></button>
+            </>
+          ) : <div className="cv-disp-empty">{BIG.clip}<span>No clip selected</span></div>}
+        </div>
+      }
+      controls={<button type="button" className="cv-ctl nodrag" onClick={() => ask({ kind: "clip", nodeId: id })}>{data.clip ? "Change clip" : "Select clip"}</button>} />
   );
 }
 
@@ -148,7 +215,7 @@ function Result({ gid, ratio, on, onPick, onOpen, small }: { gid: string; ratio:
 // The image generator is Image Studio's prompt box on the canvas: the same prompt, shape, number of images, quality, model (Auto picks for each image), ingredients,
 // fixed seed (a switch only: the seed of its first render is kept and reused) and price, started the same way (src/lib/image-render.ts). It reads what is plugged
 // into its ports; the picture it makes (its Result port) is what it gives to the next node.
-function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "generator" | "fullbody" }) {
+function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "generator" | "fullbody" | "sheet" }) {
   const { updateNodeData } = useReactFlow();
   const { ask } = useCanvas();
   const nodes = useNodes() as CNode[];
@@ -157,7 +224,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   const agent = useAgent();
   const agentChip = useRef<HTMLButtonElement>(null);
 
-  const ratioWanted = data.ratio ?? (kind === "fullbody" ? "9:16" : "4:5");
+  const ratioWanted = data.ratio ?? (kind === "fullbody" ? "9:16" : kind === "sheet" ? "16:9" : "4:5");
   const qty = Math.min(MAX_QTY, Math.max(1, data.qty ?? 1));
   const tier = data.tier ?? "1k";
   const modelId = data.model && (data.model === AUTO || models?.some((m) => m.id === data.model)) ? data.model : AUTO;
@@ -299,7 +366,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
             </div>
           )}
           {gens.length > 1 && <p className="cv-nhint">The ticked image is the Result the next node receives.</p>}
-          <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder={kind === "fullbody" ? "Describe the full-body look…" : "Describe the shot you imagine…"} aria-label="Prompt"
+          <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder={kind === "fullbody" ? "Describe the full-body look…" : kind === "sheet" ? "Describe the character (or plug in a Character node)…" : "Describe the shot you imagine…"} aria-label="Prompt"
             onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
           <div className="cv-controls nodrag">
@@ -370,5 +437,163 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
 
 const GeneratorNode = (p: NodeProps<CNode>) => <Generator {...p} kind="generator" />;
 const FullBodyNode = (p: NodeProps<CNode>) => <Generator {...p} kind="fullbody" />;
+const SheetNode = (p: NodeProps<CNode>) => <Generator {...p} kind="sheet" />;
 
-export const nodeTypes = { character: CharacterNode, product: ProductNode, scene: SceneNode, text: TextNode, style: StyleNode, note: NoteNode, fullbody: FullBodyNode, generator: GeneratorNode };
+// The video generator is Video Studio's prompt box on the canvas: prompt (own text plus wired-in prompts), model, length, aspect ratio, quality and sound,
+// started through POST /api/video like Video Studio. A picture on Start frame makes it image-to-video; pictures on Ingredients and clips on Clips are
+// references (reference-to-video, for models that take them). The video it makes (its Video port) can feed another video generator as a reference clip.
+const LIVE_VIDEO = VIDEO_MODELS.filter((m) => isLive(m) && !m.hidden);
+function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
+  const { updateNodeData } = useReactFlow();
+  const { ask } = useCanvas();
+  const nodes = useNodes() as CNode[];
+  const edges = useEdges();
+  const inputs = useMemo(() => inputsOf(nodes, edges, id), [nodes, edges, id]);
+  const start = inputs.find((i) => i.port === "start" && i.pic)?.pic ?? null;
+  const refPics = picturesOf(inputs.filter((i) => i.port === "ingredients"));
+  const clips = inputs.filter((i) => i.port === "clips" && i.clip).map((i) => i.clip!);
+  const waiting = inputs.filter((i) => i.fromResult && !i.ready);
+  const model = videoModelById(data.model ?? "") ?? videoModelById(DEFAULT_VIDEO_MODEL) ?? LIVE_VIDEO[0];
+  const wf = workflowFor(model, !!start, refPics.length > 0 || clips.length > 0);
+  const caps = capsFor(model, wf);
+  const duration = data.duration && caps.durations.includes(data.duration) ? data.duration : caps.defaultDuration;
+  const ratio = caps.ratios.length ? (data.ratio && caps.ratios.includes(data.ratio) ? data.ratio : caps.defaultRatio) : "";
+  const quality = caps.qualities.length ? (data.quality && caps.qualities.includes(data.quality) ? data.quality : caps.defaultQuality) : "";
+  const sound = caps.audio ? (data.sound ?? caps.audioDefault) : false;
+  const own = (data.prompt ?? "").trim();
+  const prompt = [own, ...inputs.filter((i) => i.port === "description" && i.text).map((i) => i.text!)].filter(Boolean).join(". ").slice(0, caps.promptMax);
+  const pending = data.pending ?? [];
+  const gens = data.gens ?? [];
+  const busy = pending.length > 0;
+  const [submitting, setSubmitting] = useState(false);
+  const [config, setConfig] = useState<{ creditsOn?: boolean } | null>(null);
+  useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => c && setConfig(c)).catch(() => {}); }, []);
+  const tooManyRefs = refPics.length > caps.refMax || clips.length > caps.refVideoMax;
+  const startUnusable = !!start && !model.startFrame;
+  const price = config?.creditsOn ? videoPrice(model, quality || undefined, duration, sound) : null;
+  const canGo = isLive(model) && (!!prompt || !caps.promptRequired) && !busy && !submitting && waiting.length === 0 && !tooManyRefs && !startUnusable;
+
+  // A running video is followed through its status route until it is done (it keeps rendering on the server if you leave).
+  const pendingKey = pending.join(",");
+  useEffect(() => {
+    const ids = pendingKey ? pendingKey.split(",") : [];
+    if (!ids.length) return;
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = async () => {
+      const done: string[] = [], failed: string[] = [], gone: string[] = [];
+      let why = "";
+      await Promise.all(ids.map(async (gid) => {
+        try {
+          const res = await fetch(`/api/generations/${gid}/status`);
+          const g = await res.json().catch(() => ({}));
+          if (res.status === 404) gone.push(gid);
+          else if (res.ok && g.status === "completed") done.push(gid);
+          else if (res.ok && g.status === "failed") { failed.push(gid); why = typeof g.error === "string" ? g.error : "This video could not be made."; }
+        } catch {}
+      }));
+      if (!live) return;
+      const settled = new Set([...done, ...failed, ...gone]);
+      if (settled.size) updateNodeData(id, (n) => {
+        const d = n.data as CanvasNodeData;
+        const finished = [...(d.gens ?? []), ...done.filter((x) => !(d.gens ?? []).includes(x))];
+        return { pending: (d.pending ?? []).filter((x) => !settled.has(x)), gens: finished, pick: d.pick && finished.includes(d.pick) ? d.pick : finished[finished.length - 1], error: why || d.error };
+      });
+      if (live && settled.size < ids.length) timer = setTimeout(tick, 5000);
+    };
+    tick();
+    return () => { live = false; if (timer) clearTimeout(timer); };
+  }, [pendingKey, id, updateNodeData]);
+
+  async function run(confirm = false): Promise<void> {
+    if (!canGo) return;
+    setSubmitting(true);
+    updateNodeData(id, { error: undefined });
+    try {
+      const res = await fetch("/api/video", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt, model: model.id, duration, projectId: readCurrentProject()?.id ?? undefined,
+          resolution: quality || undefined, aspectRatio: ratio || undefined, audio: caps.audio ? sound : undefined,
+          start: start ? { type: start.type, id: start.id } : undefined,
+          refs: !start && refPics.length ? refPics.map((p) => ({ type: p.pic.type, id: p.pic.id })) : undefined,
+          videoRefs: !start && clips.length ? clips.map((c) => ({ id: c.id })) : undefined,
+          confirm: confirm || undefined,
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.status === 409 && d.needsConfirm) {
+        setSubmitting(false);
+        if (window.confirm(`This video costs ${d.cost} credits. Start it?`)) return run(true);
+        return;
+      }
+      if (!res.ok || typeof d.id !== "string") throw new Error(typeof d.error === "string" ? d.error : "Could not start the video. Please try again.");
+      updateNodeData(id, { pending: [...pending, d.id] });
+      refreshCredits();
+    } catch (e) { updateNodeData(id, { error: e instanceof Error ? e.message : "Could not start the video." }); }
+    finally { setSubmitting(false); }
+  }
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    const onRun = (e: Event) => { if ((e as CustomEvent<{ id: string }>).detail?.id === id) void runRef.current(); };
+    window.addEventListener("eclipse-node-run", onRun);
+    return () => window.removeEventListener("eclipse-node-run", onRun);
+  }, [id]);
+
+  const picked = data.pick && gens.includes(data.pick) ? data.pick : gens[gens.length - 1];
+  const shape = (ratio && ratio !== "auto" ? ratio : "16:9").replace(":", " / ");
+  return (
+    <Shell id={id} kind="videogen" selected={selected} className="cv-gen" cardStyle={{ aspectRatio: shape }}
+      display={
+        <div className="cv-disp">
+          {busy ? <div className="cv-disp-empty"><Loader2 size={30} className="cv-spin" /><span>Making your video…</span></div>
+            : picked ? <video key={picked} src={`/api/generations/${picked}/file`} className="cv-clip nodrag" controls playsInline preload="metadata" />
+            : <div className="cv-disp-empty">{BIG.videogen}<span>Ready to generate</span></div>}
+        </div>
+      }
+      controls={
+        <>
+          {gens.length > 1 && (
+            <div className="cv-thumbs" aria-label="Videos made">
+              {gens.map((g, i) => <button key={g} type="button" className={`cv-chip nodrag ${g === picked ? "is-on" : ""}`} aria-pressed={g === picked} onClick={() => updateNodeData(id, { pick: g })}>Take {i + 1}</button>)}
+            </div>
+          )}
+          <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={caps.promptMax} placeholder="Describe the motion, the camera and what happens…" aria-label="Prompt"
+            onChange={(e) => updateNodeData(id, { prompt: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
+          <label className="cv-chip cv-sel cv-wide nodrag"><span className="cv-muted">Model:</span>
+            <select value={model.id} aria-label="Video model" onChange={(e) => updateNodeData(id, { model: e.target.value })}>
+              {LIVE_VIDEO.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </label>
+          <div className="cv-controls nodrag">
+            <label className="cv-chip cv-sel"><span className="sr-only">Length</span>
+              <select value={duration} aria-label="Length" onChange={(e) => updateNodeData(id, { duration: Number(e.target.value) })}>{caps.durations.map((d) => <option key={d} value={d}>{d} s</option>)}</select>
+            </label>
+            {caps.ratios.length > 0 && (
+              <label className="cv-chip cv-sel"><span className="sr-only">Aspect ratio</span>
+                <select value={ratio} aria-label="Aspect ratio" onChange={(e) => updateNodeData(id, { ratio: e.target.value })}>{caps.ratios.map((r) => <option key={r} value={r}>{r === "auto" ? "Auto" : r}</option>)}</select>
+              </label>
+            )}
+            {caps.qualities.length > 0 && (
+              <label className="cv-chip cv-sel"><span className="sr-only">Quality</span>
+                <select value={quality} aria-label="Quality" onChange={(e) => updateNodeData(id, { quality: e.target.value })}>{caps.qualities.map((q) => <option key={q} value={q}>{q}</option>)}</select>
+              </label>
+            )}
+            <button type="button" className="cv-chip" disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on" : "Sound off"} title={caps.audio ? (sound ? "Sound on" : "Sound off") : "This model makes no sound"} onClick={() => updateNodeData(id, { sound: !sound })}>{sound ? <Volume2 size={13} /> : <VolumeX size={13} />}</button>
+          </div>
+          <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={() => void run()}>
+            {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Making your video</> : price != null ? <>Generate <span className="cv-cost" title={`${price} credits`}><Coins size={13} />{price}</span></> : <>Generate <ArrowUp size={15} /></>}
+          </button>
+          {startUnusable && <p className="cv-nhint">{model.label} can&rsquo;t take a start frame. Choose another model or unplug the picture.</p>}
+          {tooManyRefs && <p className="cv-error" role="alert">{model.label} takes up to {caps.refMax} reference {caps.refMax === 1 ? "picture" : "pictures"} and {caps.refVideoMax} {caps.refVideoMax === 1 ? "clip" : "clips"}.</p>}
+          {start && (refPics.length > 0 || clips.length > 0) && <p className="cv-nhint">With a start frame, the Ingredients and Clips are not sent.</p>}
+          {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
+          {picked && <button type="button" className="cv-ctl nodrag" onClick={() => ask({ kind: "details", genId: picked })}>Details</button>}
+          {data.error && <p className="cv-error" role="alert">{data.error}</p>}
+        </>
+      } />
+  );
+}
+
+export const nodeTypes = { character: CharacterNode, product: ProductNode, scene: SceneNode, text: TextNode, style: StyleNode, note: NoteNode, fullbody: FullBodyNode, generator: GeneratorNode, sheet: SheetNode, image: ImageNode, clip: ClipNode, videogen: VideoGenNode };
