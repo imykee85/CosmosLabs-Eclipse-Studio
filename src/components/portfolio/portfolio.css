@@ -60,3 +60,7 @@
 .pf-site blockquote { margin: 14px 0 0; padding-left: 14px; border-left: 2px solid #c00707; font-size: 16px; font-weight: 500; }
 @media (max-width: 520px) { .pf-actions { gap: 6px; flex-wrap: nowrap; } .pf-actions button { padding: 0 14px; font-size: 14px; } .pf-ghost { padding: 0 6px !important; } }
 @media (max-width: 800px) { .pf-card { padding: 18px; border-radius: 26px; } .pf-preview { border-radius: 26px; } }
+.pf-site-work { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 8px 0 14px; }
+.pf-site-work img, .pf-site-work video { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; display: block; }
+.pf-ghost:disabled { opacity: .5; cursor: not-allowed; }
+a.pf-ghost { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }

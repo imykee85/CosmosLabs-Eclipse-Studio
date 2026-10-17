@@ -1,12 +1,11 @@
 "use client";
 
-import SoonTag from "@/components/SoonTag";
-import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Link2, Moon, Monitor, Radio, Smartphone, Sun, Upload } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, Copy, ExternalLink, Link2, Moon, Monitor, Radio, Smartphone, Sun, Upload } from "lucide-react";
 import { listProjects, type Project } from "@/lib/projects";
 import "./portfolio.css";
 
-// Draft kept in this browser until publishing (which needs the server) is connected.
+// The draft is saved to the account as you type (and kept in this browser as a copy); Publish puts it live at /p/<address>.
 const KEY = "eclipse-portfolio";
 const SLOTS = ["Cover", "About", "Contact"] as const;
 
@@ -46,33 +45,106 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="pf-field"><span>{label}</span>{children}</label>;
 }
 
+type Media = { id: string; kind: "image" | "video"; width: number | null; height: number | null };
+type ServerPortfolio = Draft & { slug: string; published: boolean };
+
 export default function PortfolioView() {
   const [d, setD] = useState<Draft>(EMPTY);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [slot, setSlot] = useState<(typeof SLOTS)[number]>("Cover");
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const [media, setMedia] = useState<Media[]>([]);
+  const [published, setPublished] = useState(false);
+  const [online, setOnline] = useState<boolean | null>(null); // null while checking; false in preview mode (no sign-in): the draft stays on this device
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dirty = useRef(false);
+  const saving = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
-    try { const s = localStorage.getItem(KEY); if (s) setD({ ...EMPTY, ...JSON.parse(s) }); } catch {}
+    let local: Draft | null = null;
+    try { const s = localStorage.getItem(KEY); if (s) local = { ...EMPTY, ...JSON.parse(s) }; } catch {}
+    if (local) setD(local);
     listProjects().then((l) => setProjects(l.filter((p) => !p.deletedAt))).catch(() => setProjects([]));
+    fetch("/api/portfolio").then(async (res) => {
+      if (!res.ok) { setOnline(false); return; }
+      const data = (await res.json()) as { portfolio: ServerPortfolio | null; media: Media[] };
+      setOnline(true); setMedia(data.media);
+      if (data.portfolio) { const { published: pub, ...rest } = data.portfolio; setD({ ...EMPTY, ...rest }); setPublished(pub); }
+      else if (local) dirty.current = true; // a draft made on this device before: send it up
+    }).catch(() => setOnline(false));
   }, []);
 
-  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => { setD((p) => ({ ...p, [k]: v })); setNote(""); };
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => { dirty.current = true; setD((p) => ({ ...p, [k]: v })); setNote(""); setError(""); };
   const slug = d.slug || slugify(d.headline) || "your-name";
   // Read after mount: the server has no address, and reading it during render made the page mismatch on load.
   const [host, setHost] = useState("");
   useEffect(() => setHost(window.location.host), []);
 
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(d)); setNote("Draft saved on this device."); }
-    catch { setNote("Could not save. Try removing a photo."); }
+  const dRef = useRef(d); dRef.current = d;
+  // One save at a time; the latest draft always wins. Returns whether it reached the account.
+  const save = useCallback(async (): Promise<boolean> => {
+    try { localStorage.setItem(KEY, JSON.stringify(dRef.current)); } catch { setError("Could not keep a copy on this device. Try removing a photo."); }
+    if (!online) return false;
+    if (saving.current) await saving.current;
+    const run = (async () => {
+      dirty.current = false;
+      const body = { ...dRef.current, slug: dRef.current.slug || slugify(dRef.current.headline) };
+      const res = await fetch("/api/portfolio", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error ?? "Could not save your portfolio."); dirty.current = true; return false; }
+      setMedia(data.media ?? []);
+      setPublished(Boolean(data.portfolio?.published));
+      if (data.portfolio?.slug && data.portfolio.slug !== dRef.current.slug) setD((p) => ({ ...p, slug: data.portfolio.slug }));
+      return true;
+    })();
+    saving.current = run;
+    try { return await run; } finally { saving.current = null; }
+  }, [online]);
+
+  // Autosave a moment after the last change.
+  useEffect(() => {
+    if (!online || !dirty.current) return;
+    const t = setTimeout(() => { void save().then((ok) => { if (ok) setNote("Saved."); }); }, 900);
+    return () => clearTimeout(t);
+  }, [d, online, save]);
+
+  async function saveNow() {
+    setError("");
+    const ok = await save();
+    setNote(ok ? "Saved." : online ? "" : "Draft saved on this device.");
+  }
+
+  const url = host ? `${window.location.protocol}//${host}/p/${slug}` : "";
+  async function publish() {
+    if (!online) { setError("Publishing needs a signed-in account."); return; }
+    setBusy(true); setError(""); setNote("");
+    try {
+      if (!(await save())) return;
+      const res = await fetch("/api/portfolio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "publish" }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error ?? "Could not publish."); return; }
+      setPublished(true); setNote("Your page is live.");
+    } finally { setBusy(false); }
+  }
+  async function unpublish() {
+    setBusy(true); setError(""); setNote("");
+    try {
+      const res = await fetch("/api/portfolio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "unpublish" }) });
+      if (!res.ok) { setError("Could not take the page down."); return; }
+      setPublished(false); setNote("Your page is no longer public.");
+    } finally { setBusy(false); }
+  }
+  async function copyLink() {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { setError("Could not copy. Select the address and copy it by hand."); }
   }
 
   async function pick(file?: File) {
     if (!file) return;
-    try { set("photos", { ...d.photos, [slot]: await shrink(file) }); } catch (e) { setNote(e instanceof Error ? e.message : "Upload failed."); }
+    try { set("photos", { ...d.photos, [slot]: await shrink(file) }); } catch (e) { setError(e instanceof Error ? e.message : "Upload failed."); }
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -87,17 +159,21 @@ export default function PortfolioView() {
       <div className="pf-grid">
         <div className="pf-form">
           <section className="pf-card pf-publish">
-            <div className="pf-status"><Radio size={14} aria-hidden="true" /> Draft · not published</div>
+            <div className="pf-status"><Radio size={14} aria-hidden="true" /> {published ? "Live" : "Draft · not published"}</div>
             <div className="pf-url"><Link2 size={15} aria-hidden="true" /><span>{host}/p/</span>
               <input value={d.slug} onChange={(e) => set("slug", slugify(e.target.value))} placeholder={slug} aria-label="Page address" />
-              {d.slug.length > 1 && <Check size={16} className="pf-ok" aria-hidden="true" />}
+              {d.slug.length > 2 && <Check size={16} className="pf-ok" aria-hidden="true" />}
             </div>
             <div className="pf-actions">
-              <button type="button" className="pf-ghost"><Copy size={15} /> Copy link <SoonTag /></button>
-              <button type="button" className="pf-outline" onClick={save}>Save draft</button>
-              <button type="button" className="pf-primary">Publish <SoonTag /></button>
+              <button type="button" className="pf-ghost" onClick={copyLink} disabled={!published}>{copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "Copied" : "Copy link"}</button>
+              {published && <a className="pf-ghost" href={`/p/${slug}`} target="_blank" rel="noreferrer"><ExternalLink size={15} /> View</a>}
+              <button type="button" className="pf-outline" onClick={saveNow}>Save draft</button>
+              {published
+                ? <button type="button" className="pf-outline" onClick={unpublish} disabled={busy}>Unpublish</button>
+                : null}
+              <button type="button" className="pf-primary" onClick={publish} disabled={busy}>{published ? "Update page" : "Publish"}</button>
             </div>
-            <small>{note || "Your draft is saved on this device."}</small>
+            {error ? <small role="alert" style={{ color: "#c00707" }}>{error}</small> : <small>{note || (online === false ? "Your draft is saved on this device. Sign in to publish." : "Your draft saves as you type.")}</small>}
           </section>
 
           <section className="pf-card">
@@ -180,7 +256,11 @@ export default function PortfolioView() {
                 {d.tagline && <p className="pf-site-tag">{d.tagline}</p>}
                 {(d.role || d.location) && <p className="pf-site-meta">{[d.role, d.location].filter(Boolean).join(" · ")}</p>}
                 {d.statement && <blockquote>{d.statement}</blockquote>}
-                {chosen.length > 0 && <><h4>Projects</h4><ul>{chosen.map((p) => <li key={p.id}>{p.name}</li>)}</ul></>}
+                {media.length > 0 ? <><h4>Work</h4><div className="pf-site-work">{media.slice(0, 12).map((m) => (m.kind === "video"
+                  ? <video key={m.id} src={`/api/generations/${m.id}/file`} muted playsInline preload="metadata" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : <img key={m.id} src={`/api/generations/${m.id}/file`} alt="" loading="lazy" />))}</div></>
+                  : chosen.length > 0 && <><h4>Projects</h4><ul>{chosen.map((p) => <li key={p.id}>{p.name}</li>)}</ul></>}
                 {d.about && <><h4>About</h4>{d.about.split(/\n\s*\n/).map((t, i) => <p key={i}>{t}</p>)}</>}
                 {lines(d.services).length > 0 && <><h4>Services</h4><ul>{lines(d.services).map((s) => <li key={s}>{s}</li>)}</ul></>}
                 {lines(d.clients).length > 0 && <><h4>Clients</h4><p>{lines(d.clients).join(" · ")}</p></>}

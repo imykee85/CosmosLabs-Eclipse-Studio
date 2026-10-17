@@ -365,3 +365,40 @@ model SkillSetting {
   @@id([userId, skillId])
   @@map("skill_settings")
 }
+
+// A person's public portfolio page (one per account), shown at /p/<slug> while published. `data` is the draft the editor saves (headline, story, contact, chosen project ids, three small photos).
+model Portfolio {
+  userId      String    @id @map("user_id")
+  slug        String?   @unique
+  published   Boolean   @default(false)
+  data        Json
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("portfolios")
+}
+
+// A certificate of origin: a timestamped record that ties one finished creation to its maker. It keeps the SHA-256 fingerprint of the stored file and a snapshot of the facts
+// at issue time, so anyone with the code can check a file against it at /c/<code>. Supporting evidence, not legal proof of ownership.
+model Certificate {
+  id          String   @id @default(cuid())
+  code        String   @unique // the public verification code
+  userId      String   @map("user_id")
+  sourceType  String   @map("source_type") // render (image or video) or audio
+  sourceId    String   @map("source_id")
+  kind        String   // image, video or audio
+  title       String
+  creator     String
+  sha256      String
+  sizeBytes   Int?     @map("size_bytes")
+  contentType String?  @map("content_type")
+  facts       Json     // model, dimensions, length, prompt, when it was made ...
+  showPrompt  Boolean  @default(false) @map("show_prompt") // the public page shows the prompt only when the owner chose to
+  showMedia   Boolean  @default(false) @map("show_media") // ... and the picture, video or sound only when the owner chose to
+  issuedAt    DateTime @default(now()) @map("issued_at")
+
+  @@unique([userId, sourceType, sourceId])
+  @@index([userId, issuedAt(sort: Desc)])
+  @@map("certificates")
+}
