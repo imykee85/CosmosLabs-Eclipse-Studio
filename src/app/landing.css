@@ -500,7 +500,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (max-width: 800px) { .hero { min-height: 971px; } }
 
 /* Logo reel tinted to the hero video's teal instead of warm grey/white */
-.hero .strip-label { color: rgba(176,212,218,.72); }
+.hero .strip-label { color: rgba(255,255,255,.6); }
 .hero .strip-set li { color: rgba(176,212,218,.72); }
 .hero .strip-logo img { filter: brightness(0) invert(1) sepia(1) saturate(2.4) hue-rotate(128deg) brightness(.95); opacity: .78; }
 
