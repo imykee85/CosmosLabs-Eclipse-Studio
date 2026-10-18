@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import SoonTag from "@/components/SoonTag";
 import { SETTINGS_TABS as TABS, type SettingsTab as Tab } from "@/lib/settings-tabs";
 import ApiPanel from "./ApiPanel";
 import BillingPanel from "./BillingPanel";
@@ -19,7 +18,7 @@ export default function SettingsView({ initialTab = "Profile" }: { initialTab?: 
 
       <div className="st-tabs" role="tablist" aria-label="Settings sections">
         {TABS.map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "is-active" : ""} onClick={() => setTab(t)}>{t}{t === "Team" && <SoonTag className="st-soon" />}</button>
+          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "is-active" : ""} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
 

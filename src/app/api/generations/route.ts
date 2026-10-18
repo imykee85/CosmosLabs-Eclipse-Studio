@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { waitUntil } from "@vercel/functions";
 import { finalizeGeneration, purgeFailed, toItem } from "@/lib/generation-jobs";
 import { isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
+import { workspaceSession } from "@/lib/workspace";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 100;
@@ -15,7 +15,7 @@ export const maxDuration = 60;
 
 export async function GET(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const requested = Number(new URL(req.url).searchParams.get("limit"));

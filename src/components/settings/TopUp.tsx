@@ -7,7 +7,7 @@ import { refreshCredits } from "@/lib/use-credits";
 
 type Pack = { id: string; name: string; price: number; credits: number };
 type Auto = { enabled: boolean; packId: string; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number };
-type Info = { packs: Pack[]; thresholds: number[]; caps: number[]; paymentsReady: boolean; autoReady: boolean; auto: Auto };
+type Info = { team: { isTeam: boolean; isAdmin: boolean }; packs: Pack[]; thresholds: number[]; caps: number[]; paymentsReady: boolean; autoReady: boolean; auto: Auto };
 
 async function startCheckout(packId: string): Promise<string | null> {
   try {
@@ -76,6 +76,7 @@ export default function TopUp() {
   );
   if (!info) return null;
   const a = info.auto;
+  const locked = info.team.isTeam && !info.team.isAdmin; // a team member who is not an admin cannot buy credits for the team
   const pack = info.packs.find((p) => p.id === a.packId) ?? info.packs[0];
 
   return (
@@ -90,12 +91,13 @@ export default function TopUp() {
               <p className="st-price">${p.price}</p>
               <PriceBadge usd={p.price} className="badge-row" />
               <p className="st-meta">One-time purchase</p>
-              <button type="button" className="st-upgrade" onClick={() => buy(p.id)} disabled={Boolean(busy)}>{busy === p.id ? "Opening..." : "Buy credits"}</button>
+              <button type="button" className="st-upgrade" onClick={() => buy(p.id)} disabled={Boolean(busy) || locked}>{busy === p.id ? "Opening..." : "Buy credits"}</button>
             </article>
           ))}
         </div>
         {notice && <p className="st-meta st-notice" role="status">{notice}</p>}
         {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
+        {locked && <p className="st-meta" style={{ marginTop: 8 }}>Only a team admin can buy credits for the team.</p>}
         {!info.paymentsReady && <p className="st-meta" style={{ marginTop: 8 }}>Payments are not set up yet.</p>}
       </section>
 
@@ -105,25 +107,25 @@ export default function TopUp() {
             <h3 id="st-auto" className="st-h3"><RefreshCw size={16} style={{ verticalAlign: "-2px", marginRight: 8 }} />Auto top-up</h3>
             <p className="st-sub">When your credits run low, we add a pack for you so your work never stops.</p>
           </div>
-          <button type="button" role="switch" aria-checked={a.enabled} aria-label="Auto top-up" className={`st-switch ${a.enabled ? "is-on" : ""}`} disabled={busy === "auto" || !info.autoReady} onClick={() => save({ enabled: !a.enabled })}><i /></button>
+          <button type="button" role="switch" aria-checked={a.enabled} aria-label="Auto top-up" className={`st-switch ${a.enabled ? "is-on" : ""}`} disabled={busy === "auto" || !info.autoReady || locked} onClick={() => save({ enabled: !a.enabled })}><i /></button>
         </div>
 
         <div className="st-autogrid">
           <label>
             <span className="st-label">WHEN CREDITS FALL BELOW</span>
-            <select className="st-input st-select" value={a.threshold} disabled={busy === "auto"} onChange={(e) => save({ threshold: Number(e.target.value) })}>
+            <select className="st-input st-select" value={a.threshold} disabled={busy === "auto" || locked} onChange={(e) => save({ threshold: Number(e.target.value) })}>
               {info.thresholds.map((t) => <option key={t} value={t}>{t.toLocaleString("en-US")} credits</option>)}
             </select>
           </label>
           <label>
             <span className="st-label">ADD</span>
-            <select className="st-input st-select" value={a.packId} disabled={busy === "auto"} onChange={(e) => save({ packId: e.target.value })}>
+            <select className="st-input st-select" value={a.packId} disabled={busy === "auto" || locked} onChange={(e) => save({ packId: e.target.value })}>
               {info.packs.map((p) => <option key={p.id} value={p.id}>{p.name} · ${p.price}</option>)}
             </select>
           </label>
           <label>
             <span className="st-label">MOST PER MONTH</span>
-            <select className="st-input st-select" value={a.maxPerMonth} disabled={busy === "auto"} onChange={(e) => save({ maxPerMonth: Number(e.target.value) })}>
+            <select className="st-input st-select" value={a.maxPerMonth} disabled={busy === "auto" || locked} onChange={(e) => save({ maxPerMonth: Number(e.target.value) })}>
               {info.caps.map((c) => <option key={c} value={c}>{c} top-up{c === 1 ? "" : "s"}</option>)}
             </select>
           </label>

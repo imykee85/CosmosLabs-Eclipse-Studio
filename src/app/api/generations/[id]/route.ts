@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { deleteThumb } from "@/lib/thumbs";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { finalizeGeneration, toItem } from "@/lib/generation-jobs";
 import { deleteObject, storageEnabled } from "@/lib/storage";
+import { workspaceSession } from "@/lib/workspace";
 
 export const maxDuration = 60;
 
@@ -12,7 +12,7 @@ export const maxDuration = 60;
 // one comes back with a fresh short-lived image link.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const row = await db.generation.findFirst({ where: { id: params.id, userId } });
@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 function authed() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 }) };
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   return { userId };
 }

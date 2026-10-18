@@ -1,15 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { startUpload } from "@/lib/direct-upload";
 import { claimUsage } from "@/lib/usage";
+import { workspaceSession } from "@/lib/workspace";
 
 export const maxDuration = 30;
 
 // Step 1 of a big upload: checks the file's declared type and size and returns a one-time link the browser PUTs the file to directly.
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await claimUsage(userId, "upload", 30, 60_000))) return NextResponse.json({ error: "You are uploading very quickly. Wait a moment and try again." }, { status: 429 });
   const b = await req.json().catch(() => null);
