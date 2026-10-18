@@ -183,6 +183,12 @@ export default function TreatmentView() {
     router.push("/prompts");
   };
   const copyPlan = async () => { try { await navigator.clipboard.writeText(treatmentText(plan)); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {} };
+  const [moreOpen, setMoreOpen] = useState(false);
+  const downloadPlan = () => {
+    const blob = new Blob([treatmentText(plan)], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${(plan.title || "treatment").replace(/[^\w -]+/g, "").trim().slice(0, 60) || "treatment"}.txt`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
   const newPlan = () => { if (busy) return; setMsgs([]); setPlan(EMPTY_TREATMENT); setError(""); };
 
   const addFiles = (list: FileList | null) => { const picked = Array.from(list ?? []); if (picked.length) setFiles((f) => [...f, ...picked]); if (picker.current) picker.current.value = ""; };
@@ -200,7 +206,19 @@ export default function TreatmentView() {
           <button type="button" className="tr-pill tr-pill-go" onClick={continueToPrompts}>
             <span className="tr-wide">Continue to prompts</span><span className="tr-short">Prompts</span> <ArrowRight size={15} />
           </button>
-          <button type="button" className="tr-more" aria-label="More options"><MoreHorizontal size={17} /></button>
+          <div className="tr-morewrap">
+            <button type="button" className="tr-more" aria-label="More options" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}><MoreHorizontal size={17} /></button>
+            {moreOpen && (
+              <>
+                <div className="am-scrim" onMouseDown={() => setMoreOpen(false)} onTouchStart={() => setMoreOpen(false)} />
+                <div className="tr-menu" role="menu">
+                  <button type="button" role="menuitem" disabled={!hasTreatment(plan)} onClick={() => { void copyPlan(); setMoreOpen(false); }}><Copy size={15} /> Copy the treatment</button>
+                  <button type="button" role="menuitem" disabled={!hasTreatment(plan)} onClick={() => { downloadPlan(); setMoreOpen(false); }}><FileText size={15} /> Download as a text file</button>
+                  <button type="button" role="menuitem" disabled={busy || (!msgs.length && !hasTreatment(plan))} onClick={() => { newPlan(); setMoreOpen(false); }}><Trash2 size={15} /> Start a new treatment</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
