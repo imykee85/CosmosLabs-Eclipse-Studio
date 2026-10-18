@@ -5,7 +5,7 @@
 // "Content-Security-Policy-Report-Only" messages on a preview, fix the list, then switch the second header to enforcing.
 // Debt: Next.js needs 'unsafe-inline' for its own scripts until nonces are added.
 // When you add your own domain, Clerk serves from clerk.<your domain>: add it here (report-only first, so nothing breaks).
-const clerk = "https://*.clerk.accounts.dev https://*.clerk.com";
+const clerk = "https://*.clerk.accounts.dev https://*.clerk.com https://clerk.eclipse.cosmoslabsai.com https://accounts.eclipse.cosmoslabsai.com";
 const reportOnlyCsp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' ${clerk} https://challenges.cloudflare.com https://va.vercel-scripts.com`,
