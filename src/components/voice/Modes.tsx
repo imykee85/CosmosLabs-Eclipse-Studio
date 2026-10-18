@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Coins, Loader2, Mic, Paperclip, Repeat, Square, Users } from "lucide-react";
+import { Coins, Loader2, Mic, Paperclip, Repeat, Square, Users } from "lucide-react";
 import { estimateSeconds } from "@/lib/audio/pricing-client";
 import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
 
@@ -49,8 +49,9 @@ const priceFor = (m: VoiceModel | null, secs: number) => (m?.pricing && m.pricin
 function Go({ label, busy, disabled, price, onClick }: { label: string; busy: boolean; disabled?: boolean; price: number | null; onClick: () => void }) {
   return (
     <button type="button" className="vc-go" aria-label={label} disabled={disabled || busy} onClick={onClick} title={price != null ? `About ${price} credits` : label}>
-      {busy ? <Loader2 size={18} className="vc-spin" /> : <ArrowUp size={20} />}
-      {price != null && <span className="vc-cost"><Coins size={11} />{price}</span>}
+      {busy ? <Loader2 size={18} className="vc-spin" /> : null}
+      <span>{label}</span>
+      {price != null && <span className="vc-cost"><Coins size={13} />{price}</span>}
     </button>
   );
 }
@@ -126,8 +127,8 @@ export function TranscribeConsole({ models, onStart, setError }: Props) {
         <ModelSelect models={models} model={model} onChange={choose} />
         <button type="button" className={`vc-pill ${diarize ? "is-on" : ""}`} aria-pressed={diarize} disabled={!model?.options.diarize} title={model?.options.diarize ? "Tell speakers apart" : `${model?.label ?? "This model"} cannot tell speakers apart`} onClick={() => setDiarize((d) => !d)}><Users size={14} /> Speakers</button>
         <span className="vc-count">{file ? sizeOf(file.size) : ""}</span>
-        <Go label="Transcribe" busy={busy} disabled={!model} price={price} onClick={() => void go()} />
       </div>
+      <Go label="Transcribe" busy={busy} disabled={!model} price={price} onClick={() => void go()} />
     </div>
   );
 }
@@ -207,8 +208,8 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
           ? <button type="button" className={`vc-pill ${instrumental ? "is-on" : ""}`} aria-pressed={instrumental} disabled={!model?.options.instrumental} onClick={() => setInstrumental((v) => !v)}>Instrumental</button>
           : <button type="button" className={`vc-pill ${loop ? "is-on" : ""}`} aria-pressed={loop} disabled={!model?.options.loop} title={model?.options.loop ? "A clip that loops cleanly" : `Not supported by ${model?.label ?? "this model"}`} onClick={() => setLoop((v) => !v)}><Repeat size={14} /> Loop</button>}
         <span className="vc-count">{text.length.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
-        <Go label={music ? "Make music" : "Make sound"} busy={busy} disabled={!model || over} price={price} onClick={() => void go()} />
       </div>
+      <Go label={music ? "Make music" : "Make sound"} busy={busy} disabled={!model || over} price={price} onClick={() => void go()} />
     </div>
   );
 }
