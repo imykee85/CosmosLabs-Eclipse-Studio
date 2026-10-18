@@ -1,7 +1,6 @@
 /* Default Create screen (cp-): three tall picture cards. Text on the cards is always light (it sits on pictures); the page text follows the theme. */
 .cp { max-width: 1180px; margin: 0 auto; }
 .cp-head { max-width: 640px; }
-.cp-eyebrow { display: inline-block; color: var(--a-redtext); font-size: 13px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
 .cp-head h1 { margin: 12px 0 0; color: var(--a-fg); font-size: clamp(36px, 4.6vw, 56px); font-weight: 700; letter-spacing: -.04em; line-height: 1.02; }
 .cp-head p { margin: 14px 0 0; color: var(--a-muted); font-size: 17px; line-height: 1.5; }
 .cp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 44px; }
