@@ -68,7 +68,7 @@
 .vc-console.is-over { border-color: var(--vc-red); }
 .vc-console textarea { display: block; width: 100%; min-height: 48px; max-height: 220px; padding: 2px 30px 6px 0; border: 0; outline: 0; resize: none; background: transparent; color: var(--a-fg); font: inherit; font-size: 17px; line-height: 1.5; }
 .vc-console textarea::placeholder { color: var(--a-ph); }
-.vc-controls { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.vc-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
 .vc-pill { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .vc-pill:disabled, .vc-pill.is-off { opacity: .4; cursor: not-allowed; }
 .vc-select { padding: 0; }

@@ -114,7 +114,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("agent chat failed", err);
     const msg = err instanceof Error ? err.message : "";
-    const why = /credit balance/i.test(msg) ? "The agent is unavailable: the Anthropic account behind the key needs credit."
+    const why = /credit balance/i.test(msg) ? "The agent is unavailable: the AI provider account behind the key needs credit."
       : err instanceof Anthropic.RateLimitError ? "The agent is busy right now. Try again in a minute."
       : err instanceof Anthropic.AuthenticationError ? "The agent's API key was rejected. The owner needs to check ANTHROPIC_API_KEY."
       : "The agent couldn't answer. Please try again.";

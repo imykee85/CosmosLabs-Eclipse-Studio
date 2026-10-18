@@ -6,7 +6,7 @@ import { Check, Copy, KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 type Key = { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null };
 
 // API keys and the MCP endpoint: make a key (its full value is shown once), see and revoke the live ones, and copy the commands that
-// connect Claude (or any MCP client) and the REST API. Everything acts as this account and spends its regular credits.
+// connect an MCP client and the REST API. Everything acts as this account and spends its regular credits.
 function CodeBlock({ id, text }: { id: string; text: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
@@ -69,7 +69,7 @@ export default function ApiPanel() {
   return (
     <section className="st-section" aria-labelledby="st-api">
       <h2 id="st-api">API keys · MCP</h2>
-      <p className="st-sub">Connect Eclipse to Claude, Cursor or any MCP client, or call it from your own code. Keys act as your account and spend your regular credits.</p>
+      <p className="st-sub">Connect Eclipse to your AI tools, Cursor or any MCP client, or call it from your own code. Keys act as your account and spend your regular credits.</p>
 
       <div className="st-keyform">
         <input className="st-input" value={name} maxLength={60} placeholder="Key name, for example Laptop" aria-label="Key name" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void create(); }} />
@@ -96,7 +96,7 @@ export default function ApiPanel() {
         </ul>
       )}
 
-      <h3 className="st-h3 st-gap">Connect to Claude Code</h3>
+      <h3 className="st-h3 st-gap">Connect from the command line</h3>
       <CodeBlock id="st-code" text={claude} />
       <h3 className="st-h3 st-gap">Other MCP clients</h3>
       <CodeBlock id="st-json" text={json} />

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("polish failed", err);
     const msg = err instanceof Error ? err.message : "";
-    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Polishing is unavailable: the Anthropic account behind the key needs credit." : "The prompt could not be polished. Please try again." }, { status: 502 });
+    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Polishing is unavailable: the AI provider account behind the key needs credit." : "The prompt could not be polished. Please try again." }, { status: 502 });
   } finally {
     await chargeChat(u.userId, meter, "Polish prompt");
   }

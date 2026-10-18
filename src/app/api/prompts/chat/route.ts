@@ -69,7 +69,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("prompt engine failed", err);
     const msg = err instanceof Error ? err.message : "";
-    const why = /credit balance/i.test(msg) ? "The prompt engine is unavailable: the Anthropic account behind the key needs credit."
+    const why = /credit balance/i.test(msg) ? "The prompt engine is unavailable: the AI provider account behind the key needs credit."
       : err instanceof Anthropic.RateLimitError ? "The prompt engine is busy right now. Try again in a minute."
       : err instanceof Anthropic.AuthenticationError ? "The prompt engine's API key was rejected. The owner needs to check ANTHROPIC_API_KEY."
       : "The prompt engine couldn't answer. Please try again.";
