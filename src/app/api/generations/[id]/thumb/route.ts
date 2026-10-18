@@ -10,7 +10,7 @@ export const maxDuration = 60;
 // (a week); the full picture stays at /file. Videos have no thumbnail here (their tiles play the clip).
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const g = await db.generation.findFirst({ where: { id: params.id, userId, status: "completed" }, select: { imageUrl: true, storageKey: true, kind: true } });

@@ -13,7 +13,7 @@ type Block = { type: string; text?: string; name?: string; id?: string; tool_use
 // A stored thread turned into what the screen shows: the user's words, the assistant's words, the tools it used and the renders it started.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const chat = await db.connectChat.findFirst({ where: { id: params.id, userId }, include: { messages: { orderBy: { seq: "asc" } } } });
   if (!chat) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -46,7 +46,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const r = await db.connectChat.deleteMany({ where: { id: params.id, userId } });
   return r.count ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "Not found" }, { status: 404 });

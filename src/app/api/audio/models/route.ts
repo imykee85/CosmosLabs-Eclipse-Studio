@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // (or sign-in) is missing; such a model can be chosen but Generate is refused with a plain message. Prices are never shown; with credits on, the credits for one character
 // let the page show the cost on the Generate button (the same rounding as the server: at least 1, rounded up).
 export async function GET() {
-  if (clerkEnabled && !auth().userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (clerkEnabled && !(await auth()).userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const on = audioCreditsOn();
   return NextResponse.json({
     models: audioModels().map((m) => ({

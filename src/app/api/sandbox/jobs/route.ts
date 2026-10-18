@@ -16,7 +16,7 @@ export const maxDuration = 60;
 // are the person's own and builds the job input itself. The job is then driven for up to 45 s in the background so a short job finishes even if
 // the page closes; the page follows it with GET /api/sandbox/jobs/<id>.
 export async function POST(req: Request) {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return u.fail;
   const b = (await req.json().catch(() => null)) as { kind?: unknown; input?: unknown } | null;
   const kind = typeof b?.kind === "string" ? b.kind : "";

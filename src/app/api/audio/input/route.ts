@@ -15,7 +15,7 @@ const TYPES: Record<string, string> = {
 const maxInputMb = () => (Number(process.env.AUDIO_STT_MAX_MB) > 0 ? Number(process.env.AUDIO_STT_MAX_MB) : 200);
 
 export async function POST(req: Request) {
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   if (!storageEnabled) return NextResponse.json({ error: "Audio storage is not set up yet." }, { status: 503 });
   const b = (await req.json().catch(() => null)) as { contentType?: unknown; size?: unknown } | null;

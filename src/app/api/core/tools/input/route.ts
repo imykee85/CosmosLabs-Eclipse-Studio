@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // A file for a mini tool run goes from the browser straight to private storage (u/<user>/tools/in/...) through a one-time signed link; the run
 // then checks the key is the person's own. 200 MB at most per file (and per run).
 export async function POST(req: Request) {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return u.fail;
   if (!storageEnabled) return NextResponse.json({ error: "Storage is not set up yet." }, { status: 503 });
   const b = (await req.json().catch(() => null)) as { name?: unknown; size?: unknown } | null;

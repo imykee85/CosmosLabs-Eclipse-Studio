@@ -6,7 +6,7 @@ import { validAnswers } from "@/lib/onboarding";
 
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode" }, { status: 503 });
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const answers = validAnswers(await req.json().catch(() => null));

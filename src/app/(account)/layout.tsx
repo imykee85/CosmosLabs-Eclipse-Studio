@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 // Pages opened from the avatar menu (Avatars, Portfolio, Certificates, Settings). They sit outside the Studio, so no Studio tabs.
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   if (clerkEnabled) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (userId) {
       const done = await db.onboarding.findUnique({ where: { userId } }).catch(() => true);
       if (!done) redirect("/onboarding");

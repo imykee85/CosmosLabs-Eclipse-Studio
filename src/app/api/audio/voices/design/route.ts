@@ -7,7 +7,7 @@ export const maxDuration = 120;
 
 // Design a voice from a description: returns previews (short clips as data addresses, so nothing is stored) to listen to. Keeping one is /design/save.
 export async function POST(req: Request) {
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   const b = (await req.json().catch(() => null)) as { provider?: unknown; description?: unknown } | null;
   const r = await designOwnVoice({ userId: u.userId, provider: b?.provider, description: b?.description });

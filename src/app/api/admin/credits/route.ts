@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     let targetId = admin.userId;
     let targetEmail = admin.email;
     if (email && email !== admin.email.toLowerCase()) {
-      const found = await clerkClient.users.getUserList({ emailAddress: [email], limit: 1 });
+      const found = await (await clerkClient()).users.getUserList({ emailAddress: [email], limit: 1 });
       const user = found.data[0];
       if (!user) return NextResponse.json({ error: "No account uses that e-mail address." }, { status: 404 });
       targetId = user.id;

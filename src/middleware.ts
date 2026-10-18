@@ -16,8 +16,8 @@ function withLanguage(req: NextRequest): NextResponse | undefined {
   return res;
 }
 
-const withClerk = clerkMiddleware((auth, req) => {
-  if (!isPublic(req)) auth().protect();
+const withClerk = clerkMiddleware(async (auth, req) => {
+  if (!isPublic(req)) await auth.protect();
   return withLanguage(req);
 });
 

@@ -11,7 +11,7 @@ export const maxDuration = 60;
 // share sheet without any cross-site restrictions. ?download=1 makes the browser save it under its file name.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const g = await db.generation.findFirst({ where: { id: params.id, userId, status: "completed", deletedAt: null } });

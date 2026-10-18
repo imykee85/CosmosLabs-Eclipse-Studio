@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 // Sends the browser to a short-lived signed link for the file. With ?download=1 the link makes the browser save it under its readable file name.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   const j = await getAudioJob(u.userId, params.id);
   if (!j || j.status !== "completed" || !j.storageKey || !storageEnabled) return NextResponse.json({ error: "Not found" }, { status: 404 });

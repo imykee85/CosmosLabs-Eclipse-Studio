@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 // The price of a sound job BEFORE it is started (Mirelo's own quote when it gives one, else the registry price). Nothing is held or charged. credits is null when credits are off.
 export async function POST(req: Request) {
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!b || typeof b !== "object") return NextResponse.json({ error: "Bad request" }, { status: 400 });

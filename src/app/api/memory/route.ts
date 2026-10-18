@@ -9,13 +9,13 @@ const toItem = (m: { id: string; topic: string; text: string; source: string; cr
   ({ id: m.id, topic: m.topic as MemoryTopic, text: m.text, source: m.source === "agent" ? "agent" : "user", createdAt: m.createdAt.toISOString() });
 
 export async function GET() {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const rows = await db.memory.findMany({ where: { userId: u.userId }, orderBy: { createdAt: "desc" }, take: MEMORY_LIMIT });
   return NextResponse.json({ items: rows.map(toItem) });
 }
 
 export async function POST(req: Request) {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const body = await req.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text.trim() : "";
   if (!text) return NextResponse.json({ error: "Write something to remember." }, { status: 400 });

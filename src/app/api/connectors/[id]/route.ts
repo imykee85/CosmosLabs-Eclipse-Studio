@@ -11,7 +11,7 @@ export const maxDuration = 30;
 // Connect an app: the credential is checked, a test message is sent to prove it works (task and issue apps are checked with a read instead, so
 // connecting never creates a stray task), and only then is it stored (encrypted).
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const id = params.id;
   if (!directConnectors[id]) {
     return NextResponse.json({ error: "Connecting this app needs a sign-in approved by the service, and this server has no app registered with it yet." }, { status: 501 });
@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   await db.connectorLink.deleteMany({ where: { userId: u.userId, connector: params.id } });
   return NextResponse.json({ ok: true });
 }

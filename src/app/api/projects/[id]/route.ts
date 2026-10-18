@@ -5,16 +5,16 @@ import { workspaceSession } from "@/lib/workspace";
 
 type Ctx = { params: { id: string } };
 
-function userOr401() {
+async function userOr401() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode" }, { status: 503 }) };
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   return { userId };
 }
 
 // Move to the bin, restore from it, or rename.
 export async function PATCH(req: Request, { params }: Ctx) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   const body = await req.json().catch(() => null);
   if (body?.action !== "trash" && body?.action !== "restore" && body?.action !== "rename") return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 // Delete forever: only allowed for projects already in the bin.
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   try {
     const r = await db.project.deleteMany({ where: { id: params.id, userId: u.userId, deletedAt: { not: null } } });

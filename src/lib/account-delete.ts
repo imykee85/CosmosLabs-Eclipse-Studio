@@ -71,7 +71,7 @@ export async function deleteAccount(userId: string, opts: { closeSignIn?: boolea
 
   // 5. The sign-in itself, last.
   if (opts.closeSignIn !== false) {
-    try { await clerkClient.users.deleteUser(userId); }
+    try { await (await clerkClient()).users.deleteUser(userId); }
     catch (err) {
       console.error("account delete: sign-in could not be closed", userId, err);
       return { ok: false, status: 502, error: "Your data is deleted, but closing your sign-in failed. Press delete again to finish." };

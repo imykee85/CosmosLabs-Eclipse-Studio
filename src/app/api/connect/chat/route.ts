@@ -12,7 +12,7 @@ export const maxDuration = 120; // a build-machine step can wait 20 s on a comma
 // Sends one message to the assistant and streams back what it does: lines of JSON, one event each (text, tool, render, error, done).
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!agentEnabled()) return NextResponse.json({ error: "The assistant is not switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
 

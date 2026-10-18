@@ -6,9 +6,9 @@ import { workspaceSession } from "@/lib/workspace";
 const MAX_BYTES = 600_000;
 const MAX_CANVASES = 100; // per project, not counting the ones in "Recently deleted"
 
-function userOr401() {
+async function userOr401() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 }) };
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   return { userId };
 }
@@ -17,7 +17,7 @@ const META = { id: true, name: true, nodeCount: true, thumbId: true, createdAt: 
 
 // The signed-in user's canvases in one project (no graphs, just what the library cards need). ?bin=1 lists "Recently deleted" instead.
 export async function GET(req: Request) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   const url = new URL(req.url);
   const projectId = url.searchParams.get("projectId") ?? "";
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
 
 // A new canvas, blank or with a graph (used for "Duplicate" and for turning an Image Studio prompt into a canvas).
 export async function POST(req: Request) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   const text = await req.text();
   if (text.length > MAX_BYTES) return NextResponse.json({ error: "That canvas is too large." }, { status: 413 });

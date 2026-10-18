@@ -10,7 +10,7 @@ export const maxDuration = 30;
 // not), so a Canvas node can keep showing the picture it was given.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!storageEnabled) return NextResponse.json({ error: "Storage is not set up." }, { status: 503 });
   try {
