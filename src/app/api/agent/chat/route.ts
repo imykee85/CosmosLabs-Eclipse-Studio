@@ -29,7 +29,7 @@ const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(
 
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the agent can't answer." }, { status: 503 });
-  const { workspaceId: userId, personId } = workspaceSession();
+  const { workspaceId: userId, personId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The agent isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
 

@@ -10,7 +10,7 @@ const SHARE_DAYS = 7; // the longest a signed link can last
 // A link someone else can open without signing in, which stops working by itself after SHARE_DAYS. Asked for by the owner, one render at a time.
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await claimUsage(userId, "share", 30, 60_000))) return NextResponse.json({ error: "Too many share links at once. Wait a moment and try again." }, { status: 429 });
   try {

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // What finished (or failed) for the signed-in person in the last 3 days: renders, videos and voice takes. Built from the jobs themselves, nothing extra is stored.
 // `at` is when it ended; the browser decides what counts as unread.
 export async function GET() {
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   const since = new Date(Date.now() - 3 * 24 * 3600 * 1000);
   try {

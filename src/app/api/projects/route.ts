@@ -5,7 +5,7 @@ import { workspaceSession } from "@/lib/workspace";
 
 function userOr401() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode" }, { status: 503 }) };
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   return { userId };
 }

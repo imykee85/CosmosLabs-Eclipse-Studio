@@ -23,8 +23,8 @@ export function resolveWorkspace(a: { userId?: string | null; orgId?: string | n
   return { personId, workspaceId: personId, isTeam: false, isAdmin: true };
 }
 
-export function workspaceSession(): WorkspaceSession {
-  return resolveWorkspace(auth());
+export async function workspaceSession(): Promise<WorkspaceSession> {
+  return resolveWorkspace(await auth());
 }
 
 export const NOT_TEAM_ADMIN = "Only a team admin can do this. Ask one of your team's admins.";

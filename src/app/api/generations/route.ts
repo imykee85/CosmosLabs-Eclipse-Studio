@@ -15,7 +15,7 @@ export const maxDuration = 60;
 
 export async function GET(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const requested = Number(new URL(req.url).searchParams.get("limit"));

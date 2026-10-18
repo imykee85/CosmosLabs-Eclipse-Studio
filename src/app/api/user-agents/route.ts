@@ -8,13 +8,13 @@ export const dynamic = "force-dynamic";
 const view = (a: { id: string; name: string; role: string; instructions: string }) => ({ id: a.id, name: a.name, role: a.role, instructions: a.instructions });
 
 export async function GET() {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const rows = await db.userAgent.findMany({ where: { userId: u.userId }, orderBy: { createdAt: "asc" }, take: MAX_AGENTS });
   return NextResponse.json({ items: rows.map(view) });
 }
 
 export async function POST(req: Request) {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const parsed = parseAgentInput(await req.json().catch(() => null));
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: parsed.error.startsWith("Eclipse can't") ? 422 : 400 });
   if ((await db.userAgent.count({ where: { userId: u.userId } })) >= MAX_AGENTS) return NextResponse.json({ error: `You can have up to ${MAX_AGENTS} agents of your own. Delete one to make another.` }, { status: 409 });

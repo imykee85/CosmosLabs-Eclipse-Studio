@@ -12,7 +12,7 @@ export const maxDuration = 60;
 // one comes back with a fresh short-lived image link.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const row = await db.generation.findFirst({ where: { id: params.id, userId } });
@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 function authed() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 }) };
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   return { userId };
 }

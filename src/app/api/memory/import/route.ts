@@ -5,7 +5,7 @@ import { MEMORY_LIMIT, isTopic, parseImportLine, type MemoryTopic } from "@/lib/
 
 // Pasted notes become memories: one per non-empty line (see parseImportLine for the optional "Style: ..." labels).
 export async function POST(req: Request) {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const body = await req.json().catch(() => null);
   if (!isTopic(body?.topic)) return NextResponse.json({ error: "Choose a topic." }, { status: 400 });
   const lines = String(body?.text ?? "").split(/\r?\n/).map((l) => parseImportLine(l, body.topic)).filter((x): x is { topic: MemoryTopic; text: string } => x !== null);

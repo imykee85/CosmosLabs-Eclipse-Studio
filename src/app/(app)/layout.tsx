@@ -11,7 +11,7 @@ export const viewport = { viewportFit: "cover" } as const;
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // New accounts answer the onboarding questions first; if the database can't be reached, let them in.
   if (clerkEnabled) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (userId) {
       const done = await db.onboarding.findUnique({ where: { userId } }).catch(() => true);
       if (!done) redirect("/onboarding");

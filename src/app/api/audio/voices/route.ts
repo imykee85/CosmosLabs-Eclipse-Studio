@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   if (!model) return NextResponse.json({ error: "That voice model is not available." }, { status: 400 });
   // Not connected yet (preview mode or no provider key): an empty list the page can show calmly, never an error.
   if (!clerkEnabled) return NextResponse.json({ voices: [], ready: false });
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   const ctx = ctxFor(model);
   if (!ctx) return NextResponse.json({ voices: [], ready: false });

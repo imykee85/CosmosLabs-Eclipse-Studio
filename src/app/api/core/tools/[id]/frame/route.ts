@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // "sandbox" rule below applies even if this address is opened directly), so it can never read Eclipse's cookies, storage or pages; it may not
 // load anything from the network (connect-src 'none') unless its owner approved internet use for this version, and only Eclipse may frame it.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return new Response("Not found.", { status: 404 });
   const t = await ownTool(u.userId, params.id);
   const file = t?.kind === "browser" ? ((Array.isArray(t.files) ? t.files : []) as { path: string; key: string }[]).find((f) => f.path === t.entry) : undefined;

@@ -9,7 +9,7 @@ export const maxDuration = 60;
 // Starts a video and returns at once with a "pending" job. The browser then asks GET /api/generations/<id>/status every few seconds.
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const b = await req.json().catch(() => null);
   const result = await startVideoRender({

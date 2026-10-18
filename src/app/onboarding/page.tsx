@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage() {
   if (clerkEnabled) {
-    const { userId } = auth().protect();
+    const { userId } = await auth.protect();
     const done = await db.onboarding.findUnique({ where: { userId } }).catch(() => null);
     if (done) redirect("/dashboard");
   }

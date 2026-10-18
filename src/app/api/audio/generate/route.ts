@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 // Starts a voice, a transcript, a sound effect or a piece of music and returns at once with a "pending" job. The browser then asks GET /api/audio/<id>.
 export async function POST(req: Request) {
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!b || typeof b !== "object") return NextResponse.json({ error: "Bad request" }, { status: 400 });

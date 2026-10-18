@@ -22,7 +22,7 @@ async function ownProjects(userId: string, ids: string[]): Promise<string[]> {
 }
 
 export async function GET() {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return u.fail;
   const p = await db.portfolio.findUnique({ where: { userId: u.userId } });
   const draft = p ? cleanDraft(p.data) : null;
@@ -34,7 +34,7 @@ export async function GET() {
 
 // Saves the draft (and the address). Publishing is a separate step so a half-written page is never live by accident.
 export async function PUT(req: Request) {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return u.fail;
   const body = (await req.json().catch(() => null)) as (Partial<PortfolioDraft> & { slug?: unknown }) | null;
   if (!body) return NextResponse.json({ error: "Nothing to save." }, { status: 400 });
@@ -62,7 +62,7 @@ export async function PUT(req: Request) {
 
 // Publish puts the saved page live at /p/<address>; unpublish takes it down. Publishing needs an address, a headline and at least one project.
 export async function POST(req: Request) {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return u.fail;
   const body = (await req.json().catch(() => null)) as { action?: unknown } | null;
   const p = await db.portfolio.findUnique({ where: { userId: u.userId } });

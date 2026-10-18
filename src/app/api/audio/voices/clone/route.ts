@@ -7,7 +7,7 @@ export const maxDuration = 120;
 
 // Clone a voice from one short sample (multipart: provider, name, description?, consent=1, file). The sample is checked by its bytes, sent to the provider and not kept.
 export async function POST(req: Request) {
-  const u = audioUser();
+  const u = await audioUser();
   if ("res" in u) return u.res;
   let form: FormData;
   try { form = await req.formData(); } catch { return NextResponse.json({ error: "That upload could not be read. Use a recording under 4 MB." }, { status: 400 }); }

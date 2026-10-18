@@ -16,7 +16,7 @@ export const maxDuration = 60;
 const MAX_TURNS = 24;
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the prompt engine can't answer." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The prompt engine isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
   const broke = await chatCreditCheck(userId);

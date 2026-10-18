@@ -8,7 +8,7 @@ import { workspaceSession } from "@/lib/workspace";
 // The signed-in user's credit balance and recent activity.
 export async function GET() {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode" }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const [balance, rows, admin] = await Promise.all([

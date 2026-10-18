@@ -6,13 +6,13 @@ export const dynamic = "force-dynamic";
 const MAX_SKILLS = 50;
 
 export async function GET() {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const rows = await db.userSkill.findMany({ where: { userId: u.userId }, orderBy: { createdAt: "desc" }, take: MAX_SKILLS });
   return NextResponse.json({ items: rows.map((s) => ({ id: s.id, name: s.name, blurb: s.blurb, instructions: s.instructions })) });
 }
 
 export async function POST(req: Request) {
-  const u = requireUser(); if ("fail" in u) return u.fail;
+  const u = await requireUser(); if ("fail" in u) return u.fail;
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const blurb = typeof body?.blurb === "string" ? body.blurb.trim() : "";

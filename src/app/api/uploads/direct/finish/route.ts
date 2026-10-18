@@ -11,7 +11,7 @@ export const maxDuration = 300;
 // Step 2: the file is in storage. The real type is read from its bytes, the automatic content check runs, and only then is it recorded. A file that fails is deleted.
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const b = await req.json().catch(() => null);
   const fileKind = b?.fileKind === "video" ? "video" : b?.fileKind === "image" ? "image" : null;

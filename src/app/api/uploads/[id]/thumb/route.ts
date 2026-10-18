@@ -10,7 +10,7 @@ export const maxDuration = 60;
 // A small WebP of one of the signed-in user's uploaded pictures, for tiles and pickers (cached by the browser for a week).
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = workspaceSession();
+  const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!storageEnabled) return NextResponse.json({ error: "Storage is not set up." }, { status: 503 });
   try {

@@ -7,7 +7,7 @@ export const maxDuration = 300; // fingerprinting a large video reads the whole 
 
 // The signed-in person's certificates, newest first.
 export async function GET() {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return u.fail;
   const rows = await db.certificate.findMany({ where: { userId: u.userId }, orderBy: { issuedAt: "desc" }, take: 200 });
   return NextResponse.json({ certificates: rows.map(ownerItem) });
@@ -15,7 +15,7 @@ export async function GET() {
 
 // Issues the certificate for one finished creation of the person's own (or returns the one already issued).
 export async function POST(req: Request) {
-  const u = requireUser();
+  const u = await requireUser();
   if ("fail" in u) return u.fail;
   const body = (await req.json().catch(() => null)) as { source?: unknown; id?: unknown } | null;
   const source = body?.source === "audio" ? "audio" : body?.source === "render" ? "render" : null;
