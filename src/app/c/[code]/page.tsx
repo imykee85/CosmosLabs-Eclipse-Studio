@@ -10,12 +10,14 @@ export const dynamic = "force-dynamic";
 const KIND = { image: "Image", video: "Video", audio: "Audio" } as const;
 const fmtBytes = (n: number) => (n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 / 1024).toFixed(2)} MB`);
 
-export async function generateMetadata({ params }: { params: { code: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ code: string }> }): Promise<Metadata> {
+  const params = await props.params;
   return { title: "Certificate of origin", robots: { index: false, follow: false }, description: `Certificate ${params.code.toUpperCase()}` };
 }
 
 // The public page of one certificate. Anyone with the code can read it and check a file against its fingerprint; nothing else about the owner is shown.
-export default async function CertificatePage({ params }: { params: { code: string } }) {
+export default async function CertificatePage(props: { params: Promise<{ code: string }> }) {
+  const params = await props.params;
   const code = normalizeCode(params.code);
   const c = code ? await db.certificate.findUnique({ where: { code } }).catch(() => null) : null;
   if (!c) notFound();

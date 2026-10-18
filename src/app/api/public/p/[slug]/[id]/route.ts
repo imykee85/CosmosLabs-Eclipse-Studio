@@ -5,7 +5,8 @@ import { signedMediaUrl, storageEnabled } from "@/lib/storage";
 
 // One picture or video of a PUBLISHED portfolio, for its visitors: only when it belongs to the page's owner, sits in one of the projects the owner chose and is finished and not in the bin.
 // Sends the browser to a short-lived signed link; the bucket itself stays private.
-export async function GET(_req: Request, { params }: { params: { slug: string; id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ slug: string; id: string }> }) {
+  const params = await props.params;
   if (!storageEnabled) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const p = await db.portfolio.findUnique({ where: { slug: params.slug } });
   if (!p || !p.published) return NextResponse.json({ error: "Not found" }, { status: 404 });

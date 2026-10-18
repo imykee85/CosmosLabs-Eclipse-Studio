@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { cleanDraft, lines, parseSocials, safeHref } from "@/lib/portfolio";
@@ -19,14 +20,16 @@ async function load(slug: string) {
   return { d, media };
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const r = await load(params.slug);
   if (!r) return { title: "Portfolio", robots: { index: false } };
   return { title: r.d.headline || "Portfolio", description: r.d.tagline || r.d.statement || undefined, openGraph: { title: r.d.headline, description: r.d.tagline || undefined } };
 }
 
 // A published portfolio: the person's story and contact details, and the finished pictures and videos of the projects they chose.
-export default async function PublicPortfolio({ params }: { params: { slug: string } }) {
+export default async function PublicPortfolio(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const r = await load(params.slug);
   if (!r) notFound();
   const { d, media } = r;
@@ -87,7 +90,7 @@ export default async function PublicPortfolio({ params }: { params: { slug: stri
           </div>
         </section>
       )}
-      <footer className="pp-foot"><a href="/">Made with Eclipse Studio</a></footer>
+      <footer className="pp-foot"><Link href="/">Made with Eclipse Studio</Link></footer>
     </main>
   );
 }

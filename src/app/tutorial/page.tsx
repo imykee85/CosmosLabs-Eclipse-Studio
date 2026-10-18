@@ -3,6 +3,7 @@ import { resolveOrigin } from "@/lib/tutorial";
 
 export const dynamic = "force-dynamic";
 
-export default function TutorialPage({ searchParams }: { searchParams: { from?: string } }) {
+export default async function TutorialPage(props: { searchParams: Promise<{ from?: string }> }) {
+  const searchParams = await props.searchParams;
   return <TutorialView back={resolveOrigin(searchParams.from)} />;
 }

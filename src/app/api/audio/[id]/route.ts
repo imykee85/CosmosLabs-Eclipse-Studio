@@ -5,7 +5,8 @@ import { audioUser } from "@/lib/audio/route-helpers";
 export const dynamic = "force-dynamic";
 
 // The poll for one voice (and, once it is done, a fresh signed link to the file).
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await audioUser();
   if ("res" in u) return u.res;
   try {
@@ -19,7 +20,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 // Moves a take to the Bin; `?forever=1` removes a binned take for good.
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await audioUser();
   if ("res" in u) return u.res;
   const ok = await deleteAudioJob(u.userId, params.id, new URL(req.url).searchParams.get("forever") === "1").catch((err) => { console.error("deleting a voice failed", err); return false; });
@@ -27,7 +29,8 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 }
 
 // Puts a take from the Bin back in the list.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await audioUser();
   if ("res" in u) return u.res;
   const body = await req.json().catch(() => null);

@@ -7,7 +7,8 @@ export function generateStaticParams() {
   return motionPrompts.map((p) => ({ id: p.id }));
 }
 
-export default function MotionDetailPage({ params }: { params: { id: string } }) {
+export default async function MotionDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const item = findMotion(params.id);
   if (!item) notFound();
   return <MotionDetail item={{ ...item, prompt: motionPromptText[item.id] }} />;

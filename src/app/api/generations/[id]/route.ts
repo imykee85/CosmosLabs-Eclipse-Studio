@@ -10,7 +10,8 @@ export const maxDuration = 60;
 
 // One render of the signed-in user. If it is still running this checks on it (and stores it when done); a finished
 // one comes back with a fresh short-lived image link.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,7 +33,8 @@ async function authed() {
 }
 
 // Move an image to the Bin, or put it back. A render that is still running cannot be binned.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await authed();
   if (!u.userId) return u.res;
   const body = await req.json().catch(() => null);
@@ -50,7 +52,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // Delete forever: only for an image already in the Bin. Removes the stored file as well as the record.
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await authed();
   if (!u.userId) return u.res;
   try {

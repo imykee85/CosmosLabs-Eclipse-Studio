@@ -11,7 +11,8 @@ export type ChatLine = { role: "user" | "assistant"; parts: ChatPart[] };
 type Block = { type: string; text?: string; name?: string; id?: string; tool_use_id?: string; content?: unknown };
 
 // A stored thread turned into what the screen shows: the user's words, the assistant's words, the tools it used and the renders it started.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -44,7 +45,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ id: chat.id, title: chat.title, lines });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

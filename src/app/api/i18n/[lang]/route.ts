@@ -11,7 +11,8 @@ export const maxDuration = 60;
 // of this request, one visitor at a time, and the next load has it.
 let completing = false;
 
-export async function GET(_req: Request, { params }: { params: { lang: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ lang: string }> }) {
+  const params = await props.params;
   const lang = params.lang;
   if (!isLang(lang) || lang === "en") return NextResponse.json({ error: "Unsupported language." }, { status: 404 });
   try {

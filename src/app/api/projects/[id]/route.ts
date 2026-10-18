@@ -3,7 +3,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { workspaceSession } from "@/lib/workspace";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 async function userOr401() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode" }, { status: 503 }) };
@@ -13,7 +13,8 @@ async function userOr401() {
 }
 
 // Move to the bin, restore from it, or rename.
-export async function PATCH(req: Request, { params }: Ctx) {
+export async function PATCH(req: Request, props: Ctx) {
+  const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
   const body = await req.json().catch(() => null);
@@ -33,7 +34,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
 }
 
 // Delete forever: only allowed for projects already in the bin.
-export async function DELETE(_req: Request, { params }: Ctx) {
+export async function DELETE(_req: Request, props: Ctx) {
+  const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
   try {
