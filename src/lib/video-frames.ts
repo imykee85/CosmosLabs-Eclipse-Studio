@@ -14,7 +14,7 @@ function binary(): string {
     try { path = (require("@ffmpeg-installer/ffmpeg") as { path: string }).path; } catch { path = "ffmpeg"; }
   }
   // A packaged copy can lose its "run" permission: use a copy in the temp folder that has it.
-  if (path.includes("/") && existsSync(path)) {
+  if (path.includes("/") && existsSync(/*turbopackIgnore: true*/ path)) {
     try { accessSync(path, constants.X_OK); } catch {
       const copy = join(tmpdir(), "eclipse-ffmpeg");
       if (!existsSync(copy)) { copyFileSync(path, copy); chmodSync(copy, 0o755); }
@@ -26,7 +26,7 @@ function binary(): string {
 
 export function run(args: string[], timeoutMs: number, input?: Uint8Array): Promise<{ code: number; out: Buffer; err: string }> {
   return new Promise((resolve, reject) => {
-    const p = spawn(binary(), args, { stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] });
+    const p = spawn(/*turbopackIgnore: true*/ binary(), args, { stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] });
     if (input) { p.stdin!.on("error", () => {}); p.stdin!.end(input); }
     const out: Buffer[] = [];
     let err = "";

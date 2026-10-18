@@ -36,13 +36,11 @@ const nextConfig = {
   // Nothing uses next/image, so the image optimizer (an open fetch proxy when it allows every host) is switched off.
   images: { unoptimized: true },
   // Atlas's video watching runs ffmpeg: keep its binary out of the bundle and make sure it is shipped with that one route.
-  experimental: {
-    serverComponentsExternalPackages: ["@ffmpeg-installer/ffmpeg", "@vercel/sandbox"],
-    // sharp ships a WebAssembly copy as a fallback for platforms without its native build; Vercel's Linux uses the native one, so the 9 MB copy is left out.
-    outputFileTracingExcludes: { "**/*": ["./node_modules/@img/sharp-wasm32/**"] },
-    outputFileTracingIncludes: {
-      ...Object.fromEntries(["/api/agent/chat", "/api/uploads/direct/finish"].map((r) => [r, ["./node_modules/@ffmpeg-installer/ffmpeg/**", "./node_modules/@ffmpeg-installer/linux-x64/**"]])),
-    },
+  serverExternalPackages: ["@ffmpeg-installer/ffmpeg", "@vercel/sandbox"],
+  // sharp ships a WebAssembly copy as a fallback for platforms without its native build; Vercel's Linux uses the native one, so the 9 MB copy is left out.
+  outputFileTracingExcludes: { "**/*": ["./node_modules/@img/sharp-wasm32/**"] },
+  outputFileTracingIncludes: {
+    ...Object.fromEntries(["/api/agent/chat", "/api/uploads/direct/finish"].map((r) => [r, ["./node_modules/@ffmpeg-installer/ffmpeg/**", "./node_modules/@ffmpeg-installer/linux-x64/**"]])),
   },
   async headers() {
     // A person's browser mini tool is shown in a locked-down frame on Eclipse's own pages, so its address is the one page that may be framed
