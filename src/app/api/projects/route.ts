@@ -3,7 +3,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { workspaceSession } from "@/lib/workspace";
 
-function userOr401() {
+async function userOr401() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode" }, { status: 503 }) };
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
@@ -11,7 +11,7 @@ function userOr401() {
 }
 
 export async function GET() {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   try {
     const projects = await db.project.findMany({ where: { userId: u.userId }, orderBy: { updatedAt: "desc" } });
@@ -23,7 +23,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";

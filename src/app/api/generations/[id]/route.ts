@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 }
 
-function authed() {
+async function authed() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 }) };
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
@@ -33,7 +33,7 @@ function authed() {
 
 // Move an image to the Bin, or put it back. A render that is still running cannot be binned.
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const u = authed();
+  const u = await authed();
   if (!u.userId) return u.res;
   const body = await req.json().catch(() => null);
   if (body?.action !== "trash" && body?.action !== "restore") return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -51,7 +51,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 // Delete forever: only for an image already in the Bin. Removes the stored file as well as the record.
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const u = authed();
+  const u = await authed();
   if (!u.userId) return u.res;
   try {
     const g = await db.generation.findFirst({ where: { id: params.id, userId: u.userId, deletedAt: { not: null } } });

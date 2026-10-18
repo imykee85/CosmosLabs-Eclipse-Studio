@@ -9,7 +9,7 @@ import { workspaceSession } from "@/lib/workspace";
 
 export const maxDuration = 30;
 
-function who() {
+async function who() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 }) };
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
@@ -19,7 +19,7 @@ function who() {
 // The signed-in user's uploads, newest first. ?kind= takes one kind, or "ingredients" for character + product + scene.
 // Every imageUrl is a fresh short-lived signed link.
 export async function GET(req: Request) {
-  const u = who();
+  const u = await who();
   if (!u.userId) return u.res;
   if (!storageEnabled) return NextResponse.json({ items: [] });
   const kind = new URL(req.url).searchParams.get("kind");
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
 
 // Upload one picture (multipart form: file, kind, name, optional projectId).
 export async function POST(req: Request) {
-  const u = who();
+  const u = await who();
   if (!u.userId) return u.res;
   if (!(await claimUsage(u.userId, "upload", 30, 60_000))) return NextResponse.json({ error: "You are uploading very quickly. Wait a moment and try again." }, { status: 429 });
   if (!storageEnabled) return NextResponse.json({ error: "File storage is not set up on this site yet." }, { status: 503 });

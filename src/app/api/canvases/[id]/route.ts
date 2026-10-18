@@ -6,7 +6,7 @@ import { workspaceSession } from "@/lib/workspace";
 type Ctx = { params: { id: string } };
 const MAX_BYTES = 600_000;
 
-function userOr401() {
+async function userOr401() {
   if (!clerkEnabled) return { res: NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 }) };
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return { res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
@@ -15,7 +15,7 @@ function userOr401() {
 
 // One canvas with its whole graph. Works for ones in "Recently deleted" too, so a restored canvas opens at once.
 export async function GET(_req: Request, { params }: Ctx) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   try {
     const row = await db.canvas.findFirst({ where: { id: params.id, userId: u.userId } });
@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 
 // Save the graph (the whole thing, replacing the old one).
 export async function PUT(req: Request, { params }: Ctx) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   const text = await req.text();
   if (text.length > MAX_BYTES) return NextResponse.json({ error: "The canvas is too large to save." }, { status: 413 });
@@ -52,7 +52,7 @@ export async function PUT(req: Request, { params }: Ctx) {
 
 // rename, trash (move to Recently deleted) and restore.
 export async function PATCH(req: Request, { params }: Ctx) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   let body: { action?: unknown; name?: unknown } | null = null;
   try { body = await req.json(); } catch {}
@@ -78,7 +78,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 // Delete for good. Only a canvas that is already in "Recently deleted" can be removed this way.
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const u = userOr401();
+  const u = await userOr401();
   if (!u.userId) return u.res;
   try {
     const hit = await db.canvas.deleteMany({ where: { id: params.id, userId: u.userId, deletedAt: { not: null } } });
