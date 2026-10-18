@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { conformImage, conformVideoFile, type ConformTarget } from "./conform";
@@ -59,6 +59,23 @@ export async function deleteObject(key: string): Promise<void> {
 }
 
 /** The stored file's bytes (used to hand a reference picture to the provider's own upload). Pictures are capped well below this. */
+/** Deletes every file under a folder-like prefix (used when an account is deleted). Returns how many were removed. Throws if any could not be. */
+export async function deletePrefix(prefix: string): Promise<number> {
+  if (!prefix.endsWith("/") || prefix.length < 6) throw new Error("Refusing to delete a prefix that broad");
+  let removed = 0;
+  let token: string | undefined;
+  do {
+    const page = await r2().send(new ListObjectsV2Command({ Bucket: bucket(), Prefix: prefix, ContinuationToken: token, MaxKeys: 500 }));
+    const keys = (page.Contents ?? []).map((o) => o.Key).filter((k): k is string => Boolean(k) && k!.startsWith(prefix));
+    for (let i = 0; i < keys.length; i += 10) {
+      await Promise.all(keys.slice(i, i + 10).map((k) => deleteObject(k)));
+      removed += Math.min(10, keys.length - i);
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+  return removed;
+}
+
 export async function getObjectBytes(key: string, maxBytes = 15 * 1024 * 1024): Promise<Uint8Array> {
   const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
   const bytes = await res.Body?.transformToByteArray();

@@ -21,6 +21,8 @@ Where each setting lives: **Secret** = Vercel Environment Variables, marked Sens
 | `NEXT_PUBLIC_SITE_URL` | Config | Links, sitemap, sharing image | Defaults to the Vercel address |
 | `WHOP_API_KEY`, `WHOP_WEBHOOK_SECRET` | Secret | Payments | |
 | `WHOP_COMPANY_ID`, `WHOP_PLAN_STARTER`, `WHOP_PLAN_GROWTH`, `WHOP_PLAN_SCALE` | Config | Payments | |
+| `WHOP_PLAN_TOPUP_500`, `WHOP_PLAN_TOPUP_2000`, `WHOP_PLAN_TOPUP_6000` | Config | Pay-as-you-go top-up packs (one-time Whop plans at $12, $42, $120; see `creditPacks` in `src/lib/plans.ts`) | |
+| `WHOP_CHARGE_PATH`, `WHOP_CANCEL_PATH` | Config | Override the guessed Whop paths for charging a saved card (`/payments`) and ending a subscription (`/memberships/{id}/cancel`) if Whop's docs differ | |
 | `VIDEO_KILL_SWITCH` | Config | Stops new video renders | |
 | `VIDEO_RENDERS_PER_MINUTE`, `VIDEO_RENDERS_PER_DAY`, `VIDEO_MAX_RUNNING`, `VIDEO_DAILY_CREDITS`, `VIDEO_CONFIRM_CREDITS` | Config | Video limits | Defaults 6, 30, 3, 2000, 300 |
 | `RENDERS_PER_MINUTE`, `AGENT_DAILY_MESSAGES`, `CONNECT_DAILY_MESSAGES`, `AGENT_VIDEO_DAILY`, `TREATMENT_DAILY_MESSAGES` | Config | Limits | Defaults 20, 200, 100, 20 (video watches per day), 100 (Treatment planner messages per day) |

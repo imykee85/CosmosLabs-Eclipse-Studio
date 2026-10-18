@@ -1,4 +1,5 @@
 import type { AudioJob, Generation, Prisma, SandboxJob } from "@prisma/client";
+import { autoTopup } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { chargeFor, getModelById } from "@/lib/models";
 
@@ -18,8 +19,17 @@ async function heldNow(tx: Prisma.TransactionClient, userId: string): Promise<nu
   return renders + (audio._sum.creditsHeld ?? 0) + (sandbox._sum.creditsReserved ?? 0);
 }
 
-export async function createGenerationHeld(userId: string, cost: number | null, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number }> {
-  if (cost == null) return { row: await db.generation.create({ data }) };
+// When a job cannot start for lack of credits and the person has switched on auto top-up (with a saved card), top up once and try again.
+async function withTopup<R>(userId: string, cost: number, run: () => Promise<R>): Promise<R> {
+  const first = await run();
+  if (first && typeof first === "object" && "have" in first && "held" in first && (await autoTopup(userId, { needed: cost }))) return run();
+  return first;
+}
+
+export function createGenerationHeld(userId: string, cost: number | null, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number }> {
+  return cost == null ? db.generation.create({ data }).then((row) => ({ row })) : withTopup(userId, cost, () => createGenerationHeldOnce(userId, cost, data));
+}
+async function createGenerationHeldOnce(userId: string, cost: number, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number }> {
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`; // the same lock spendCredits takes
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
@@ -30,8 +40,10 @@ export async function createGenerationHeld(userId: string, cost: number | null, 
   });
 }
 
-export async function createAudioJobHeld(userId: string, cost: number | null, data: Prisma.AudioJobUncheckedCreateInput): Promise<{ row: AudioJob } | { have: number; held: number }> {
-  if (cost == null) return { row: await db.audioJob.create({ data }) };
+export function createAudioJobHeld(userId: string, cost: number | null, data: Prisma.AudioJobUncheckedCreateInput): Promise<{ row: AudioJob } | { have: number; held: number }> {
+  return cost == null ? db.audioJob.create({ data }).then((row) => ({ row })) : withTopup(userId, cost, () => createAudioJobHeldOnce(userId, cost, data));
+}
+async function createAudioJobHeldOnce(userId: string, cost: number, data: Prisma.AudioJobUncheckedCreateInput): Promise<{ row: AudioJob } | { have: number; held: number }> {
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
@@ -43,7 +55,10 @@ export async function createAudioJobHeld(userId: string, cost: number | null, da
 }
 
 /** A sandbox job row, created only when the person's balance (minus everything already held) covers its price. Runs `check` inside the same lock. */
-export async function createSandboxJobHeld(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number } | { refused: string }> {
+export function createSandboxJobHeld(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number } | { refused: string }> {
+  return withTopup(userId, cost, () => createSandboxJobHeldOnce(userId, cost, data, check));
+}
+async function createSandboxJobHeldOnce(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number } | { refused: string }> {
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const why = check ? await check(tx) : null;

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { grantCredits } from "@/lib/credits";
+import { applyPayment } from "@/lib/billing";
 import { InvalidWebhookError, paymentProvider } from "@/lib/payments";
-import { plans } from "@/lib/plans";
 
 // The payment provider calls this when a payment goes through. Credits are granted here, by us, never by the browser.
 // Public in the middleware (the provider has no sign-in), so the signature check below is the only gate.
@@ -20,16 +19,14 @@ export async function POST(req: Request) {
   }
   if (!event) return NextResponse.json({ ok: true, ignored: true });
 
-  const plan = plans.find((p) => p.id === event.planId);
-  if (!plan) {
-    // A configuration problem, not a bad delivery: answer with an error so the provider retries once it is fixed.
-    console.error(`payment ${event.externalId} is for an unknown plan "${event.planId}"`);
-    return NextResponse.json({ error: "Unknown plan" }, { status: 422 });
-  }
-
   try {
-    const added = await grantCredits(event.userId, plan.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId });
-    return NextResponse.json({ ok: true, duplicate: !added });
+    const result = await applyPayment(event);
+    if (!result.ok) {
+      // A configuration problem, not a bad delivery: answer with an error so the provider retries once it is fixed.
+      console.error(`payment ${event.externalId} is for an unknown plan "${event.planId}"`);
+      return NextResponse.json({ error: result.error }, { status: 422 });
+    }
+    return NextResponse.json({ ok: true, duplicate: result.duplicate });
   } catch (err) {
     console.error("granting purchased credits failed", err);
     return NextResponse.json({ error: "Could not record the purchase" }, { status: 500 });

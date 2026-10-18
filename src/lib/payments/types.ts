@@ -4,8 +4,13 @@
 
 export type CheckoutInput = { userId: string; planId: string; returnUrl: string };
 
+/** What the provider told us about who paid and how, when it did. Lets a later top-up be charged to the same saved card, and a subscription be cancelled. */
+export type PaymentRefs = { memberId?: string; paymentMethodId?: string; membershipId?: string };
+
 /** A payment that went through. Credits are granted from this, by us, in our own ledger. */
-export type PaymentEvent = { provider: string; externalId: string; userId: string; planId: string };
+export type PaymentEvent = { provider: string; externalId: string; userId: string; planId: string; auto?: boolean; refs?: PaymentRefs };
+
+export type SavedCardCharge = { userId: string; productId: string; price: number; memberId: string; paymentMethodId: string; idempotencyKey: string };
 
 export class InvalidWebhookError extends Error {}
 
@@ -18,4 +23,11 @@ export interface PaymentProvider {
    * Returns null for a valid delivery that is not a successful payment we act on.
    */
   parseWebhook(rawBody: string, headers: Headers): Promise<PaymentEvent | null>;
+  /**
+   * Charges a top-up to the card the person saved earlier, without them present. "paid" means the money is taken (credits can be granted now);
+   * "pending" means the provider will confirm by webhook. Throws when the charge is refused or fails.
+   */
+  chargeSavedCard?(input: SavedCardCharge): Promise<{ externalId: string; status: "paid" | "pending" }>;
+  /** Ends a subscription at once. Throws when the provider refuses. */
+  cancelMembership?(membershipId: string): Promise<void>;
 }
