@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Coins } from "lucide-react";
+import { Coins, Users } from "lucide-react";
+import { useOrganization } from "@clerk/nextjs";
+import { clerkEnabled } from "@/lib/clerk-enabled";
 import { useEffect, useState } from "react";
 import { useCredits } from "@/lib/use-credits";
 import { WORKSPACE_KEY } from "@/components/WorkspaceWatcher";
@@ -14,6 +16,20 @@ function short(n: number): string {
   return String(n);
 }
 
+// Shown only while a team is the active workspace, in the same pill style as the balance beside it, so a member can always see where their work and credits are.
+function TeamChipInner({ className, text }: { className: string; text: boolean }) {
+  const { organization, isLoaded } = useOrganization();
+  if (!isLoaded || !organization) return null;
+  return (
+    <Link href="/settings?tab=team" className={`${className} ws-team`} title={`Team workspace: ${organization.name}. Credits, projects and the Library are shared with the team.`}>
+      <Users size={text ? 15 : 14} /> <span className="ws-team-name">{text ? `Team: ${organization.name}` : organization.name}</span>
+    </Link>
+  );
+}
+function TeamChip(props: { className: string; text: boolean }) {
+  return clerkEnabled ? <TeamChipInner {...props} /> : null;
+}
+
 // The credit balance shown in the header of every screen; it opens Billing. Until the balance is known the number is left blank (never 0).
 export default function CreditsPill({ className, text = false }: { className: string; text?: boolean }) {
   const { credits } = useCredits();
@@ -23,8 +39,11 @@ export default function CreditsPill({ className, text = false }: { className: st
   const full = credits ? `${credits.balance.toLocaleString("en-US")} credits` : "Credits";
   const title = (credits && !credits.charging ? `${full} (not charged yet)` : full) + (team ? ` (team ${team})` : "");
   return (
-    <Link href="/settings?tab=billing" className={className} title={title}>
-      <Coins size={text ? 15 : 14} /> {n && (text ? `${n} credits` : n)}
-    </Link>
+    <>
+      <TeamChip className={className} text={text} />
+      <Link href="/settings?tab=billing" className={className} title={title}>
+        <Coins size={text ? 15 : 14} /> {n && (text ? `${n} credits` : n)}
+      </Link>
+    </>
   );
 }

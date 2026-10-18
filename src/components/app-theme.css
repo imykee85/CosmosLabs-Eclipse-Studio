@@ -51,3 +51,8 @@ html[data-app-theme="light"]:has(.db-page, .ws-root) { background: #faf8f5; colo
 html[data-app-theme="light"] .cr-box, html[data-app-theme="light"] .cn-box, html[data-app-theme="light"] .pm-box, html[data-app-theme="light"] .tr-composer, html[data-app-theme="light"] .aw-input {
   background: color-mix(in srgb, var(--a-card) 88%, transparent);
 }
+
+/* Team chip beside the credits pill (only while a team is the active workspace) */
+.ws-team { max-width: 150px; min-width: 0; }
+.ws-team .ws-team-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ws-team { max-width: 104px; } }
