@@ -523,3 +523,21 @@ model SoulId {
   @@index([userId])
   @@map("soul_ids")
 }
+
+// One row per person for money settings: the auto top-up choice and the references the payment provider gave us when they paid
+// (so a later top-up can be charged to the same saved card without them being present). Never holds a card number.
+model BillingSettings {
+  userId                String    @id @map("user_id")
+  autoEnabled           Boolean   @default(false) @map("auto_enabled")
+  autoPack              String    @default("topup_2000") @map("auto_pack")
+  autoThreshold         Int       @default(250) @map("auto_threshold") // top up when free credits drop below this
+  autoMaxPerMonth       Int       @default(3) @map("auto_max_per_month")
+  autoLastAttemptAt     DateTime? @map("auto_last_attempt_at")
+  autoLastError         String?   @map("auto_last_error")
+  providerMemberId      String?   @map("provider_member_id")
+  providerPaymentMethod String?   @map("provider_payment_method")
+  providerMembershipId  String?   @map("provider_membership_id")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("billing_settings")
+}

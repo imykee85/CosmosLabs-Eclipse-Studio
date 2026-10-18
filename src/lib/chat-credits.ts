@@ -1,3 +1,4 @@
+import { autoTopup } from "@/lib/billing";
 import { spendUpTo } from "@/lib/credits";
 import { freeCredits } from "@/lib/reservations";
 
@@ -40,7 +41,9 @@ export const OUT_OF_CREDITS = "You're out of credits. Upgrade your plan or buy m
 /** Null when the person may send a message, else the sentence to show. */
 export async function chatCreditCheck(userId: string): Promise<string | null> {
   if (!chatCreditsOn()) return null;
-  return (await freeCredits(userId)) >= startCredits() ? null : OUT_OF_CREDITS;
+  if ((await freeCredits(userId)) >= startCredits()) return null;
+  if (await autoTopup(userId, { needed: startCredits() })) return null; // topped up automatically, as the person asked
+  return OUT_OF_CREDITS;
 }
 
 /** Charges a finished reply (what it used, up to what is left). Returns the credits taken. */

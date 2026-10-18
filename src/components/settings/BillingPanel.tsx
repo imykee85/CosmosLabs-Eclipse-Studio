@@ -1,5 +1,6 @@
 import { CreditCard, Inbox, Zap } from "lucide-react";
 import UpgradeButton from "./UpgradeButton";
+import TopUp from "./TopUp";
 import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import { CreditBalance, CreditHistory, CreditNotes } from "./BillingLive";
@@ -24,6 +25,8 @@ export default function BillingPanel() {
         </div>
         <CreditNotes />
       </section>
+
+      <TopUp />
 
       <section className="st-section" aria-labelledby="st-upgrade">
         <h3 id="st-upgrade" className="st-h3">Upgrade your plan</h3>

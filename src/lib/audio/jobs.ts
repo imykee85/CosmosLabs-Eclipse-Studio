@@ -3,6 +3,7 @@
 // Four kinds share one path: tts (speak), stt (transcribe), sfx (sound effects) and music. A long MiniMax text runs on the provider's side and is followed until done.
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma, type AudioJob } from "@prisma/client";
+import { scheduleAutoTopup } from "@/lib/billing";
 import { waitUntil } from "@vercel/functions";
 import { db } from "@/lib/db";
 import { checkPrompt } from "@/lib/moderation";
@@ -327,6 +328,7 @@ async function completeJob(job: AudioJob, model: AudioModel, p: Produced): Promi
     return failJob(id, "It was made but could not be saved. Nothing was charged.");
   }
   if (!completed) for (const k of savedKeys) await deleteObject(k).catch(() => {}); // the row was failed (stale) meanwhile: do not keep the files
+  else if (credits != null) scheduleAutoTopup(job.userId);
   const inputKey = asObj(job.params).inputKey;
   if (typeof inputKey === "string") await deleteObject(inputKey).catch(() => {}); // the recording is not kept once it is transcribed
 }
