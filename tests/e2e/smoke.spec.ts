@@ -86,13 +86,13 @@ test.describe("signed-in app (demo mode)", () => {
     const side = page.locator(".ws-sidebar");
     expect((await side.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["PLAN", "CREATE", "FILES", "UTILITIES"]);
     const rows = async (el: typeof side) => (await el.locator(".ws-item-text b").allInnerTexts()).map((t) => t.trim());
-    expect(await rows(side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Library", "Gallery", "Assets", "Ingredients", "Export", "Core", "Agents", "Canvas"]);
+    expect(await rows(side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Library", "Gallery", "Assets", "Ingredients", "Core", "Agents", "Canvas"]);
     // phone: the same groups in the drawer, without Library (it is the bottom tab)
     await page.setViewportSize({ width: 520, height: 900 });
     await page.getByRole("button", { name: "Open menu" }).click();
     const drawer = page.locator(".mb-nav");
     expect((await drawer.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["PLAN", "CREATE", "FILES", "UTILITIES"]);
-    expect(await rows(drawer as typeof side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Gallery", "Assets", "Ingredients", "Export", "Core", "Agents", "Canvas"]);
+    expect(await rows(drawer as typeof side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Gallery", "Assets", "Ingredients", "Core", "Agents", "Canvas"]);
     await expect(page.locator(".mb-tabs").getByText("Library")).toBeVisible();
   });
 
