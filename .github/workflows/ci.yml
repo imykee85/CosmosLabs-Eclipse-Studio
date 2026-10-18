@@ -1,8 +1,11 @@
 name: CI
 
-# Manual only (Actions tab, "Run workflow"). It used to run on every push and GitHub emailed "No jobs were run" each time (2026-10-14, user complaint):
-# the account's Actions could not start jobs. Put the push and pull_request triggers back once Actions works on this repository.
+# Runs on every push to main and every pull request, and by hand. It used to fail with "No jobs were run" because a step name held a colon, which
+# is invalid YAML (found 2026-10-18 from the run's annotation: "error in your yaml syntax on line 25"). Keep step names free of ": ".
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -22,7 +25,7 @@ jobs:
         run: npx next lint
       - name: Unit tests
         run: npm test
-      - name: Build (no database needed: the schema step is skipped outside Vercel)
+      - name: Build (no database needed, the schema step is skipped outside Vercel)
         run: npx next build
         env:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
