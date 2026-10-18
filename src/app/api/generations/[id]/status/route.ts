@@ -1,9 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { finalizeGeneration, toItem } from "@/lib/generation-jobs";
 import { finalizeVideo, rescueLateVideo } from "@/lib/video-jobs";
+import { workspaceSession } from "@/lib/workspace";
 
 // Long enough to copy a finished video into storage (as high as the plan allows; the copy is resumable: a cut-off one is retried on the next ask).
 export const maxDuration = 300;
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // Only one ask can finish a render (it is claimed atomically), so asking from two tabs never saves or charges twice.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const row = await db.generation.findFirst({ where: { id: params.id, userId } });

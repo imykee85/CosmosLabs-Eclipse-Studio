@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { Coins } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useCredits } from "@/lib/use-credits";
+import { WORKSPACE_KEY } from "@/components/WorkspaceWatcher";
 
 // 999 stays 999, 1000 becomes 1k, 1250 becomes 1.2k (rounded down so the pill never overstates), 1,000,000 becomes 1M.
 function short(n: number): string {
@@ -15,9 +17,11 @@ function short(n: number): string {
 // The credit balance shown in the header of every screen; it opens Billing. Until the balance is known the number is left blank (never 0).
 export default function CreditsPill({ className, text = false }: { className: string; text?: boolean }) {
   const { credits } = useCredits();
+  const [team, setTeam] = useState<string | null>(null);
+  useEffect(() => { try { setTeam((JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "null") as { name?: string | null } | null)?.name ?? null); } catch {} }, []);
   const n = credits ? short(credits.balance) : "";
   const full = credits ? `${credits.balance.toLocaleString("en-US")} credits` : "Credits";
-  const title = credits && !credits.charging ? `${full} (not charged yet)` : full;
+  const title = (credits && !credits.charging ? `${full} (not charged yet)` : full) + (team ? ` (team ${team})` : "");
   return (
     <Link href="/settings?tab=billing" className={className} title={title}>
       <Coins size={text ? 15 : 14} /> {n && (text ? `${n} credits` : n)}

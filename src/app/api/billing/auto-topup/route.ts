@@ -1,14 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { saveAutoTopup } from "@/lib/billing";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { claimUsage } from "@/lib/usage";
+import { NOT_TEAM_ADMIN, workspaceSession } from "@/lib/workspace";
 
 // Saves the auto top-up choice (switch, pack, "when credits drop below", monthly limit). Anything outside the offered options is refused.
 export async function PUT(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId, isAdmin } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAdmin) return NextResponse.json({ error: NOT_TEAM_ADMIN }, { status: 403 });
   if (!(await claimUsage(userId, "auto-topup-settings", 60, 3600_000))) return NextResponse.json({ error: "Too many changes. Try again in a little while." }, { status: 429 });
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Bad request" }, { status: 400 });

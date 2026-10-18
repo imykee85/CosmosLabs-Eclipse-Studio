@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { startRender } from "@/lib/start-render";
+import { workspaceSession } from "@/lib/workspace";
 
 // 300 s: a render by Google, OpenAI or BytePlus keeps running after the reply (waitUntil); Higgsfield renders only start here.
 export const maxDuration = 300;
@@ -10,7 +10,7 @@ export const maxDuration = 300;
 // closes; GET /api/generations (or /api/generations/<id>) finishes it whenever someone next asks.
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => null);

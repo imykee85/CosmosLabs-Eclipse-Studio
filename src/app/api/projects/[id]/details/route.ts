@@ -1,12 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
+import { workspaceSession } from "@/lib/workspace";
 
 // The facts about one project: dates, how many images it holds and how much space they and the canvas take.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode" }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const p = await db.project.findFirst({ where: { id: params.id, userId } });

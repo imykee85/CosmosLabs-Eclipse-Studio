@@ -1,14 +1,14 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/admin";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { getBalance } from "@/lib/credits";
 import { db } from "@/lib/db";
+import { workspaceSession } from "@/lib/workspace";
 
 // The signed-in user's credit balance and recent activity.
 export async function GET() {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode" }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const [balance, rows, admin] = await Promise.all([

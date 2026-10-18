@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
@@ -11,6 +10,7 @@ import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
 import { buildReply, type Action } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
+import { workspaceSession } from "@/lib/workspace";
 
 // 120 s: Atlas can watch a video (the file is copied and frames are read from it) before it answers.
 export const maxDuration = 120;
@@ -29,7 +29,7 @@ const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(
 
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the agent can't answer." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId, personId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The agent isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   let persona = personaOf(body?.agent);
   const isAtlas = !!persona; // only the built-in agent can watch videos; an agent a person made cannot
   if (!persona && typeof body?.agent === "string" && body.agent.length <= 40) {
-    const mine = await db.userAgent.findFirst({ where: { userId, name: body.agent }, select: { name: true, role: true, instructions: true } });
+    const mine = await db.userAgent.findFirst({ where: { userId: personId ?? userId, name: body.agent }, select: { name: true, role: true, instructions: true } });
     if (mine) persona = customPersona(mine);
   }
   if (!persona) return NextResponse.json({ error: "Choose an agent first." }, { status: 400 });
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
   if (broke) return NextResponse.json({ error: broke }, { status: 402 });
   // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
   const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
-  if (!(await claimUsage(userId, "agent", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` }, { status: 429 });
+  if (!(await claimUsage(personId ?? userId, "agent", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` }, { status: 429 });
 
   // Paid in Eclipse credits from what the reply really used (every model call, video frames included), charged once when it ends.
   const meter = new ChatMeter();

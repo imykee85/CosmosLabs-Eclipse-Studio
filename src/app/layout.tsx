@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/react"; // page views; sends nothing until Web Analytics is switched on in the Vercel project
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
+import WorkspaceWatcher from "@/components/WorkspaceWatcher";
 import "./globals.css";
 
 // Inter is kept in the repo (src/app/fonts) instead of downloaded from Google at build time: a failed download once broke a Vercel build.
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
         <LocaleProvider>{children}</LocaleProvider>
+        <WorkspaceWatcher />
         <Analytics />
       </body>
     </html>

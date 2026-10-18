@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
@@ -9,6 +8,7 @@ import { claimUsage } from "@/lib/usage";
 import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
 import { fetchPageText } from "@/lib/fetch-page";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
+import { workspaceSession } from "@/lib/workspace";
 
 export const maxDuration = 60;
 
@@ -45,7 +45,7 @@ const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(
 
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the planner can't answer." }, { status: 503 });
-  const { userId } = auth();
+  const { workspaceId: userId } = workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The planner isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
 
