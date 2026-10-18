@@ -33,10 +33,16 @@ export default function PrivacyPage() {
         <li>a payment provider for purchases;</li>
         <li>apps you connect yourself, which receive only what you ask the assistant to send.</li>
       </ul>
-      <p>These providers have their own privacy terms and may process data in other countries.</p>
+      <p>At the time of writing these include Clerk (sign-in), Vercel (hosting), Neon (database), Cloudflare (file storage), Higgsfield, Google, OpenAI and BytePlus (images and video), ElevenLabs, Fish Audio and MiniMax (voice and sound), Anthropic (the Core, Atlas and prompt assistants) and Whop (payments). Which ones receive your data depends on the features you use. These providers have their own privacy terms and may process data in other countries, and we cannot control how they handle it, so please read their terms if this matters to you.</p>
 
       <h2>How your files are kept</h2>
       <p>Your images and uploads are stored in a private bucket. They are shown to you only through short-lived links that expire within minutes, and are available only to your account. Items stay until you delete them: moving an item to the Bin keeps it, and deleting it from the Bin removes the file permanently.</p>
+
+      <h2>Connected apps</h2>
+      <p>The credential you give us for a connected app (a token, key or webhook address) is encrypted before it is stored, is used only on our servers to send what you ask it to send, and is never shown back to you or to other people. You can disconnect an app at any time in Core, Connectors, which removes the stored credential. Deleting your account also removes it. You can also revoke the token at the app itself.</p>
+
+      <h2>Voice recordings</h2>
+      <p>A recording you add for transcription is deleted as soon as it has been transcribed; we keep only the text. The sample you upload to clone a voice is not kept: we keep a record of your consent and a fingerprint of the sample, and the cloned voice lives with the voice provider until you delete it.</p>
 
       <h2>How long we keep data</h2>
       <p>We keep your data while your account is active. If you ask us to delete your account we will remove your content and personal data, except what we must keep by law or to prevent abuse (for example payment records).</p>
