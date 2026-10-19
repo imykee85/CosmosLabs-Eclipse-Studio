@@ -4,6 +4,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
+import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
 import { claimUsage } from "@/lib/usage";
 import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
 import { loadPromptImages } from "@/lib/prompt-images";
@@ -83,7 +84,9 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const system = `${persona.system}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`;
+    // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
+    const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
+    const system = `${persona.system}${director}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`;
     const tools = isAtlas ? [...TOOLS, ...VIDEO_TOOLS] : TOOLS;
     // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
     const convo: Anthropic.MessageParam[] = messages;
