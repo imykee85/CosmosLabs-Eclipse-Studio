@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CreditCard, RefreshCw } from "lucide-react";
+import { CreditCard } from "lucide-react";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import { refreshCredits } from "@/lib/use-credits";
 
@@ -18,7 +18,7 @@ async function startCheckout(packId: string): Promise<string | null> {
   } catch { return "Could not reach the checkout. Try again."; }
 }
 
-// Pay as you go: one-time credit packs for when a plan's credits run out before it renews, and an auto top-up switch that buys a pack by itself.
+// Pay as you go: one-time credit packs for when a plan's credits run out before it renews, and a switch on each pack that buys it again by itself.
 export default function TopUp() {
   const [info, setInfo] = useState<Info | null>(null);
   const [failed, setFailed] = useState(false);
@@ -83,7 +83,7 @@ export default function TopUp() {
     <>
       <section className="st-section" aria-labelledby="st-topup">
         <h3 id="st-topup" className="st-h3">Top up credits</h3>
-        <p className="st-sub">Run out before your plan renews? Buy a pack and keep going. Pay as you go, no plan change needed.</p>
+        <p className="st-sub">Run out before your plan renews? Buy a pack and keep going. Switch on Auto top-up under a pack to buy it again by itself when your credits run low.</p>
         <div className="st-plans">
           {info.packs.map((p) => (
             <article key={p.id} className="st-planCard">
@@ -92,52 +92,25 @@ export default function TopUp() {
               <PriceBadge usd={p.price} className="badge-row" />
               <p className="st-meta">One-time purchase</p>
               <button type="button" className="st-upgrade" onClick={() => buy(p.id)} disabled={Boolean(busy) || locked}>{busy === p.id ? "Opening..." : "Buy credits"}</button>
+              <div className="st-autorow">
+                <span>Auto top-up</span>
+                <button type="button" role="switch" aria-checked={a.enabled && a.packId === p.id} aria-label={`Auto top-up with ${p.name}`} className={`st-switch ${a.enabled && a.packId === p.id ? "is-on" : ""}`}
+                  disabled={busy === "auto" || !info.autoReady || locked} onClick={() => save(a.enabled && a.packId === p.id ? { enabled: false } : { enabled: true, packId: p.id })}><i /></button>
+              </div>
             </article>
           ))}
         </div>
+        {a.enabled && pack && (
+          <p className="st-meta st-autonote">
+            <CreditCard size={14} style={{ verticalAlign: "-2px", marginRight: 6 }} />
+            {`${pack.name} is added by itself when your credits fall below ${a.threshold.toLocaleString("en-US")}, at most ${a.maxPerMonth} a month (used ${a.usedThisMonth}). ${a.hasCard ? "Your saved card is charged." : "Your card is saved the first time you buy credits."}`}
+          </p>
+        )}
+        {a.lastError && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{a.lastError}</p>}
         {notice && <p className="st-meta st-notice" role="status">{notice}</p>}
         {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
         {locked && <p className="st-meta" style={{ marginTop: 8 }}>Only a team admin can buy credits for the team.</p>}
         {!info.paymentsReady && <p className="st-meta" style={{ marginTop: 8 }}>Payments are not set up yet.</p>}
-      </section>
-
-      <section className="st-section" aria-labelledby="st-auto">
-        <div className="st-autohead">
-          <div>
-            <h3 id="st-auto" className="st-h3"><RefreshCw size={16} style={{ verticalAlign: "-2px", marginRight: 8 }} />Auto top-up</h3>
-            <p className="st-sub">When your credits run low, we add a pack for you so your work never stops.</p>
-          </div>
-          <button type="button" role="switch" aria-checked={a.enabled} aria-label="Auto top-up" className={`st-switch ${a.enabled ? "is-on" : ""}`} disabled={busy === "auto" || !info.autoReady || locked} onClick={() => save({ enabled: !a.enabled })}><i /></button>
-        </div>
-
-        <div className="st-autogrid">
-          <label>
-            <span className="st-label">WHEN CREDITS FALL BELOW</span>
-            <select className="st-input st-select" value={a.threshold} disabled={busy === "auto" || locked} onChange={(e) => save({ threshold: Number(e.target.value) })}>
-              {info.thresholds.map((t) => <option key={t} value={t}>{t.toLocaleString("en-US")} credits</option>)}
-            </select>
-          </label>
-          <label>
-            <span className="st-label">ADD</span>
-            <select className="st-input st-select" value={a.packId} disabled={busy === "auto" || locked} onChange={(e) => save({ packId: e.target.value })}>
-              {info.packs.map((p) => <option key={p.id} value={p.id}>{p.name} · ${p.price}</option>)}
-            </select>
-          </label>
-          <label>
-            <span className="st-label">MOST PER MONTH</span>
-            <select className="st-input st-select" value={a.maxPerMonth} disabled={busy === "auto" || locked} onChange={(e) => save({ maxPerMonth: Number(e.target.value) })}>
-              {info.caps.map((c) => <option key={c} value={c}>{c} top-up{c === 1 ? "" : "s"}</option>)}
-            </select>
-          </label>
-        </div>
-
-        <p className="st-meta st-autonote">
-          <CreditCard size={14} style={{ verticalAlign: "-2px", marginRight: 6 }} />
-          {a.hasCard ? "Your saved card is charged." : "Your card is saved the first time you buy credits."}
-          {a.enabled && ` At most $${pack ? pack.price * a.maxPerMonth : 0} a month. Used ${a.usedThisMonth} of ${a.maxPerMonth} this month.`}
-        </p>
-        {a.lastError && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{a.lastError}</p>}
-        {!info.autoReady && <p className="st-meta" style={{ marginTop: 8 }}>Automatic top-ups need payments to be set up first.</p>}
       </section>
     </>
   );
