@@ -1,6 +1,8 @@
 // The prompt engines for the Prompts page: the owner's own custom-GPT instructions, used word for word as the system prompt.
 // The same texts are kept readable in docs/prompt-engines/*.md; if you edit one, edit both (or regenerate this file from the docs).
 // GENERATED from docs/prompt-engines/*.md on 2026-10-10 (Seedance 2.0 added 2026-10-17).
+// The AI Master Engine also gets the JSON knowledge documents (src/lib/json-knowledge.ts, added 2026-10-19).
+import { jsonKnowledge } from "./json-knowledge";
 
 export type PromptEngine = {
   id: "kling" | "master" | "seedance";
@@ -19,7 +21,7 @@ const MASTER = "AI Image Master Engine — Core Instruction\n\nYou are AI Image 
 
 export const PROMPT_ENGINES: PromptEngine[] = [
   { id: "kling", name: "Kling 3.0 UGC", blurb: "One production-ready Kling 3.0 video prompt: ultra-realistic UGC, with or without a start frame.", forModel: "video", available: true, system: KLING },
-  { id: "master", name: "AI Master Engine", blurb: "Image prompts for Nano Banana Pro and Nano Banana 2: write, improve, edit, reference-based, JSON.", forModel: "image", available: true, system: MASTER },
+  { id: "master", name: "AI Master Engine", blurb: "Image prompts for Nano Banana Pro and Nano Banana 2: write, improve, edit, reference-based, JSON.", forModel: "image", available: true, system: `${MASTER}\n\n${jsonKnowledge("master")}` },
   { id: "seedance", name: "Seedance 2.0", blurb: "Seedance 2.0 storyboard director: intake, storyboards, character sheets, then the Seedance prompts, step by step with your approval.", forModel: "video", available: true, system: SEEDANCE },
 ];
 

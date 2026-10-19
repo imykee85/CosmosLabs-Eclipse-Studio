@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     const earlier: Action[] = [];
     const frames: Frame[] = [];
     const state = { captures: 0 };
-    let res = await client.messages.create({ model, max_tokens: 4096, system, tools, messages: convo });
+    let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: convo });
     meter.add(res.model, res.usage);
     for (let round = 1; round < MAX_ROUNDS && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
       const results: Anthropic.ToolResultBlockParam[] = [];
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
       }
       earlier.push(...buildReply(res.content, res.stop_reason).actions);
       convo.push({ role: "assistant", content: res.content }, { role: "user", content: results });
-      res = await client.messages.create({ model, max_tokens: 4096, system, tools, messages: convo });
+      res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: convo });
       meter.add(res.model, res.usage);
     }
     const final = buildReply(res.content, res.stop_reason);
