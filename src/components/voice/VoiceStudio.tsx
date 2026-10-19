@@ -2,7 +2,7 @@
 
 import { getCertificate } from "@/lib/certificate-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowUp, Award, Coins, Download, FileText, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
+import { AlertCircle, Award, Coins, Download, FileText, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
 import Stage from "./Stage";
 import SoundTake from "./SoundTake";
 import TranscriptView from "./Transcript";
@@ -293,11 +293,12 @@ export default function VoiceStudio() {
               )}
             </div>
             <span className="vc-count">{chars.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
-            <button type="button" className="vc-go" aria-label="Generate" disabled={!canGo} onClick={() => void generate()} title={price != null ? `About ${price} credits` : "Generate"}>
-              {submitting ? <Loader2 size={18} className="vc-spin" /> : <ArrowUp size={20} />}
-              {price != null && <span className="vc-cost"><Coins size={11} />{price}</span>}
-            </button>
           </div>
+          <button type="button" className="vc-go" aria-label="Generate" disabled={!canGo} onClick={() => void generate()} title={price != null ? `About ${price} credits` : "Generate"}>
+            {submitting ? <Loader2 size={18} className="vc-spin" /> : null}
+            <span>Generate</span>
+            {price != null && <span className="vc-cost"><Coins size={13} />{price}</span>}
+          </button>
         </div>}
       </div>
 

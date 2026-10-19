@@ -6,7 +6,8 @@ import { deleteObject, storageEnabled } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await requireUser();
   if ("fail" in u) return u.fail;
   const t = await ownTool(u.userId, params.id);
@@ -17,7 +18,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 // PATCH { action: "approve-internet" } records the owner's approval of THIS version's internet use (a new version needs a new approval);
 // { action: "revoke-internet" } takes it back.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await requireUser();
   if ("fail" in u) return u.fail;
   const t = await ownTool(u.userId, params.id);
@@ -28,7 +30,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ error: "Unknown action." }, { status: 400 });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await requireUser();
   if ("fail" in u) return u.fail;
   const t = await ownTool(u.userId, params.id);

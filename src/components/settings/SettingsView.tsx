@@ -5,6 +5,7 @@ import { SETTINGS_TABS as TABS, type SettingsTab as Tab } from "@/lib/settings-t
 import ApiPanel from "./ApiPanel";
 import BillingPanel from "./BillingPanel";
 import ProfilePanel from "./ProfilePanel";
+import SecurityPanel from "./SecurityPanel";
 import TeamPanel from "./TeamPanel";
 import "./settings.css";
 
@@ -14,7 +15,7 @@ export default function SettingsView({ initialTab = "Profile" }: { initialTab?: 
   return (
     <div className="st-wrap">
       <h1>Settings</h1>
-      <p className="st-lead">Manage your profile, billing, and team.</p>
+      <p className="st-lead">Manage your profile, billing, team and security.</p>
 
       <div className="st-tabs" role="tablist" aria-label="Settings sections">
         {TABS.map((t) => (
@@ -29,6 +30,8 @@ export default function SettingsView({ initialTab = "Profile" }: { initialTab?: 
           <BillingPanel />
         ) : tab === "Team" ? (
           <TeamPanel />
+        ) : tab === "Security" ? (
+          <SecurityPanel />
         ) : (
           <ApiPanel />
         )}

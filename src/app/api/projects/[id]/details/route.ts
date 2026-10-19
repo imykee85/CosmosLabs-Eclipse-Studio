@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { workspaceSession } from "@/lib/workspace";
 
 // The facts about one project: dates, how many images it holds and how much space they and the canvas take.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode" }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -4,7 +4,8 @@ import { normalizeCode } from "@/lib/certificates";
 import { signedMediaUrl, storageEnabled } from "@/lib/storage";
 
 // The certified file for the public certificate page, only when its owner chose to show it. Sends the browser to a short-lived signed link; nothing is public in the bucket.
-export async function GET(_req: Request, { params }: { params: { code: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ code: string }> }) {
+  const params = await props.params;
   const code = normalizeCode(params.code);
   if (!code || !storageEnabled) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const c = await db.certificate.findUnique({ where: { code } });

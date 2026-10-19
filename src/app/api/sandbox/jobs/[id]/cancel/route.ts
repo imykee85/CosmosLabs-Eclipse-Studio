@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // The person's own Cancel: stops the command and the cloud computer; nothing is charged.
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await requireUser();
   if ("fail" in u) return u.fail;
   const job = await cancel(params.id, u.userId);

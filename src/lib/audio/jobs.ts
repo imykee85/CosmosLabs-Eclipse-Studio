@@ -47,7 +47,7 @@ export type AudioItem = {
 
 const EXT: Record<string, string> = { "audio/mpeg": "mp3", "audio/wav": "wav", "audio/flac": "flac" };
 export const fileNameOf = (j: Pick<AudioJob, "id" | "model" | "createdAt" | "contentType">, variant?: number) => {
-  const t = j.createdAt.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+  const t = j.createdAt.toISOString().replace(/\D/g, "").slice(0, 14);
   return `${j.model.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${t.slice(0, 8)}-${t.slice(8)}-${j.id.slice(-6)}${variant ? `-v${variant}` : ""}.${EXT[j.contentType ?? ""] ?? "mp3"}`;
 };
 

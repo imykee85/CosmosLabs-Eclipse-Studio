@@ -38,7 +38,7 @@ const VIDEO_POLL_MS = 5000; // a video runs for minutes: ask the provider every 
 // started before leaving the page (or on another device) is found again when you come back.
 export function useRenders(projectId?: string | null, limit = 100, bin = false) {
   const [renders, setRenders] = useState<Render[] | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const live = useRef(true);
   const tries = useRef(0);
   const loadedAt = useRef(0);

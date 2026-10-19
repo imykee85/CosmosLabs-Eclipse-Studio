@@ -8,7 +8,8 @@ import { workspaceSession } from "@/lib/workspace";
 const SHARE_DAYS = 7; // the longest a signed link can last
 
 // A link someone else can open without signing in, which stops working by itself after SHARE_DAYS. Asked for by the owner, one render at a time.
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

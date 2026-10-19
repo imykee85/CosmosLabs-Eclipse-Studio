@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("memory extract failed", err);
     const msg = err instanceof Error ? err.message : "";
-    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Reading files is unavailable: the Anthropic account behind the key needs credit." : "That file could not be read. Please try again." }, { status: 502 });
+    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Reading files is unavailable: the AI provider account behind the key needs credit." : "That file could not be read. Please try again." }, { status: 502 });
   } finally {
     await chargeChat(u.userId, meter, "Memory from a file");
   }

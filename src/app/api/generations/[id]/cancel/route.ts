@@ -9,7 +9,8 @@ export const maxDuration = 60;
 
 // Asks the provider to stop a running video. Best effort: the video only counts as canceled once the provider says so; until then it keeps running
 // (or finishes, and is kept), so nothing the provider made is lost. A canceled or failed video costs no credits.
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

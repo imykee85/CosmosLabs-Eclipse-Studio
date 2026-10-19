@@ -8,7 +8,8 @@ export const maxDuration = 30;
 
 // The picture file of one of the signed-in user's uploads, from our own address (the signed storage links expire after ten minutes, this one does
 // not), so a Canvas node can keep showing the picture it was given.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

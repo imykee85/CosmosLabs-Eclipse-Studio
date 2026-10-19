@@ -9,7 +9,8 @@ export const maxDuration = 60;
 
 // The image file of one of the signed-in user's renders, from our own address so the browser can download it or hand it to the
 // share sheet without any cross-site restrictions. ?download=1 makes the browser save it under its file name.
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

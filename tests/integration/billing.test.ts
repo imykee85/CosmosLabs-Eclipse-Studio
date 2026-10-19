@@ -8,7 +8,7 @@ import { createServer, type IncomingMessage, type Server } from "node:http";
 const DB = process.env.DATABASE_URL;
 const skip = DB ? false : "DATABASE_URL not set";
 
-const whopState = { charges: [] as { body: Record<string, unknown>; key: string | undefined }[], mode: "paid" as "paid" | "pending" | "decline", cancels: [] as string[], cancelFails: false, n: 0 };
+const whopState = { charges: [] as { body: Record<string, unknown>; key: string | undefined }[], mode: "paid" as "paid" | "pending" | "decline", cancels: [] as string[], cancelFails: false, n: 0, cards: [] as { id: string; brand: string; last4: string; exp_month: number; exp_year: number }[], removed: [] as string[], setups: [] as Record<string, unknown>[] };
 const objects = new Map<string, Buffer>();
 let whopSrv: Server, r2: Server;
 const SECRET = "whsec_" + Buffer.from("billing-test-secret").toString("base64");
@@ -31,6 +31,10 @@ before(async () => {
       if (whopState.mode === "decline") return json(res, 402, { error: "card_declined" });
       return json(res, 200, { id: `pay_auto_${++whopState.n}`, status: whopState.mode === "paid" ? "paid" : "processing" });
     }
+    if (req.method === "GET" && (req.url ?? "").startsWith("/payment_methods?member_id=mem_1")) return json(res, 200, { data: whopState.cards.map((c) => ({ id: c.id, card: { brand: c.brand, last4: c.last4, exp_month: c.exp_month, exp_year: c.exp_year } })) });
+    const pm = /^\/payment_methods\/([^/]+)$/.exec(req.url ?? "");
+    if (pm && req.method === "DELETE") { whopState.removed.push(pm[1]); whopState.cards = whopState.cards.filter((c) => c.id !== pm[1]); return json(res, 200, {}); }
+    if (req.url === "/checkout_configurations") { whopState.setups.push(JSON.parse(b.toString())); return json(res, 200, { purchase_url: "https://whop.test/setup" }); }
     const m = /^\/memberships\/([^/]+)\/cancel$/.exec(req.url ?? "");
     if (m) { whopState.cancels.push(m[1]); return whopState.cancelFails ? json(res, 500, { error: "boom" }) : json(res, 200, {}); }
     json(res, 404, {});
@@ -68,7 +72,7 @@ async function wipe() {
 const reset = async (credits: number) => {
   await wipe();
   if (credits > 0) await lib.credits.grantCredits(USER, credits, { reason: "GRANT", note: "test" });
-  Object.assign(whopState, { charges: [], mode: "paid", cancels: [], cancelFails: false });
+  Object.assign(whopState, { charges: [], mode: "paid", cancels: [], cancelFails: false, cards: [], removed: [], setups: [] });
   objects.clear();
 };
 const balance = () => lib.credits.getBalance(USER);
@@ -230,4 +234,103 @@ test("deleting is refused while something is still being made, and says when the
   const r = await lib.del.deleteAccount(USER, { closeSignIn: false });
   assert.equal(r.ok, true);
   assert.match(r.notes[0], /cancel it in your payment account/);
+});
+
+const visa = { id: "pm_1", brand: "visa", last4: "4242", exp_month: 4, exp_year: 2030 };
+const amex = { id: "pm_2", brand: "amex", last4: "0005", exp_month: 11, exp_year: 2028 };
+
+test("saved cards are listed from the provider, one is the auto top-up card, and a person cannot touch a card that is not listed for them", { skip }, async () => {
+  await reset(0);
+  assert.deepEqual((await lib.billing.listCards(USER)).cards, [], "no member yet: no cards");
+  await arm();
+  whopState.cards = [visa, amex];
+  const l = await lib.billing.listCards(USER);
+  assert.deepEqual(l.cards.map((c: { id: string; isDefault: boolean; last4: string }) => [c.id, c.isDefault, c.last4]), [["pm_1", true, "4242"], ["pm_2", false, "0005"]]);
+  assert.equal(l.cards[0].expMonth, 4);
+  assert.equal((await lib.billing.removeCard(USER, "pm_other")).status, 404);
+  assert.equal((await lib.billing.setDefaultCard(USER, "pm_other")).status, 404);
+  assert.deepEqual(whopState.removed, [], "nothing was sent to the provider");
+  assert.equal((await lib.billing.setDefaultCard(USER, "pm_2")).ok, true);
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerPaymentMethod, "pm_2");
+});
+
+test("removing the auto top-up card hands over to another one, and the only saved card cannot be removed", { skip }, async () => {
+  await reset(0);
+  await arm();
+  whopState.cards = [visa, amex];
+  const r = await lib.billing.removeCard(USER, "pm_1");
+  assert.equal(r.ok, true);
+  assert.deepEqual(whopState.removed, ["pm_1"]);
+  assert.deepEqual(r.cards.map((c: { id: string; isDefault: boolean }) => [c.id, c.isDefault]), [["pm_2", true]]);
+  const s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
+  assert.deepEqual([s.providerPaymentMethod, s.autoEnabled], ["pm_2", true]);
+  const last = await lib.billing.removeCard(USER, "pm_2");
+  assert.equal(last.ok, false);
+  assert.equal(last.status, 409);
+  assert.deepEqual(whopState.removed, ["pm_1"], "the last card is never sent to the provider for removal");
+});
+
+test("the first card used becomes the default and later payments or added cards do not replace it", { skip }, async () => {
+  await reset(0);
+  await lib.billing.rememberRefs(USER, { memberId: "mem_1", paymentMethodId: "pm_1" });
+  await lib.billing.rememberRefs(USER, { memberId: "mem_1", paymentMethodId: "pm_2" });
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerPaymentMethod, "pm_1");
+  whopState.cards = [visa, amex];
+  assert.equal((await lib.billing.setDefaultCard(USER, "pm_2")).ok, true);
+  await lib.billing.rememberRefs(USER, { memberId: "mem_1", paymentMethodId: "pm_1" });
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerPaymentMethod, "pm_2", "a chosen default stays");
+});
+
+test("adding a card opens the provider's card page for this person, and its confirmation saves the references without granting credits", { skip }, async () => {
+  await reset(0);
+  const { whop } = await import("../../src/lib/payments/whop");
+  const { url } = await whop.createCardSetup!({ userId: USER, returnUrl: "http://x/settings?tab=billing&card=1" });
+  assert.equal(url, "https://whop.test/setup");
+  assert.deepEqual([whopState.setups[0].mode, (whopState.setups[0].metadata as { userId: string }).userId, whopState.setups[0].redirect_url], ["setup", USER, "http://x/settings?tab=billing&card=1"]);
+  const ev = { type: "setup_intent.succeeded", data: { id: "si_1", metadata: { userId: USER, kind: "card" }, member: { id: "mem_1" }, payment_method: { id: "pm_1" } } };
+  assert.equal((await lib.webhook.POST(signed(ev))).status, 200);
+  const s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
+  assert.deepEqual([s.providerMemberId, s.providerPaymentMethod], ["mem_1", "pm_1"]);
+  assert.equal(await balance(), 0, "saving a card grants nothing");
+});
+
+test("a custom amount is priced by us, sent as a one-time price, and granted from the confirmed payment", { skip }, async () => {
+  await reset(0);
+  const { whop } = await import("../../src/lib/payments/whop");
+  const { productById } = await import("../../src/lib/plans");
+  const prod = productById("topup_custom", 1000)!;
+  assert.equal(prod.price, 22);
+  await whop.createCheckout({ userId: USER, planId: prod.id, returnUrl: "http://x/", custom: { credits: prod.credits, price: prod.price } });
+  const sent = whopState.setups[0];
+  assert.deepEqual(sent.plan, { initial_price: 22, currency: "usd", plan_type: "one_time" });
+  assert.equal(sent.plan_id, undefined, "no ready-made plan is used");
+  assert.deepEqual(sent.metadata, { userId: USER, planId: "topup_custom", credits: 1000 });
+  const ev = payment("pay_c1", "topup_custom", { member: { id: "mem_1" }, payment_method: { id: "pm_1" } });
+  (ev.data.metadata as Record<string, unknown>).credits = 1000;
+  assert.equal((await lib.webhook.POST(signed(ev))).status, 200);
+  assert.equal(await balance(), 1000);
+  assert.equal((await (await lib.webhook.POST(signed(ev))).json()).duplicate, true);
+  assert.equal(await balance(), 1000);
+  const bad = payment("pay_c2", "topup_custom");
+  (bad.data.metadata as Record<string, unknown>).credits = 999999;
+  assert.equal((await lib.webhook.POST(signed(bad))).status, 422, "an amount outside the range is never granted");
+  assert.equal(await balance(), 1000);
+});
+
+test("auto top-up with a custom amount saves it, validates it and charges that price", { skip }, async () => {
+  await reset(900);
+  assert.equal((await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_custom", credits: 10 })).ok, false);
+  assert.equal((await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_custom" })).ok, false, "an amount is required");
+  const ok = await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_custom", credits: 1000 });
+  assert.deepEqual([ok.ok, ok.view.packId, ok.view.credits], [true, "topup_custom", 1000]);
+  const fixed = await lib.billing.saveAutoTopup(USER, { packId: "topup_500" });
+  assert.equal(fixed.view.credits, null, "choosing a fixed pack clears the custom amount");
+  await lib.billing.saveAutoTopup(USER, { packId: "topup_custom", credits: 1000 });
+  await arm({ autoPack: "topup_custom", autoCredits: 1000, autoThreshold: 250 });
+  await lib.credits.spendCredits(USER, 700, "test");
+  await wait(400);
+  assert.equal(whopState.charges.length, 1);
+  assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 22, currency: "usd", plan_type: "one_time" });
+  assert.deepEqual(whopState.charges[0].body.metadata, { userId: USER, planId: "topup_custom", credits: 1000, auto: "1" });
+  assert.equal(await balance(), 200 + 1000);
 });

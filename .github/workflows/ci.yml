@@ -22,7 +22,7 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
       - name: Lint
-        run: npx next lint
+        run: npm run lint
       - name: Unit tests
         run: npm test
       - name: Build (no database needed, the schema step is skipped outside Vercel)

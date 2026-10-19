@@ -8,7 +8,8 @@ import { workspaceSession } from "@/lib/workspace";
 export const maxDuration = 60;
 
 // A small WebP of one of the signed-in user's uploaded pictures, for tiles and pickers (cached by the browser for a week).
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

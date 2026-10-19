@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { ownerItem } from "@/lib/certificates";
 
 // Choose what the public certificate page shows besides the facts: the prompt, and the picture, video or sound itself. Both are off until the owner turns them on.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await requireUser();
   if ("fail" in u) return u.fail;
   const body = (await req.json().catch(() => null)) as { showPrompt?: unknown; showMedia?: unknown } | null;
@@ -19,7 +20,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // Withdraws the certificate: its public page stops working.
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await requireUser();
   if ("fail" in u) return u.fail;
   const r = await db.certificate.deleteMany({ where: { id: params.id, userId: u.userId } });

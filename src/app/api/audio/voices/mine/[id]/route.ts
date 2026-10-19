@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Delete one of the person's own voices (also at the provider). Another person's id is simply "not found".
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await audioUser();
   if ("res" in u) return u.res;
   const r = await deleteOwnVoice(u.userId, params.id);

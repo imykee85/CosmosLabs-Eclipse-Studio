@@ -102,7 +102,7 @@ export default function Landing() {
 
       <section id="examples" className="wow-section section-pad">
         <div className="section-kicker kicker-center"><span>One canvas.</span><span><em>Endless</em> possibilities.</span></div>
-        <ScrollReveal className="wow-reveal" text="The only limit is the one you imagine. And you just stopped imagining it. Every image, video and sound you have ever had in your head is now one sentence away. No crew, no budget, no waiting. Just you, and everything you can create." />
+        <ScrollReveal className="wow-reveal" text="The only limit is the one you imagine. And you just stopped imagining it. Every idea you have ever had in your head is now one sentence away. No crew, no budget, no waiting. Just you, and everything you can create." />
         <CanvasCarousel />
         <div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div>
       </section>

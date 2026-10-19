@@ -3,7 +3,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { workspaceSession } from "@/lib/workspace";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 const MAX_BYTES = 600_000;
 
 async function userOr401() {
@@ -14,7 +14,8 @@ async function userOr401() {
 }
 
 // One canvas with its whole graph. Works for ones in "Recently deleted" too, so a restored canvas opens at once.
-export async function GET(_req: Request, { params }: Ctx) {
+export async function GET(_req: Request, props: Ctx) {
+  const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
   try {
@@ -28,7 +29,8 @@ export async function GET(_req: Request, { params }: Ctx) {
 }
 
 // Save the graph (the whole thing, replacing the old one).
-export async function PUT(req: Request, { params }: Ctx) {
+export async function PUT(req: Request, props: Ctx) {
+  const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
   const text = await req.text();
@@ -51,7 +53,8 @@ export async function PUT(req: Request, { params }: Ctx) {
 }
 
 // rename, trash (move to Recently deleted) and restore.
-export async function PATCH(req: Request, { params }: Ctx) {
+export async function PATCH(req: Request, props: Ctx) {
+  const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
   let body: { action?: unknown; name?: unknown } | null = null;
@@ -77,7 +80,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
 }
 
 // Delete for good. Only a canvas that is already in "Recently deleted" can be removed this way.
-export async function DELETE(_req: Request, { params }: Ctx) {
+export async function DELETE(_req: Request, props: Ctx) {
+  const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
   try {

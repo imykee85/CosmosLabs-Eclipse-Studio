@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 // A browser mini tool's page, shown inside a sandboxed frame on the person's own tool page. The page runs with an opaque origin (the CSP
 // "sandbox" rule below applies even if this address is opened directly), so it can never read Eclipse's cookies, storage or pages; it may not
 // load anything from the network (connect-src 'none') unless its owner approved internet use for this version, and only Eclipse may frame it.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const u = await requireUser();
   if ("fail" in u) return new Response("Not found.", { status: 404 });
   const t = await ownTool(u.userId, params.id);

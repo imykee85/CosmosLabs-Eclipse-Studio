@@ -39,7 +39,6 @@ export default function ProjectHome() {
   return (
     <div className="cp">
       <header className="cp-head">
-        <span className="cp-eyebrow">Create</span>
         <h1>What are we creating?</h1>
         <p>Choose a studio. Everything you make is saved to your gallery.</p>
       </header>
