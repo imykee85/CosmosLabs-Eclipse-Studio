@@ -3,12 +3,15 @@ import type Anthropic from "@anthropic-ai/sdk";
 // Turns the model's answer into what the browser shows: the text and the buttons made from its tool calls. Kept apart from the route so it can be tested.
 export type Action = { kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number };
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
-const MAX_PROMPT = 5000; // the longest prompt a box can hold
+const MAX_PROMPT = 32000; // the longest prompt any model takes (GPT Image); the box shows the chosen model's own limit
+const PRETTY_UP_TO = 8000; // JSON prompts are written out with indentation while they stay this short, else on one line
 
 // A prompt normally arrives as text, but a structured (JSON-style) prompt can arrive as an object: keep it, written out as JSON text.
 function promptText(v: unknown): string {
   if (typeof v === "string") return v.trim().slice(0, MAX_PROMPT);
-  if (v && typeof v === "object") { try { return JSON.stringify(v, null, 2).slice(0, MAX_PROMPT); } catch { return ""; } }
+  if (v && typeof v === "object") {
+    try { const pretty = JSON.stringify(v, null, 2); return (pretty.length <= PRETTY_UP_TO ? pretty : JSON.stringify(v)).slice(0, MAX_PROMPT); } catch { return ""; }
+  }
   return "";
 }
 

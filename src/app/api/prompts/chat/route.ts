@@ -9,7 +9,7 @@ import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 import { workspaceSession } from "@/lib/workspace";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // One turn with a prompt engine (the Prompts page). The engine's own instructions are the system prompt; pictures chosen by the user ride along
 // with their latest message so the model can see them. The chat itself is kept in the browser. Nothing is rendered here: this only writes prompts.
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 3000, system: engine.system, messages });
+    const res = await client.messages.create({ model, max_tokens: 8000, system: engine.system, messages });
     meter.add(res.model, res.usage);
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
     return NextResponse.json({ text: text || "I couldn't write a prompt from that. Tell me a little more." });
