@@ -1,15 +1,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { IMAGE_TO_JSON, A1_JSON_WRITER, JSON_KNOWLEDGE } from "../../src/lib/json-knowledge";
+import { IMAGE_TO_JSON, A1_JSON_WRITER, jsonKnowledge } from "../../src/lib/json-knowledge";
 import { engineById } from "../../src/lib/prompt-engines";
 import { PERSONAS, customPersona } from "../../src/lib/agent-personas";
 import { buildReply } from "../../src/lib/agent-reply";
 
-test("the knowledge documents match the docs word for word", () => {
+test("the knowledge documents match their Eclipse docs; the GPT-only parts are gone", () => {
   assert.equal(IMAGE_TO_JSON, readFileSync("docs/prompt-engines/knowledge/image-to-json.md", "utf8").trim());
   assert.equal(A1_JSON_WRITER, readFileSync("docs/prompt-engines/knowledge/a1-json-prompt-writer.md", "utf8").trim());
-  assert.ok(!JSON_KNOWLEDGE.includes("﻿"));
+  for (const host of ["master", "atlas"] as const) {
+    const k = jsonKnowledge(host);
+    assert.ok(!k.includes("\ufeff"));
+    // Reworded for Eclipse: nothing that only existed in the ChatGPT custom GPTs.
+    assert.ok(!/a1_prompt_pack|DALL|flux|You have access to/i.test(k));
+  }
+  assert.ok(readFileSync("docs/prompt-engines/knowledge/original/a1-json-prompt-writer.md", "utf8").includes("a1_prompt_pack.txt"));
 });
 
 test("the AI Master Engine and Atlas carry both documents; custom agents do not", () => {
@@ -19,7 +25,8 @@ test("the AI Master Engine and Atlas carry both documents; custom agents do not"
     assert.ok(sys.includes(IMAGE_TO_JSON));
     assert.ok(sys.includes(A1_JSON_WRITER));
   }
-  assert.ok(PERSONAS.Atlas.system.includes("Deliver the finished JSON through suggest_prompt"));
+  assert.ok(PERSONAS.Atlas.system.includes("YOUR DELIVERY RULES (Atlas)"));
+  assert.ok(master.includes("YOUR DELIVERY RULES (Prompts page)") && !master.includes("YOUR DELIVERY RULES (Atlas)"));
   assert.ok(!engineById("kling")!.system.includes(A1_JSON_WRITER));
   assert.ok(!customPersona({ name: "X", role: "", instructions: "y" }).system.includes(A1_JSON_WRITER));
 });
