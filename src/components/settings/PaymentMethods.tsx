@@ -7,21 +7,27 @@ type Card = { id: string; brand: string; last4: string; expMonth?: number; expYe
 
 const brandName = (b: string) => (b ? b.charAt(0).toUpperCase() + b.slice(1).toLowerCase() : "Card");
 
-// Saved cards: add one on the payment provider's page, choose the one auto top-up charges, remove one. Card numbers never reach our servers.
+// Saved cards: the card used for the first payment is saved as the default. Add more on the payment provider's page, choose the default,
+// and remove one, but never the only card: add another first. Card numbers never reach our servers.
 export default function PaymentMethods() {
   const [cards, setCards] = useState<Card[] | null>(null);
-  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/billing/cards", { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setFailed(true); if (typeof data.error === "string" && res.status !== 503) setError(data.error); return; }
+      if (!res.ok) {
+        setCards([]);
+        setLoadError(res.status === 401 || res.status === 503 ? "Sign in to a full account to save a payment method." : typeof data.error === "string" ? data.error : "Could not load your cards.");
+        return;
+      }
+      setLoadError("");
       setCards(data.cards);
-    } catch { setFailed(true); }
+    } catch { setCards([]); setLoadError("Could not load your cards. Try again in a moment."); }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -55,22 +61,20 @@ export default function PaymentMethods() {
     finally { setBusy(""); }
   }
 
-  if (failed && !cards) return error ? (
-    <section className="st-section" aria-labelledby="st-cards"><h3 id="st-cards" className="st-h3">Payment methods</h3><p className="st-meta" role="alert" style={{ color: "#e5484d" }}>{error}</p></section>
-  ) : null;
-  if (!cards) return null;
+  const list = cards ?? [];
+  const only = list.length === 1;
 
   return (
     <section className="st-section" aria-labelledby="st-cards">
       <div className="st-cardshead">
         <h3 id="st-cards" className="st-h3">Payment methods</h3>
-        <button type="button" className="st-addcard" onClick={add} disabled={busy === "add"}><Plus size={15} /> {busy === "add" ? "Opening..." : "Add card"}</button>
+        <button type="button" className="st-addcard" onClick={add} disabled={busy === "add" || cards === null}><Plus size={15} /> {busy === "add" ? "Opening..." : "Add card"}</button>
       </div>
-      {cards.length === 0 ? (
-        <p className="st-meta">No saved cards.</p>
+      {cards === null ? null : list.length === 0 ? (
+        <p className="st-meta">{loadError || "No saved cards. The card you pay with first is saved here as your default."}</p>
       ) : (
         <ul className="st-cardlist">
-          {cards.map((c) => (
+          {list.map((c) => (
             <li key={c.id} className="st-cardrow">
               <CreditCard size={20} aria-hidden="true" />
               <div className="st-cardinfo">
@@ -78,9 +82,10 @@ export default function PaymentMethods() {
                 {c.expMonth && c.expYear ? <span className="st-meta">Expires {String(c.expMonth).padStart(2, "0")}/{c.expYear}</span> : null}
               </div>
               {c.isDefault
-                ? <span className="st-pill">Auto top-up card</span>
-                : <button type="button" className="st-linkbtn" onClick={() => change(c.id, "PUT")} disabled={busy === c.id}>Use for auto top-up</button>}
-              <button type="button" className={`st-removecard ${confirm === c.id ? "is-confirm" : ""}`} aria-label={`Remove ${brandName(c.brand)} ending ${c.last4}`} disabled={busy === c.id}
+                ? <span className="st-pill">Default</span>
+                : <button type="button" className="st-linkbtn" onClick={() => change(c.id, "PUT")} disabled={busy === c.id}>Make default</button>}
+              <button type="button" className={`st-removecard ${confirm === c.id ? "is-confirm" : ""}`} aria-label={`Remove ${brandName(c.brand)} ending ${c.last4}`}
+                disabled={busy === c.id || only} title={only ? "Add another card before removing this one" : undefined}
                 onClick={() => (confirm === c.id ? void change(c.id, "DELETE") : setConfirm(c.id))}>
                 <Trash2 size={15} />{confirm === c.id ? " Remove?" : ""}
               </button>
@@ -88,6 +93,7 @@ export default function PaymentMethods() {
           ))}
         </ul>
       )}
+      {only && <p className="st-meta" style={{ marginTop: 10 }}>This is your only card. Add another card to be able to remove it.</p>}
       {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
     </section>
   );

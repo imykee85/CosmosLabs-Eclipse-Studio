@@ -254,7 +254,7 @@ test("saved cards are listed from the provider, one is the auto top-up card, and
   assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerPaymentMethod, "pm_2");
 });
 
-test("removing the auto top-up card hands over to another one, and removing the last one switches auto top-up off", { skip }, async () => {
+test("removing the auto top-up card hands over to another one, and the only saved card cannot be removed", { skip }, async () => {
   await reset(0);
   await arm();
   whopState.cards = [visa, amex];
@@ -262,12 +262,23 @@ test("removing the auto top-up card hands over to another one, and removing the 
   assert.equal(r.ok, true);
   assert.deepEqual(whopState.removed, ["pm_1"]);
   assert.deepEqual(r.cards.map((c: { id: string; isDefault: boolean }) => [c.id, c.isDefault]), [["pm_2", true]]);
-  let s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
+  const s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
   assert.deepEqual([s.providerPaymentMethod, s.autoEnabled], ["pm_2", true]);
-  assert.equal((await lib.billing.removeCard(USER, "pm_2")).ok, true);
-  s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
-  assert.deepEqual([s.providerPaymentMethod, s.autoEnabled], [null, false]);
-  assert.match(s.autoLastError, /last saved card was removed/);
+  const last = await lib.billing.removeCard(USER, "pm_2");
+  assert.equal(last.ok, false);
+  assert.equal(last.status, 409);
+  assert.deepEqual(whopState.removed, ["pm_1"], "the last card is never sent to the provider for removal");
+});
+
+test("the first card used becomes the default and later payments or added cards do not replace it", { skip }, async () => {
+  await reset(0);
+  await lib.billing.rememberRefs(USER, { memberId: "mem_1", paymentMethodId: "pm_1" });
+  await lib.billing.rememberRefs(USER, { memberId: "mem_1", paymentMethodId: "pm_2" });
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerPaymentMethod, "pm_1");
+  whopState.cards = [visa, amex];
+  assert.equal((await lib.billing.setDefaultCard(USER, "pm_2")).ok, true);
+  await lib.billing.rememberRefs(USER, { memberId: "mem_1", paymentMethodId: "pm_1" });
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerPaymentMethod, "pm_2", "a chosen default stays");
 });
 
 test("adding a card opens the provider's card page for this person, and its confirmation saves the references without granting credits", { skip }, async () => {

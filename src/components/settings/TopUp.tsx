@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CreditCard } from "lucide-react";
+import { ChevronDown, CreditCard } from "lucide-react";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import { refreshCredits } from "@/lib/use-credits";
 import { CUSTOM_PACK_ID, customPrice } from "@/lib/plans";
@@ -28,6 +28,8 @@ export default function TopUp() {
   const [notice, setNotice] = useState("");
   const [amount, setAmount] = useState("1000");
   const [amountSet, setAmountSet] = useState(false);
+  const [sel, setSel] = useState(CUSTOM_PACK_ID);
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -36,7 +38,11 @@ export default function TopUp() {
       const data: Info = await res.json();
       setInfo(data);
       // The amount box starts at the person's saved auto amount, once.
-      if (data.auto.credits && !amountSet) { setAmount(String(data.auto.credits)); setAmountSet(true); }
+      if (!amountSet) {
+        if (data.auto.credits) setAmount(String(data.auto.credits));
+        if (data.auto.enabled) setSel(data.auto.packId);
+        setAmountSet(true);
+      }
     } catch { setFailed(true); }
   }, [amountSet]);
   useEffect(() => { void load(); }, [load]);
@@ -74,6 +80,24 @@ export default function TopUp() {
     finally { setBusy(""); }
   }
 
+  const a = info?.auto;
+  const locked = Boolean(info?.team.isTeam && !info.team.isAdmin); // a team member who is not an admin cannot buy credits for the team
+  const credits = /^\d+$/.test(amount.trim()) ? Number(amount) : NaN;
+  const customCost = customPrice(credits);
+  const chosenPack = info?.packs.find((p) => p.id === sel);
+  const selCredits = sel === CUSTOM_PACK_ID ? credits : chosenPack?.credits ?? NaN;
+  const selPrice = sel === CUSTOM_PACK_ID ? customCost : chosenPack?.price ?? null;
+  const autoOn = Boolean(a?.enabled && a.packId === sel && (sel !== CUSTOM_PACK_ID || a.credits === credits));
+
+  // While auto top-up is on, it follows whatever the chip is set to (a typed amount waits a moment so each digit is not saved).
+  useEffect(() => {
+    if (!info || !a?.enabled || locked || selPrice === null) return;
+    if (a.packId === sel && (sel !== CUSTOM_PACK_ID || a.credits === credits)) return;
+    const t = setTimeout(() => void save(sel === CUSTOM_PACK_ID ? { packId: CUSTOM_PACK_ID, credits } : { packId: sel }), 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sel, credits, a?.enabled, a?.packId, a?.credits]);
+
   if (failed) return (
     <section className="st-section" aria-labelledby="st-topup">
       <h3 id="st-topup" className="st-h3">Top up credits</h3>
@@ -81,53 +105,52 @@ export default function TopUp() {
     </section>
   );
   if (!info) return null;
-  const a = info.auto;
-  const locked = info.team.isTeam && !info.team.isAdmin; // a team member who is not an admin cannot buy credits for the team
+  if (!a) return null;
   const pack = a.packId === CUSTOM_PACK_ID && a.credits ? { name: `${a.credits.toLocaleString("en-US")} credits` } : info.packs.find((p) => p.id === a.packId) ?? info.packs[0];
-  const credits = /^\d+$/.test(amount.trim()) ? Number(amount) : NaN;
-  const price = customPrice(credits);
-  const customOn = a.enabled && a.packId === CUSTOM_PACK_ID;
+
+  const chipLabel = selPrice === null ? "Choose an amount" : `${selCredits.toLocaleString("en-US")} credits`;
 
   return (
     <>
       <section className="st-section" aria-labelledby="st-topup">
         <h3 id="st-topup" className="st-h3">Top up credits</h3>
-        <p className="st-sub">Run out before your plan renews? Buy a pack and keep going. Switch on Auto top-up under a pack to buy it again by itself when your credits run low.</p>
-        <div className="st-plans">
-          <article className="st-planCard st-custom">
-            <span className="st-pill">Your amount</span>
-            <label className="st-amount">
-              <input className="st-input" inputMode="numeric" aria-label="Credits to buy" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, "").slice(0, 6))} />
-              <span>credits</span>
-            </label>
-            <p className="st-price">{price === null ? "—" : `$${price.toFixed(2)}`}</p>
-            {price !== null && <PriceBadge usd={price} className="badge-row" />}
-            <p className="st-meta" style={price === null && amount ? { color: "#e5484d" } : undefined}>{price === null ? `${info.custom.min.toLocaleString("en-US")} to ${info.custom.max.toLocaleString("en-US")} credits (from $9)` : "One-time purchase"}</p>
-            <button type="button" className="st-upgrade" onClick={() => buy(CUSTOM_PACK_ID, credits)} disabled={Boolean(busy) || locked || price === null}>{busy === CUSTOM_PACK_ID ? "Opening..." : "Buy credits"}</button>
-            <div className="st-autorow">
-              <span>Auto top-up</span>
-              <button type="button" role="switch" aria-checked={customOn} aria-label="Auto top-up with your amount" className={`st-switch ${customOn ? "is-on" : ""}`}
-                disabled={busy === "auto" || !info.autoReady || locked || (!customOn && price === null)} onClick={() => save(customOn ? { enabled: false } : { enabled: true, packId: CUSTOM_PACK_ID, credits })}><i /></button>
-            </div>
-            {customOn && price !== null && credits !== a.credits && (
-              <button type="button" className="st-linkbtn st-updateauto" disabled={busy === "auto" || locked} onClick={() => save({ packId: CUSTOM_PACK_ID, credits })}>Use {credits.toLocaleString("en-US")} credits for auto top-up</button>
-            )}
-          </article>
-          {info.packs.map((p) => (
-            <article key={p.id} className="st-planCard">
-              <span className="st-pill">{p.name}</span>
-              <p className="st-price">${p.price}</p>
-              <PriceBadge usd={p.price} className="badge-row" />
-              <p className="st-meta">One-time purchase</p>
-              <button type="button" className="st-upgrade" onClick={() => buy(p.id)} disabled={Boolean(busy) || locked}>{busy === p.id ? "Opening..." : "Buy credits"}</button>
-              <div className="st-autorow">
-                <span>Auto top-up</span>
-                <button type="button" role="switch" aria-checked={a.enabled && a.packId === p.id} aria-label={`Auto top-up with ${p.name}`} className={`st-switch ${a.enabled && a.packId === p.id ? "is-on" : ""}`}
-                  disabled={busy === "auto" || !info.autoReady || locked} onClick={() => save(a.enabled && a.packId === p.id ? { enabled: false } : { enabled: true, packId: p.id })}><i /></button>
-              </div>
-            </article>
-          ))}
+        <p className="st-sub">Run out before your plan renews? Choose an amount and keep going. Auto top-up buys the same amount again by itself when your credits run low.</p>
+        <div className="st-topbar">
+          <button type="button" className="st-chip" aria-expanded={open} aria-haspopup="listbox" onClick={() => setOpen((o) => !o)}>
+            <span className="st-chiptext"><b>{chipLabel}</b>{selPrice !== null && <em>${selPrice.toFixed(2)}</em>}</span>
+            <ChevronDown size={18} aria-hidden="true" className={open ? "is-open" : ""} />
+          </button>
+          <div className="st-autoside">
+            <span>Auto top-up</span>
+            <button type="button" role="switch" aria-checked={autoOn} aria-label="Auto top-up with the chosen amount" className={`st-switch ${autoOn ? "is-on" : ""}`}
+              disabled={busy === "auto" || !info.autoReady || locked || (!autoOn && selPrice === null)}
+              onClick={() => save(autoOn ? { enabled: false } : sel === CUSTOM_PACK_ID ? { enabled: true, packId: CUSTOM_PACK_ID, credits } : { enabled: true, packId: sel })}><i /></button>
+          </div>
         </div>
+        {open && (
+          <div className="st-options" role="listbox" aria-label="Credit amounts">
+            <div className={`st-option ${sel === CUSTOM_PACK_ID ? "is-on" : ""}`} role="option" aria-selected={sel === CUSTOM_PACK_ID} onClick={() => setSel(CUSTOM_PACK_ID)}>
+              <span className="st-optname">Your amount</span>
+              <label className="st-amount">
+                <input className="st-input" inputMode="numeric" aria-label="Credits to buy" value={amount}
+                  onFocus={() => setSel(CUSTOM_PACK_ID)} onKeyDown={(e) => { if (e.key === "Enter") setOpen(false); }}
+                  onChange={(e) => { setSel(CUSTOM_PACK_ID); setAmount(e.target.value.replace(/[^\d]/g, "").slice(0, 6)); }} />
+                <span>credits</span>
+              </label>
+              <span className="st-optprice" style={customCost === null ? { color: "#e5484d" } : undefined}>{customCost === null ? `${info.custom.min.toLocaleString("en-US")} to ${info.custom.max.toLocaleString("en-US")}` : `$${customCost.toFixed(2)}`}</span>
+            </div>
+            {info.packs.map((p) => (
+              <button key={p.id} type="button" role="option" aria-selected={sel === p.id} className={`st-option ${sel === p.id ? "is-on" : ""}`} onClick={() => { setSel(p.id); setOpen(false); }}>
+                <span className="st-optname">{p.name}</span>
+                <span className="st-optprice">${p.price}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <button type="button" className="st-upgrade st-buy" onClick={() => buy(sel, sel === CUSTOM_PACK_ID ? credits : undefined)} disabled={Boolean(busy) || locked || selPrice === null}>
+          {busy === sel ? "Opening..." : selPrice === null ? "Buy credits" : `Buy credits · $${selPrice.toFixed(2)}`}
+        </button>
+        {selPrice !== null && <PriceBadge usd={selPrice} className="badge-row" />}
         {a.enabled && pack && (
           <p className="st-meta st-autonote">
             <CreditCard size={14} style={{ verticalAlign: "-2px", marginRight: 6 }} />

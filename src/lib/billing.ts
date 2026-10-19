@@ -61,9 +61,11 @@ export async function saveAutoTopup(userId: string, input: AutoTopupInput): Prom
 /** Remembers who paid and with what, from a successful payment (only what the provider actually sent; never overwrites with nothing). */
 export async function rememberRefs(userId: string, refs: PaymentRefs | undefined): Promise<void> {
   if (!refs) return;
+  // The first card ever used becomes the default; a later payment or a newly added card never replaces a default the person has.
+  const current = await db.billingSettings.findUnique({ where: { userId }, select: { providerPaymentMethod: true } });
   const data = {
     ...(refs.memberId ? { providerMemberId: refs.memberId } : {}),
-    ...(refs.paymentMethodId ? { providerPaymentMethod: refs.paymentMethodId } : {}),
+    ...(refs.paymentMethodId && !current?.providerPaymentMethod ? { providerPaymentMethod: refs.paymentMethodId } : {}),
     ...(refs.membershipId ? { providerMembershipId: refs.membershipId } : {}),
   };
   if (!Object.keys(data).length) return;
@@ -168,6 +170,7 @@ export async function removeCard(userId: string, cardId: string): Promise<CardsR
   if ("error" in r) return { ok: false, ...r };
   const card = r.cards.find((c) => c.id === cardId);
   if (!card || !r.s?.providerMemberId) return { ok: false, error: "That card was not found.", status: 404 };
+  if (r.cards.length < 2) return { ok: false, error: "This is your only saved card. Add another card before removing it.", status: 409 };
   const provider = paymentProvider()!;
   try { await provider.removePaymentMethod!(r.s.providerMemberId, cardId); }
   catch (err) { console.error("removing a saved card failed", err); return { ok: false, error: "Could not remove the card. Try again in a moment.", status: 502 }; }
