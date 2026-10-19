@@ -72,12 +72,8 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
               <div className="hf-quad">
                 {n === "Art Direction" || n === "Portraits"
                   ? [1, 2, 3, 4].map((i) => (
-                    n === "Portraits" && i === 4
-                      ? <Empty key={i} />
-                      : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={i} className="hf-pic" src={`/dashboard/${n === "Portraits" ? "portrait" : "product"}-${i}.jpg`} alt="" loading="lazy" draggable={false} />
-                      )
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} className="hf-pic" src={`/dashboard/${n === "Portraits" ? "portrait" : "product"}-${i}.jpg`} alt="" loading="lazy" draggable={false} />
                   ))
                   : <><Empty /><Empty /><Empty /><Empty /></>}
               </div>
