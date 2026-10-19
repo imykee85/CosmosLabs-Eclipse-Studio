@@ -69,6 +69,7 @@ export async function rememberRefs(userId: string, refs: PaymentRefs | undefined
 
 /** Grants the credits for one successful payment (a plan or a top-up pack), once however often the provider delivers it. */
 export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Promise<{ ok: true; duplicate: boolean } | { ok: false; error: string }> {
+  if (event.cardOnly) { await rememberRefs(event.userId, event.refs); return { ok: true, duplicate: false }; }
   const product = productById(event.planId);
   if (!product) return { ok: false, error: "Unknown plan" };
   const note = event.auto ? `Auto top-up: ${product.name}` : product.kind === "pack" ? `Top-up: ${product.name}` : `Plan: ${product.name}`;
@@ -131,4 +132,56 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
 export function scheduleAutoTopup(userId: string): void {
   if (!creditsOn()) return;
   waitUntil(autoTopup(userId));
+}
+
+
+// ---- Saved cards: listed and removed at the provider; we only remember which one auto top-up uses. ----
+
+export type CardView = { id: string; brand: string; last4: string; expMonth?: number; expYear?: number; isDefault: boolean };
+export type CardsResult = { ok: true; cards: CardView[] } | { ok: false; error: string; status: number };
+
+async function cardsFor(userId: string): Promise<{ s: BillingSettings | null; cards: CardView[] } | { error: string; status: number }> {
+  const provider = paymentProvider();
+  if (!provider?.listPaymentMethods) return { error: "Payments are not set up yet.", status: 503 };
+  const s = await db.billingSettings.findUnique({ where: { userId } });
+  if (!s?.providerMemberId) return { s, cards: [] };
+  try {
+    const list = await provider.listPaymentMethods(s.providerMemberId);
+    return { s, cards: list.map((c) => ({ ...c, isDefault: c.id === s.providerPaymentMethod })) };
+  } catch (err) {
+    console.error("listing saved cards failed", err);
+    return { error: "Could not load your cards. Try again in a moment.", status: 502 };
+  }
+}
+
+export async function listCards(userId: string): Promise<CardsResult> {
+  const r = await cardsFor(userId);
+  return "error" in r ? { ok: false, ...r } : { ok: true, cards: r.cards };
+}
+
+/** Removes one of the person's own saved cards. If it was the card auto top-up uses, another card takes over, or auto top-up is switched off. */
+export async function removeCard(userId: string, cardId: string): Promise<CardsResult> {
+  const r = await cardsFor(userId);
+  if ("error" in r) return { ok: false, ...r };
+  const card = r.cards.find((c) => c.id === cardId);
+  if (!card || !r.s?.providerMemberId) return { ok: false, error: "That card was not found.", status: 404 };
+  const provider = paymentProvider()!;
+  try { await provider.removePaymentMethod!(r.s.providerMemberId, cardId); }
+  catch (err) { console.error("removing a saved card failed", err); return { ok: false, error: "Could not remove the card. Try again in a moment.", status: 502 }; }
+  const left = r.cards.filter((c) => c.id !== cardId);
+  if (card.isDefault) {
+    const next = left[0]?.id ?? null;
+    await db.billingSettings.update({ where: { userId }, data: { providerPaymentMethod: next, ...(next ? {} : { autoEnabled: false, autoLastError: "Your last saved card was removed, so auto top-up was switched off." }) } });
+    if (next) left[0] = { ...left[0], isDefault: true };
+  }
+  return { ok: true, cards: left };
+}
+
+/** Chooses which saved card auto top-up charges. */
+export async function setDefaultCard(userId: string, cardId: string): Promise<CardsResult> {
+  const r = await cardsFor(userId);
+  if ("error" in r) return { ok: false, ...r };
+  if (!r.cards.some((c) => c.id === cardId)) return { ok: false, error: "That card was not found.", status: 404 };
+  await db.billingSettings.update({ where: { userId }, data: { providerPaymentMethod: cardId } });
+  return { ok: true, cards: r.cards.map((c) => ({ ...c, isDefault: c.id === cardId })) };
 }

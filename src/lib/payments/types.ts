@@ -8,9 +8,12 @@ export type CheckoutInput = { userId: string; planId: string; returnUrl: string 
 export type PaymentRefs = { memberId?: string; paymentMethodId?: string; membershipId?: string };
 
 /** A payment that went through. Credits are granted from this, by us, in our own ledger. */
-export type PaymentEvent = { provider: string; externalId: string; userId: string; planId: string; auto?: boolean; refs?: PaymentRefs };
+export type PaymentEvent = { provider: string; externalId: string; userId: string; planId: string; auto?: boolean; refs?: PaymentRefs; /** A card was saved without buying anything: only the references are kept, no credits. */ cardOnly?: boolean };
 
 export type SavedCardCharge = { userId: string; productId: string; price: number; memberId: string; paymentMethodId: string; idempotencyKey: string };
+
+/** A saved card as the provider shows it. Only what is safe to display: never the full number. */
+export type SavedCard = { id: string; brand: string; last4: string; expMonth?: number; expYear?: number };
 
 export class InvalidWebhookError extends Error {}
 
@@ -28,6 +31,12 @@ export interface PaymentProvider {
    * "pending" means the provider will confirm by webhook. Throws when the charge is refused or fails.
    */
   chargeSavedCard?(input: SavedCardCharge): Promise<{ externalId: string; status: "paid" | "pending" }>;
+  /** The cards saved for this member. */
+  listPaymentMethods?(memberId: string): Promise<SavedCard[]>;
+  /** Deletes one saved card at the provider. Throws when it refuses. */
+  removePaymentMethod?(memberId: string, paymentMethodId: string): Promise<void>;
+  /** Opens the provider's hosted page where the person adds a card without paying; returns its address. */
+  createCardSetup?(input: { userId: string; returnUrl: string }): Promise<{ url: string }>;
   /** Ends a subscription at once. Throws when the provider refuses. */
   cancelMembership?(membershipId: string): Promise<void>;
 }
