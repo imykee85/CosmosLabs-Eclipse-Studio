@@ -45,6 +45,8 @@ html[data-app-theme="light"]:has(.db-page, .ws-root) { background: #faf8f5; colo
   /* Everywhere (login, onboarding, account pages, dialogs and menus drawn outside the app shell included), not only inside .ws-root / .db-page. */
   html[data-fz] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):focus { font-size: max(var(--in-fs, 16px), 1em) !important; }
   html[data-fz] textarea:focus, html[data-fz] select:focus { font-size: max(var(--in-fs, 16px), 1em) !important; }
+  html[data-fz] input:focus, html[data-fz] textarea:focus, html[data-fz] select:focus { transition: none !important; }
+  input:focus, textarea:focus, select:focus { transition: font-size .2s ease; }
 }
 
 /* Light mode: every prompt box has the Voice Studio console colour (owner 2026-10-15): the card white at 88% over the page, i.e. a soft near-white. Dark mode keeps its own colours. */

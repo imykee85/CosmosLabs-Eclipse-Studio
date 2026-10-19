@@ -33,7 +33,7 @@ export default function LibraryAudio({ query }: { query: string }) {
             <span>{a.modelLabel}{a.voiceName ? ` · ${a.voiceName}` : ""}</span>
           </div>
           <audio controls preload="none" src={a.url!} />
-          <a className="lib-audio-dl" href={a.url!} download={a.fileName} aria-label="Download"><Download size={16} /></a>
+          <a className="lib-audio-dl" href={`/api/audio/${a.id}/file?download=1`} download={a.fileName} aria-label="Download"><Download size={16} /></a>
         </li>
       ))}
     </ul>

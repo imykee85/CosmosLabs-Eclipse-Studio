@@ -67,7 +67,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       <div className="hf-sec">
         <button type="button" className="hf-pill">Explore collections <SoonTag /></button>
         <ul className="hf-row">
-          {["Art Direction", "Portraits", "Interiors"].map((n) => (
+          {["Art Direction", "Portraits", "Interiors", "Product shots", "Beauty shots"].map((n) => (
             <li key={n} className="hf-col">
               <div className="hf-quad">
                 {n === "Art Direction" || n === "Portraits"
@@ -90,8 +90,13 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
             <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
           </li>
           <li className="hf-wide">
-            <div className="hf-wide-link"><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Video templates</span></div>
+            <div className="hf-wide-link"><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Filmmaking</span></div>
           </li>
+          {["Influencer Marketing", "Social Media Content"].map((n) => (
+            <li key={n} className="hf-wide">
+              <div className="hf-wide-link"><Empty className="hf-fill" /><span className="hf-label">{n}</span></div>
+            </li>
+          ))}
         </ul>
       </div>
 

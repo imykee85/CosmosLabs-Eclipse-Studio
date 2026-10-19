@@ -3,7 +3,7 @@
 import GrowArea from "@/components/GrowArea";
 import { thumbOf, fallbackTo } from "@/lib/thumb-url";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, History, Loader2, Maximize2, Minimize2, Paperclip, SquarePen, Trash2, X } from "lucide-react";
+import { ArrowUp, History, Loader2, Maximize2, Minimize2, Paperclip, Pencil, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import { canUseFrame, useAgentChat, type Attach } from "@/lib/agent-chat";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
@@ -56,7 +56,10 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const [attErr, setAttErr] = useState("");
   const fileIn = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const chat = useAgentChat(name);
+  // The latest real answer (not a status note) gets the Try again button.
+  const lastAgent = chat.messages.reduce((n, m, i) => (m.role === "agent" && !m.note ? i : n), -1);
   const list = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
@@ -209,10 +212,19 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           ) : (
           <div className="aw-msgs" ref={list} aria-live="polite">
             {chat.messages.length === 0 && <p className="aw-empty">Say hello, or tell me what you want to make.</p>}
-            {chat.messages.map((m) => (
-              <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""}`}>
+            {chat.messages.map((m, at) => (
+              <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""} ${editing?.id === m.id ? "is-editing" : ""}`}>
                 {m.attach && m.attach.length > 0 && <div className="aw-attached">{m.attach.map((a, i) => (a.id ? <Thumb key={a.id + i} kind={a.kind} id={a.id} name={a.name} big /> : <span key={a.name + i} className="aw-att-name">{a.name}</span>))}</div>}
-                {m.text && <p>{m.text}</p>}
+                {editing?.id === m.id ? (
+                  <form className="aw-edit" onSubmit={(e) => { e.preventDefault(); const t = editing.text; setEditing(null); void chat.resend(m.id, t); }}>
+                    <GrowArea rows={2} value={editing.text} maxLength={4000} aria-label="Edit your message" autoFocus onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); const t = editing.text; setEditing(null); void chat.resend(m.id, t); } }} />
+                    <div className="aw-edit-acts">
+                      <button type="button" onClick={() => setEditing(null)}>Cancel</button>
+                      <button type="submit" className="is-send" disabled={!editing.text.trim()}>Send</button>
+                    </div>
+                  </form>
+                ) : m.text && <p>{m.text}</p>}
                 {m.frames && m.frames.length > 0 && (
                   <div className="aw-frames">
                     {m.frames.map((f) => (
@@ -238,6 +250,9 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                     {m.actions.some((a) => a.prompt) && <blockquote className="aw-prompt">{m.actions.find((a) => a.prompt)?.prompt}</blockquote>}
                   </div>
                 )}
+                {!chat.busy && !editing && !m.note && (m.role === "user"
+                  ? <div className="aw-msg-acts"><button type="button" aria-label="Edit and resend" title="Edit and resend" onClick={() => setEditing({ id: m.id, text: m.text })}><Pencil size={13} /></button></div>
+                  : (m.error || at === lastAgent) && <div className="aw-msg-acts"><button type="button" aria-label="Try again" title="Try again" onClick={() => void chat.retry(m.id)}><RotateCcw size={13} /></button></div>)}
               </div>
             ))}
             {chat.busy && <div className="aw-msg is-agent"><p className="aw-typing"><Loader2 size={13} className="cr-spin" /> Thinking…</p></div>}

@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { BRAND_RULE } from "@/lib/brand";
+import { loadPromptImages } from "@/lib/prompt-images";
 import { ChatMeter, chargeChat } from "@/lib/chat-credits";
 import { runTool, toolDefs } from "@/lib/connect-tools";
 import { openImage } from "@/lib/storage";
@@ -61,6 +63,12 @@ async function contextDigest(userId: string, projectId: string | null): Promise<
 async function imageBlocks(userId: string, ids: string[]): Promise<Block[]> {
   const out: Block[] = [];
   for (const id of ids.slice(0, MAX_IMAGES)) {
+    // "up:<id>": a picture added from the device (an Assets upload) rather than a finished render.
+    if (id.startsWith("up:")) {
+      const got = await loadPromptImages(userId, [{ type: "upload", id: id.slice(3) }]).catch(() => null);
+      if (got?.ok && got.images[0]) out.push({ type: "image", source: { type: "base64", media_type: got.images[0].mediaType, data: got.images[0].data } });
+      continue;
+    }
     const g = await db.generation.findFirst({ where: { id, userId, deletedAt: null, status: "completed" } });
     if (!g) continue;
     const res = await openImage(g);
@@ -126,7 +134,7 @@ export async function runTurn(opts: {
       const stream = sdk.beta.messages.stream({
         model: opts.model,
         max_tokens: 16000,
-        system: SYSTEM,
+        system: `${SYSTEM}\n\n${BRAND_RULE}`,
         tools: toolDefs,
         messages,
         ...(useFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),

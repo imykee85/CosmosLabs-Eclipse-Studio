@@ -45,7 +45,7 @@ export default function AddSoundDialog({ video, onClose }: { video: Render; onCl
 
   async function go() {
     if (!model) return;
-    if (!model.ready) { setError(`${model.providerLabel} is not connected yet. It works once its key is set.`); return; }
+    if (!model.ready) { setError("Sound for video is not available yet."); return; }
     setBusy(true); setError("");
     const r = await startVoice({ ...body, projectId: video.projectId });
     setBusy(false);

@@ -41,3 +41,12 @@ export const lessons: Lesson[] = [
   { title: "Pick an aspect ratio and refine your result" },
   { title: "Keep your work organised in projects" },
 ];
+
+// The Academy (owner 2026-10-19: "Academy section comes below tutorial"): longer courses under the short lessons. None is published yet, so each shows Soon.
+export type Course = { title: string; line: string; video?: string };
+export const courses: Course[] = [
+  { title: "Prompting like a photographer", line: "Light, lens and composition words that models understand." },
+  { title: "Directing a short film", line: "From treatment to storyboard to a finished multi-shot video." },
+  { title: "Brand campaigns, start to finish", line: "Keep a product and a look consistent across images and video." },
+  { title: "Voice and sound for video", line: "Voiceover, sound effects and music that fit the picture." },
+];

@@ -10,6 +10,7 @@ import AgentWidget from "@/components/create/AgentWidget";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { useAgent } from "@/lib/use-agent";
+import { useDictation } from "@/lib/use-dictation";
 import { useAgentHost } from "@/lib/agent-chat";
 import { refreshCredits } from "@/lib/use-credits";
 import { readCurrentProject } from "@/lib/projects";
@@ -63,9 +64,6 @@ async function docxText(f: File): Promise<string> {
   return r.value.trim();
 }
 const toBase64 = (buf: ArrayBuffer) => { let bin = ""; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(bin); };
-// Speech to text in the browser (Chrome, Edge, Safari). Words appear in the message box as they are recognised.
-type Rec = { lang: string; continuous: boolean; interimResults: boolean; start: () => void; stop: () => void; onresult: ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null; onend: (() => void) | null; onerror: ((e: { error: string }) => void) | null };
-const speechApi = (): (new () => Rec) | null => { const w = window as unknown as Record<string, unknown>; return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as (new () => Rec) | null; };
 const KEY = (project: string) => `eclipse-treatment-${project}`;
 
 export default function TreatmentView() {
@@ -79,14 +77,13 @@ export default function TreatmentView() {
   const [links, setLinks] = useState<string[]>([]);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
-  const [listening, setListening] = useState(false);
-  const rec = useRef<Rec | null>(null);
   const [text, setText] = useDraftText("treatment");
   // The conversation and the plan built from it (a treatment), kept in this browser per project.
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [plan, setPlan] = useState<Treatment>(EMPTY_TREATMENT);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const { listening, toggle: toggleMic, stop: stopMic } = useDictation(text, setText, setError);
   const [copied, setCopied] = useState(false);
   const [ready, setReady] = useState(false);
   const [project, setProject] = useState("default");
@@ -123,7 +120,7 @@ export default function TreatmentView() {
     const typed = text.trim();
     if ((!typed && !files.length && !pics.length && !links.length) || busy) return;
     setError("");
-    rec.current?.stop();
+    stopMic();
     // Text and Word files are read here and sent as text; one PDF (up to 3 MB) is sent as a document the model reads itself.
     let full = typed;
     let pdf: { name: string; data: string } | null = null;
@@ -165,20 +162,6 @@ export default function TreatmentView() {
     if (links.length >= 2) { setError("Two links per message at most."); return; }
     setLinks((l) => (l.includes(u!.toString()) ? l : [...l, u!.toString()])); setLinkDraft(""); setLinkOpen(false); setError("");
   }
-  function toggleMic() {
-    if (listening) { rec.current?.stop(); return; }
-    const Api = speechApi();
-    if (!Api) { setError("Voice input is not available in this browser. Try Chrome, Edge or Safari."); return; }
-    const r = new Api();
-    r.lang = navigator.language || "en-US"; r.continuous = true; r.interimResults = false;
-    const base = text.trim();
-    let said = "";
-    r.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) said += `${said ? " " : ""}${e.results[i][0].transcript.trim()}`; setText(`${base}${base && said ? " " : ""}${said}`); };
-    r.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed") setError("Allow the microphone for this site to talk instead of typing."); };
-    r.onend = () => { setListening(false); rec.current = null; };
-    try { r.start(); rec.current = r; setListening(true); setError(""); } catch { setError("Voice input could not start."); }
-  }
-  useEffect(() => () => rec.current?.stop(), []);
   const continueToPrompts = () => {
     try { if (hasTreatment(plan)) sessionStorage.setItem("eclipse-treatment-handoff", treatmentText(plan)); } catch {}
     router.push("/prompts");
@@ -333,11 +316,11 @@ export default function TreatmentView() {
             <button type="button" className="tr-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
             <button type="button" className={`tr-tool ${linkOpen ? "is-on" : ""}`} aria-label="Add a link" title="Add a link" aria-pressed={linkOpen} onClick={() => setLinkOpen((v) => !v)}><Link2 size={16} /></button>
             <button type="button" className={`tr-tool ${listening ? "is-live" : ""}`} aria-label={listening ? "Stop voice input" : "Voice input"} title={listening ? "Stop" : "Talk instead of typing"} aria-pressed={listening} onClick={toggleMic}><Mic size={16} /></button>
-            <div className="tr-agent">
-              <button ref={agentChip} type="button" className="tr-tool tr-agentchip" aria-label="Choose your agent" aria-haspopup="menu" title="Choose your agent" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
-                <AgentIcon size={14} /> <span>{agent.agent ?? "Atlas"}</span>
+            <div className="cr-grp tr-agent">
+              <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
+                <AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Atlas"}</span>
               </button>
-              <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
+              <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                 onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
             </div>
             <button type="submit" className="tr-send" aria-label="Send" disabled={busy || (!text.trim() && !files.length && !pics.length && !links.length)}>{busy ? <Loader2 size={16} className="cr-spin" /> : <Send size={16} />}</button>

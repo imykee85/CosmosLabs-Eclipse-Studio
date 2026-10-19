@@ -225,3 +225,7 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-hist-main small { color: var(--a-muted); font-size: 12px; }
 .cn-hist-list .cn-pop-del { margin-right: 8px; }
 .cn-row .cn-soon { margin-left: auto; align-self: center; }
+/* Read aloud under a reply, and the live mic in the message box (owner 2026-10-19) */
+.cn-read { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-muted); cursor: pointer; }
+.cn-read:hover { background: var(--a-hover); color: var(--a-fg); }
+.cn-round.is-live { border-color: #c00707; background: #c00707; color: #fff; }

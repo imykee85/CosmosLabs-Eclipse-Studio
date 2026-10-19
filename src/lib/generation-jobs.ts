@@ -4,6 +4,7 @@
 import type { Generation } from "@prisma/client";
 import { spendCredits } from "./credits";
 import { db } from "./db";
+import type { Prisma } from "@prisma/client";
 import { higgsfield } from "./higgsfield";
 import { targetOf, ratioString } from "./conform";
 import { chargeFor, getModelById } from "./models";
@@ -41,6 +42,7 @@ export type RenderItem = {
   kind: "image" | "video";
   durationSec: number | null; // videos: the requested or finished length
   hasAudio: boolean | null;
+  uploaded: boolean; // a video the person added from their device (not made by a model)
   credits: number | null;     // videos: the price held while running and charged when it completes
   startedAt: Date | null;     // videos: when the provider first reported it running
   createdAt: Date;
@@ -54,8 +56,15 @@ const REASONS: Record<string, string> = {
 };
 const reasonText = (r: string) => REASONS[r] ?? "The model could not make this image. Please try again.";
 
-async function fail(id: string, error: string): Promise<Generation | null> {
-  await db.generation.updateMany({ where: { id, status: { in: ["pending", "saving"] } }, data: { status: "failed", error } });
+// `error` is what the person sees (Eclipse's own words); `detail` is the provider's own text, kept on the row for the owner's job page only.
+async function fail(id: string, error: string, detail?: string): Promise<Generation | null> {
+  let params: Prisma.InputJsonValue | undefined;
+  if (detail) {
+    const cur = await db.generation.findUnique({ where: { id }, select: { params: true } });
+    const base = cur?.params && typeof cur.params === "object" && !Array.isArray(cur.params) ? (cur.params as Record<string, unknown>) : {};
+    params = { ...base, providerError: safeText(detail, 400) } as Prisma.InputJsonValue;
+  }
+  await db.generation.updateMany({ where: { id, status: { in: ["pending", "saving"] } }, data: { status: "failed", error, ...(params ? { params } : {}) } });
   return db.generation.findUnique({ where: { id } });
 }
 
@@ -93,7 +102,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
     }
     return g;
   }
-  if (s.state === "failed") return (await fail(g.id, `${reasonText(s.reason)}${s.detail ? ` (${safeText(s.detail, 160)})` : ""}`)) ?? g;
+  if (s.state === "failed") return (await fail(g.id, reasonText(s.reason), s.detail)) ?? g;
 
   const claim = await db.generation.updateMany({
     where: { id: g.id, OR: [{ status: "pending" }, { status: "saving", updatedAt: { lt: new Date(Date.now() - SAVING_STALE_MS) } }] },
@@ -127,7 +136,7 @@ export async function completeFromBytes(g: Generation, saved: SavedImage, usage:
   return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, ...(saved.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), providerUsage: usage == null ? undefined : (usage as object) } });
 }
 
-export async function failRender(id: string, error: string): Promise<void> { await fail(id, error); }
+export async function failRender(id: string, error: string, detail?: string): Promise<void> { await fail(id, error, detail); }
 
 export async function purgeFailed(userId?: string): Promise<number> {
   const rows = await db.generation.findMany({ where: { status: "failed", updatedAt: { lt: new Date(Date.now() - FAILED_KEEP_MS) }, ...(userId ? { userId } : {}) }, select: { id: true, kind: true, params: true } });
@@ -171,6 +180,7 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     kind: g.kind === "video" ? "video" : "image",
     durationSec: g.durationSec,
     hasAudio: g.hasAudio,
+    uploaded: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).uploaded === true),
     credits: g.creditsHeld,
     startedAt: g.startedAt,
     createdAt: g.createdAt,

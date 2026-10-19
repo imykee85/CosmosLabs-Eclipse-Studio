@@ -337,7 +337,7 @@ test.describe("Voice Studio", () => {
     await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models } }));
     await page.route("**/api/audio/voices**", (r) => r.fulfill({ json: { voices: [{ voiceId: "voiceA", name: "Ana", accent: "british" }] } }));
     await page.route("**/api/credits", (r) => r.fulfill({ json: { balance: 100, charging: true, isAdmin: false, history: [] } }));
-    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items } }));
+    await page.route(/\/api\/audio(\?scope=studio)?$/, (r) => r.fulfill({ json: { items } }));
     await page.route("**/api/audio/generate", (r) => {
       const body = JSON.parse(r.request().postData() ?? "{}");
       sent.push(body);
@@ -384,7 +384,7 @@ test.describe("Voice Studio", () => {
     const mine = (id: string, name: string, kind: string) => ({ voiceId: id, ownId: `own_${id}`, name, kind, provider: "elevenlabs", descriptive: kind === "cloned" ? "Your clone" : "Your design" });
     await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models: models.map((m) => ({ ...m, canClone: true, canDesign: true })), voiceCosts: { clone: 40, design: 60 }, consentText: "I own this voice or have written permission to clone it." } }));
     await page.route("**/api/audio/voices?**", (r) => r.fulfill({ json: { voices: own.map((v) => ({ voiceId: v.voiceId, name: v.name, descriptive: v.descriptive, own: true, ownId: v.ownId, kind: v.kind })), ready: true } }));
-    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items: [] } }));
+    await page.route(/\/api\/audio(\?scope=studio)?$/, (r) => r.fulfill({ json: { items: [] } }));
     await page.route("**/api/credits", (r) => r.fulfill({ json: { balance: 500, charging: true, isAdmin: false, history: [] } }));
     await page.route("**/api/audio/voices/clone", (r) => { sent.push({ path: "clone", body: r.request().postData() ?? "" }); const v = mine("clone1", "My voice", "cloned"); own.push(v); return r.fulfill({ json: { voice: v } }); });
     await page.route("**/api/audio/voices/design", (r) => { sent.push({ path: "design", body: r.request().postData() ?? "" }); return r.fulfill({ json: { previews: [{ token: "tokA", sig: "s".repeat(32), url: "data:audio/mpeg;base64,AAAA", durationMs: 5000 }, { token: "tokB", sig: "t".repeat(32), url: "data:audio/mpeg;base64,AAAA", durationMs: 5000 }] } }); });
@@ -461,7 +461,7 @@ test.describe("Voice Studio", () => {
     let items: unknown[] = [done];
     await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models: all, voiceCosts: { clone: null, design: null }, consentText: "x" } }));
     await page.route("**/api/audio/voices?**", (r) => r.fulfill({ json: { voices: [], ready: true } }));
-    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items } }));
+    await page.route(/\/api\/audio(\?scope=studio)?$/, (r) => r.fulfill({ json: { items } }));
     await page.route("**/api/credits", (r) => r.fulfill({ json: { balance: 500, charging: true, isAdmin: false, history: [] } }));
     await page.route("**/api/audio/input", (r) => { uploads++; return r.fulfill({ json: { key: "audio/u/in/abc.mp3", url: "http://localhost:3101/fake-r2/abc.mp3" } }); });
     await page.route("**/fake-r2/**", (r) => r.fulfill({ status: 200, body: "" }));
@@ -514,7 +514,7 @@ test.describe("Voice Studio", () => {
     await page.getByRole("tab", { name: "Music" }).click();
     await page.getByLabel("Describe the music").fill("Warm slow piano");
     await page.getByRole("button", { name: "Make music" }).click();
-    await expect(page.locator(".vc-error")).toContainText("ElevenLabs is not connected yet");
+    await expect(page.locator(".vc-error")).toContainText("ElevenLabs models are not available yet");
     expect(sent).toHaveLength(3);
     items = [];
   });
@@ -527,7 +527,7 @@ test.describe("Voice Studio", () => {
     let posted = 0;
     await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models: models.map((m) => ({ ...m, ready: false })) } }));
     await page.route("**/api/audio/voices**", (r) => r.fulfill({ json: { voices: [], ready: false } }));
-    await page.route(/\/api\/audio$/, (r) => r.fulfill({ json: { items: [] } }));
+    await page.route(/\/api\/audio(\?scope=studio)?$/, (r) => r.fulfill({ json: { items: [] } }));
     await page.route("**/api/audio/generate", (r) => { posted++; return r.fulfill({ status: 503, json: { error: "x" } }); });
     await page.goto("/voice");
     await page.fill("#vc-text", "Hello there.");
@@ -537,9 +537,9 @@ test.describe("Voice Studio", () => {
     await page.getByRole("button", { name: "Faster" }).click();
     await page.selectOption('select[aria-label="Voice model"]', "eleven_flash_v2_5");
     await page.getByRole("button", { name: "Generate" }).click();
-    await expect(page.locator(".vc-error")).toContainText("not connected yet");
+    await expect(page.locator(".vc-error")).toContainText("not available yet");
     await page.getByRole("button", { name: "Search all voices" }).click();
-    await expect(page.locator(".vc-none")).toContainText("not connected yet");
+    await expect(page.locator(".vc-none")).toContainText("not available yet");
     expect(posted).toBe(0);
   });
 });

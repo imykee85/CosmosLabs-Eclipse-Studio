@@ -13,7 +13,7 @@ const SYSTEM = (target: "image" | "video") => `You are a prompt writer for ${tar
 
 export async function POST(req: Request) {
   const u = await requireUser(); if ("fail" in u) return u.fail;
-  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "Polishing isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
+  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "Polishing is not available yet. Please try again later." }, { status: 503 });
   const body = await req.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text.trim().slice(0, 2000) : "";
   const target = body?.target === "video" ? "video" : "image";
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("polish failed", err);
     const msg = err instanceof Error ? err.message : "";
-    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Polishing is unavailable: the AI provider account behind the key needs credit." : "The prompt could not be polished. Please try again." }, { status: 502 });
+    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Polishing is unavailable right now. Please try again later." : "The prompt could not be polished. Please try again." }, { status: 502 });
   } finally {
     await chargeChat(u.userId, meter, "Polish prompt");
   }

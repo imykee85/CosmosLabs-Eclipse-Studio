@@ -18,8 +18,8 @@ const MAX_COPY_TRIES = 4;                   // after this many failed copies the
 
 export const REFUSED = "The model refused this. Try a different prompt or picture.";
 export const FAILED = "The video could not be made. No credits were used.";
-export const CANCELED = "This video was canceled. No Eclipse credits were used. Higgsfield decides whether it refunds its own.";
-export const TIMED_OUT = "This video is taking longer than our wait limit. If Higgsfield still finishes it, it will appear here by itself and only then are Eclipse credits used. Higgsfield may already have used some of its own.";
+export const CANCELED = "This video was canceled. No credits were used.";
+export const TIMED_OUT = "This video is taking longer than usual. If it still finishes, it will appear here by itself, and only then are credits used.";
 export const LATE_WATCH_MS = 6 * 60 * 60 * 1000; // after a timeout the row is kept this long and re-checked, so a video that finishes late is not lost
 
 type Params = { workflow?: string; endpoint?: string; resolution?: string; duration?: number; copyTries?: number; cancelRequested?: boolean; lateUntil?: number };

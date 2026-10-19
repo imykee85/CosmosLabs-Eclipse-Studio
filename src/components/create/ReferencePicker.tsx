@@ -42,7 +42,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
     fetch("/api/audio", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => {
       if (!live) return;
       const list = (Array.isArray(d.items) ? d.items : []) as { id: string; kind: string; status: string; url?: string | null; text?: string | null; modelLabel?: string; voiceName?: string | null }[];
-      setSounds(list.filter((a) => a.status === "completed" && a.url && (a.kind === "tts" || a.kind === "sfx" || a.kind === "music")).map((a) => ({ id: a.id, label: (a.text ?? "").slice(0, 60) || a.modelLabel || "Sound", sub: a.kind === "tts" ? `Voice${a.voiceName ? ` · ${a.voiceName}` : ""}` : a.kind === "sfx" ? "Sound effect" : "Music", url: a.url! })));
+      setSounds(list.filter((a) => a.status === "completed" && a.url && (a.kind === "tts" || a.kind === "sfx" || a.kind === "music" || a.kind === "upload")).map((a) => ({ id: a.id, label: (a.text ?? "").slice(0, 60) || a.modelLabel || "Sound", sub: a.kind === "tts" ? `Voice${a.voiceName ? ` · ${a.voiceName}` : ""}` : a.kind === "sfx" ? "Sound effect" : a.kind === "upload" ? "Your audio" : "Music", url: a.url! })));
     }).catch(() => { if (live) setSounds([]); });
     return () => { live = false; };
   }, [withAudio]);

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { BRAND_RULE } from "@/lib/brand";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { customPersona, personaOf } from "@/lib/agent-personas";
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the agent can't answer." }, { status: 503 });
   const { workspaceId: userId, personId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The agent isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
+  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The agent is not available yet. Please try again later." }, { status: 503 });
 
   const body = await req.json().catch(() => null);
   // Atlas is built in; any other name must be one of THIS person's own agents (looked up by owner, never trusted from the browser).
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
     // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
     const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
-    const system = `${persona.system}${director}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`;
+    const system = `${persona.system}${director}\n\n${BRAND_RULE}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`;
     const tools = isAtlas ? [...TOOLS, ...VIDEO_TOOLS] : TOOLS;
     // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
     const convo: Anthropic.MessageParam[] = messages;
@@ -117,9 +118,9 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("agent chat failed", err);
     const msg = err instanceof Error ? err.message : "";
-    const why = /credit balance/i.test(msg) ? "The agent is unavailable: the AI provider account behind the key needs credit."
+    const why = /credit balance/i.test(msg) ? "The agent is unavailable right now. Please try again later."
       : err instanceof Anthropic.RateLimitError ? "The agent is busy right now. Try again in a minute."
-      : err instanceof Anthropic.AuthenticationError ? "The agent's API key was rejected. The owner needs to check ANTHROPIC_API_KEY."
+      : err instanceof Anthropic.AuthenticationError ? "The agent is unavailable right now. Please try again later."
       : "The agent couldn't answer. Please try again.";
     return NextResponse.json({ error: why }, { status: 502 });
   } finally {

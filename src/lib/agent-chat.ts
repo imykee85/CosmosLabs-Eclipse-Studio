@@ -105,6 +105,12 @@ export function useAgentChat(agent: string | null) {
     const text = raw.trim();
     if (!agent || !text || busyAgents.has(agent)) return;
     add({ role: "user", text, ...(atts.length ? { attach: atts.map((a) => ({ kind: a.kind, name: a.name, id: a.id })) } : {}) });
+    await ask(atts);
+  }, [agent, add]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Asks the agent about the chat as it stands now (its last message is the person's).
+  const ask = useCallback(async (atts: Attach[]) => {
+    if (!agent) return;
     setBusy(true);
     try {
       const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text }));
@@ -122,6 +128,32 @@ export function useAgentChat(agent: string | null) {
       add({ role: "agent", text: "I couldn't reach the server. Check your connection and try again.", error: true });
     } finally { setBusy(false); refreshCredits(); }
   }, [agent, add]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The pictures or clips a sent message carried, so a retry or an edited message sends them again.
+  const attsOf = (m: Msg | undefined): Attach[] => (m?.attach ?? []).filter((a): a is Attach => !!a.id).map((a) => ({ kind: a.kind, id: a.id, name: a.name }));
+  // Try again (owner 2026-10-19): the answer and anything after it are dropped and the message before it is asked again.
+  const retry = useCallback(async (msgId: string) => {
+    if (!agent || busyAgents.has(agent)) return;
+    const list = read(agent);
+    const at = list.findIndex((m) => m.id === msgId);
+    if (at < 0) return;
+    const before = list.slice(0, at);
+    while (before.length && before[before.length - 1].note) before.pop();
+    const last = before[before.length - 1];
+    if (last?.role !== "user") return;
+    write(agent, before);
+    await ask(attsOf(last));
+  }, [agent, ask]);
+  // Edit a sent message and send it again: it is replaced and everything after it is dropped.
+  const resend = useCallback(async (msgId: string, raw: string) => {
+    const text = raw.trim();
+    if (!agent || !text || busyAgents.has(agent)) return;
+    const list = read(agent);
+    const at = list.findIndex((m) => m.id === msgId && m.role === "user");
+    if (at < 0) return;
+    write(agent, [...list.slice(0, at), { ...list[at], text }]);
+    await ask(attsOf(list[at]));
+  }, [agent, ask]);
 
   // The user pressed one of the agent's buttons.
   const run = useCallback(async (msgId: string, actId: string) => {
@@ -163,7 +195,7 @@ export function useAgentChat(agent: string | null) {
     write(agent, hit.messages);
   }, [agent]);
   const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
-  return { messages, busy, send, run, useFrame, introduce, clear, past, newChat, openPast, deletePast };
+  return { messages, busy, send, retry, resend, run, useFrame, introduce, clear, past, newChat, openPast, deletePast };
 }
 
 /** True when the screen the user is on can take a captured frame into its prompt box. */

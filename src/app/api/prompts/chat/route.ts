@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { BRAND_RULE } from "@/lib/brand";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { connectModels } from "@/lib/connect-models";
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the prompt engine can't answer." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The prompt engine isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
+  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The prompt engine is not available yet. Please try again later." }, { status: 503 });
   const broke = await chatCreditCheck(userId);
   if (broke) return NextResponse.json({ error: broke }, { status: 402 });
   if (!(await claimUsage(userId, "prompts", 12, 60_000))) return NextResponse.json({ error: "Slow down a little: try again in a minute." }, { status: 429 });
@@ -62,16 +63,16 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 8000, system: engine.system, messages });
+    const res = await client.messages.create({ model, max_tokens: 8000, system: `${engine.system}\n\n${BRAND_RULE}`, messages });
     meter.add(res.model, res.usage);
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
     return NextResponse.json({ text: text || "I couldn't write a prompt from that. Tell me a little more." });
   } catch (err) {
     console.error("prompt engine failed", err);
     const msg = err instanceof Error ? err.message : "";
-    const why = /credit balance/i.test(msg) ? "The prompt engine is unavailable: the AI provider account behind the key needs credit."
+    const why = /credit balance/i.test(msg) ? "The prompt engine is unavailable right now. Please try again later."
       : err instanceof Anthropic.RateLimitError ? "The prompt engine is busy right now. Try again in a minute."
-      : err instanceof Anthropic.AuthenticationError ? "The prompt engine's API key was rejected. The owner needs to check ANTHROPIC_API_KEY."
+      : err instanceof Anthropic.AuthenticationError ? "The prompt engine is unavailable right now. Please try again later."
       : "The prompt engine couldn't answer. Please try again.";
     return NextResponse.json({ error: why }, { status: 502 });
   } finally {

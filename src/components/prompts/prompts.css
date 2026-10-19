@@ -9,10 +9,14 @@
 .pm-thread { display: grid; gap: 14px; margin-top: 24px; min-height: 120px; }
 .pm-empty { margin: 0; padding: 22px 18px; border: 1px dashed var(--a-line3); border-radius: 18px; color: var(--a-muted); font-size: 14px; line-height: 1.55; }
 .pm-msg { max-width: 100%; }
-.pm-msg.is-user { justify-self: end; max-width: 88%; padding: 11px 14px; border-radius: 18px; background: #c00707; color: #fff; }
+.pm-row { display: grid; gap: 4px; }
+.pm-row.is-user { justify-items: end; }
+/* Same bubble as Core's chat (owner 2026-10-19) */
+.pm-msg.is-user { max-width: 88%; padding: 10px 16px; border-radius: 20px 20px 6px 20px; background: var(--a-active); color: var(--a-fg); }
+.pm-msg.is-user.is-editing { width: 100%; max-width: 100%; padding: 10px 12px; border-radius: 18px; background: var(--a-input); border: 1px solid var(--a-line2); }
 .pm-msg.is-user p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.5; }
 .pm-pics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.pm-pics span { display: block; } .pm-pics img { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,255,255,.35); }
+.pm-pics span { display: block; } .pm-pics img { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; border: 1px solid var(--a-line2); }
 .pm-msg.is-assistant { display: grid; gap: 10px; }
 .pm-say { margin: 0; color: var(--a-fg2); font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pm-msg.is-error p { margin: 0; padding: 12px 14px; border: 1px solid #c00707; border-radius: 14px; color: var(--a-fg); font-size: 14px; line-height: 1.5; }
@@ -46,3 +50,15 @@
   .pm-engine { flex: none; }
   .pm-dock { position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; margin: 0; padding-top: 6px; background: var(--a-bg); }
 }
+
+/* Under each message: edit and resend (your messages), try again (the latest or a failed answer) */
+.pm-acts { display: flex; gap: 2px; }
+.pm-acts button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--a-muted); cursor: pointer; }
+.pm-acts button:hover { background: var(--a-hover); color: var(--a-fg); }
+.pm-edit { display: grid; gap: 8px; }
+.pm-edit textarea { width: 100%; resize: none; border: 0; outline: 0; background: transparent; padding: 2px 4px; color: var(--a-fg); font: inherit; font-size: 15px; line-height: 1.5; }
+.pm-edit-acts { display: flex; justify-content: flex-end; gap: 8px; }
+.pm-edit-acts button { height: 34px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.pm-edit-acts .is-send { border-color: #c00707; background: #c00707; color: #fff; }
+.pm-edit-acts .is-send:disabled { opacity: .5; cursor: default; }
+.pm-tool.is-live { border-color: #c00707; background: #c00707; color: #fff; }

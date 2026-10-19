@@ -12,18 +12,20 @@ async function blocked(references: number) {
     assert.fail("should have thrown");
   } catch (e) {
     assert.ok(e instanceof ProviderError);
+    // People see Eclipse's own words (no maker name); the flagged categories stay in the detail for the logs.
+    assert.doesNotMatch(e.userMessage, /OpenAI/);
+    assert.match(e.detail ?? "", /flagged: sexual/);
     return e.userMessage;
   } finally { globalThis.fetch = real; }
 }
 
-test("a blocked picture edit names what OpenAI flagged and says the pictures are checked too", async () => {
+test("a blocked picture edit says the pictures are checked too, without naming the provider", async () => {
   const m = await blocked(2);
-  assert.match(m, /flagged: sexual/);
   assert.match(m, /pictures as well as your words/);
 });
 
 test("a blocked text-only request does not blame pictures", async () => {
   const m = await blocked(0);
-  assert.match(m, /flagged: sexual/);
+  assert.match(m, /safety filter/);
   assert.doesNotMatch(m, /pictures/);
 });

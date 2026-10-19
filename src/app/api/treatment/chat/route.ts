@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { BRAND_RULE } from "@/lib/brand";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { connectModels } from "@/lib/connect-models";
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the planner can't answer." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The planner isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
+  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The planner is not available yet. Please try again later." }, { status: 503 });
 
   const body = await req.json().catch(() => null);
   const mode = body?.mode === "brief" || body?.mode === "concept" || body?.mode === "guide" ? (body.mode as keyof typeof MODES) : null;
@@ -101,7 +102,7 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 3000, system: SYSTEM(mode, treatmentText(current)), tools: [TOOL], messages });
+    const res = await client.messages.create({ model, max_tokens: 3000, system: `${SYSTEM(mode, treatmentText(current))}\n\n${BRAND_RULE}`, tools: [TOOL], messages });
     meter.add(res.model, res.usage);
     let text = "";
     let treatment = current;
@@ -117,9 +118,9 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("treatment chat failed", err);
     const msg = err instanceof Error ? err.message : "";
-    const why = /credit balance/i.test(msg) ? "The planner is unavailable: the AI provider account behind the key needs credit."
+    const why = /credit balance/i.test(msg) ? "The planner is unavailable right now. Please try again later."
       : err instanceof Anthropic.RateLimitError ? "The planner is busy right now. Try again in a minute."
-      : err instanceof Anthropic.AuthenticationError ? "The planner's API key was rejected. The owner needs to check ANTHROPIC_API_KEY."
+      : err instanceof Anthropic.AuthenticationError ? "The planner is unavailable right now. Please try again later."
       : "The planner couldn't answer. Please try again.";
     return NextResponse.json({ error: why }, { status: 502 });
   } finally {

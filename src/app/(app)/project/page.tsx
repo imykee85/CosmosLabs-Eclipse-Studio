@@ -21,7 +21,7 @@ function Visual({ kind }: { kind: (typeof STUDIOS)[number]["kind"] }) {
   );
   if (kind === "video") return (
     <div className="cp-film" aria-hidden="true">
-      <img src="/carousel/card-2-poster.jpg" alt="" loading="lazy" decoding="async" />
+      <video src="/carousel/card-2.mp4" poster="/carousel/card-2-poster.jpg" autoPlay muted loop playsInline preload="auto" />
       <span className="cp-rec"><i />REC</span>
       <span className="cp-tc">00:00:08:14</span>
       <span className="cp-scrub"><i /></span>

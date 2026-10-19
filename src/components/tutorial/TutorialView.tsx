@@ -14,7 +14,7 @@ import NotificationsButton from "@/components/Notifications";
 import UserMenu from "@/components/UserMenu";
 import { LogoMark } from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
-import { lessons, type Lesson } from "@/lib/tutorial";
+import { courses, lessons, type Lesson } from "@/lib/tutorial";
 import "@/components/app-theme.css";
 import "@/components/dashboard/dashboard.css";
 import "./tutorial.css";
@@ -86,6 +86,26 @@ export default function TutorialView({ back }: { back: { path: string; label: st
             </li>
           ))}
         </ul>
+
+        <section className="tu-academy" aria-labelledby="tu-academy-h">
+          <h2 id="tu-academy-h">Academy</h2>
+          <p className="tu-lead">Longer courses for when you want to go further.</p>
+          <ul className="tu-grid">
+            {courses.map((c, i) => (
+              <li key={c.title} className="tu-card">
+                <span className="tu-tag">COURSE</span>
+                <h2>{c.title}</h2>
+                <p className="tu-line">{c.line}</p>
+                <div className={`tu-thumb tone-${i % 3}`} aria-hidden="true">
+                  <span><Play size={22} fill="currentColor" /></span>
+                </div>
+                <button type="button" className="tu-watch" onClick={() => c.video && setPlaying({ title: c.title, video: c.video })}>
+                  Watch{!c.video && <SoonTag className="tu-soon" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       </main>
       {playing && <Player lesson={playing} onClose={() => setPlaying(null)} />}
     </div>

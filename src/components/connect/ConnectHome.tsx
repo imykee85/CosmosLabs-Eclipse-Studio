@@ -4,7 +4,7 @@ import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Brain, Clock, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
+import { ArrowUp, Brain, Clock, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import AgentWidget from "../create/AgentWidget";
@@ -13,7 +13,10 @@ import { useDraftText } from "@/lib/use-draft-text";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
-import { useRenders } from "@/lib/use-renders";
+import { useDictation } from "@/lib/use-dictation";
+import { uploadPicture } from "@/lib/use-uploads";
+import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
+import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import BrandLogo from "./brands";
 import ChatThread, { type Line } from "./ChatThread";
 import ModelPicker from "./ModelPicker";
@@ -21,6 +24,9 @@ import "@/components/create/create.css"; // the Atlas widget and its menu are st
 import "./connect.css";
 import { refreshCredits } from "@/lib/use-credits";
 
+
+// Pictures go to the assistant as ids: a finished render's id, or "up:<id>" for a picture added from the device.
+const imageIds = (list: RefPick[]) => list.map((p) => (p.type === "upload" ? `up:${p.id}` : p.id));
 
 // Connect: the assistant. Chat with it, let it use skills, tools, memory and your connected apps, and send finished content on.
 function ConnectChat() {
@@ -35,12 +41,16 @@ function ConnectChat() {
   const [chatId, setChatId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
-  const [picked, setPicked] = useState<string[]>([]);
-  const [attachOpen, setAttachOpen] = useState(false);
+  const mic = useDictation(text, setText, setNotice);
+  const stopMic = mic.stop;
+  // Pictures riding with the next message: from the device (the +, saved to Assets) or the Library (the Ingredients chip), up to 3.
+  const [picked, setPicked] = useState<RefPick[]>([]);
+  const [picking, setPicking] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const started = useRef(false);
-  const { renders } = useRenders(attachOpen ? undefined : null, 16);
 
   // Open an earlier chat from the link (?chat=), or send a message handed over by Skills or Tools (?start=), once.
   const open = useCallback(async (id: string) => {
@@ -59,7 +69,7 @@ function ConnectChat() {
     setNotice("");
     setText("");
     setPicked([]);
-    setAttachOpen(false);
+    stopMic();
     setLines((l) => [...l, { role: "user", parts: [{ kind: "text", text: images.length ? `${clean}\n(${images.length} picture${images.length > 1 ? "s" : ""} attached)` : clean }] }, { role: "assistant", parts: [] }]);
     const patch = (fn: (a: Line) => Line) => setLines((l) => { const c = [...l]; c[c.length - 1] = fn(c[c.length - 1]); return c; });
     try {
@@ -106,7 +116,7 @@ function ConnectChat() {
       setBusy(false);
       refreshCredits();
     }
-  }, [busy, chatId, setText]);
+  }, [busy, chatId, setText, stopMic]);
 
   useEffect(() => {
     if (started.current) return;
@@ -119,7 +129,7 @@ function ConnectChat() {
   }, [params, open, router, send]);
 
   // Atlas can fill the message box ("Use this prompt") and, when you press Generate on its card, send that message to the Core chat.
-  useAgentHost({ page: "core", context: () => ({ prompt: text, message: notice || undefined, pictures: picked.map((id) => ({ type: "render" as const, id, role: "attached from the Library" })) }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; } });
+  useAgentHost({ page: "core", context: () => ({ prompt: text, message: notice || undefined, pictures: picked.map((p) => ({ type: p.type, id: p.id, role: p.type === "upload" ? "added from the device" : "attached from the Library" })) }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; } });
   const scrollEnd = useCallback(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, []);
   useEffect(() => { scrollEnd(); }, [lines, scrollEnd]);
 
@@ -129,10 +139,23 @@ function ConnectChat() {
   }
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     // Enter makes a new line (owner 2026-10-19); Ctrl or Cmd + Enter sends, like the other prompt boxes.
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(text, picked); }
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(text, imageIds(picked)); }
   }
-  const togglePick = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < 3 ? [...p, id] : p));
-  const done = (renders ?? []).filter((r) => r.status === "completed" && r.imageUrl);
+  async function uploadFromDevice(f: File | undefined) {
+    if (!f) return;
+    setNotice("");
+    if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setNotice("Only PNG, JPEG and WebP pictures can be added."); return; }
+    if (f.size > PICK_LIMIT_BYTES) { setNotice("That picture is larger than 50 MB. Please use a smaller one."); return; }
+    if (picked.length >= 3) { setNotice("You can add up to 3 pictures."); return; }
+    setUploading(true);
+    try {
+      const fitted = await shrinkToFit(f);
+      if (!fitted) { setNotice("Could not make that picture small enough. Please try another."); return; }
+      const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
+      if (!r.ok) { setNotice(r.error); return; }
+      if (r.item) setPicked((l) => [...l, { type: "upload" as const, id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }].slice(0, 3));
+    } finally { setUploading(false); }
+  }
   const chatting = lines.length > 0;
 
   return (
@@ -166,42 +189,26 @@ function ConnectChat() {
           </Link>
         </div>
 
-        {attachOpen && (
-          <div className="cn-pop cn-attach" role="dialog" aria-label="Attach pictures from your Library">
-            <p className="cn-pop-note">Pick up to 3 pictures from your Library</p>
-            {renders === null ? <p className="cn-pop-note">Loading…</p> : done.length === 0 ? <p className="cn-pop-note">You have no finished renders yet.</p> : (
-              <div className="cn-grid">
-                {done.map((r) => (
-                  <button key={r.id} type="button" className={picked.includes(r.id) ? "is-on" : ""} onClick={() => togglePick(r.id)} aria-pressed={picked.includes(r.id)} title={r.prompt}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={r.imageUrl ?? ""} alt={r.prompt} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <form className="cn-box" onSubmit={(e) => { e.preventDefault(); send(text, picked); }}>
+        <form className="cn-box" onSubmit={(e) => { e.preventDefault(); send(text, imageIds(picked)); }}>
           {picked.length > 0 && (
             <div className="cn-picked">
-              {picked.map((id) => {
-                const r = (renders ?? []).find((x) => x.id === id);
-                return (
-                  <span key={id}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {r?.imageUrl && <img src={r.imageUrl} alt="" />}
-                    <button type="button" aria-label="Remove picture" onClick={() => togglePick(id)}><X size={12} /></button>
-                  </span>
-                );
-              })}
+              {picked.map((p) => (
+                <span key={`${p.type}-${p.id}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.type === "upload" ? `/api/uploads/${p.id}/file` : `/api/generations/${p.id}/file`} alt={p.label} />
+                  <button type="button" aria-label="Remove picture" onClick={() => setPicked((l) => l.filter((x) => !(x.type === p.type && x.id === p.id)))}><X size={12} /></button>
+                </span>
+              ))}
             </div>
           )}
           <GrowArea ref={box} rows={2} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} aria-label="Message box" maxLength={8000}
             placeholder={chatting ? "Reply…" : "Ask for an image, run a skill, or send something to an app..."} />
           {notice && <p className="cn-err" role="alert">{notice}</p>}
           <div className="cn-tools">
-            <button type="button" className="cn-round" aria-label="Attach pictures from your Library" aria-expanded={attachOpen} onClick={() => setAttachOpen(!attachOpen)}><Plus size={18} /></button>
+            <button type="button" className="cn-round" aria-label="Upload a picture from your device" title="Upload a picture from your device" disabled={uploading || picked.length >= 3} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+            <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="cr-chip" title="Choose pictures from your Library" onClick={() => setPicking(true)}><Layers size={14} /> <span className="cr-aname">Ingredients{picked.length ? ` (${picked.length})` : ""}</span></button>
+            <button type="button" className={`cn-round ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={17} /></button>
             <ModelPicker />
             <div className="cr-grp">
               <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
@@ -214,6 +221,7 @@ function ConnectChat() {
           </div>
         </form>
       </div>
+      {picking && <ReferencePicker max={3} picked={picked} onChange={setPicked} onClose={() => setPicking(false)} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       <div ref={end} />

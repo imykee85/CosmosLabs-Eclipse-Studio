@@ -55,7 +55,7 @@ export function useVoiceJobs() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const load = useCallback(async () => {
     try {
-      const r = await fetch("/api/audio", { cache: "no-store" });
+      const r = await fetch("/api/audio?scope=studio", { cache: "no-store" });
       const d = await r.json().catch(() => null);
       if (r.ok && Array.isArray(d?.items)) setItems(d.items);
       else setItems((cur) => cur ?? []);

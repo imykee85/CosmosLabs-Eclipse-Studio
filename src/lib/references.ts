@@ -94,7 +94,7 @@ export async function resolveAudioReferences(userId: string, ids: string[]): Pro
   if (!storageEnabled) return { ok: false, error: "Storage is not set up, so reference audio cannot be used." };
   const urls: string[] = [];
   for (const id of ids) {
-    const a = await db.audioJob.findFirst({ where: { id, userId, status: "completed", deletedAt: null, kind: { in: ["tts", "sfx", "music"] } }, select: { storageKey: true } });
+    const a = await db.audioJob.findFirst({ where: { id, userId, status: "completed", deletedAt: null, kind: { in: ["tts", "sfx", "music", "upload"] } }, select: { storageKey: true } });
     if (!a?.storageKey) return { ok: false, error: "One of your reference sounds could not be found. It may have been deleted." };
     urls.push(await signedGetUrl(a.storageKey, REFERENCE_LINK_SECONDS));
   }

@@ -2,7 +2,7 @@
 // live API. Text only: POST /images/generations. With reference pictures: POST /images/edits (JSON body, `images` as base64 data URLs).
 // GPT image models answer with `b64_json` (a `url` is not supported). No seed. Whether the newest models need organisation verification is unconfirmed.
 import { createHash } from "node:crypto";
-import { ProviderError, type SyncGenerateInput, type SyncGenerateResult, type SyncImageProvider } from "./types";
+import { ProviderError, SAY, type SyncGenerateInput, type SyncGenerateResult, type SyncImageProvider } from "./types";
 
 const base = () => process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 const QUALITY = "medium"; // low | medium | high | auto (2.5 models also xhigh and max). Medium until real costs are measured.
@@ -31,14 +31,14 @@ export function openaiRequest(input: SyncGenerateInput): { path: string; body: R
 export const openai: SyncImageProvider = {
   async generate(input): Promise<SyncGenerateResult> {
     const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new ProviderError("OpenAI image generation is not set up yet.", "OPENAI_API_KEY is not set");
+    if (!key) throw new ProviderError(SAY.notReady, "OPENAI_API_KEY is not set");
     const { path, body } = openaiRequest(input);
     let res: Response;
     try {
       res = await fetch(`${base()}${path}`, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: input.signal });
     } catch (e) {
-      if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) throw new ProviderError("This render took too long and was stopped. Please try again.", "timed out waiting for OpenAI");
-      throw new ProviderError("OpenAI could not be reached. Please try again.", e instanceof Error ? e.message : "network error");
+      if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) throw new ProviderError(SAY.timeout, "timed out waiting for OpenAI");
+      throw new ProviderError(SAY.unreachable, e instanceof Error ? e.message : "network error");
     }
     const text = await res.text();
     let json: { data?: { b64_json?: string }[]; output_format?: string; usage?: unknown; error?: { message?: string; code?: string; type?: string } } | null = null;
@@ -51,15 +51,15 @@ export const openai: SyncImageProvider = {
         // picture-edit is usually about the pictures (real people's faces and bodies) and not the words.
         const cats = /safety_violations\s*=\s*\[([^\]]{1,80})\]/i.exec(why)?.[1]?.trim();
         const withPictures = input.references.length > 0;
-        throw new ProviderError(`OpenAI's safety filter blocked this${cats ? ` (flagged: ${cats})` : ""}. ${withPictures ? "It checks your pictures as well as your words, so try different pictures, fewer pictures, or another model." : "Try different words or another model."}`, `${res.status} ${code}: ${why}`);
+        throw new ProviderError(withPictures ? SAY.safetyPictures : SAY.safety, `${res.status} ${code}: ${why}${cats ? ` (flagged: ${cats})` : ""}`);
       }
-      if (res.status === 429) throw new ProviderError(`OpenAI is limiting requests or the account is out of credit (429${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
-      if (res.status === 401) throw new ProviderError("OpenAI rejected our key. The owner needs to check it.", `${res.status}: ${why}`);
-      if (res.status === 403 || /verif/i.test(why)) throw new ProviderError("OpenAI will not run this model for our account yet (it may need the organization verified). The owner needs to check it.", `${res.status} ${code}: ${why}`);
-      throw new ProviderError(`OpenAI could not make this image (${res.status}${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
+      if (res.status === 429) throw new ProviderError(SAY.busy, `${res.status} ${code}: ${why}`);
+      if (res.status === 401) throw new ProviderError(SAY.notReady, `${res.status}: ${why}`);
+      if (res.status === 403 || /verif/i.test(why)) throw new ProviderError(SAY.notReady, `${res.status} ${code}: ${why}`);
+      throw new ProviderError(SAY.failed, `${res.status} ${code}: ${why}`);
     }
     const b64 = json?.data?.[0]?.b64_json;
-    if (!b64) throw new ProviderError("OpenAI did not return a picture.", `no b64_json in the reply: ${text.slice(0, 200)}`);
+    if (!b64) throw new ProviderError(SAY.noPicture, `no b64_json in the reply: ${text.slice(0, 200)}`);
     const fmt = json?.output_format ?? "png";
     return { bytes: new Uint8Array(Buffer.from(b64, "base64")), contentType: fmt === "jpeg" ? "image/jpeg" : fmt === "webp" ? "image/webp" : "image/png", usage: json?.usage };
   },

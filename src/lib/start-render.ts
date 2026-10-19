@@ -4,6 +4,7 @@ import { waitUntil } from "@vercel/functions";
 import { claimUsage } from "@/lib/usage";
 import { createGenerationHeld } from "@/lib/reservations";
 import { db } from "@/lib/db";
+import { getAdmin } from "@/lib/admin";
 import { completeFromBytes, failRender, SYNC_MARK, toItem, type RenderItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
 import { apiModelOf, chargeFor, findEnabledModel, maxRefs, minRefs, type ImageModel } from "@/lib/models";
@@ -114,10 +115,9 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   } catch (err) {
     await db.generation.delete({ where: { id: pre.id } }).catch(() => {}); // nothing was started, so nothing stays held
     console.error("starting generation failed", model.id, err);
-    // Higgsfield's own rejection (bad setting, empty balance, unknown endpoint) is shown so it can be fixed fast.
-    const code = err instanceof Error ? ` (${(err as { code?: string }).code ?? err.name})` : "";
-    const why = err instanceof HiggsfieldError && err.detail ? ` ${model.label}: ${err.detail}` : ` Our side failed to record the render${code}.`;
-    return { ok: false, status: 502, error: `Generation failed. Please try again.${why}` };
+    // People see Eclipse's own words; the provider's reply goes to the logs (and to the owner, who may need it to fix a setting fast).
+    const why = (await getAdmin().catch(() => null)) && err instanceof HiggsfieldError && err.detail ? ` (Owner only: ${err.detail})` : "";
+    return { ok: false, status: 502, error: `${model.label} could not start this render. Please try again in a moment.${why}` };
   }
 }
 
@@ -159,8 +159,8 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
       await completeFromBytes(row, saved, out.usage);
     } catch (err) {
       console.error("inline generation failed", model.id, err instanceof ProviderError ? err.detail : err);
-      const message = err instanceof ProviderError ? err.userMessage : "Our side failed to make or save this image. Please try again.";
-      await failRender(row.id, message).catch(() => {});
+      const message = err instanceof ProviderError ? err.userMessage : "Eclipse could not make or save this image. Please try again.";
+      await failRender(row.id, message, err instanceof ProviderError ? err.detail : err instanceof Error ? err.message : undefined).catch(() => {});
     }
   })();
   try { waitUntil(work); } catch { /* not on Vercel: the promise simply keeps running */ }
