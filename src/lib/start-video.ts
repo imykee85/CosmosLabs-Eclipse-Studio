@@ -78,7 +78,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (refs === null) return { ok: false, status: 400, error: "The reference pictures were not understood." };
   const videoRefIds = parseVideoRefIds(input.videoRefs, 64); // the model's own limit (up to 10) is checked next
   if (videoRefIds === null) return { ok: false, status: 400, error: "The reference clips were not understood." };
-  const audioRefIds = parseVideoRefIds(input.audioRefs, 10); // the person's own Voice Studio takes, [{ id }]
+  const audioRefIds = parseVideoRefIds(input.audioRefs, 10); // the person's own Audio Studio takes, [{ id }]
   if (audioRefIds === null) return { ok: false, status: 400, error: "The reference sounds were not understood." };
   const anyRefs = refs.length + videoRefIds.length + audioRefIds.length > 0;
   const motion = live.motion;

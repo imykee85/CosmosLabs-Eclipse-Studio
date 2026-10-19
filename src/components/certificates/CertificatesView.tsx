@@ -55,7 +55,7 @@ export default function CertificatesView() {
           <div className="lib-empty" style={{ marginTop: 0 }}>
             <Award size={42} strokeWidth={1.4} aria-hidden="true" />
             <h2>No certificates yet</h2>
-            <p>Open a finished image or video in your <Link href="/library">Library</Link>, or a take in Voice Studio, and choose Certificate.</p>
+            <p>Open a finished image or video in your <Link href="/library">Library</Link>, or a take in Audio Studio, and choose Certificate.</p>
           </div>
         ) : (
           <ul className="cf-list">

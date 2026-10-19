@@ -16,7 +16,7 @@ export type RefPick = { type: "upload" | "render"; id: string; url: string; labe
 
 // A reference clip: one of the person's own finished videos, with its recorded length (seconds; motion transfer prices and checks by it).
 export type ClipPick = RefPick & { sec?: number | null };
-// A reference sound: one of the person's own finished Voice Studio takes (voice, sound effect or music).
+// A reference sound: one of the person's own finished Audio Studio takes (voice, sound effect or music).
 export type SoundPick = { id: string; label: string; url: string };
 
 type Tab = "ingredients" | "assets" | "images" | "videos" | "audio";
@@ -127,7 +127,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
         </div>
         {error && <p className="up-error" role="alert">{error}</p>}
         {tab === "audio" ? (
-          sounds === null ? <p className="rp-note">Loading…</p> : sounds.length === 0 ? <p className="rp-note">You have no voices, sounds or music yet. Make them in Voice Studio.</p> : (
+          sounds === null ? <p className="rp-note">Loading…</p> : sounds.length === 0 ? <p className="rp-note">You have no voices, sounds or music yet. Make them in Audio Studio.</p> : (
             <ul className="rp-sounds">
               {sounds.map((a) => {
                 const on = hasSound(a.id);

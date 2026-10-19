@@ -73,7 +73,7 @@ export default function VideoStudio() {
   const [target, setTarget] = useState<Target | null>(null);
   const [pickingModel, setPickingModel] = useState(false);
   const [vrefs, setVrefs] = useState<ClipPick[]>([]);        // reference clips: the person's own finished videos
-  const [arefs, setArefs] = useState<SoundPick[]>([]);       // reference sounds: the person's own Voice Studio takes (Seedance)
+  const [arefs, setArefs] = useState<SoundPick[]>([]);       // reference sounds: the person's own Audio Studio takes (Seedance)
   const [shots, setShots] = useState<{ prompt: string; duration: number }[] | null>(null); // multi-shot (Kling 3.0); null = off
   // The box survives a refresh: text, settings, start and end frames, pictures, clips and the Motion choice are kept as they change and put back on the next visit.
   const [draftReady, setDraftReady] = useState(false);

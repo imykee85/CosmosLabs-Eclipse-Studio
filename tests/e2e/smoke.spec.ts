@@ -86,13 +86,13 @@ test.describe("signed-in app (demo mode)", () => {
     const side = page.locator(".ws-sidebar");
     expect((await side.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["PLAN", "CREATE", "FILES", "UTILITIES"]);
     const rows = async (el: typeof side) => (await el.locator(".ws-item-text b").allInnerTexts()).map((t) => t.trim());
-    expect(await rows(side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Library", "Gallery", "Assets", "Ingredients", "Core", "Agents", "Canvas"]);
+    expect(await rows(side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Audio Studio", "Library", "Gallery", "Assets", "Ingredients", "Core", "Agents", "Canvas"]);
     // phone: the same groups in the drawer, without Library (it is the bottom tab)
     await page.setViewportSize({ width: 520, height: 900 });
     await page.getByRole("button", { name: "Open menu" }).click();
     const drawer = page.locator(".mb-nav");
     expect((await drawer.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["PLAN", "CREATE", "FILES", "UTILITIES"]);
-    expect(await rows(drawer as typeof side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Voice Studio", "Gallery", "Assets", "Ingredients", "Core", "Agents", "Canvas"]);
+    expect(await rows(drawer as typeof side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Audio Studio", "Gallery", "Assets", "Ingredients", "Core", "Agents", "Canvas"]);
     await expect(page.locator(".mb-tabs").getByText("Library")).toBeVisible();
   });
 
@@ -110,7 +110,7 @@ test.describe("signed-in app (demo mode)", () => {
     const menu = page.getByRole("menu", { name: "Shortcuts" });
     await expect(menu).toBeVisible();
     expect((await menu.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["CREATE"]);
-    expect((await menu.locator(".ws-item-text b").allInnerTexts()).map((t) => t.trim())).toEqual(["Image Studio", "Video Studio", "Voice Studio"]);
+    expect((await menu.locator(".ws-item-text b").allInnerTexts()).map((t) => t.trim())).toEqual(["Image Studio", "Video Studio", "Audio Studio"]);
   });
 
   test("a project opens the studios and the Library shows uniform tiles", async ({ page }) => {
@@ -318,7 +318,7 @@ test.describe("treatment", () => {
   });
 });
 
-test.describe("Voice Studio", () => {
+test.describe("Audio Studio", () => {
   const OPT = { diarize: false, loop: false, instrumental: false, minSeconds: null, maxSeconds: null, maxInputBytes: null, maxInputSeconds: null, long: false };
   const models = [
     { id: "eleven_v4", kind: "tts", options: OPT, label: "Eleven v4", provider: "elevenlabs", providerLabel: "ElevenLabs", tags: ["[whispers]", "[laughs]"], voiceOptional: false, ready: true, maxChars: 10000, note: null, pricing: { unit: "char", perUnit: 0.0125 }, supports: { emotionTags: true, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false } },

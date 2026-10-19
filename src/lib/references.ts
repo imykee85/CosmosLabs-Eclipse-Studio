@@ -87,7 +87,7 @@ export async function deliverReferences(items: ReferenceItem[]): Promise<string[
   }));
 }
 
-// Reference audio (Seedance reference-to-video `audio_urls`): the person's own finished Voice Studio takes (voices, sound effects, music; not
+// Reference audio (Seedance reference-to-video `audio_urls`): the person's own finished Audio Studio takes (voices, sound effects, music; not
 // transcripts, not binned), as one-hour signed links. Ids only, owner-checked.
 export async function resolveAudioReferences(userId: string, ids: string[]): Promise<{ ok: true; urls: string[] } | { ok: false; error: string }> {
   if (!ids.length) return { ok: true, urls: [] };

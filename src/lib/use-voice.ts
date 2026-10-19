@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// The browser side of Voice Studio's routes (src/app/api/audio). A voice is a job: POST /api/audio/generate returns a "pending" item, GET /api/audio/<id> follows it.
+// The browser side of Audio Studio's routes (src/app/api/audio). A voice is a job: POST /api/audio/generate returns a "pending" item, GET /api/audio/<id> follows it.
 export type AudioKind = "tts" | "stt" | "sfx" | "music" | "vsfx"; // vsfx: sound made for a video
 export type TranscriptSegment = { text: string; start: number; end: number; speaker?: string };
 export type Transcript = { text: string; language?: string; durationSec?: number; segments: TranscriptSegment[] };

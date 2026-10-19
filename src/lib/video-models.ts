@@ -14,7 +14,7 @@ type WfOverride = { resolution?: ResSpec | null; aspect?: AspectSpec | null; see
 
 export type VideoLive = {
   endpoints: Partial<Record<Workflow, string>>;     // path after the API base address
-  refs?: { max: number; videos?: { max: number }; audio?: { max: number; alone?: boolean }; total?: number }; // reference pictures, clips (the user's own finished videos), sounds (their Voice Studio takes; `alone`: a sound with no picture or clip is allowed), and the most in all
+  refs?: { max: number; videos?: { max: number }; audio?: { max: number; alone?: boolean }; total?: number }; // reference pictures, clips (the user's own finished videos), sounds (their Audio Studio takes; `alone`: a sound with no picture or clip is allowed), and the most in all
   promptMax: number;                                // longer prompts are refused here (some endpoints truncate silently)
   promptRequired: Record<"t2v" | "i2v", boolean> & { ref?: boolean };
   durations: Record<"t2v" | "i2v", { min: number; max: number; values?: number[] }> & { ref?: { min: number; max: number; values?: number[] } };  // `values` = only these lengths (e.g. 5 or 10)

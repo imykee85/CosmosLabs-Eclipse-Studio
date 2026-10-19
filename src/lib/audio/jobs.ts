@@ -1,4 +1,4 @@
-// Voice Studio jobs (docs/audio-providers/build-brief.md sections 3 and 4). A job is a row: startAudioJob validates, holds the price and returns at once; the
+// Audio Studio jobs (docs/audio-providers/build-brief.md sections 3 and 4). A job is a row: startAudioJob validates, holds the price and returns at once; the
 // provider call runs in the background (waitUntil) and the browser asks GET /api/audio/<id>. The raw provider text never reaches a person: only ProviderError.userMessage.
 // Four kinds share one path: tts (speak), stt (transcribe), sfx (sound effects) and music. A long MiniMax text runs on the provider's side and is followed until done.
 import { createHash, randomUUID } from "node:crypto";
@@ -482,7 +482,7 @@ export async function getAudioJob(userId: string, id: string): Promise<AudioJob 
   return j;
 }
 
-// `only`: just that kind (Assets lists "upload"); `without`: leave a kind out (Voice Studio lists what it made, not uploads).
+// `only`: just that kind (Assets lists "upload"); `without`: leave a kind out (Audio Studio lists what it made, not uploads).
 export async function listAudioJobs(userId: string, limit = 30, filter: { only?: string; without?: string } = {}): Promise<AudioJob[]> {
   const kind = filter.only ? { kind: filter.only } : filter.without ? { kind: { not: filter.without } } : {};
   const rows = await db.audioJob.findMany({ where: { userId, deletedAt: null, ...kind }, orderBy: { createdAt: "desc" }, take: Math.min(Math.max(limit, 1), 100) });
