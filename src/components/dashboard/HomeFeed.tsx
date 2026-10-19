@@ -70,10 +70,14 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           {["Product shots", "Portraits", "Interiors"].map((n) => (
             <li key={n} className="hf-col">
               <div className="hf-quad">
-                {n === "Product shots"
+                {n === "Product shots" || n === "Portraits"
                   ? [1, 2, 3, 4].map((i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={i} className="hf-pic" src={`/dashboard/product-${i}.jpg`} alt="" loading="lazy" draggable={false} />
+                    n === "Portraits" && i === 4
+                      ? <Empty key={i} />
+                      : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={i} className="hf-pic" src={`/dashboard/${n === "Portraits" ? "portrait" : "product"}-${i}.jpg`} alt="" loading="lazy" draggable={false} />
+                      )
                   ))
                   : <><Empty /><Empty /><Empty /><Empty /></>}
               </div>
