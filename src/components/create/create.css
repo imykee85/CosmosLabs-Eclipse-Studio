@@ -296,8 +296,8 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .sid-actions { display: flex; gap: 10px; justify-content: space-between; } .sid-go { width: auto; padding: 0 20px; }
 
 .aw-att-pic { position: relative; padding: 0; border: 0; background: transparent; }
-.aw-thumb { display: block; width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--a-line2); background: var(--a-card); }
-.aw-thumb.is-big { width: 120px; height: 120px; border-radius: 12px; border-color: rgba(255,255,255,.35); }
-.aw-att-pic button { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: var(--a-card); border: 1px solid var(--a-line2); color: var(--a-fg); }
+.aw-thumb { display: block; width: 34px; height: 34px; object-fit: cover; border-radius: 8px; border: 1px solid var(--a-line2); background: var(--a-card); }
+.aw-thumb.is-big { width: 44px; height: 44px; border-radius: 8px; border-color: rgba(255,255,255,.35); }
+.aw-att-pic button { position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; background: var(--a-card); border: 1px solid var(--a-line2); color: var(--a-fg); }
 .aw-attached { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; opacity: 1; }
 .aw-msg.is-user .aw-att-name { font-size: 12px; opacity: .85; }
