@@ -4,7 +4,7 @@ import { waitUntil } from "@vercel/functions";
 import { db } from "@/lib/db";
 import { grantCredits } from "@/lib/credits";
 import { paymentProvider, type PaymentEvent, type PaymentRefs } from "@/lib/payments";
-import { AUTO_MONTHLY_CAPS, AUTO_THRESHOLDS, creditPacks, productById } from "@/lib/plans";
+import { AUTO_MONTHLY_CAPS, AUTO_THRESHOLDS, CUSTOM_PACK_ID, creditPacks, productById } from "@/lib/plans";
 
 // Money settings per person: the auto top-up choice, and what the payment provider told us when they paid, so a top-up can be charged to the same
 // saved card later. No card number is ever stored here.
@@ -13,7 +13,7 @@ export const creditsOn = () => process.env.CREDITS_ENABLED === "1";
 const DAY = 24 * 3600 * 1000;
 const DECLINED = "The last automatic top-up could not be charged, so auto top-up was switched off. Check your card and switch it on again.";
 
-export type AutoTopupView = { enabled: boolean; packId: string; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number };
+export type AutoTopupView = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number };
 
 export async function usedThisMonth(userId: string): Promise<number> {
   return db.creditLedger.count({ where: { userId, reason: "PURCHASE", note: { startsWith: "Auto top-up" }, createdAt: { gte: new Date(Date.now() - 30 * DAY) } } });
@@ -23,6 +23,7 @@ export function viewOf(s: BillingSettings | null, used = 0): AutoTopupView {
   return {
     enabled: s?.autoEnabled ?? false,
     packId: s?.autoPack ?? "topup_2000",
+    credits: s?.autoCredits ?? null,
     threshold: s?.autoThreshold ?? 250,
     maxPerMonth: s?.autoMaxPerMonth ?? 3,
     hasCard: Boolean(s?.providerMemberId && s?.providerPaymentMethod),
@@ -36,7 +37,7 @@ export async function getAutoTopup(userId: string): Promise<AutoTopupView> {
   return viewOf(s, used);
 }
 
-export type AutoTopupInput = { enabled?: unknown; packId?: unknown; threshold?: unknown; maxPerMonth?: unknown };
+export type AutoTopupInput = { enabled?: unknown; packId?: unknown; credits?: unknown; threshold?: unknown; maxPerMonth?: unknown };
 
 /** Validates and saves the person's choice. Anything outside the offered options is refused, never rounded. */
 export async function saveAutoTopup(userId: string, input: AutoTopupInput): Promise<{ ok: true; view: AutoTopupView } | { ok: false; error: string }> {
@@ -45,12 +46,14 @@ export async function saveAutoTopup(userId: string, input: AutoTopupInput): Prom
   const enabled = input.enabled === undefined ? cur.enabled : input.enabled === true;
   if (input.enabled !== undefined && typeof input.enabled !== "boolean") return { ok: false, error: "Switch must be on or off." };
   const packId = input.packId === undefined ? cur.packId : input.packId;
-  if (typeof packId !== "string" || !creditPacks.some((p) => p.id === packId)) return { ok: false, error: "Choose one of the credit packs." };
+  // A custom amount is saved with its credits (checked against the allowed range); a fixed pack clears it.
+  const credits = packId === CUSTOM_PACK_ID ? (input.credits === undefined ? cur.credits : input.credits) : null;
+  if (typeof packId !== "string" || !(creditPacks.some((p) => p.id === packId) || (packId === CUSTOM_PACK_ID && productById(CUSTOM_PACK_ID, credits)))) return { ok: false, error: packId === CUSTOM_PACK_ID ? "Choose an amount of credits inside the allowed range." : "Choose one of the credit packs." };
   const threshold = input.threshold === undefined ? cur.threshold : input.threshold;
   if (typeof threshold !== "number" || !(AUTO_THRESHOLDS as readonly number[]).includes(threshold)) return { ok: false, error: "Choose one of the listed amounts." };
   const maxPerMonth = input.maxPerMonth === undefined ? cur.maxPerMonth : input.maxPerMonth;
   if (typeof maxPerMonth !== "number" || !(AUTO_MONTHLY_CAPS as readonly number[]).includes(maxPerMonth)) return { ok: false, error: "Choose one of the listed limits." };
-  const data = { autoEnabled: enabled, autoPack: packId, autoThreshold: threshold, autoMaxPerMonth: maxPerMonth, ...(enabled && !cur.enabled ? { autoLastError: null } : {}) };
+  const data = { autoEnabled: enabled, autoPack: packId, autoCredits: credits as number | null, autoThreshold: threshold, autoMaxPerMonth: maxPerMonth, ...(enabled && !cur.enabled ? { autoLastError: null } : {}) };
   const row = await db.billingSettings.upsert({ where: { userId }, create: { userId, ...data }, update: data });
   return { ok: true, view: viewOf(row, await usedThisMonth(userId)) };
 }
@@ -70,7 +73,7 @@ export async function rememberRefs(userId: string, refs: PaymentRefs | undefined
 /** Grants the credits for one successful payment (a plan or a top-up pack), once however often the provider delivers it. */
 export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Promise<{ ok: true; duplicate: boolean } | { ok: false; error: string }> {
   if (event.cardOnly) { await rememberRefs(event.userId, event.refs); return { ok: true, duplicate: false }; }
-  const product = productById(event.planId);
+  const product = productById(event.planId, event.credits);
   if (!product) return { ok: false, error: "Unknown plan" };
   const note = event.auto ? `Auto top-up: ${product.name}` : product.kind === "pack" ? `Top-up: ${product.name}` : `Plan: ${product.name}`;
   const added = await grantCredits(event.userId, product.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId, note });
@@ -90,7 +93,7 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
     if (!s?.autoEnabled || !s.providerMemberId || !s.providerPaymentMethod) return false;
     const provider = paymentProvider();
     if (!provider?.chargeSavedCard) return false;
-    const pack = creditPacks.find((p) => p.id === s.autoPack);
+    const pack = s.autoPack === CUSTOM_PACK_ID ? productById(CUSTOM_PACK_ID, s.autoCredits) : creditPacks.find((p) => p.id === s.autoPack);
     if (!pack) return false;
 
     const { freeCredits } = await import("@/lib/reservations");
@@ -112,7 +115,7 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
 
     let charge;
     try {
-      charge = await provider.chargeSavedCard({ userId, productId: pack.id, price: pack.price, memberId: s.providerMemberId, paymentMethodId: s.providerPaymentMethod, idempotencyKey: `auto-${userId}-${randomUUID()}` });
+      charge = await provider.chargeSavedCard({ userId, productId: pack.id, ...(pack.id === CUSTOM_PACK_ID ? { credits: pack.credits } : {}), price: pack.price, memberId: s.providerMemberId, paymentMethodId: s.providerPaymentMethod, idempotencyKey: `auto-${userId}-${randomUUID()}` });
     } catch (err) {
       console.error("auto top-up charge failed", userId, err);
       await db.billingSettings.update({ where: { userId }, data: { autoEnabled: false, autoLastError: DECLINED } });

@@ -282,3 +282,44 @@ test("adding a card opens the provider's card page for this person, and its conf
   assert.deepEqual([s.providerMemberId, s.providerPaymentMethod], ["mem_1", "pm_1"]);
   assert.equal(await balance(), 0, "saving a card grants nothing");
 });
+
+test("a custom amount is priced by us, sent as a one-time price, and granted from the confirmed payment", { skip }, async () => {
+  await reset(0);
+  const { whop } = await import("../../src/lib/payments/whop");
+  const { productById } = await import("../../src/lib/plans");
+  const prod = productById("topup_custom", 1000)!;
+  assert.equal(prod.price, 22);
+  await whop.createCheckout({ userId: USER, planId: prod.id, returnUrl: "http://x/", custom: { credits: prod.credits, price: prod.price } });
+  const sent = whopState.setups[0];
+  assert.deepEqual(sent.plan, { initial_price: 22, currency: "usd", plan_type: "one_time" });
+  assert.equal(sent.plan_id, undefined, "no ready-made plan is used");
+  assert.deepEqual(sent.metadata, { userId: USER, planId: "topup_custom", credits: 1000 });
+  const ev = payment("pay_c1", "topup_custom", { member: { id: "mem_1" }, payment_method: { id: "pm_1" } });
+  (ev.data.metadata as Record<string, unknown>).credits = 1000;
+  assert.equal((await lib.webhook.POST(signed(ev))).status, 200);
+  assert.equal(await balance(), 1000);
+  assert.equal((await (await lib.webhook.POST(signed(ev))).json()).duplicate, true);
+  assert.equal(await balance(), 1000);
+  const bad = payment("pay_c2", "topup_custom");
+  (bad.data.metadata as Record<string, unknown>).credits = 999999;
+  assert.equal((await lib.webhook.POST(signed(bad))).status, 422, "an amount outside the range is never granted");
+  assert.equal(await balance(), 1000);
+});
+
+test("auto top-up with a custom amount saves it, validates it and charges that price", { skip }, async () => {
+  await reset(900);
+  assert.equal((await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_custom", credits: 10 })).ok, false);
+  assert.equal((await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_custom" })).ok, false, "an amount is required");
+  const ok = await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_custom", credits: 1000 });
+  assert.deepEqual([ok.ok, ok.view.packId, ok.view.credits], [true, "topup_custom", 1000]);
+  const fixed = await lib.billing.saveAutoTopup(USER, { packId: "topup_500" });
+  assert.equal(fixed.view.credits, null, "choosing a fixed pack clears the custom amount");
+  await lib.billing.saveAutoTopup(USER, { packId: "topup_custom", credits: 1000 });
+  await arm({ autoPack: "topup_custom", autoCredits: 1000, autoThreshold: 250 });
+  await lib.credits.spendCredits(USER, 700, "test");
+  await wait(400);
+  assert.equal(whopState.charges.length, 1);
+  assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 22, currency: "usd", plan_type: "one_time" });
+  assert.deepEqual(whopState.charges[0].body.metadata, { userId: USER, planId: "topup_custom", credits: 1000, auto: "1" });
+  assert.equal(await balance(), 200 + 1000);
+});

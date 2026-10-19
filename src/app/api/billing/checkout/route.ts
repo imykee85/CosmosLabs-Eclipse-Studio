@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { paymentProvider } from "@/lib/payments";
 import { claimUsage } from "@/lib/usage";
-import { productById } from "@/lib/plans";
+import { CUSTOM_MAX_CREDITS, CUSTOM_MIN_CREDITS, CUSTOM_PACK_ID, productById } from "@/lib/plans";
 import { NOT_TEAM_ADMIN, workspaceSession } from "@/lib/workspace";
 
 // Starts a purchase of a plan or a top-up pack and returns the provider's checkout address for the browser to open.
@@ -16,12 +16,12 @@ export async function POST(req: Request) {
   if (!provider) return NextResponse.json({ error: "Payments are not set up yet." }, { status: 503 });
 
   const body = await req.json().catch(() => null);
-  const plan = productById(body?.packId ?? body?.planId);
-  if (!plan) return NextResponse.json({ error: "Unknown plan" }, { status: 400 });
+  const plan = productById(body?.packId ?? body?.planId, body?.credits);
+  if (!plan) return NextResponse.json({ error: (body?.packId ?? body?.planId) === CUSTOM_PACK_ID ? `Choose between ${CUSTOM_MIN_CREDITS.toLocaleString("en-US")} and ${CUSTOM_MAX_CREDITS.toLocaleString("en-US")} credits.` : "Unknown plan" }, { status: 400 });
   if (!(await claimUsage(userId, "checkout", 20, 3600_000))) return NextResponse.json({ error: "Too many checkouts started. Try again in a little while." }, { status: 429 });
 
   try {
-    const { url } = await provider.createCheckout({ userId, planId: plan.id, returnUrl: `${new URL(req.url).origin}/settings?tab=billing&paid=1` });
+    const { url } = await provider.createCheckout({ userId, planId: plan.id, ...(plan.id === CUSTOM_PACK_ID ? { custom: { credits: plan.credits, price: plan.price } } : {}), returnUrl: `${new URL(req.url).origin}/settings?tab=billing&paid=1` });
     return NextResponse.json({ url });
   } catch (err) {
     console.error("checkout failed", err);

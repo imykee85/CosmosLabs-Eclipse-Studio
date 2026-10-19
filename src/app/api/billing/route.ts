@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAutoTopup } from "@/lib/billing";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { paymentProvider } from "@/lib/payments";
-import { AUTO_MONTHLY_CAPS, AUTO_THRESHOLDS, creditPacks } from "@/lib/plans";
+import { AUTO_MONTHLY_CAPS, AUTO_THRESHOLDS, CUSTOM_MAX_CREDITS, CUSTOM_MIN_CREDITS, creditPacks } from "@/lib/plans";
 import { workspaceSession } from "@/lib/workspace";
 
 // What the Billing tab needs: the top-up packs, the person's auto top-up choice and whether payments are set up.
@@ -13,6 +13,7 @@ export async function GET() {
   const provider = paymentProvider();
   return NextResponse.json({
     packs: creditPacks,
+    custom: { min: CUSTOM_MIN_CREDITS, max: CUSTOM_MAX_CREDITS },
     thresholds: AUTO_THRESHOLDS,
     caps: AUTO_MONTHLY_CAPS,
     team: { isTeam, isAdmin },

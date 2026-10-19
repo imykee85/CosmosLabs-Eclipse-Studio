@@ -530,6 +530,7 @@ model BillingSettings {
   userId                String    @id @map("user_id")
   autoEnabled           Boolean   @default(false) @map("auto_enabled")
   autoPack              String    @default("topup_2000") @map("auto_pack")
+  autoCredits           Int?      @map("auto_credits") // the amount when the auto pack is the custom one
   autoThreshold         Int       @default(250) @map("auto_threshold") // top up when free credits drop below this
   autoMaxPerMonth       Int       @default(3) @map("auto_max_per_month")
   autoLastAttemptAt     DateTime? @map("auto_last_attempt_at")

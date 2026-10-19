@@ -41,16 +41,17 @@ export function refsFrom(data: Record<string, unknown>): PaymentRefs | undefined
 export const whop: PaymentProvider = {
   name: "whop",
 
-  async createCheckout({ userId, planId, returnUrl }: CheckoutInput) {
+  async createCheckout({ userId, planId, returnUrl, custom }: CheckoutInput) {
     const res = await fetch(`${apiBase()}/checkout_configurations`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({
-        plan_id: whopPlanId(planId),
+        // A custom amount has no ready-made plan: the one-time price goes in the request itself.
+        ...(custom ? { plan: { initial_price: custom.price, currency: "usd", plan_type: "one_time" } } : { plan_id: whopPlanId(planId) }),
         ...(process.env.WHOP_COMPANY_ID ? { company_id: process.env.WHOP_COMPANY_ID } : {}),
         redirect_url: returnUrl,
         // Whop copies this onto the payment, which is how the webhook later knows whose purchase it was and which plan.
-        metadata: { userId, planId },
+        metadata: { userId, planId, ...(custom ? { credits: custom.credits } : {}) },
       }),
     });
     if (!res.ok) throw new Error(`Whop checkout failed (${res.status}): ${await res.text()}`);
@@ -79,10 +80,11 @@ export const whop: PaymentProvider = {
       console.error("whop payment event without the expected id or metadata");
       return null;
     }
-    return { provider: "whop", externalId: id, userId: metadata.userId, planId: metadata.planId, auto: (metadata as { auto?: unknown }).auto === "1", refs };
+    const credits = Number((metadata as { credits?: unknown }).credits);
+    return { provider: "whop", externalId: id, userId: metadata.userId, planId: metadata.planId, ...(Number.isInteger(credits) && credits > 0 ? { credits } : {}), auto: (metadata as { auto?: unknown }).auto === "1", refs };
   },
 
-  async chargeSavedCard({ userId, productId, price, memberId, paymentMethodId, idempotencyKey }: SavedCardCharge) {
+  async chargeSavedCard({ userId, productId, credits, price, memberId, paymentMethodId, idempotencyKey }: SavedCardCharge) {
     const res = await fetch(`${apiBase()}${process.env.WHOP_CHARGE_PATH ?? "/payments"}`, {
       method: "POST",
       headers: { ...authHeaders(), "Idempotency-Key": idempotencyKey },
@@ -91,7 +93,7 @@ export const whop: PaymentProvider = {
         member_id: memberId,
         payment_method_id: paymentMethodId,
         plan: { initial_price: price, currency: "usd", plan_type: "one_time" },
-        metadata: { userId, planId: productId, auto: "1" },
+        metadata: { userId, planId: productId, ...(credits ? { credits } : {}), auto: "1" },
       }),
     });
     if (!res.ok) throw new Error(`Whop charge failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
