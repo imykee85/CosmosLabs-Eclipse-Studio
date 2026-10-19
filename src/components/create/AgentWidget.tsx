@@ -8,7 +8,6 @@ import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
 import { CUE_EVENT, takeCue } from "@/lib/use-agent";
 
-const POS_KEY = "eclipse-agent-widget-pos";
 const SIZE = 64;
 
 // The agent as a little 3D character: a ball that always stays round, with two eyes that sit on its surface and travel round it. It floats, blinks, turns its head toward your
@@ -54,10 +53,9 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const clamp = (x: number, y: number) => ({ x: Math.min(Math.max(0, x), window.innerWidth - SIZE), y: Math.min(Math.max(0, y), window.innerHeight - SIZE) });
 
   useEffect(() => {
-    let p: { x: number; y: number } | null = null;
-    try { const raw = JSON.parse(localStorage.getItem(POS_KEY) ?? "null"); if (raw && typeof raw.x === "number" && typeof raw.y === "number") p = raw; } catch {}
-    // Default stance: parked on the left edge, just above the prompt box, facing in toward the screen.
-    setPos(clamp(p?.x ?? 0, p?.y ?? Math.round(window.innerHeight * 0.555)));
+    // Every time the agent is switched on it stands in the same default spot (user 2026-10-19): the left edge, about a quarter of the way down.
+    // Dragging moves it for this visit only; nothing is remembered.
+    setPos(clamp(0, Math.round(window.innerHeight * 0.235)));
     const onResize = () => setPos((q) => (q ? clamp(q.x, q.y) : q));
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -171,17 +169,16 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     drag.current = null;
     setDragging(false);
     if (!d) return;
-    if (d.moved) { try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch {} }
     else { setOpen(true); setHop(true); window.setTimeout(() => setHop(false), 1000); }
   }
 
-  // The card opens on the side of the button with more room.
+  // The card always opens below the agent.
   const cardLeft = Math.min(Math.max(8, pos.x + SIZE / 2 - 130), window.innerWidth - 268);
-  const cardTop = pos.y > window.innerHeight / 2 ? pos.y - 8 : pos.y + SIZE + 8;
+  const cardTop = pos.y + SIZE + 8;
   return (
     <>
       {open && (
-        <div className={`aw-card ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={big ? undefined : { left: cardLeft, top: cardTop, transform: pos.y > window.innerHeight / 2 ? "translateY(-100%)" : undefined }}>
+        <div className={`aw-card ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={big ? undefined : { left: cardLeft, top: cardTop }}>
           <div className="aw-head"><AgentIcon size={16} /><b>{name}</b>
             <button type="button" aria-label="Chat history" title="Chat history" className={showPast ? "is-on" : ""} onClick={() => setShowPast((v) => !v)}><History size={15} /></button>
             <button type="button" aria-label="New chat" title="New chat" disabled={chat.busy} onClick={() => { chat.newChat(); setShowPast(false); }}><SquarePen size={14} /></button>
