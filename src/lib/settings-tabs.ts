@@ -1,4 +1,4 @@
-export const SETTINGS_TABS = ["Profile", "Billing", "Team", "API/MCP"] as const;
+export const SETTINGS_TABS = ["Profile", "Billing", "Team", "Security", "API/MCP"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 // /settings?tab=billing opens that tab (the credits pill links there); anything unknown opens Profile.
