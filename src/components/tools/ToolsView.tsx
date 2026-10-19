@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownAZ, ArrowUp, ChevronLeft, ChevronRight, Film, Image as ImageIcon, Inbox, LayoutGrid, List, Plus, Search, Shapes, Type, Wrench } from "lucide-react";
@@ -79,7 +80,7 @@ export default function ToolsView() {
       <section className="tl-hero" aria-label="Describe a tool">
         <h2><span className="tl-mark"><Wrench size={22} /></span> What do you want to build?</h2>
         <form className="tl-box" onSubmit={(e) => { e.preventDefault(); if (idea.trim()) router.push(startLink(brief(idea.trim()), picked)); }}>
-          <textarea rows={2} value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="Describe a tool, for example: turn my product photo into a lookbook" aria-label="Describe a tool" />
+          <GrowArea rows={2} value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="Describe a tool, for example: turn my product photo into a lookbook" aria-label="Describe a tool" />
           <div className="tl-row">
             <button type="button" className="tl-plus" aria-label="Attach pictures from your Library" aria-expanded={attachOpen} onClick={() => setAttachOpen((v) => !v)}><Plus size={18} />{picked.length > 0 && <i className="tl-count">{picked.length}</i>}</button>
             <label className="tl-opt"><Shapes size={15} /><span className="sr-only">Kind of tool</span>

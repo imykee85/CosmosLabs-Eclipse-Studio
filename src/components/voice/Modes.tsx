@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Coins, Loader2, Mic, Paperclip, Repeat, Square, Users } from "lucide-react";
 import { estimateSeconds } from "@/lib/audio/pricing-client";
@@ -150,7 +151,6 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
   const [format, setFormat] = useState("wav");
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => { const el = box.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 200)}px`; }, [text]);
   const lengths = useMemo(() => (music ? MUSIC_LENGTHS : (model?.options.maxSeconds ?? 30) > 30 ? SFX_LONG_LENGTHS : SFX_LENGTHS).filter((s) => s >= (model?.options.minSeconds ?? 0) && s <= (model?.options.maxSeconds ?? 9999)), [music, model]);
   useEffect(() => { if (len != null && lengths.length && !lengths.includes(len)) setLen(lengths.includes(60) ? 60 : lengths[lengths.length - 1]); }, [lengths, len]);
   // A model that needs a length (Mirelo) has no Auto: pick 5 seconds when none is set. Variants and format follow what the model offers.
@@ -175,7 +175,7 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
   return (
     <div className={`vc-console ${over ? "is-over" : ""}`}>
       <label htmlFor={`vc-${kind}-text`} className="sr-only">{music ? "Describe the music" : "Describe the sound"}</label>
-      <textarea id={`vc-${kind}-text`} ref={box} rows={2} value={text} onChange={(e) => { setText(e.target.value); setError(""); }}
+      <GrowArea id={`vc-${kind}-text`} ref={box} rows={2} value={text} onChange={(e) => { setText(e.target.value); setError(""); }}
         placeholder={music ? "Warm, slow piano with soft strings, for a quiet morning" : "Rain on a tin roof with distant thunder"}
         onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void go(); } }} />
       {!music && model?.options.negativePrompt && (

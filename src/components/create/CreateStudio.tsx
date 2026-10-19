@@ -1,9 +1,10 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUp, Camera, ScanFace, Check, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Maximize2, Minimize2, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
+import { ArrowRight, ArrowUp, Camera, ScanFace, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
@@ -170,30 +171,6 @@ export default function CreateStudio() {
     setPickingModel(false);
     try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {}
   }
-
-  // The prompt field shows two lines; once the text needs more, an expand button opens a full-screen editor.
-  const [overflowing, setOverflowing] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  useEffect(() => {
-    const el = box.current;
-    if (el) setOverflowing(el.scrollHeight > el.clientHeight + 1);
-  }, [prompt, expanded]);
-  // Keep the editor (and its Done button) above the on-screen keyboard.
-  const [vvh, setVvh] = useState<number | null>(null);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!expanded || !vv) return;
-    const fit = () => setVvh(vv.height);
-    fit();
-    vv.addEventListener("resize", fit);
-    return () => { vv.removeEventListener("resize", fit); setVvh(null); };
-  }, [expanded]);
-  useEffect(() => {
-    if (!expanded) return;
-    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setExpanded(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [expanded]);
 
   // `over` is how the agent starts a render after the user approves it: its own prompt and count, never typed into the box.
   async function generate(over?: { prompt?: string; count?: number }): Promise<string> {
@@ -384,7 +361,7 @@ export default function CreateStudio() {
         <div className="cr-field">
           <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
           <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
-          <textarea
+          <GrowArea
             id="cr-prompt"
             ref={box}
             rows={2}
@@ -394,9 +371,6 @@ export default function CreateStudio() {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={onKeyDown}
           />
-          {(overflowing || prompt.includes("\n")) && (
-            <button type="button" className="cr-expand" aria-label="Expand the prompt box" title="Expand" onClick={() => setExpanded(true)}><Maximize2 size={15} /></button>
-          )}
         </div>
         {refs.length > 0 && (
           <div className="cr-refs" aria-label="Reference pictures">
@@ -491,13 +465,6 @@ export default function CreateStudio() {
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {soulOpen && soulVersion && <SoulIdDialog version={soulVersion} selected={soul?.id ?? null} strength={soulStrength} onPick={pickSoul} onStrength={setSoulStrength} onClose={() => setSoulOpen(false)} />}
       {pickingModel && models && <ModelPicker models={models} value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
-      {expanded && (
-        <div className="cr-full" style={vvh ? { height: vvh, bottom: "auto" } : undefined} role="dialog" aria-label="Write your prompt">
-          <button type="button" className="cr-full-x" aria-label="Back to the prompt box" title="Back" onClick={() => setExpanded(false)}><Minimize2 size={16} /></button>
-          <textarea autoFocus aria-label="Prompt" value={prompt} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder="Describe the shot you imagine…" onChange={(e) => setPrompt(e.target.value)} onFocus={(e) => e.currentTarget.setSelectionRange(prompt.length, prompt.length)} />
-          <button type="button" className="cr-done" aria-label="Done" title="Done" onClick={() => setExpanded(false)}><Check size={20} /></button>
-        </div>
-      )}
     </div>
   );
 }

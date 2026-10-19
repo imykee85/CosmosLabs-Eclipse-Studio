@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -121,19 +122,14 @@ function ConnectChat() {
   useAgentHost({ page: "core", context: () => ({ prompt: text, message: notice || undefined, pictures: picked.map((id) => ({ type: "render" as const, id, role: "attached from the Library" })) }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; } });
   const scrollEnd = useCallback(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, []);
   useEffect(() => { scrollEnd(); }, [lines, scrollEnd]);
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
-  }, [text]);
 
   function fresh() {
     setChatId(null); setLines([]); setNotice(""); setPicked([]);
     window.history.replaceState(null, "", "/connect");
   }
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey && !window.matchMedia("(pointer: coarse)").matches) { e.preventDefault(); send(text, picked); }
+    // Enter makes a new line (owner 2026-10-19); Ctrl or Cmd + Enter sends, like the other prompt boxes.
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(text, picked); }
   }
   const togglePick = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < 3 ? [...p, id] : p));
   const done = (renders ?? []).filter((r) => r.status === "completed" && r.imageUrl);
@@ -201,7 +197,7 @@ function ConnectChat() {
               })}
             </div>
           )}
-          <textarea ref={box} rows={2} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} aria-label="Message box" maxLength={8000}
+          <GrowArea ref={box} rows={2} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} aria-label="Message box" maxLength={8000}
             placeholder={chatting ? "Reply…" : "Ask for an image, run a skill, or send something to an app..."} />
           {notice && <p className="cn-err" role="alert">{notice}</p>}
           <div className="cn-tools">

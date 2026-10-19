@@ -12,7 +12,7 @@ export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label
 export type Frame = { id: string; label: string; sec: number; used?: string };
 // A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
 export type Attach = { kind: "picture" | "video"; id: string; name: string };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string }[]; error?: boolean; note?: boolean };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; error?: boolean; note?: boolean };
 
 export type AgentHost = {
   page: "studio" | "canvas" | "treatment" | "video" | "core";
@@ -104,7 +104,7 @@ export function useAgentChat(agent: string | null) {
   const send = useCallback(async (raw: string, atts: Attach[] = []) => {
     const text = raw.trim();
     if (!agent || !text || busyAgents.has(agent)) return;
-    add({ role: "user", text, ...(atts.length ? { attach: atts.map((a) => ({ kind: a.kind, name: a.name })) } : {}) });
+    add({ role: "user", text, ...(atts.length ? { attach: atts.map((a) => ({ kind: a.kind, name: a.name, id: a.id })) } : {}) });
     setBusy(true);
     try {
       const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text }));

@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import { useState } from "react";
 
 // The black "have an idea? try it." card: eyebrow, two-line heading (second line red), a prompt box and one button.
@@ -14,7 +15,7 @@ export default function CtaPromptCard({ id, className = "", eyebrow, line1, line
         <div className="eyebrow">{eyebrow}</div>
         <h2>{line1}<br /><em>{line2}</em></h2>
         <div className="idea-box">
-          <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} />
+          <GrowArea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} />
           <button className="create-btn" onClick={() => onSubmit(text)}>{icon} {button}</button>
         </div>
         {caption && <p className="try-caption">{caption}</p>}

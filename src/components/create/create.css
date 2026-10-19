@@ -227,9 +227,10 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-act.is-generate { background: #c00707; border-color: #c00707; color: #fff; } .aw-act.is-generate:hover:not(:disabled) { background: #d90b0b; }
 .aw-act:disabled { opacity: .6; cursor: default; }
 .aw-prompt { flex-basis: 100%; margin: 4px 0 0; padding: 8px 10px; border-left: 3px solid #c00707; color: var(--a-muted); font-size: 12.5px; white-space: pre-wrap; }
-.aw-input { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-input); }
+.aw-input { display: flex; align-items: flex-end; gap: 6px; padding: 4px 4px 4px 12px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-input); }
 .aw-input:focus-within { border-color: var(--a-fg2); }
-.aw-input input { flex: 1; min-width: 0; padding: 7px 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; }
+.aw-input input, .aw-input textarea { flex: 1; min-width: 0; padding: 7px 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; line-height: 1.4; resize: none; }
+.aw-input .pe-expand { top: 2px; right: 0; }
 .aw-input button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }
 .aw-input button:disabled { opacity: .4; cursor: default; }
 .aw-input { padding-left: 4px; }
@@ -293,3 +294,10 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .sid-field input { height: 44px; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 16px; }
 .sid-pics { display: flex; flex-wrap: wrap; gap: 6px; } .sid-pics img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
 .sid-actions { display: flex; gap: 10px; justify-content: space-between; } .sid-go { width: auto; padding: 0 20px; }
+
+.aw-att-pic { position: relative; padding: 0; border: 0; background: transparent; }
+.aw-thumb { display: block; width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--a-line2); background: var(--a-card); }
+.aw-thumb.is-big { width: 120px; height: 120px; border-radius: 12px; border-color: rgba(255,255,255,.35); }
+.aw-att-pic button { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: var(--a-card); border: 1px solid var(--a-line2); color: var(--a-fg); }
+.aw-attached { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; opacity: 1; }
+.aw-msg.is-user .aw-att-name { font-size: 12px; opacity: .85; }
