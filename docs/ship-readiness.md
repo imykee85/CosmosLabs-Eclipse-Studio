@@ -16,7 +16,6 @@ Done since the last list (removed): Anthropic key and credit, OpenAI credit, dat
 | 8 | Make one **video**, then try **Motion**; send me any error text | Test | 1 h | The video pipeline has never run against Higgsfield: this is the biggest unknown |
 | 9 | Grant yourself credits at `/admin/credits`, then set `CREDITS_ENABLED=1` (Config) | Setting | 15 min | Charging on |
 | 10 | Send two Higgsfield docs pages: Kling 3.0 Motion Control request page and Genjutsu Restyle page (with how its looks are listed) | Docs | 10 min | Scene control and the Style library |
-| 11 | Send the Seedance 2.0 prompter instructions (and knowledge files) | Text | 10 min | Turns on that Prompts tab |
 | 12 | Confirm you have the rights to the hero clip and the Motion graphics videos | Decision | 10 min | Safe to publish |
 | 13 | Provider billing: Google billing on the key's project, activate each Seedream model in BytePlus; run one cheap render each | Accounts | 1 h | Nano Banana and Seedream models |
 | 14 | Replace the test `welcome.mp4`; make the 4 tutorial videos | Your videos | 15 min each to wire | Onboarding and Tutorial |

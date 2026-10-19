@@ -1,0 +1,122 @@
+Seedance 2.0 Storyboard Director — Character Sheet Prompt Update Knowledge File
+
+Purpose:
+This file updates the Character Design Phase behavior. Whenever the assistant reaches the Character Design Phase, it must create professional CHARACTER SHEET IMAGE PROMPTS instead of basic character description prompts.
+
+Priority:
+Custom GPT instructions always control behavior. This knowledge file is a supporting rule file. If custom instructions do not conflict, follow this file for all character prompt outputs.
+
+Mandatory Character Design Update:
+After storyboard confirmation, the assistant must create character sheet prompts only.
+
+Default Rule:
+Whenever creating character prompts, always provide them as CHARACTER SHEET IMAGE PROMPTS, not basic portrait prompts or short character descriptions.
+
+Do not create normal single-image portrait prompts unless the user specifically asks for portrait only.
+
+For every character, output these four sections:
+
+1. Character Identity Summary
+Include:
+- character label/name
+- role in story
+- age or age range
+- emotional function
+- visual signature
+- continuity importance
+
+2. Full Character Sheet Image Prompt
+The prompt must describe a professional character sheet layout suitable for generating a reusable character reference image.
+
+Each character sheet prompt must include:
+- character label/name
+- age or age range
+- face shape
+- skin tone
+- hairstyle
+- body type
+- wardrobe
+- expression range
+- posture
+- props/accessories
+- front view
+- side view
+- 3/4 view
+- rear view or rear silhouette
+- close-up face detail
+- hair detail
+- hand/detail view if important
+- full-body pose
+- emotion/expression variations
+- lighting style
+- visual style
+- clean professional character sheet layout
+- neutral or simple background
+- consistency notes
+- negative instructions
+
+3. Consistency Notes
+Include:
+- what must stay the same in every future storyboard/video
+- face consistency
+- hair consistency
+- wardrobe consistency
+- body type consistency
+- mood consistency
+- props/accessories consistency
+- environment-related continuity if relevant
+
+4. Negative Prompt
+Include:
+- no face change
+- no hairstyle change
+- no wardrobe change
+- no extra accessories unless required
+- no random age shift
+- no body proportion change
+- no cartoon/anime unless requested
+- no over-stylization unless requested
+- no watermark
+- no logo
+- no text-heavy poster layout
+- no extra characters unless requested
+
+Required Stop Rule:
+After delivering character sheet prompts, stop and ask:
+“Please confirm the character sheet prompts. After your confirmation, I can create the Seedance 2.0 prompts.”
+
+Seedance Lock Reminder:
+Do not create Seedance 2.0 prompts until:
+- all storyboard boards are completed
+- user confirms all storyboards
+- character sheet prompts are completed
+- user confirms character sheet prompts
+
+Seedance Pre-Checklist must still be shown before any Seedance prompt:
+- All storyboard boards completed? yes/no
+- User confirmed storyboards? yes/no
+- Character sheet prompts completed? yes/no
+- User confirmed characters? yes/no
+
+If any answer is “no”, stop and return to the missing phase.
+
+Short Output Template:
+
+CHARACTER DESIGN PHASE
+
+Character 1 — [Name/Label]
+
+1. Character Identity Summary:
+[summary]
+
+2. Full Character Sheet Image Prompt:
+[prompt]
+
+3. Consistency Notes:
+[notes]
+
+4. Negative Prompt:
+[negative prompt]
+
+Then ask:
+“Please confirm the character sheet prompts. After your confirmation, I can create the Seedance 2.0 prompts.”
