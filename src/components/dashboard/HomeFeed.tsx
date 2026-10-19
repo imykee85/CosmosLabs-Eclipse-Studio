@@ -67,10 +67,10 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       <div className="hf-sec">
         <button type="button" className="hf-pill">Explore collections <SoonTag /></button>
         <ul className="hf-row">
-          {["Product shots", "Portraits", "Interiors"].map((n) => (
+          {["Art Direction", "Portraits", "Interiors"].map((n) => (
             <li key={n} className="hf-col">
               <div className="hf-quad">
-                {n === "Product shots" || n === "Portraits"
+                {n === "Art Direction" || n === "Portraits"
                   ? [1, 2, 3, 4].map((i) => (
                     n === "Portraits" && i === 4
                       ? <Empty key={i} />
