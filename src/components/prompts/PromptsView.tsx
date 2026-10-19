@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Check, Clapperboard, Copy, Layers, Loader2, Plus, Trash2, X } from "lucide-react";
@@ -178,7 +179,7 @@ export default function PromptsView() {
               ))}
             </div>
           )}
-          <textarea rows={2} value={text} maxLength={6000} aria-label="Describe your idea" placeholder={engine.forModel === "video" ? "Describe the video you want…" : "Describe the image you want…"}
+          <GrowArea rows={2} value={text} maxLength={6000} aria-label="Describe your idea" placeholder={engine.forModel === "video" ? "Describe the video you want…" : "Describe the image you want…"}
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
           <div className="pm-tools">
             <button type="button" className="pm-tool" aria-label="Upload a picture from your device" title="Upload a picture from your device" disabled={uploading || pics.length >= MAX_PICS} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>

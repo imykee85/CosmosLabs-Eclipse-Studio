@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import AgentIcon from "@/components/AgentIcon";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
@@ -366,7 +367,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
             </div>
           )}
           {gens.length > 1 && <p className="cv-nhint">The ticked image is the Result the next node receives.</p>}
-          <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder={kind === "fullbody" ? "Describe the full-body look…" : kind === "sheet" ? "Describe the character (or plug in a Character node)…" : "Describe the shot you imagine…"} aria-label="Prompt"
+          <GrowArea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder={kind === "fullbody" ? "Describe the full-body look…" : kind === "sheet" ? "Describe the character (or plug in a Character node)…" : "Describe the shot you imagine…"} aria-label="Prompt"
             onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
           <div className="cv-controls nodrag">
@@ -559,7 +560,7 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
               {gens.map((g, i) => <button key={g} type="button" className={`cv-chip nodrag ${g === picked ? "is-on" : ""}`} aria-pressed={g === picked} onClick={() => updateNodeData(id, { pick: g })}>Take {i + 1}</button>)}
             </div>
           )}
-          <textarea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={caps.promptMax} placeholder="Describe the motion, the camera and what happens…" aria-label="Prompt"
+          <GrowArea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={caps.promptMax} placeholder="Describe the motion, the camera and what happens…" aria-label="Prompt"
             onChange={(e) => updateNodeData(id, { prompt: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
           <label className="cv-chip cv-sel cv-wide nodrag"><span className="cv-muted">Model:</span>
             <select value={model.id} aria-label="Video model" onChange={(e) => updateNodeData(id, { model: e.target.value })}>

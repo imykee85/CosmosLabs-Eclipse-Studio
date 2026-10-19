@@ -195,7 +195,7 @@ test.describe("prompt box messages", () => {
     expect(f.y - (e.y + e.height)).toBeGreaterThanOrEqual(0);
     await expect(page.locator(".cr-hint")).toHaveCount(0);
     await page.click(".aw-btn");
-    await page.fill(".aw-input input:not([type=file])", "what went wrong?");
+    await page.fill(".aw-input textarea", "what went wrong?");
     await page.click('.aw-input button[type="submit"]');
     await expect.poll(() => sent?.context?.message).toBe("The provider said no.");
   });
@@ -219,11 +219,11 @@ test.describe("Atlas chat attachments", () => {
     await page.click(".aw-btn");
     await expect(page.locator(".aw-clip")).toBeVisible();
     await page.setInputFiles('.aw-input input[type="file"]', { name: "pic.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64") });
-    await expect(page.locator(".aw-att")).toContainText("pic");
-    await page.fill(".aw-input input:not([type=file])", "what is this?");
+    await expect(page.locator(".aw-att-pic")).toHaveAttribute("title", "pic");
+    await page.fill(".aw-input textarea", "what is this?");
     await page.click('.aw-input button[type="submit"]');
     await expect.poll(() => sent?.context?.pictures?.[0]?.id).toBe("up1");
-    await expect(page.locator(".aw-attached")).toContainText("pic");
+    await expect(page.locator(".aw-attached img")).toHaveAttribute("alt", "pic");
     await expect(page.locator(".aw-att")).toHaveCount(0);
   });
 });

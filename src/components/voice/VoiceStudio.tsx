@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import { getCertificate } from "@/lib/certificate-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Award, Coins, Download, FileText, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
@@ -69,8 +70,6 @@ export default function VoiceStudio() {
     loaded.current = true;
   }, []);
   useEffect(() => { if (loaded.current) write(DRAFT_KEY, text || null); }, [text]);
-  // The script box grows with what is written (up to a limit, then it scrolls).
-  useEffect(() => { const el = box.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 220)}px`; }, [text]);
 
   const model = useMemo(() => models?.find((m) => m.id === modelId) ?? models?.[0] ?? null, [models, modelId]);
   const provider = model?.provider ?? null;
@@ -270,7 +269,7 @@ export default function VoiceStudio() {
         {studioMode === "music" && <MusicConsole models={allModels?.filter((m) => m.kind === "music") ?? []} onStart={startKind} setError={setError} />}
         {studioMode === "speak" && <div className={`vc-console ${over ? "is-over" : ""}`}>
           <label htmlFor="vc-text" className="sr-only">Script</label>
-          <textarea id="vc-text" ref={box} rows={2} value={text} onChange={(e) => { setText(e.target.value); if (error) setError(""); }} placeholder={voice ? `Write what ${voice.name} should say…` : "Write the script…"}
+          <GrowArea id="vc-text" ref={box} rows={2} value={text} onChange={(e) => { setText(e.target.value); if (error) setError(""); }} placeholder={voice ? `Write what ${voice.name} should say…` : "Write the script…"}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }} />
           <div className="vc-controls">
             <label className="vc-pill vc-select" title="Voice model">

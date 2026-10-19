@@ -1,7 +1,9 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
+import { thumbOf, fallbackTo } from "@/lib/thumb-url";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Film, History, Image as ImageIcon, Loader2, Maximize2, Minimize2, Paperclip, SquarePen, Trash2, X } from "lucide-react";
+import { ArrowUp, History, Loader2, Maximize2, Minimize2, Paperclip, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import { canUseFrame, useAgentChat, type Attach } from "@/lib/agent-chat";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
@@ -9,6 +11,15 @@ import { readCurrentProject } from "@/lib/projects";
 import { CUE_EVENT, takeCue } from "@/lib/use-agent";
 
 const SIZE = 64;
+
+// A picture or clip added in the chat, shown as what it is (not an icon): the picture's small copy, or the clip's first frame.
+function Thumb({ kind, id, name, big = false }: { kind: "picture" | "video"; id: string; name: string; big?: boolean }) {
+  const cls = big ? "aw-thumb is-big" : "aw-thumb";
+  if (kind === "video") return <video className={cls} src={`/api/generations/${id}/file#t=0.1`} muted playsInline preload="metadata" aria-label={name} />;
+  const full = `/api/uploads/${id}/file`;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className={cls} src={thumbOf("upload", id)} alt={name} onError={fallbackTo(full)} draggable={false} />;
+}
 
 // The agent as a little 3D character: a ball that always stays round, with two eyes that sit on its surface and travel round it. It floats, blinks, turns its head toward your
 // finger or cursor, and spins all the way round when you tap it. Real CSS 3D (no images), drawn in the theme's colours.
@@ -200,7 +211,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             {chat.messages.length === 0 && <p className="aw-empty">Say hello, or tell me what you want to make.</p>}
             {chat.messages.map((m) => (
               <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""}`}>
-                {m.attach && m.attach.length > 0 && <p className="aw-attached">{m.attach.map((a) => (a.kind === "video" ? <Film key={a.name} size={12} /> : <ImageIcon key={a.name} size={12} />))} {m.attach.map((a) => a.name).join(", ")}</p>}
+                {m.attach && m.attach.length > 0 && <div className="aw-attached">{m.attach.map((a, i) => (a.id ? <Thumb key={a.id + i} kind={a.kind} id={a.id} name={a.name} big /> : <span key={a.name + i} className="aw-att-name">{a.name}</span>))}</div>}
                 {m.text && <p>{m.text}</p>}
                 {m.frames && m.frames.length > 0 && (
                   <div className="aw-frames">
@@ -235,7 +246,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           {(atts.length > 0 || uploading !== null || attErr) && (
             <div className="aw-atts">
               {atts.map((a) => (
-                <span key={a.id} className="aw-att">{a.kind === "video" ? <Film size={12} /> : <ImageIcon size={12} />}{a.name}<button type="button" aria-label={`Remove ${a.name}`} onClick={() => setAtts((l) => l.filter((x) => x.id !== a.id))}><X size={11} /></button></span>
+                <span key={a.id} className="aw-att aw-att-pic" title={a.name}><Thumb kind={a.kind} id={a.id} name={a.name} /><button type="button" aria-label={`Remove ${a.name}`} onClick={() => setAtts((l) => l.filter((x) => x.id !== a.id))}><X size={11} /></button></span>
               ))}
               {uploading !== null && <span className="aw-att"><Loader2 size={12} className="cr-spin" />{uploading > 0 && uploading < 1 ? `${Math.round(uploading * 100)}%` : "Adding…"}</span>}
               {attErr && <span className="aw-att is-error">{attErr}</span>}
@@ -244,7 +255,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           <form className="aw-input" onSubmit={submit}>
             <input ref={fileIn} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,.mov,.mp4,.webm,.m4v" onChange={(e) => void addFiles(e.target.files)} />
             <button type="button" className="aw-clip" aria-label="Add a picture or video" title="Add a picture or video" disabled={uploading !== null || chat.busy || atts.length >= 4} onClick={() => fileIn.current?.click()}><Paperclip size={15} /></button>
-            <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} />
+            <GrowArea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
             <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy || uploading !== null}><ArrowUp size={16} /></button>
           </form>
         </div>

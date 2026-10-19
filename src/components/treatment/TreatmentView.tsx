@@ -1,5 +1,6 @@
 "use client";
 
+import GrowArea from "@/components/GrowArea";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Copy, FileText, Loader2, Trash2, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
@@ -323,7 +324,7 @@ export default function TreatmentView() {
               <button type="button" className="tr-linkadd" onClick={addLink} disabled={!linkDraft.trim()}>Add</button>
             </div>
           )}
-          <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Your message"
+          <GrowArea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Your message"
             placeholder={active.id === "brief" ? "Paste your brief or attach a file..." : "Type your answer..."}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
           {error && <p className="tr-error" role="alert">{error}</p>}
