@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
+import { getAdmin } from "@/lib/admin";
 import { HiggsfieldError } from "@/lib/higgsfield";
 import { submitVideo } from "@/lib/higgsfield-video";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
@@ -88,7 +89,8 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
     await db.generation.delete({ where: { id: made.row.id } }).catch(() => {});
     console.error("starting video edit failed", mode, err instanceof HiggsfieldError ? err.message : err);
     const rejected = err instanceof HiggsfieldError && err.status != null && err.status >= 400 && err.status < 500;
-    const why = err instanceof HiggsfieldError && err.detail ? ` Seedance 2.5: ${err.detail}` : "";
+    // Eclipse's own words for people; the provider's reply goes to the logs, and to the owner here so a setting can be fixed fast.
+    const why = (await getAdmin().catch(() => null)) && err instanceof HiggsfieldError && err.detail ? ` (Owner only: ${err.detail})` : "";
     return { ok: false, status: 502, error: rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
   }
 }

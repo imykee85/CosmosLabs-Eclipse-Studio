@@ -24,6 +24,7 @@ export type Render = {
   kind: "image" | "video";
   durationSec: number | null;
   hasAudio: boolean | null;
+  uploaded?: boolean;
   credits: number | null;
   startedAt: string | null;
   createdAt: string;

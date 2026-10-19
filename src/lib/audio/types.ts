@@ -1,4 +1,4 @@
-// Voice Studio: the provider-neutral types (docs/audio-providers/build-brief.md section 2). Plain fetch adapters only; no provider SDKs.
+// Audio Studio: the provider-neutral types (docs/audio-providers/build-brief.md section 2). Plain fetch adapters only; no provider SDKs.
 export type AudioKind = "tts" | "stt" | "sfx" | "music" | "vsfx"; // vsfx: sound made for a video ("Add sound")
 
 export type AudioRequest = {

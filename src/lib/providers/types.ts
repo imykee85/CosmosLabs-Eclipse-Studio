@@ -34,6 +34,19 @@ export interface SyncImageProvider {
   generate(input: SyncGenerateInput): Promise<SyncGenerateResult>;
 }
 
+// What people are told when a model fails (owner 2026-10-19: every message is Eclipse's own; no maker, service, status code or raw provider text).
+// The provider's own words stay in `detail`, which goes to the server logs and the owner's job pages only.
+export const SAY = {
+  notReady: "This model is not available right now. Please choose another model.",
+  timeout: "This render took too long and was stopped. Please try again.",
+  unreachable: "This model could not be reached. Please try again in a moment.",
+  busy: "This model is busy right now. Please try again in a moment.",
+  safety: "This image was blocked by the model's safety filter. Try different words or another model.",
+  safetyPictures: "This image was blocked by the model's safety filter. It checks your pictures as well as your words, so try different pictures, fewer pictures, or another model.",
+  failed: "This model could not make the image. Please try again or choose another model.",
+  noPicture: "The model did not return a picture. Please try again, or reword the prompt.",
+} as const;
+
 // A provider's refusal or failure, with a sentence a person can read (`message`) and the provider's own words for the logs and for us (`detail`).
 export class ProviderError extends Error {
   readonly userMessage: string;

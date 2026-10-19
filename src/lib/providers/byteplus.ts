@@ -2,7 +2,7 @@
 // (the sandbox cannot reach it and has no key). Unconfirmed: the auth header (ModelArk's standard `Authorization: Bearer` is used), the real model ids
 // (the registry ids come from a third party; ARK_MODEL_<ID> overrides them) and the size tables other than the one example on the page.
 // Synchronous: one call returns the picture (we ask for `b64_json`, so there is no 24-hour link to download). NO seed. Watermark is switched off explicitly.
-import { ProviderError, type SizeRule, type SyncGenerateInput, type SyncGenerateResult, type SyncImageProvider } from "./types";
+import { ProviderError, SAY, type SizeRule, type SyncGenerateInput, type SyncGenerateResult, type SyncImageProvider } from "./types";
 
 const base = () => process.env.ARK_BASE_URL ?? "https://ark.ap-southeast.bytepluses.com/api/v3";
 
@@ -35,13 +35,13 @@ export function arkRequest(input: SyncGenerateInput, png: boolean): Record<strin
 export const byteplus: SyncImageProvider = {
   async generate(input): Promise<SyncGenerateResult> {
     const key = process.env.ARK_API_KEY;
-    if (!key) throw new ProviderError("Seedream is not set up yet.", "ARK_API_KEY is not set");
+    if (!key) throw new ProviderError(SAY.notReady, "ARK_API_KEY is not set");
     let res: Response;
     try {
       res = await fetch(`${base()}/images/generations`, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify(arkRequest(input, input.outputPng === true)), signal: input.signal });
     } catch (e) {
-      if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) throw new ProviderError("This render took too long and was stopped. Please try again.", "timed out waiting for BytePlus");
-      throw new ProviderError("Seedream could not be reached. Please try again.", e instanceof Error ? e.message : "network error");
+      if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) throw new ProviderError(SAY.timeout, "timed out waiting for BytePlus");
+      throw new ProviderError(SAY.unreachable, e instanceof Error ? e.message : "network error");
     }
     const text = await res.text();
     let json: { data?: { b64_json?: string; error?: { code?: string; message?: string } }[]; usage?: unknown; error?: { code?: string; message?: string } } | null = null;
@@ -50,13 +50,13 @@ export const byteplus: SyncImageProvider = {
     if (!res.ok || err) {
       const why = err?.message ?? text.slice(0, 300);
       const code = err?.code ?? "";
-      if (/sensitive|moderation|content|safety|violat/i.test(code + " " + why)) throw new ProviderError("Seedream's safety filter blocked this image. Try a different prompt.", `${res.status} ${code}: ${why}`);
-      if (res.status === 429) throw new ProviderError(`Seedream is limiting requests (429${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
-      if (res.status === 401 || res.status === 403) throw new ProviderError("Seedream rejected our key or the model is not activated for our account. The owner needs to check it.", `${res.status} ${code}: ${why}`);
-      throw new ProviderError(`Seedream could not make this image (${res.status}${code ? " " + code : ""}): ${why.slice(0, 220)}`, `${res.status} ${code}: ${why}`);
+      if (/sensitive|moderation|content|safety|violat/i.test(code + " " + why)) throw new ProviderError(SAY.safety, `${res.status} ${code}: ${why}`);
+      if (res.status === 429) throw new ProviderError(SAY.busy, `${res.status} ${code}: ${why}`);
+      if (res.status === 401 || res.status === 403) throw new ProviderError(SAY.notReady, `${res.status} ${code}: ${why}`);
+      throw new ProviderError(SAY.failed, `${res.status} ${code}: ${why}`);
     }
     const b64 = json?.data?.[0]?.b64_json;
-    if (!b64) throw new ProviderError("Seedream did not return a picture.", `no b64_json in the reply: ${text.slice(0, 200)}`);
+    if (!b64) throw new ProviderError(SAY.noPicture, `no b64_json in the reply: ${text.slice(0, 200)}`);
     const bytes = new Uint8Array(Buffer.from(b64, "base64"));
     return { bytes, contentType: bytes[0] === 0x89 && bytes[1] === 0x50 ? "image/png" : "image/jpeg", usage: json?.usage };
   },

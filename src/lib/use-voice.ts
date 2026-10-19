@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// The browser side of Voice Studio's routes (src/app/api/audio). A voice is a job: POST /api/audio/generate returns a "pending" item, GET /api/audio/<id> follows it.
+// The browser side of Audio Studio's routes (src/app/api/audio). A voice is a job: POST /api/audio/generate returns a "pending" item, GET /api/audio/<id> follows it.
 export type AudioKind = "tts" | "stt" | "sfx" | "music" | "vsfx"; // vsfx: sound made for a video
 export type TranscriptSegment = { text: string; start: number; end: number; speaker?: string };
 export type Transcript = { text: string; language?: string; durationSec?: number; segments: TranscriptSegment[] };
@@ -55,7 +55,7 @@ export function useVoiceJobs() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const load = useCallback(async () => {
     try {
-      const r = await fetch("/api/audio", { cache: "no-store" });
+      const r = await fetch("/api/audio?scope=studio", { cache: "no-store" });
       const d = await r.json().catch(() => null);
       if (r.ok && Array.isArray(d?.items)) setItems(d.items);
       else setItems((cur) => cur ?? []);

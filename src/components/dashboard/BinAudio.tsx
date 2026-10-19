@@ -5,7 +5,7 @@ import { Clock, RotateCcw, Trash2 } from "lucide-react";
 import { timeAgo } from "@/lib/projects";
 import type { AudioItem } from "@/lib/audio/jobs";
 
-// Voice takes, sound effects and music moved to the Bin from Voice Studio. Restoring puts one back in the list; deleting forever removes the file.
+// Voice takes, sound effects and music moved to the Bin from Audio Studio. Restoring puts one back in the list; deleting forever removes the file.
 export default function BinAudio({ query }: { query: string }) {
   const [items, setItems] = useState<AudioItem[] | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function BinAudio({ query }: { query: string }) {
       ) : (
         <section className="db-empty" aria-live="polite">
           <h1>{q ? "No matches" : "No deleted audio"}</h1>
-          <p>{q ? "Nothing in the bin matches your search." : "Voices, sound effects and music you delete in Voice Studio show up here."}</p>
+          <p>{q ? "Nothing in the bin matches your search." : "Voices, sound effects and music you delete in Audio Studio show up here."}</p>
         </section>
       )}
     </>

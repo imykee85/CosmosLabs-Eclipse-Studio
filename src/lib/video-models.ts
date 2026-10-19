@@ -14,7 +14,7 @@ type WfOverride = { resolution?: ResSpec | null; aspect?: AspectSpec | null; see
 
 export type VideoLive = {
   endpoints: Partial<Record<Workflow, string>>;     // path after the API base address
-  refs?: { max: number; videos?: { max: number }; audio?: { max: number; alone?: boolean }; total?: number }; // reference pictures, clips (the user's own finished videos), sounds (their Voice Studio takes; `alone`: a sound with no picture or clip is allowed), and the most in all
+  refs?: { max: number; videos?: { max: number }; audio?: { max: number; alone?: boolean }; total?: number }; // reference pictures, clips (the user's own finished videos), sounds (their Audio Studio takes; `alone`: a sound with no picture or clip is allowed), and the most in all
   promptMax: number;                                // longer prompts are refused here (some endpoints truncate silently)
   promptRequired: Record<"t2v" | "i2v", boolean> & { ref?: boolean };
   durations: Record<"t2v" | "i2v", { min: number; max: number; values?: number[] }> & { ref?: { min: number; max: number; values?: number[] } };  // `values` = only these lengths (e.g. 5 or 10)
@@ -383,19 +383,19 @@ export const VIDEO_MODELS: VideoModel[] = [
   { id: "ltx_2_5", label: "LTX-2.5 Fast", maker: "Lightricks", blurb: "Fast clips up to 4K, with sound.", ratios: ["16:9", "9:16"], durations: [6, 8, 10], qualities: ["720p", "1080p", "2k", "4k"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: ltx25("fast") },
   { id: "ltx_2_5_pro", label: "LTX-2.5 Pro", maker: "Lightricks", blurb: "The higher-quality tier, 720p or 1080p, with sound.", ratios: ["16:9", "9:16"], durations: [6, 8, 10], qualities: ["720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: ltx25("pro") },
   { id: "grok_video_v15", label: "Grok Video 1.5", maker: "xAI", blurb: "Text, a first-frame picture, or up to 7 reference pictures.", ratios: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], durations: range(1, 15), qualities: ["480p", "720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 7, live: grok15 },
-  { id: "cinematic_studio_video_4_0", label: "Cinema Studio 4.0", maker: "Higgsfield", blurb: "Cinema-grade video from text or references, up to 30 s.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p"], sound: "toggle", startFrame: false, endFrame: false, refImages: 30, live: cinema40 },
+  { id: "cinematic_studio_video_4_0", label: "Cinema Studio 4.0", maker: "Cinema Studio", blurb: "Cinema-grade video from text or references, up to 30 s.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p"], sound: "toggle", startFrame: false, endFrame: false, refImages: 30, live: cinema40 },
   // Motion engines: only the Motion chip uses these (hidden from the model picker).
   { id: "kling_mc_3_pro", label: "Kling 3.0 Motion Control Pro", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("3", "pro") },
   { id: "kling_mc_3_std", label: "Kling 3.0 Motion Control Standard", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("3", "std") },
   { id: "kling_mc_26_pro", label: "Kling 2.6 Motion Control Pro", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("26", "pro") },
   { id: "kling_mc_26_std", label: "Kling 2.6 Motion Control Standard", maker: "Kling", blurb: "Copies a clip's movement onto your subject.", ratios: [], durations: [], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: klingMotion("26", "std") },
-  { id: "genjutsu_motion", label: "Genjutsu Motion transfer", maker: "Higgsfield", blurb: "Moves your subject like the person in a clip.", ratios: [], durations: [], qualities: ["480p", "720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: genjutsuMotion },
+  { id: "genjutsu_motion", label: "Genjutsu Motion transfer", maker: "Genjutsu", blurb: "Moves your subject like the person in a clip.", ratios: [], durations: [], qualities: ["480p", "720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 0, hidden: true, live: genjutsuMotion },
 
   // Listed with the settings the catalog gives; not connected yet (greyed out, Soon).
   { id: "kling_o3_image_reference", label: "Kling 3.0 Omni", maker: "Kling", blurb: "Video from text and several reference pictures.", ratios: R3, durations: range(3, 15), qualities: ["Standard", "Pro", "4K"], sound: "toggle", startFrame: false, endFrame: false, refImages: 7 },
   { id: "seedance_2_0_mini", label: "Seedance 2.0 Mini", maker: "Bytedance", blurb: "Fast, budget Seedance 2.0.", ratios: RWIDE, durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
   { id: "seedance1_5", label: "Seedance 1.5 Pro", maker: "Bytedance", blurb: "Reliable motion, improved quality.", ratios: RWIDE, durations: [4, 8, 12], qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
-  { id: "cinematic_studio_3_0", label: "Cinema Studio Video 3.0", maker: "Higgsfield", blurb: "Cinema-grade video, the most advanced.", ratios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(4, 15), qualities: ["480p", "720p", "1080p", "4K"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
+  { id: "cinematic_studio_3_0", label: "Cinema Studio Video 3.0", maker: "Cinema Studio", blurb: "Cinema-grade video, the most advanced.", ratios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(4, 15), qualities: ["480p", "720p", "1080p", "4K"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "flux_3_video", label: "FLUX 3 Video", maker: "Black Forest Labs", blurb: "Text, multi-frame and continuation, with sound.", ratios: ["auto", "21:9", "2:1", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(5, 20), qualities: ["720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
 ];
 
@@ -527,7 +527,7 @@ export type BuildResult = { ok: true; workflow: Workflow; endpoint: string; body
 // Builds the exact JSON body for the model's endpoint. Fields a model does not list are never sent; a value the model cannot take is an error, not a silent change.
 export function buildVideoBody(m: VideoModel, input: VideoInput): BuildResult {
   const l = m.live;
-  if (!l) return { ok: false, error: `${m.label} is not connected yet.` };
+  if (!l) return { ok: false, error: `${m.label} is not available yet.` };
   const refs = input.refUrls ?? [];
   const refVideos = input.refVideoUrls ?? [];
   const refAudio = input.refAudioUrls ?? [];

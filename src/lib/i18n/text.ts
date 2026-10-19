@@ -47,5 +47,5 @@ export const KEEP_NAMES = [
   "Eclipse", "Eclipse Studio", "Cosmos Labs", "Cosmos Labs AI", "Atlas", "Core",
   "Soul 2", "Soul Cinema", "Seedance", "Kling", "MiniMax", "Hailuo", "Wan", "Happy Horse", "PixVerse", "Grok", "Nano Banana", "GPT Image", "Seedream", "Ideogram", "Recraft", "Qwen", "Z-Image", "Marketing Studio", "Ads Studio", "Cinema Studio", "Genjutsu", "LTX",
   "ElevenLabs", "Fish Audio", "Seed Audio", "Claude", "ChatGPT", "Gemini", "Perplexity", "Meta AI", "Telegram", "Slack", "TikTok", "Instagram", "YouTube", "Higgsfield", "Whop",
-  "Image Studio", "Video Studio", "Voice Studio",
+  "Image Studio", "Video Studio", "Audio Studio",
 ];

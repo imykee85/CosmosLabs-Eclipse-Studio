@@ -301,3 +301,15 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-att-pic button { position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; background: var(--a-card); border: 1px solid var(--a-line2); color: var(--a-fg); }
 .aw-attached { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; opacity: 1; }
 .aw-msg.is-user .aw-att-name { font-size: 12px; opacity: .85; }
+/* Atlas chat: edit and resend your message, try an answer again (owner 2026-10-19) */
+.aw-msg-acts { display: flex; justify-content: flex-end; margin: 4px -6px -5px 0; }
+.aw-msg.is-agent .aw-msg-acts { justify-content: flex-start; margin: 4px 0 -5px -6px; }
+.aw-msg-acts button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: inherit; opacity: .7; cursor: pointer; }
+.aw-msg-acts button:hover { opacity: 1; background: rgba(128,128,128,.18); }
+.aw-msg.is-editing { width: 92%; background: var(--a-input); color: var(--a-fg); border: 1px solid var(--a-line2); }
+.aw-edit { display: grid; gap: 6px; }
+.aw-edit textarea { width: 100%; resize: none; border: 0; outline: 0; background: transparent; padding: 0; color: var(--a-fg); font: inherit; font-size: 13.5px; line-height: 1.5; }
+.aw-edit-acts { display: flex; justify-content: flex-end; gap: 6px; }
+.aw-edit-acts button { height: 28px; padding: 0 11px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
+.aw-edit-acts .is-send { border-color: #c00707; background: #c00707; color: #fff; }
+.aw-edit-acts .is-send:disabled { opacity: .5; cursor: default; }

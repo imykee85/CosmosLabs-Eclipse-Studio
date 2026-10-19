@@ -24,9 +24,11 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const projectId = params.get("projectId");
   const inBin = params.get("bin") === "1";
+  // `?uploaded=1`: only videos the person added from their device (Assets).
+  const uploadedOnly = params.get("uploaded") === "1" ? { kind: "video", params: { path: ["uploaded"], equals: true } } : {};
   try {
     await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err));
-    const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
+    const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), ...uploadedOnly, deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
     // Renders still running are checked on here, so coming back later (or from another device) finds them finished.
     // Videos we stopped waiting for are asked about again in the background (a late finish turns the row into the video on the next load).
     const late = rows.filter(isLateWatch).slice(0, 3);

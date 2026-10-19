@@ -10,9 +10,9 @@ import SoonTag from "@/components/SoonTag";
 import { tutorialHref } from "@/lib/tutorial";
 import "./user-menu.css";
 
-// Tutorial opens with the page you are on as its "back" target (the href is filled in below).
+// Academy (was Tutorial, owner 2026-10-19) opens the tutorial page with the page you are on as its "back" target (the href is filled in below).
 const ITEMS = [
-  { label: "Tutorial", href: "", icon: GraduationCap, soon: false },
+  { label: "Academy", href: "", icon: GraduationCap, soon: false },
   { label: "Portfolio", href: "/portfolio", icon: LayoutGrid, soon: false },
   { label: "Certificates", href: "/certificates", icon: Award, soon: false },
   { label: "Settings", href: "/settings", icon: Settings, soon: false },
@@ -47,7 +47,7 @@ export default function UserMenu({ variant = "header" }: { variant?: "header" | 
       {open && (
         <div className="um-menu" role="menu">
           {ITEMS.map(({ label, href, icon: Icon, soon }) => (
-            <Link key={label} href={label === "Tutorial" ? tutorialHref(pathname) : href} role="menuitem" className="um-item" onClick={() => setOpen(false)}>
+            <Link key={label} href={label === "Academy" ? tutorialHref(pathname) : href} role="menuitem" className="um-item" onClick={() => setOpen(false)}>
               <Icon size={17} /> {label}{soon && <SoonTag className="um-soon" />}
             </Link>
           ))}

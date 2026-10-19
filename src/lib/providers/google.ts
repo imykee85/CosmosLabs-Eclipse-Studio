@@ -2,7 +2,7 @@
 // ai.google.dev/gemini-api/docs/image-generation); NOT yet run against the live API (the sandbox cannot reach it and has no key).
 // Unconfirmed, so kept tolerant and marked: the exact shape of the REST reply (we look for the picture in `output_image` or in any image block
 // outside the "thought" steps and take the last one), the list of aspect ratios per model, request size limits, and whether a seed exists (none is sent).
-import { ProviderError, type SyncGenerateInput, type SyncGenerateResult, type SyncImageProvider } from "./types";
+import { ProviderError, SAY, type SyncGenerateInput, type SyncGenerateResult, type SyncImageProvider } from "./types";
 
 const base = () => process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com";
 // Our tiers to the API's `image_size` (an UPPERCASE K).
@@ -55,13 +55,13 @@ export function googleRequestBody(input: SyncGenerateInput): Record<string, unkn
 export const google: SyncImageProvider = {
   async generate(input): Promise<SyncGenerateResult> {
     const key = process.env.GEMINI_API_KEY;
-    if (!key) throw new ProviderError("Google image generation is not set up yet.", "GEMINI_API_KEY is not set");
+    if (!key) throw new ProviderError(SAY.notReady, "GEMINI_API_KEY is not set");
     let res: Response;
     try {
       res = await fetch(`${base()}/v1beta/interactions`, { method: "POST", headers: { "x-goog-api-key": key, "Content-Type": "application/json" }, body: JSON.stringify(googleRequestBody(input)), signal: input.signal });
     } catch (e) {
-      if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) throw new ProviderError("This render took too long and was stopped. Please try again.", "timed out waiting for Google");
-      throw new ProviderError("Google could not be reached. Please try again.", e instanceof Error ? e.message : "network error");
+      if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) throw new ProviderError(SAY.timeout, "timed out waiting for Google");
+      throw new ProviderError(SAY.unreachable, e instanceof Error ? e.message : "network error");
     }
     const text = await res.text();
     let json: unknown = null;
@@ -69,15 +69,15 @@ export const google: SyncImageProvider = {
     if (!res.ok) {
       const err = (json as { error?: { message?: string; status?: string } } | null)?.error;
       const why = err?.message ?? text.slice(0, 300);
-      if (res.status === 429) throw new ProviderError(`Google is limiting requests or has no quota for this model (429): ${why.slice(0, 220)}`, `${res.status}: ${why}`);
-      if (res.status === 401 || res.status === 403) throw new ProviderError("Google rejected our request (the key or its billing). The owner needs to check it.", `${res.status}: ${why}`);
-      if (/safety|blocked|prohibited|policy/i.test(why)) throw new ProviderError("Google's safety filter blocked this image. Try a different prompt.", `${res.status}: ${why}`);
-      throw new ProviderError(`Google could not make this image (${res.status}): ${why.slice(0, 220)}`, `${res.status}: ${why}`);
+      if (res.status === 429) throw new ProviderError(SAY.busy, `${res.status}: ${why}`);
+      if (res.status === 401 || res.status === 403) throw new ProviderError(SAY.notReady, `${res.status}: ${why}`);
+      if (/safety|blocked|prohibited|policy/i.test(why)) throw new ProviderError(input.references.length ? SAY.safetyPictures : SAY.safety, `${res.status}: ${why}`);
+      throw new ProviderError(SAY.failed, `${res.status}: ${why}`);
     }
     const pic = findPicture(json);
     if (!pic) {
       const said = textOf(json);
-      throw new ProviderError(said ? "Google did not return a picture. It said: " + said.slice(0, 160) : "Google did not return a picture. It may have refused the prompt.", `no image in the reply: ${text.slice(0, 200)}`);
+      throw new ProviderError(SAY.noPicture, `no image in the reply${said ? `; it said: ${said.slice(0, 160)}` : ""}: ${text.slice(0, 200)}`);
     }
     return { bytes: new Uint8Array(Buffer.from(pic.data, "base64")), contentType: pic.mime?.startsWith("image/") ? pic.mime : "image/jpeg", usage: (json as { usage?: unknown; usage_metadata?: unknown } | null)?.usage ?? (json as { usage_metadata?: unknown } | null)?.usage_metadata };
   },

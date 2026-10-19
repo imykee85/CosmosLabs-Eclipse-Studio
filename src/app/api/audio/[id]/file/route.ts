@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { fileNameOf, getAudioJob, variantsOf } from "@/lib/audio/jobs";
 import { audioUser } from "@/lib/audio/route-helpers";
-import { signedMediaUrl, storageEnabled } from "@/lib/storage";
+import { storageEnabled } from "@/lib/storage";
+import { streamStored } from "@/lib/media-link";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
-// Sends the browser to a short-lived signed link for the file. With ?download=1 the link makes the browser save it under its readable file name.
+// The file, streamed from Eclipse's own address (never a storage-service link). With ?download=1 the browser saves it under its readable file name.
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const u = await audioUser();
@@ -18,6 +20,5 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
   const n = Number(q.get("variant"));
   const v = Number.isInteger(n) && n >= 1 ? variantsOf(j)[n - 1] : undefined;
   if (q.get("variant") && !v) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const link = await signedMediaUrl(v?.key ?? j.storageKey, { ttlSeconds: 120, contentType: v?.mime ?? j.contentType ?? "audio/mpeg", ...(download ? { download: fileNameOf({ ...j, contentType: v?.mime ?? j.contentType }, v ? n : undefined) } : {}) });
-  return NextResponse.redirect(link, 302);
+  return streamStored(req, v?.key ?? j.storageKey, v?.mime ?? j.contentType ?? "audio/mpeg", download ? { download: fileNameOf({ ...j, contentType: v?.mime ?? j.contentType }, v ? n : undefined) } : {});
 }

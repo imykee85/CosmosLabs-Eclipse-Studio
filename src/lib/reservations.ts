@@ -6,7 +6,7 @@ import { chargeFor, getModelById } from "@/lib/models";
 // A paid render is charged when it finishes, so its price has to be HELD while it runs: otherwise several renders started at once all see the same
 // balance and all go ahead. The render row is created inside the same per-person lock that reads the balance, and a running render (pending or
 // saving) counts as holding its price. Returns the row, or the numbers for the "not enough credits" message.
-// Voice Studio jobs hold their price the same way (AudioJob.creditsHeld while "pending"), and count against the same balance as renders.
+// Audio Studio jobs hold their price the same way (AudioJob.creditsHeld while "pending"), and count against the same balance as renders.
 export const SANDBOX_OPEN = ["queued", "creating", "running", "collecting"];
 
 async function heldNow(tx: Prisma.TransactionClient, userId: string): Promise<number> {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Brain, Check, Folder, Image as ImageIcon, Loader2, Puzzle, Send, Wrench } from "lucide-react";
+import { AlertCircle, Brain, Check, Folder, Image as ImageIcon, Loader2, Puzzle, Send, Square, Volume2, Wrench } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
 
 type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string };
@@ -48,11 +48,28 @@ function RenderCard({ id, grew }: { id: string; grew: () => void }) {
   if (!r || r.status === "pending") return <div className="cn-render is-note"><Loader2 size={16} className="cn-spin" /> Rendering{r?.prompt ? `: ${r.prompt.slice(0, 80)}` : "…"}</div>;
   if (r.status === "failed") return <div className="cn-render is-note"><AlertCircle size={16} /> {r.error ?? "This render could not be made."}</div>;
   return (
-    <a className="cn-render" href={r.imageUrl ?? "#"} target="_blank" rel="noreferrer" style={{ aspectRatio: (r.aspectRatio ?? "1:1").replace(":", " / ") }} title={r.prompt}>
+    <a className="cn-render" href={`/api/generations/${r.id}/file`} target="_blank" rel="noreferrer" style={{ aspectRatio: (r.aspectRatio ?? "1:1").replace(":", " / ") }} title={r.prompt}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={r.imageUrl ?? ""} alt={r.prompt} onLoad={grew} />
     </a>
   );
+}
+
+// Read a reply aloud with the device's own voice (owner 2026-10-19: a voice icon on Core). Tapping again stops it.
+function ReadAloud({ text }: { text: string }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => () => { if (on) window.speechSynthesis?.cancel(); }, [on]);
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || !text.trim()) return null;
+  const toggle = () => {
+    const synth = window.speechSynthesis;
+    if (on) { synth.cancel(); setOn(false); return; }
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 6000));
+    u.lang = document.documentElement.lang || navigator.language || "en-US";
+    u.onend = () => setOn(false); u.onerror = () => setOn(false);
+    synth.speak(u); setOn(true);
+  };
+  return <button type="button" className="cn-read" onClick={toggle} aria-label={on ? "Stop reading" : "Read aloud"} title={on ? "Stop reading" : "Read aloud"}>{on ? <Square size={13} /> : <Volume2 size={15} />}</button>;
 }
 
 // grew: called when something in the thread changes size after it was added (a render finishing), so the screen can keep the end in view.
@@ -63,11 +80,12 @@ export default function ChatThread({ lines, busy, grew }: { lines: Line[]; busy:
         <div key={i} className={`cn-msg is-${l.role}`}>
           {l.parts.map((p, k) =>
             p.kind === "text" ? <p key={k} className="cn-text-part">{p.text}</p>
-            : p.kind === "tool" ? <span key={k} className="cn-tool">{TOOL_ICON[p.name] ?? <Wrench size={14} />}{TOOL_LABEL[p.name] ?? p.name}<Check size={13} /></span>
+            : p.kind === "tool" ? <span key={k} className="cn-tool">{TOOL_ICON[p.name] ?? <Wrench size={14} />}{TOOL_LABEL[p.name] ?? (p.name.startsWith("sandbox") ? "Worked in the build space" : "Used a tool")}<Check size={13} /></span>
             : <RenderCard key={k} id={p.id} grew={grew} />,
           )}
           {l.error && <p className="cn-err" role="alert"><AlertCircle size={15} /> {l.error}</p>}
           {l.role === "assistant" && busy && i === lines.length - 1 && !l.error && <span className="cn-working"><Loader2 size={14} className="cn-spin" /> Working</span>}
+          {l.role === "assistant" && !(busy && i === lines.length - 1) && <ReadAloud text={l.parts.map((p) => (p.kind === "text" ? p.text : "")).join(" ")} />}
         </div>
       ))}
     </div>

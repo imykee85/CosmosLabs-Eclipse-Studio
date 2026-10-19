@@ -45,12 +45,10 @@ const GrowArea = forwardRef<HTMLTextAreaElement, Props>(function GrowArea({ rows
     if (!el) return;
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => fit()) : null;
     ro?.observe(el);
-    // Phones briefly enlarge the text while a box has focus (so iOS does not zoom): measure again then and after it settles.
-    let t = 0;
-    const again = () => { fit(); window.clearTimeout(t); t = window.setTimeout(fit, 760); };
-    el.addEventListener("focus", again);
+    // Phones briefly enlarge the text at the moment a box is tapped (so iOS does not zoom). The box keeps its height through that
+    // moment (refitting then made it jump up and back down: the "enlarge glitch", owner 2026-10-19); it is measured again afterwards.
     window.addEventListener("resize", fit);
-    return () => { ro?.disconnect(); el.removeEventListener("focus", again); window.removeEventListener("resize", fit); window.clearTimeout(t); };
+    return () => { ro?.disconnect(); window.removeEventListener("resize", fit); };
   }, [fit]);
 
   return (

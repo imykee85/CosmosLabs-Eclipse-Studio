@@ -1,4 +1,4 @@
-// Voice Studio jobs (docs/audio-providers/build-brief.md sections 3 and 4). A job is a row: startAudioJob validates, holds the price and returns at once; the
+// Audio Studio jobs (docs/audio-providers/build-brief.md sections 3 and 4). A job is a row: startAudioJob validates, holds the price and returns at once; the
 // provider call runs in the background (waitUntil) and the browser asks GET /api/audio/<id>. The raw provider text never reaches a person: only ProviderError.userMessage.
 // Four kinds share one path: tts (speak), stt (transcribe), sfx (sound effects) and music. A long MiniMax text runs on the provider's side and is followed until done.
 import { createHash, randomUUID } from "node:crypto";
@@ -36,7 +36,7 @@ const LOCK_STALE_MS = 2 * 60_000;
 const SIGNED_TTL_S = 3600;
 
 export type AudioItem = {
-  id: string; kind: AudioKind; status: "pending" | "completed" | "failed"; error: string | null; text: string; chars: number; model: string; modelLabel: string;
+  id: string; kind: ItemKind; status: "pending" | "completed" | "failed"; error: string | null; text: string; chars: number; model: string; modelLabel: string;
   voiceId: string | null; voiceName: string | null; createdAt: string; durationMs: number | null; contentType: string | null; sizeBytes: number | null; url: string | null; fileName: string;
   transcript: Transcript | null;
   variants: { url: string | null; durationMs: number | null; contentType: string | null; fileName: string }[] | null; // alternatives (Mirelo); null for a single file
@@ -59,7 +59,10 @@ export const variantsOf = (j: Pick<AudioJob, "result">): StoredVariant[] => {
 };
 
 const asObj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+// "upload": a sound the person added from their device to Assets (no provider made it; it is used as a reference sound or kept in the Library).
+export type ItemKind = AudioKind | "upload";
 const kindOfJob = (j: Pick<AudioJob, "kind">): AudioKind => (j.kind === "stt" || j.kind === "sfx" || j.kind === "music" || j.kind === "vsfx" ? j.kind : "tts");
+const itemKindOf = (j: Pick<AudioJob, "kind">): ItemKind => (j.kind === "upload" ? "upload" : kindOfJob(j));
 
 // A row for the browser: never the raw record (no storage key, provider usage or hashes).
 export async function toAudioItem(j: AudioJob): Promise<AudioItem> {
@@ -80,8 +83,8 @@ export async function toAudioItem(j: AudioJob): Promise<AudioItem> {
     if (g?.storageKey) videoUrl = await signedMediaUrl(g.storageKey, { ttlSeconds: SIGNED_TTL_S, contentType: g.contentType ?? "video/mp4" }).catch(() => null);
   }
   return {
-    id: j.id, kind: kindOfJob(j), status: j.status === "completed" ? "completed" : j.status === "failed" ? "failed" : "pending", error: j.error, text: j.text, chars: j.chars, model: j.model,
-    modelLabel: findAudioModel(j.model)?.label ?? j.model, voiceId: j.voiceId, voiceName: j.voiceName, createdAt: j.createdAt.toISOString(), durationMs: j.durationMs, contentType: j.contentType, sizeBytes: j.sizeBytes, url, fileName: fileNameOf(j),
+    id: j.id, kind: itemKindOf(j), status: j.status === "completed" ? "completed" : j.status === "failed" ? "failed" : "pending", error: j.error, text: j.text, chars: j.chars, model: j.model,
+    modelLabel: j.kind === "upload" ? "Uploaded" : findAudioModel(j.model)?.label ?? j.model, voiceId: j.voiceId, voiceName: j.voiceName, createdAt: j.createdAt.toISOString(), durationMs: j.durationMs, contentType: j.contentType, sizeBytes: j.sizeBytes, url, fileName: fileNameOf(j),
     transcript: t && typeof t.text === "string" ? t : null, variants, videoUrl, deletedAt: j.deletedAt ? j.deletedAt.toISOString() : null, canMux: Boolean(videoUrl) && muxEnabled(),
   };
 }
@@ -479,13 +482,15 @@ export async function getAudioJob(userId: string, id: string): Promise<AudioJob 
   return j;
 }
 
-export async function listAudioJobs(userId: string, limit = 30): Promise<AudioJob[]> {
-  const rows = await db.audioJob.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: "desc" }, take: Math.min(Math.max(limit, 1), 100) });
+// `only`: just that kind (Assets lists "upload"); `without`: leave a kind out (Audio Studio lists what it made, not uploads).
+export async function listAudioJobs(userId: string, limit = 30, filter: { only?: string; without?: string } = {}): Promise<AudioJob[]> {
+  const kind = filter.only ? { kind: filter.only } : filter.without ? { kind: { not: filter.without } } : {};
+  const rows = await db.audioJob.findMany({ where: { userId, deletedAt: null, ...kind }, orderBy: { createdAt: "desc" }, take: Math.min(Math.max(limit, 1), 100) });
   // The browser asks this list every 2 seconds while anything is pending: that is what moves a long job on (a few at a time).
   const longOnes = rows.filter((r) => r.status === "pending" && typeof asObj(asObj(r.params).task).id === "string").slice(0, 3);
   if (!longOnes.length) return rows;
   await Promise.all(longOnes.map((r) => getAudioJob(userId, r.id).catch((err) => console.error("advancing a long job failed", r.id, err))));
-  return db.audioJob.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: "desc" }, take: Math.min(Math.max(limit, 1), 100) });
+  return db.audioJob.findMany({ where: { userId, deletedAt: null, ...kind }, orderBy: { createdAt: "desc" }, take: Math.min(Math.max(limit, 1), 100) });
 }
 
 // Delete moves a finished take to the Bin (it can be restored); a failed take has no file worth keeping and goes at once. `forever` removes the file and the row, and only works

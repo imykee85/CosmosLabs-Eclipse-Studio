@@ -14,7 +14,7 @@ const SYSTEM = `You turn a document or picture into memory notes for a creative 
 
 export async function POST(req: Request) {
   const u = await requireUser(); if ("fail" in u) return u.fail;
-  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "Reading files isn't switched on yet: the owner needs to add ANTHROPIC_API_KEY." }, { status: 503 });
+  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "Reading files is not available yet. Please try again later." }, { status: 503 });
   const body = await req.json().catch(() => null);
   const data = typeof body?.data === "string" ? body.data : "";
   if (!data || data.length > 4_200_000 || !/^[A-Za-z0-9+/=]+$/.test(data)) return NextResponse.json({ error: "Files up to 3 MB can be read." }, { status: 400 });
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("memory extract failed", err);
     const msg = err instanceof Error ? err.message : "";
-    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Reading files is unavailable: the AI provider account behind the key needs credit." : "That file could not be read. Please try again." }, { status: 502 });
+    return NextResponse.json({ error: /credit balance/i.test(msg) ? "Reading files is unavailable right now. Please try again later." : "That file could not be read. Please try again." }, { status: 502 });
   } finally {
     await chargeChat(u.userId, meter, "Memory from a file");
   }

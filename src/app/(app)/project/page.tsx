@@ -8,7 +8,7 @@ import "./create-pick.css";
 const STUDIOS = [
   { href: "/create", n: "01", name: "Image Studio", line: "Campaign-grade stills from a single prompt.", kind: "photo" },
   { href: "/generate", n: "02", name: "Video Studio", line: "Cinematic clips with motion, sound and story.", kind: "video" },
-  { href: "/voice", n: "03", name: "Voice Studio", line: "Voices, music and sound, cloned or designed.", kind: "voice" },
+  { href: "/voice", n: "03", name: "Audio Studio", line: "Voices, music and sound, cloned or designed.", kind: "voice" },
 ] as const;
 
 function Visual({ kind }: { kind: (typeof STUDIOS)[number]["kind"] }) {
@@ -21,7 +21,7 @@ function Visual({ kind }: { kind: (typeof STUDIOS)[number]["kind"] }) {
   );
   if (kind === "video") return (
     <div className="cp-film" aria-hidden="true">
-      <img src="/carousel/card-2-poster.jpg" alt="" loading="lazy" decoding="async" />
+      <video src="/carousel/card-2.mp4" poster="/carousel/card-2-poster.jpg" autoPlay muted loop playsInline preload="auto" />
       <span className="cp-rec"><i />REC</span>
       <span className="cp-tc">00:00:08:14</span>
       <span className="cp-scrub"><i /></span>

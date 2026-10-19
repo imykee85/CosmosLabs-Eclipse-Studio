@@ -59,3 +59,11 @@
 .rp-sounds li.is-on .rp-sound-check { background: #c00707; border-color: #c00707; }
 .rp-sounds small { color: var(--a-muted2); font-size: 12px; }
 .rp-sounds audio { width: 100%; height: 32px; }
+/* Assets: every kind of media (owner 2026-10-19) */
+.up-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.up-bar .lib-roles { margin: 0; }
+.up-tile .up-media { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 20px; background: var(--a-card); clip-path: inset(0 round 20px); }
+.up-sound { display: grid; place-items: center; align-content: center; gap: 14px; padding: 14px; border: 1px solid var(--a-line2); box-sizing: border-box; color: var(--a-muted); clip-path: none !important; }
+.up-sound audio { width: 100%; height: 36px; }
+.up-drop video { width: 100%; max-height: 260px; object-fit: contain; }
+.up-drop span svg { justify-self: center; }

@@ -48,7 +48,7 @@ export const signToken = (userId: string, provider: string, token: string) => cr
 function sameSig(a: string, b: string) { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); }
 
 const providerLabel = (p: string) => PROVIDER_LABEL[p as AudioProviderId] ?? p;
-const notConnected = (p: AudioProviderId) => fail(503, `${providerLabel(p)} is not connected yet. Its voices appear once its key is set.`);
+const notConnected = (p: AudioProviderId) => fail(503, `${providerLabel(p)} voices are not available yet.`);
 
 async function charge(userId: string, cost: number | null, note: string) {
   if (cost == null) return;
@@ -94,7 +94,7 @@ export type CloneInput = { userId: string; provider: unknown; name: unknown; des
 export async function cloneOwnVoice(input: CloneInput): Promise<VoiceResult<{ voice: OwnVoiceItem }>> {
   const { userId } = input;
   const provider = CLONE_PROVIDERS.find((p) => p === input.provider);
-  if (!provider) return fail(400, "That provider cannot clone voices here. Choose ElevenLabs, Fish Audio or MiniMax.");
+  if (!provider) return fail(400, "This voice model cannot clone voices. Choose a model that can, such as Eleven, Fish or MiniMax.");
   const ctx = ctxForProvider(provider);
   if (!ctx) return notConnected(provider);
   if (input.consent !== true) return fail(400, "Confirm that you own this voice or have written permission to clone it.");
@@ -107,7 +107,7 @@ export async function cloneOwnVoice(input: CloneInput): Promise<VoiceResult<{ vo
   if (!sample?.length) return fail(400, "Add a recording of the voice first.");
   if (sample.length > MAX_SAMPLE_BYTES) return fail(413, "That recording is too large. Use a clip under 4 MB (about a minute of MP3).");
   const kind = sniffAudio(sample);
-  if (!kind || (kind.ogg && provider === "minimax")) return fail(400, provider === "minimax" ? "MiniMax takes MP3, WAV or M4A recordings." : "That file is not an audio recording we can read. Use MP3, WAV or M4A.");
+  if (!kind || (kind.ogg && provider === "minimax")) return fail(400, provider === "minimax" ? "This model takes MP3, WAV or M4A recordings." : "That file is not an audio recording we can read. Use MP3, WAV or M4A.");
   if ((await db.userVoice.count({ where: { userId } })) >= MAX_OWN_VOICES) return fail(400, `You can keep ${MAX_OWN_VOICES} voices. Delete one first.`);
   if (!(await claimUsage(userId, "voice-clone", 5, 3600_000)) || !(await claimUsage(userId, "voice-clone-day", 20, 24 * 3600_000))) return fail(429, "You have cloned several voices very quickly. Please try again later.");
   const cost = voiceCredits("clone");
@@ -136,7 +136,7 @@ export type DesignPreviewItem = { token: string; sig: string; url: string; durat
 export async function designOwnVoice(input: { userId: string; provider: unknown; description: unknown }): Promise<VoiceResult<{ previews: DesignPreviewItem[] }>> {
   const { userId } = input;
   const provider = DESIGN_PROVIDERS.find((p) => p === input.provider);
-  if (!provider) return fail(400, "That provider cannot design voices here. Choose ElevenLabs, Fish Audio or MiniMax.");
+  if (!provider) return fail(400, "This voice model cannot design voices. Choose a model that can, such as Eleven, Fish or MiniMax.");
   const ctx = ctxForProvider(provider);
   if (!ctx) return notConnected(provider);
   const description = cleanText(input.description, 1000);

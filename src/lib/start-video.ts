@@ -2,6 +2,7 @@ import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
 import { autoTrimEnabled } from "@/lib/conform";
 import { randomInt, randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
+import { getAdmin } from "@/lib/admin";
 import { HiggsfieldError } from "@/lib/higgsfield";
 import { submitVideo } from "@/lib/higgsfield-video";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
@@ -45,7 +46,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
 
   const model = findVideoModel(input.model);
   if (!model) return { ok: false, status: 400, error: "That model is not available." };
-  if (!model.live) return { ok: false, status: 400, error: `${model.label} is not connected yet.` };
+  if (!model.live) return { ok: false, status: 400, error: `${model.label} is not available yet.` };
   const live = model.live;
 
   const prompt = typeof input.prompt === "string" ? input.prompt.trim() : "";
@@ -77,7 +78,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (refs === null) return { ok: false, status: 400, error: "The reference pictures were not understood." };
   const videoRefIds = parseVideoRefIds(input.videoRefs, 64); // the model's own limit (up to 10) is checked next
   if (videoRefIds === null) return { ok: false, status: 400, error: "The reference clips were not understood." };
-  const audioRefIds = parseVideoRefIds(input.audioRefs, 10); // the person's own Voice Studio takes, [{ id }]
+  const audioRefIds = parseVideoRefIds(input.audioRefs, 10); // the person's own Audio Studio takes, [{ id }]
   if (audioRefIds === null) return { ok: false, status: 400, error: "The reference sounds were not understood." };
   const anyRefs = refs.length + videoRefIds.length + audioRefIds.length > 0;
   const motion = live.motion;
@@ -210,7 +211,8 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     console.error("starting video failed", model.id, err instanceof HiggsfieldError ? err.message : err);
     // A 4xx is Higgsfield's own rejection (it never succeeds on retry): shown cleaned, so it can be fixed fast. Anything else is on a network hiccup.
     const rejected = err instanceof HiggsfieldError && err.status != null && err.status >= 400 && err.status < 500;
-    const why = err instanceof HiggsfieldError && err.detail ? ` ${model.label}: ${err.detail}` : "";
+    // Eclipse's own words for people; the provider's reply goes to the logs, and to the owner here so a setting can be fixed fast.
+    const why = (await getAdmin().catch(() => null)) && err instanceof HiggsfieldError && err.detail ? ` (Owner only: ${err.detail})` : "";
     return { ok: false, status: 502, error: rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
   }
 }

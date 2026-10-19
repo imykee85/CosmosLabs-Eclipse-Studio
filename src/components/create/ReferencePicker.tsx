@@ -16,7 +16,7 @@ export type RefPick = { type: "upload" | "render"; id: string; url: string; labe
 
 // A reference clip: one of the person's own finished videos, with its recorded length (seconds; motion transfer prices and checks by it).
 export type ClipPick = RefPick & { sec?: number | null };
-// A reference sound: one of the person's own finished Voice Studio takes (voice, sound effect or music).
+// A reference sound: one of the person's own finished Audio Studio takes (voice, sound effect or music).
 export type SoundPick = { id: string; label: string; url: string };
 
 type Tab = "ingredients" | "assets" | "images" | "videos" | "audio";
@@ -42,7 +42,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
     fetch("/api/audio", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => {
       if (!live) return;
       const list = (Array.isArray(d.items) ? d.items : []) as { id: string; kind: string; status: string; url?: string | null; text?: string | null; modelLabel?: string; voiceName?: string | null }[];
-      setSounds(list.filter((a) => a.status === "completed" && a.url && (a.kind === "tts" || a.kind === "sfx" || a.kind === "music")).map((a) => ({ id: a.id, label: (a.text ?? "").slice(0, 60) || a.modelLabel || "Sound", sub: a.kind === "tts" ? `Voice${a.voiceName ? ` · ${a.voiceName}` : ""}` : a.kind === "sfx" ? "Sound effect" : "Music", url: a.url! })));
+      setSounds(list.filter((a) => a.status === "completed" && a.url && (a.kind === "tts" || a.kind === "sfx" || a.kind === "music" || a.kind === "upload")).map((a) => ({ id: a.id, label: (a.text ?? "").slice(0, 60) || a.modelLabel || "Sound", sub: a.kind === "tts" ? `Voice${a.voiceName ? ` · ${a.voiceName}` : ""}` : a.kind === "sfx" ? "Sound effect" : a.kind === "upload" ? "Your audio" : "Music", url: a.url! })));
     }).catch(() => { if (live) setSounds([]); });
     return () => { live = false; };
   }, [withAudio]);
@@ -127,7 +127,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
         </div>
         {error && <p className="up-error" role="alert">{error}</p>}
         {tab === "audio" ? (
-          sounds === null ? <p className="rp-note">Loading…</p> : sounds.length === 0 ? <p className="rp-note">You have no voices, sounds or music yet. Make them in Voice Studio.</p> : (
+          sounds === null ? <p className="rp-note">Loading…</p> : sounds.length === 0 ? <p className="rp-note">You have no voices, sounds or music yet. Make them in Audio Studio.</p> : (
             <ul className="rp-sounds">
               {sounds.map((a) => {
                 const on = hasSound(a.id);

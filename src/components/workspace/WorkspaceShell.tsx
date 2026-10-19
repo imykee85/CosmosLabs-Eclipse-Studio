@@ -33,7 +33,7 @@ const treatmentItem: Item = { label: "Treatment", hint: "Shape the concept", hre
 const promptsItem: Item = { label: "Prompts", hint: "Scene by scene", href: "/prompts", icon: <MessageSquareText size={17} /> };
 const imageStudio: Item = { label: "Image Studio", hint: "Write a prompt", href: "/create", icon: <ImageStudioIcon size={22} /> };
 const videoStudio: Item = { label: "Video Studio", hint: "Render the clips", href: "/generate", icon: <Clapperboard size={17} /> };
-const voiceStudio: Item = { label: "Voice Studio", hint: "Voice, sound, music", href: "/voice", icon: <Mic size={17} /> };
+const voiceStudio: Item = { label: "Audio Studio", hint: "Voice, sound, music", href: "/voice", icon: <Mic size={17} /> };
 const libraryItem: Item = { label: "Library", hint: "Everything you made", href: "/library", icon: <Library size={17} /> };
 const gallery: Item = { label: "Gallery", hint: "Finished renders", href: "/gallery", icon: <Images size={17} /> };
 const assets: Item = { label: "Assets", hint: "Your uploads", href: "/assets", icon: <FolderOpen size={17} /> };
@@ -264,7 +264,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/export": "Export", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/voice": "Voice Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/export": "Export", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/voice": "Audio Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/avatars": "Avatars", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {

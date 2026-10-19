@@ -17,7 +17,7 @@ import { readCurrentProject, timeAgo } from "@/lib/projects";
 import { deleteOwnVoice, deleteVoice, startVoice, useVoiceJobs, useVoiceModels, useVoices, type AudioItem, type OwnVoice, type VoiceOption } from "@/lib/use-voice";
 import "./voice.css";
 
-// Voice Studio (AUDIO). A stage, not a form: the chosen voice sits in the middle of a ring that breathes, runs while a take is made and moves (with a red progress ring)
+// Audio Studio (AUDIO). A stage, not a form: the chosen voice sits in the middle of a ring that breathes, runs while a take is made and moves (with a red progress ring)
 // while one plays. Voices are a strip of orbs to swipe through (the full list with search is one tap away), the takes are a quiet list under it, and everything you
 // type and set lives in one console docked at the bottom. EVERY control comes from the audio registry (src/lib/audio/registry.ts): one the model cannot use is greyed.
 const MODEL_KEY = "eclipse-voice-model";
@@ -31,7 +31,7 @@ const SPEEDS = [0.7, 0.8, 0.9, 1, 1.1, 1.2];
 type Chosen = { id: string; name: string; facts?: string };
 const read = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const write = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} };
-const notReady = (provider?: string) => `${provider ?? "This provider"} is not connected yet. Its voices appear once its key is set.`;
+const notReady = (provider?: string) => `${provider ? `${provider} voices are` : "This model is"} not available yet. Please choose another model.`;
 const voiceKey = (provider: string) => `${VOICE_KEY}-${provider}`; // voice ids belong to one provider, so the choice is kept per provider
 const factsOf = (v: VoiceOption) => [v.accent, v.gender, v.age, v.descriptive].filter(Boolean).join(" · ") || undefined;
 
@@ -205,7 +205,7 @@ export default function VoiceStudio() {
 
   return (
     <div className="vc">
-      <h1 className="pg-title vc-title">Voice Studio</h1>
+      <h1 className="pg-title vc-title">Audio Studio</h1>
 
       <section className="vc-hero" aria-label="Stage">
         <Stage seed={stageSeed} mode={mode} progress={pos.d ? pos.t / pos.d : 0} />
@@ -214,7 +214,7 @@ export default function VoiceStudio() {
             : making ? (<><b>{making.kind === "stt" ? "Transcribing" : "Making your take"}</b><span>{clock(now - new Date(making.createdAt).getTime())}</span></>)
             : studioMode !== "speak" ? (<><b>{MODE_HERO[studioMode][0]}</b><span>{MODE_HERO[studioMode][1]}</span></>)
             : voice ? (<><b>{voice.name}</b>{voice.facts && <span>{voice.facts}</span>}</>)
-            : !ready ? (<><b>{model?.label ?? "Voice Studio"}</b><span>{model ? `${model.providerLabel} is not connected yet` : "Loading models"}</span></>)
+            : !ready ? (<><b>{model?.label ?? "Audio Studio"}</b><span>{model ? "Not available yet" : "Loading models"}</span></>)
             : model?.voiceOptional ? (<><b>{model.label}</b><span>Describe the voice and the scene in the script, or pick a voice below.</span></>)
             : (<><b>Choose a voice</b><span>Pick one below, then write the script.</span></>)}
         </div>

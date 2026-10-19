@@ -9,7 +9,7 @@ import SoundTake from "./SoundTake";
 import "./voice.css";
 
 // "Add sound" on a finished video (Mirelo sound for video): an optional description, keep the speech or not, how many variants, the file format and the price (asked from the
-// provider BEFORE anything starts). The result is heard on the video itself, and every variant is saved as a take in Voice Studio.
+// provider BEFORE anything starts). The result is heard on the video itself, and every variant is saved as a take in Audio Studio.
 export default function AddSoundDialog({ video, onClose }: { video: Render; onClose: () => void }) {
   const { models } = useVoiceModels();
   const model = models?.find((m) => m.kinds.includes("vsfx") && m.options.videoInput) ?? null;
@@ -45,7 +45,7 @@ export default function AddSoundDialog({ video, onClose }: { video: Render; onCl
 
   async function go() {
     if (!model) return;
-    if (!model.ready) { setError(`${model.providerLabel} is not connected yet. It works once its key is set.`); return; }
+    if (!model.ready) { setError("Sound for video is not available yet."); return; }
     setBusy(true); setError("");
     const r = await startVoice({ ...body, projectId: video.projectId });
     setBusy(false);
@@ -94,7 +94,7 @@ export default function AddSoundDialog({ video, onClose }: { video: Render; onCl
         ) : (
           <>
             <SoundTake item={item} />
-            <p className="vc-as-note">Every variant is saved under Voice Studio. Play the video to hear it with the new sound.</p>
+            <p className="vc-as-note">Every variant is saved under Audio Studio. Play the video to hear it with the new sound.</p>
           </>
         )}
       </div>

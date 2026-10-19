@@ -27,12 +27,12 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "GEMINI_API_KEY", kind: "Secret", needed: "Google models" },
   { name: "OPENAI_API_KEY", kind: "Secret", needed: "GPT models" },
   { name: "ARK_API_KEY", kind: "Secret", needed: "Seedream models" },
-  { name: "ELEVENLABS_API_KEY", kind: "Secret", needed: "Voice Studio: ElevenLabs voices" },
-  { name: "FISH_API_KEY", kind: "Secret", needed: "Voice Studio: Fish Audio voices" },
-  { name: "MINIMAX_API_KEY", kind: "Secret", needed: "Voice Studio: MiniMax voices" },
-  { name: "DASHSCOPE_API_KEY", kind: "Secret", needed: "Voice Studio: Qwen voices (Singapore/international key)" },
-  { name: "BYTEPLUS_VOICE_API_KEY", kind: "Secret", needed: "Voice Studio: Seed Audio (Seed Speech console key, not ARK_API_KEY)" },
-  { name: "MIRELO_API_KEY", kind: "Secret", needed: "Voice Studio: Mirelo sound effects and Add sound to video" },
+  { name: "ELEVENLABS_API_KEY", kind: "Secret", needed: "Audio Studio: ElevenLabs voices" },
+  { name: "FISH_API_KEY", kind: "Secret", needed: "Audio Studio: Fish Audio voices" },
+  { name: "MINIMAX_API_KEY", kind: "Secret", needed: "Audio Studio: MiniMax voices" },
+  { name: "DASHSCOPE_API_KEY", kind: "Secret", needed: "Audio Studio: Qwen voices (Singapore/international key)" },
+  { name: "BYTEPLUS_VOICE_API_KEY", kind: "Secret", needed: "Audio Studio: Seed Audio (Seed Speech console key, not ARK_API_KEY)" },
+  { name: "MIRELO_API_KEY", kind: "Secret", needed: "Audio Studio: Mirelo sound effects and Add sound to video" },
   { name: "CRON_SECRET", kind: "Secret", needed: "daily finishing job" },
   { name: "ADMIN_EMAILS", kind: "Config", needed: "these owner pages" },
   { name: "CREDITS_ENABLED", kind: "Config", needed: "charging for renders" },
@@ -94,7 +94,7 @@ export async function POST() {
     add(null, "Renders: could not be counted");
   }
 
-  // Recent voices (Voice Studio)
+  // Recent voices (Audio Studio)
   try {
     const since = new Date(Date.now() - 24 * 3600_000);
     const [total, failed, last] = await Promise.all([

@@ -11,7 +11,8 @@ import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
 // you press the button. The parent follows the job (the takes list); a console only collects the input and calls onStart, which returns an error text or null.
 export type Mode = "speak" | "transcribe" | "effects" | "music";
 export const MODES: { id: Mode; label: string }[] = [{ id: "speak", label: "Speak" }, { id: "transcribe", label: "Transcribe" }, { id: "effects", label: "Effects" }, { id: "music", label: "Music" }];
-export const notReadyText = (label?: string) => `${label ?? "This provider"} is not connected yet. It works once its key is set.`;
+// Never mention keys or services to people (owner 2026-10-19): a model that is not switched on is simply "not available yet".
+export const notReadyText = (label?: string) => `${label ? `${label} models are` : "This model is"} not available yet. Please choose another model.`;
 
 const read = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const write = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch {} };
@@ -207,8 +208,8 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
         {music
           ? <button type="button" className={`vc-pill ${instrumental ? "is-on" : ""}`} aria-pressed={instrumental} disabled={!model?.options.instrumental} onClick={() => setInstrumental((v) => !v)}>Instrumental</button>
           : <button type="button" className={`vc-pill ${loop ? "is-on" : ""}`} aria-pressed={loop} disabled={!model?.options.loop} title={model?.options.loop ? "A clip that loops cleanly" : `Not supported by ${model?.label ?? "this model"}`} onClick={() => setLoop((v) => !v)}><Repeat size={14} /> Loop</button>}
-        <span className="vc-count">{text.length.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
       </div>
+      <span className="vc-count vc-count-corner">{text.length.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
       <Go label={music ? "Make music" : "Make sound"} busy={busy} disabled={!model || over} price={price} onClick={() => void go()} />
     </div>
   );

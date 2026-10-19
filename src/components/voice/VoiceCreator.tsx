@@ -38,7 +38,7 @@ export default function VoiceCreator({ models, provider, costs, consentText, onC
 
   const current = options.find((o) => o.id === prov);
   const cost = mode === "clone" ? costs.clone : costs.design;
-  const notReady = current && !current.ready ? `${current.label} is not connected yet. Its voices appear once its key is set.` : "";
+  const notReady = current && !current.ready ? `${current.label} voices are not available yet.` : "";
 
   function switchMode(m: Mode) { audio.current?.pause(); setPlaying(null); setMode(m); setError(""); setPreviews(null); }
   function choose(f: File | null) {

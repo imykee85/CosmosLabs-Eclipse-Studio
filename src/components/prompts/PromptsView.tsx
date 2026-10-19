@@ -3,10 +3,11 @@
 import GrowArea from "@/components/GrowArea";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, Clapperboard, Copy, Layers, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ArrowUp, Check, Clapperboard, Copy, Layers, Loader2, Mic, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { PROMPT_ENGINES, type PromptEngine } from "@/lib/prompt-engines";
 import { readCurrentProject } from "@/lib/projects";
 import { useDraftText } from "@/lib/use-draft-text";
+import { useDictation } from "@/lib/use-dictation";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
 import { refreshCredits } from "@/lib/use-credits";
@@ -52,7 +53,7 @@ function parts(engine: PromptEngine, text: string): Part[] {
 
 export default function PromptsView() {
   const router = useRouter();
-  const [engineId, setEngineId] = useState<PromptEngine["id"]>("kling");
+  const [engineId, setEngineId] = useState<PromptEngine["id"]>("master");
   const engine = useMemo(() => PROMPT_ENGINES.find((e) => e.id === engineId)!, [engineId]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useDraftText("prompts");
@@ -62,7 +63,9 @@ export default function PromptsView() {
   const [picking, setPicking] = useState(false);
   const [note, setNote] = useState("");
   const [copied, setCopied] = useState("");
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const mic = useDictation(text, setText, setNote);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => { try { const e = localStorage.getItem("eclipse-prompts-engine"); if (e && PROMPT_ENGINES.some((x) => x.id === e && x.available)) setEngineId(e as PromptEngine["id"]); } catch {} }, []);
@@ -77,14 +80,34 @@ export default function PromptsView() {
     const t = text.trim();
     if (!t || busy || !engine.available) return;
     setNote("");
+    mic.stop();
     const sent: Msg = { id: uid(), role: "user", text: t, pics: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })) };
-    const history = [...msgs, sent];
-    commit(history);
     setText("");
     setPics([]);
+    await ask([...msgs, sent]);
+  }
+  // Retry an answer (the one that failed, or one you'd like again): drop it and ask again from the message before it.
+  function retry(at: number) {
+    if (busy) return;
+    const before = msgs.slice(0, at);
+    if (before[before.length - 1]?.role !== "user") return;
+    void ask(before);
+  }
+  // Edit a sent message: it is replaced, everything after it is dropped, and it is sent again.
+  function resend() {
+    if (!editing || busy) return;
+    const at = msgs.findIndex((m) => m.id === editing.id);
+    const t = editing.text.trim();
+    setEditing(null);
+    if (at < 0 || !t) return;
+    void ask([...msgs.slice(0, at), { ...msgs[at], text: t }]);
+  }
+  async function ask(history: Msg[]) {
+    const last = history[history.length - 1];
+    commit(history);
     setBusy(true);
     try {
-      const res = await fetch("/api/prompts/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engine: engine.id, messages: history.map((m) => ({ role: m.role, text: m.text })), images: sent.pics?.map((p) => ({ type: p.type, id: p.id })) }) });
+      const res = await fetch("/api/prompts/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engine: engine.id, messages: history.map((m) => ({ role: m.role, text: m.text })), images: last?.pics?.map((p) => ({ type: p.type, id: p.id })) }) });
       const data = await res.json().catch(() => ({}));
       commit([...history, res.ok ? { id: uid(), role: "assistant", text: String(data.text ?? "") } : { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The prompt engine couldn't answer. Please try again.", error: true }]);
     } catch {
@@ -132,9 +155,19 @@ export default function PromptsView() {
 
       <section className="pm-thread" aria-label="Conversation" aria-live="polite">
         {msgs.length === 0 && <p className="pm-empty">{engine.forModel === "video" ? "Try: a selfie video of someone showing a new skincare product, with a short line of dialogue." : "Try: a product photo of a perfume bottle on wet stone, soft window light, with the label kept exactly as in my picture."}</p>}
-        {msgs.map((m) => (
-          <div key={m.id} className={`pm-msg is-${m.role} ${m.error ? "is-error" : ""}`}>
-            {m.role === "user" ? (
+        {msgs.map((m, at) => (
+          <div key={m.id} className={`pm-row is-${m.role}`}>
+          <div className={`pm-msg is-${m.role} ${m.error ? "is-error" : ""} ${editing?.id === m.id ? "is-editing" : ""}`}>
+            {m.role === "user" && editing?.id === m.id ? (
+              <form className="pm-edit" onSubmit={(e) => { e.preventDefault(); resend(); }}>
+                <GrowArea rows={2} value={editing.text} maxLength={6000} aria-label="Edit your message" autoFocus onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); resend(); } }} />
+                <div className="pm-edit-acts">
+                  <button type="button" onClick={() => setEditing(null)}>Cancel</button>
+                  <button type="submit" className="is-send" disabled={!editing.text.trim()}>Send</button>
+                </div>
+              </form>
+            ) : m.role === "user" ? (
               <>
                 {m.pics && m.pics.length > 0 && (
                   <div className="pm-pics">
@@ -160,6 +193,10 @@ export default function PromptsView() {
               ) : <p key={i} className="pm-say">{part.text}</p>)
             )}
           </div>
+          {!busy && editing?.id !== m.id && (m.role === "user"
+            ? <div className="pm-acts"><button type="button" aria-label="Edit and resend" title="Edit and resend" onClick={() => setEditing({ id: m.id, text: m.text })}><Pencil size={14} /></button></div>
+            : (m.error || at === msgs.length - 1) && <div className="pm-acts"><button type="button" aria-label="Try again" title="Try again" onClick={() => retry(at)}><RotateCcw size={14} /></button></div>)}
+          </div>
         ))}
         {busy && <div className="pm-msg is-assistant"><p className="pm-typing"><Loader2 size={14} className="cr-spin" /> Writing your prompt…</p></div>}
         <div ref={end} />
@@ -184,6 +221,7 @@ export default function PromptsView() {
           <div className="pm-tools">
             <button type="button" className="pm-tool" aria-label="Upload a picture from your device" title="Upload a picture from your device" disabled={uploading || pics.length >= MAX_PICS} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
             <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className={`pm-tool ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={15} /></button>
             <button type="button" className="pm-tool pm-wide" onClick={() => setPicking(true)} title="Choose pictures you already have"><Layers size={14} /> Ingredients{pics.length ? ` (${pics.length})` : ""}</button>
             {msgs.length > 0 && <button type="button" className="pm-tool" aria-label="Clear the conversation" title="Clear the conversation" onClick={clear}><Trash2 size={15} /></button>}
             <button type="submit" className="pm-send" disabled={!text.trim() || busy} aria-label="Send">{busy ? <Loader2 size={16} className="cr-spin" /> : <ArrowUp size={18} />}</button>

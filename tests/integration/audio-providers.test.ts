@@ -1,4 +1,4 @@
-// Voice Studio phase 2 providers end to end (job, storage, charge) against a throwaway Postgres, ONE fake server that answers like Fish, MiniMax, Qwen and Seed
+// Audio Studio phase 2 providers end to end (job, storage, charge) against a throwaway Postgres, ONE fake server that answers like Fish, MiniMax, Qwen and Seed
 // Audio, and a fake R2. Run: DATABASE_URL=postgresql://postgres@localhost:5444/jobs npm run test:integration   (skips itself without DATABASE_URL)
 import test, { after, before } from "node:test";
 import assert from "node:assert/strict";

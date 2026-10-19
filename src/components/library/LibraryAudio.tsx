@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Download, Music } from "lucide-react";
 import type { AudioItem } from "@/lib/audio/jobs";
 
-// The person's finished Voice Studio takes (voices, sound effects and music). Links are signed for a short time, so the list is fetched fresh each visit.
+// The person's finished Audio Studio takes (voices, sound effects and music). Links are signed for a short time, so the list is fetched fresh each visit.
 export default function LibraryAudio({ query }: { query: string }) {
   const [items, setItems] = useState<AudioItem[] | null>(null);
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function LibraryAudio({ query }: { query: string }) {
       <div className="lib-empty">
         <Music size={46} strokeWidth={1.4} aria-hidden="true" />
         <h2>No audio yet</h2>
-        <p>Voices, sound effects and music you make in <Link href="/voice">Voice Studio</Link> appear here.</p>
+        <p>Voices, sound effects and music you make in <Link href="/voice">Audio Studio</Link> appear here.</p>
       </div>
     );
   }
@@ -33,7 +33,7 @@ export default function LibraryAudio({ query }: { query: string }) {
             <span>{a.modelLabel}{a.voiceName ? ` · ${a.voiceName}` : ""}</span>
           </div>
           <audio controls preload="none" src={a.url!} />
-          <a className="lib-audio-dl" href={a.url!} download={a.fileName} aria-label="Download"><Download size={16} /></a>
+          <a className="lib-audio-dl" href={`/api/audio/${a.id}/file?download=1`} download={a.fileName} aria-label="Download"><Download size={16} /></a>
         </li>
       ))}
     </ul>

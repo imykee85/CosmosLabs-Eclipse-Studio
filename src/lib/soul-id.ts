@@ -38,12 +38,12 @@ export async function startSoulId(userId: string, input: { name: unknown; versio
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
   const urls = await deliverReferences(resolved.items);
   const res = await fetch(`${BASE_URL}/${PATH()}`, { method: "POST", headers: headers(), body: JSON.stringify({ name, model_version: version, input_images: urls.map((u) => ({ type: "image_url", image_url: u })) }), signal: AbortSignal.timeout(30_000) }).catch(() => null);
-  if (!res) return { ok: false, status: 502, error: "Higgsfield could not be reached. Please try again." };
+  if (!res) return { ok: false, status: 502, error: "Training could not be started. Please try again in a moment." };
   const text = await res.text();
-  if (!res.ok) { console.error("soul id start failed", res.status, text.slice(0, 300)); return { ok: false, status: 502, error: `Higgsfield did not accept the training (${res.status}): ${safeText(text.slice(0, 160))}` }; }
+  if (!res.ok) { console.error("soul id start failed", res.status, text.slice(0, 300)); return { ok: false, status: 502, error: "The training was not accepted. Check that the pictures show one clear person, then try again." }; }
   let providerId = "";
   try { const j = JSON.parse(text); providerId = String(j.id ?? j.custom_reference_id ?? j.reference_id ?? ""); } catch {}
-  if (!providerId) return { ok: false, status: 502, error: "Higgsfield answered without an id for the training." };
+  if (!providerId) return { ok: false, status: 502, error: "Training could not be started. Please try again in a moment." };
   const row = await db.soulId.create({ data: { userId, name, modelVersion: version, providerId, status: "pending", imageCount: refs.length, thumbId: refs[0].id, thumbType: refs[0].type, credits: price } });
   return { ok: true, item: soulItem(row) };
 }
@@ -64,7 +64,7 @@ export async function refreshSoulId(row: SoulId): Promise<SoulId> {
     const claimed = await db.soulId.updateMany({ where: { id: row.id, status: "pending" }, data: { status: "completed" } });
     if (claimed.count && row.credits) await spendUpTo(row.userId, row.credits, `Soul ID: ${row.name}`).catch((e) => console.error("charging soul id failed", e));
   } else if (status === "failed" || status === "error" || status === "canceled" || status === "nsfw") {
-    await db.soulId.updateMany({ where: { id: row.id, status: "pending" }, data: { status: "failed", error: status === "nsfw" ? "The pictures were refused by the content filter. No Eclipse credits were used." : `Training failed${reason ? `: ${safeText(reason.slice(0, 160))}` : ""}. No Eclipse credits were used.` } });
+    await db.soulId.updateMany({ where: { id: row.id, status: "pending" }, data: { status: "failed", error: status === "nsfw" ? "The pictures were refused by the content filter. No credits were used." : "Training failed. No credits were used." } });
   }
   return (await db.soulId.findUnique({ where: { id: row.id } })) ?? row;
 }

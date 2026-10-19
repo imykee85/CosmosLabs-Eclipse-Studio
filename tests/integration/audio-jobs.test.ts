@@ -1,4 +1,4 @@
-// Voice Studio jobs against a throwaway Postgres, a fake ElevenLabs server and a fake R2 (no real keys, nothing leaves this machine).
+// Audio Studio jobs against a throwaway Postgres, a fake ElevenLabs server and a fake R2 (no real keys, nothing leaves this machine).
 // Run: DATABASE_URL=postgresql://postgres@localhost:5444/jobs npm run test:integration   (skips itself when DATABASE_URL is not set)
 import test, { after, before } from "node:test";
 import assert from "node:assert/strict";

@@ -305,7 +305,7 @@ export default function CreateStudio() {
               {busy ? (
                 <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Creating your image…</p></div>
               ) : shown?.imageUrl ? (
-                <a href={shown.imageUrl} target="_blank" rel="noreferrer" title="Open full size">
+                <a href={`/api/generations/${shown.id}/file`} target="_blank" rel="noreferrer" title="Open full size">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={shown.imageUrl} alt={shown.prompt} />
                 </a>
