@@ -8,9 +8,9 @@
 // provider accepts the job the render falls back to Higgsfield and is charged the Higgsfield price (the person is shown the price before generating, and
 // the Generate button asks again if the fallback price is higher than what was shown).
 //
-// Adapters built so far (from the owner's reference files): Qwen Image (docs/image-providers/qwen-image.md, src/lib/providers/qwen.ts). Still waiting for their
-// reference files, and NOT built from memory: BytePlus Seedance video (docs/video-providers/byteplus-seedance.md) and xAI Imagine
-// (docs/image-providers/xai-imagine.md). Until an adapter exists its model resolves to "higgsfield".
+// Adapters built so far (from the owner's reference files): Qwen Image (docs/image-providers/qwen-image.md, src/lib/providers/qwen.ts) and xAI Grok Imagine
+// (docs/image-providers/xai-imagine.md, src/lib/providers/xai.ts). Still waiting for its reference file, and NOT built from memory: BytePlus Seedance video
+// (docs/video-providers/byteplus-seedance.md). Until an adapter exists its model resolves to "higgsfield".
 
 export type Route = "higgsfield" | "direct";
 
@@ -24,7 +24,7 @@ export const DIRECT_KEY: Record<string, string> = {
 };
 
 // Models whose direct adapter exists in the code.
-const BUILT = new Set<string>(["qwen_image_3", "qwen_image_3_edit"]);
+const BUILT = new Set<string>(["qwen_image_3", "qwen_image_3_edit", "grok_image_2"]);
 // Extra registrations (tests register a fake one).
 const registered = new Set<string>();
 

@@ -2,6 +2,7 @@ import { byteplus } from "./byteplus";
 import { google } from "./google";
 import { openai } from "./openai";
 import { qwen, qwenModel } from "./qwen";
+import { xai, XAI_MODEL } from "./xai";
 import type { SyncImageProvider } from "./types";
 
 export type ProviderId = "higgsfield" | "google" | "openai" | "byteplus";
@@ -17,5 +18,6 @@ export const PROVIDER_KEYS: Record<ProviderId, string | null> = { higgsfield: nu
 // The direct (cheaper) route for models that normally run on Higgsfield (routes.ts decides when it is used). Returns the sync provider and the maker's own model id.
 const QWEN_MODELS = new Set(["qwen_image_3", "qwen_image_3_edit"]);
 export function directAdapter(modelId: string): { provider: SyncImageProvider; apiModel: string } | null {
+  if (modelId === "grok_image_2") return { provider: xai, apiModel: XAI_MODEL };
   return QWEN_MODELS.has(modelId) ? { provider: qwen, apiModel: qwenModel() } : null;
 }
