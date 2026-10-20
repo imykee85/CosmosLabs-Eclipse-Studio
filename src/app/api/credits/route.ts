@@ -3,6 +3,7 @@ import { getAdmin } from "@/lib/admin";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { getBalance } from "@/lib/credits";
 import { db } from "@/lib/db";
+import { freeMaxCredits, freeRendersLeft } from "@/lib/free-renders";
 import { workspaceSession } from "@/lib/workspace";
 
 // The signed-in user's credit balance and recent activity.
@@ -11,15 +12,18 @@ export async function GET() {
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const [balance, rows, admin] = await Promise.all([
+    const [balance, rows, admin, freeImages] = await Promise.all([
       getBalance(userId),
       db.creditLedger.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 25 }),
       getAdmin(),
+      freeRendersLeft(userId).catch(() => 0),
     ]);
     return NextResponse.json({
       balance,
       charging: process.env.CREDITS_ENABLED === "1",
       isAdmin: Boolean(admin),
+      freeImages,
+      freeMax: freeMaxCredits(),
       history: rows.map((r) => ({ id: r.id, delta: r.delta, reason: r.reason, note: r.note, createdAt: r.createdAt })),
     });
   } catch (err) {

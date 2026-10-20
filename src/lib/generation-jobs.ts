@@ -3,6 +3,7 @@
 // render runs at Higgsfield on its own, and the first request after it completes copies it into storage and charges credits.
 import type { Generation } from "@prisma/client";
 import { spendCredits } from "./credits";
+import { giveBackFreeRender } from "./free-renders";
 import { db } from "./db";
 import type { Prisma } from "@prisma/client";
 import { higgsfield } from "./higgsfield";
@@ -57,6 +58,8 @@ const REASONS: Record<string, string> = {
 const reasonText = (r: string) => REASONS[r] ?? "The model could not make this image. Please try again.";
 
 // `error` is what the person sees (Eclipse's own words); `detail` is the provider's own text, kept on the row for the owner's job page only.
+const isFree = (params: unknown) => Boolean(params && typeof params === "object" && !Array.isArray(params) && (params as { free?: boolean }).free);
+
 async function fail(id: string, error: string, detail?: string): Promise<Generation | null> {
   let params: Prisma.InputJsonValue | undefined;
   if (detail) {
@@ -64,8 +67,10 @@ async function fail(id: string, error: string, detail?: string): Promise<Generat
     const base = cur?.params && typeof cur.params === "object" && !Array.isArray(cur.params) ? (cur.params as Record<string, unknown>) : {};
     params = { ...base, providerError: safeText(detail, 400) } as Prisma.InputJsonValue;
   }
-  await db.generation.updateMany({ where: { id, status: { in: ["pending", "saving"] } }, data: { status: "failed", error, ...(params ? { params } : {}) } });
-  return db.generation.findUnique({ where: { id } });
+  const res = await db.generation.updateMany({ where: { id, status: { in: ["pending", "saving"] } }, data: { status: "failed", error, ...(params ? { params } : {}) } });
+  const row = await db.generation.findUnique({ where: { id } });
+  if (res.count > 0 && row && isFree(row.params)) await giveBackFreeRender(row.userId).catch(() => {}); // a free render that failed does not use up the offer
+  return row;
 }
 
 // Asks the provider how a running render is going and, if it is done, stores it. Safe to call from many places at once:
@@ -117,7 +122,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
   }
   // Charge only once the render exists (a model with no credit price yet is free).
   const chargedModel = getModelById(g.model);
-  const cost = chargeFor(chargedModel);
+  const cost = isFree(g.params) ? null : chargeFor(chargedModel);
   if (cost != null) {
     try { await spendCredits(g.userId, cost, `${chargedModel?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
@@ -129,7 +134,7 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
 // The render exists as a picture now: charge once (a model with no credit price is free) and mark it completed. Used by the Google and OpenAI path.
 export async function completeFromBytes(g: Generation, saved: SavedImage, usage: unknown): Promise<Generation> {
   const model = getModelById(g.model);
-  const cost = chargeFor(model);
+  const cost = isFree(g.params) ? null : chargeFor(model);
   if (cost != null) {
     try { await spendCredits(g.userId, cost, `${model?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
