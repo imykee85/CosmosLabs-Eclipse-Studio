@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Privacy Policy — Eclipse" };
 export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Policy">
-      <p>This page explains what Eclipse (run by Cosmos Labs AI) collects about you, why, who helps us handle it, and the choices you have.</p>
+      <p>This page explains what Eclipse (run by Cosmos Labs AI, Adjei Anuno Street, Accra, Ghana) collects about you, why, who helps us handle it, and the choices you have. Cosmos Labs AI decides how your personal data is used, and we handle it in line with the data protection law of Ghana.</p>
 
       <h2>What we collect</h2>
       <ul>
@@ -45,10 +45,20 @@ export default function PrivacyPage() {
       <p>A recording you add for transcription is deleted as soon as it has been transcribed; we keep only the text. The sample you upload to clone a voice is not kept: we keep a record of your consent and a fingerprint of the sample, and the cloned voice lives with the voice provider until you delete it.</p>
 
       <h2>How long we keep data</h2>
-      <p>We keep your data while your account is active. If you ask us to delete your account we will remove your content and personal data, except what we must keep by law or to prevent abuse (for example payment records).</p>
+      <ul>
+        <li><strong>Account details and onboarding answers:</strong> while your account is active.</li>
+        <li><strong>Projects, images, videos, sounds, canvases, chats and memories:</strong> until you delete them or delete your account. Items in the Bin stay there until you delete them from the Bin.</li>
+        <li><strong>Voice recordings for transcription:</strong> deleted as soon as they are transcribed.</li>
+        <li><strong>Cloned voices and their consent record:</strong> until you delete the voice or your account.</li>
+        <li><strong>Share links:</strong> they expire after 7 days.</li>
+        <li><strong>Credit history:</strong> while your account is active.</li>
+        <li><strong>Payment and tax records:</strong> up to 7 years, where tax and accounting law require it.</li>
+        <li><strong>Technical logs:</strong> up to 90 days.</li>
+      </ul>
+      <p>When you delete your account we remove your content and personal data from our live systems straight away. Copies in backups can remain for up to 90 days before they are overwritten. We keep only what the law requires or what we need to prevent abuse, such as payment records.</p>
 
       <h2>Your choices</h2>
-      <p>You can delete your projects, images, uploads, memories and chats yourself in the app. You can also ask us to give you a copy of your data, correct it or delete your account. Depending on where you live you may have further rights under data-protection law, such as objecting to certain processing or complaining to your local authority.</p>
+      <p>You can delete your projects, images, uploads, memories and chats yourself in the app. You can also ask us to give you a copy of your data, correct it or delete your account. Depending on where you live you may have further rights under data-protection law, such as objecting to certain processing or complaining to your local authority. In Ghana that is the Data Protection Commission.</p>
 
       <h2>Children</h2>
       <p>Eclipse is not for children. If you are under 16 (or the age of digital consent where you live), please do not create an account.</p>

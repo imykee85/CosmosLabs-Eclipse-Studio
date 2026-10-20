@@ -2,14 +2,14 @@ import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
 import "./legal.css";
 
-const LAST_UPDATED = "9 October 2026";
+const LAST_UPDATED = "20 October 2026";
 // Set NEXT_PUBLIC_CONTACT_EMAIL to show a contact address on the legal pages.
 const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "";
 
 export function Contact() {
   return CONTACT_EMAIL
-    ? <p>Questions about this page: <a className="lg-link" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
-    : <p>Questions about this page can be sent to Cosmos Labs AI through the support contact shown in your Eclipse account.</p>;
+    ? <><p>Questions about this page: <a className="lg-link" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p><p>Cosmos Labs AI, Adjei Anuno Street, Accra, Ghana.</p></>
+    : <><p>Questions about this page can be sent to Cosmos Labs AI through the support contact shown in your Eclipse account.</p><p>Cosmos Labs AI, Adjei Anuno Street, Accra, Ghana.</p></>;
 }
 
 export default function LegalPage({ title, children }: { title: string; children: React.ReactNode }) {
