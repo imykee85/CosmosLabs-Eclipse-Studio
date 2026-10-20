@@ -88,8 +88,8 @@ test("the public certificate file is served only when the owner chose to show it
   assert.equal((await get(code)).status, 404, "hidden by default");
   await lib.db.certificate.update({ where: { code }, data: { showMedia: true } });
   const ok = await get(code.toLowerCase().replace(/-/g, ""));
-  assert.equal(ok.status, 302);
-  assert.match(ok.headers.get("location") ?? "", /pic\.png/);
+  assert.equal(ok.status, 200, "the file is streamed from Eclipse's own address");
+  assert.equal(ok.headers.get("location"), null, "no redirect to the storage address");
   await lib.db.generation.update({ where: { id: g.id }, data: { deletedAt: new Date() } });
   assert.equal((await get(code)).status, 404, "a binned file is no longer served");
   assert.equal((await get("nonsense")).status, 404);
@@ -102,7 +102,7 @@ test("a published portfolio serves only chosen projects' finished media", { skip
   const get = (slug: string, id: string) => lib.pubMedia.GET(new Request("http://x/"), { params: { slug, id } });
   assert.equal((await get("ana-studio", inP.id)).status, 404, "not published yet");
   await lib.db.portfolio.update({ where: { userId: A }, data: { published: true } });
-  assert.equal((await get("ana-studio", inP.id)).status, 302);
+  assert.equal((await get("ana-studio", inP.id)).status, 200);
   assert.equal((await get("ana-studio", outP.id)).status, 404, "another project is not shown");
   assert.equal((await get("nobody", inP.id)).status, 404);
   const mineElsewhere = await lib.db.generation.create({ data: { userId: B, prompt: "b", status: "completed", storageKey: "u/a/pic.png", projectId: "proj_in" } });

@@ -542,3 +542,14 @@ model BillingSettings {
 
   @@map("billing_settings")
 }
+
+// The welcome offer: a new account gets a few free image renders (FREE_RENDERS_COUNT, default 3). One row per person, made the first time we look
+// (remaining 0 for accounts that existed before the offer). A free render is claimed when it starts and given back if it fails.
+model FreeRender {
+  userId    String   @id @map("user_id")
+  remaining Int
+  granted   Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("free_renders")
+}

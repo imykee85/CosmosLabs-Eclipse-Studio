@@ -12,6 +12,7 @@ import { readCurrentProject } from "@/lib/projects";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
 import { useRenders } from "@/lib/use-renders";
+import { useCredits } from "@/lib/use-credits";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import PromptEdge, { type EdgeMessage } from "./PromptEdge";
@@ -39,6 +40,7 @@ export default function CreateStudio() {
   const [qty, setQty] = useState(1);
   const [tier, setTier] = useState("1k");
   const models = useModels({ edit: true });
+  const { credits: creditInfo } = useCredits();
   const [refs, setRefs] = useState<RefPick[]>([]);
   // The box survives a refresh: text, shape, count, quality and the attached ingredients are kept as they change and put back on the next visit.
   const [draftReady, setDraftReady] = useState(false);
@@ -455,7 +457,7 @@ export default function CreateStudio() {
             </div>
           )}
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : model?.credits != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span></> : <>Generate <ArrowUp size={16} /></>}
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : model?.credits != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty && model.credits <= (creditInfo?.freeMax ?? 7) ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span>}</> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>
