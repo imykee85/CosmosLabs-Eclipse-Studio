@@ -236,6 +236,21 @@ model UsageEvent {
   @@map("usage_events")
 }
 
+// What each chat reply (Core, Atlas, Treatment, Prompts) really cost Eclipse at the model maker's list prices, and what was charged in ledger units.
+// Written after every reply; /admin/pricing sums it per month. No message text is stored.
+model ChatSpend {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  kind      String
+  usd       Float
+  charged   Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("chat_spend")
+}
+
 // One Voice Studio job (text to speech first; speech to text, effects and music later). Kept apart from Generation so Library, Gallery and Image Studio never see audio rows.
 // pending = running (the price is HELD while it runs), completed, failed. Audio is stored privately at audio/<userId>/<id>.<ext>.
 model AudioJob {

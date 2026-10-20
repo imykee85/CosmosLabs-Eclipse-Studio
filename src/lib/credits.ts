@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { scheduleAutoTopup } from "@/lib/billing";
-import { lockedTopup } from "@/lib/subscription";
+import { unusable } from "@/lib/subscription";
 
 import { fmtCredits } from "@/lib/credit-units";
 // Credits live in our own database, as an append-only ledger. A payment provider only tells us a payment happened; it never holds a balance.
@@ -20,9 +20,10 @@ export async function getBalance(userId: string): Promise<number> {
   return sum._sum.delta ?? 0;
 }
 
-/** What the person can spend now: the balance minus top-up credits that are locked because they have no subscription. */
+/** What the person can spend now: the balance minus top-up credits locked because they have no subscription and credits whose time ran out. */
 export async function getUsableBalance(userId: string): Promise<number> {
-  return (await getBalance(userId)) - (await lockedTopup(userId));
+  const u = await unusable(userId);
+  return (await getBalance(userId)) - u.locked - u.expired;
 }
 
 /**
@@ -50,7 +51,8 @@ export async function spendCredits(userId: string, amount: number, note?: string
   const left = await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
-    const balance = (sum._sum.delta ?? 0) - (await lockedTopup(userId, tx));
+    const u = await unusable(userId, tx);
+    const balance = (sum._sum.delta ?? 0) - u.locked - u.expired;
     if (balance < amount) throw new InsufficientCreditsError(balance, amount);
     await tx.creditLedger.create({ data: { userId, delta: -amount, reason: "CHARGE", note: note ?? null } });
     return balance - amount;
@@ -66,7 +68,8 @@ export async function spendUpTo(userId: string, amount: number, note?: string): 
   const took = await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
-    const take = Math.min(amount, Math.max(0, (sum._sum.delta ?? 0) - (await lockedTopup(userId, tx))));
+    const u = await unusable(userId, tx);
+    const take = Math.min(amount, Math.max(0, (sum._sum.delta ?? 0) - u.locked - u.expired));
     if (take > 0) await tx.creditLedger.create({ data: { userId, delta: -take, reason: "CHARGE", note: note ?? null } });
     return take;
   });

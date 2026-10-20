@@ -746,3 +746,5 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .plan-value { margin: -6px 0 0; color: #bdb9b2; font-size: 15px; font-weight: 500; }
 .plan-popular { padding-top: 40px; padding-bottom: 40px; box-shadow: 0 0 0 1px #c00707, 0 20px 60px -20px rgba(192, 7, 7, .45); }
 @media (max-width: 800px) { .plan-popular { padding-top: 32px; padding-bottom: 32px; } }
+
+.plan-rule { max-width: 760px; margin: 28px auto 0; text-align: center; color: #5e5953; font-size: 16px; line-height: 1.5; }

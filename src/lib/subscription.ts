@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { creditState } from "@/lib/expiry";
+import { heldNow } from "@/lib/held";
 
 // Top-up credits need a subscription to be USED. They are never taken away: bought credits stay in the balance, and spending them is locked while
 // the plan has lapsed. A person is subscribed while their latest plan payment is recent (a monthly plan renews every month, so the window is a
@@ -11,8 +13,6 @@ type Client = Prisma.TransactionClient | typeof db;
 
 export const subscriptionRuleOn = () => process.env.TOPUP_REQUIRES_SUBSCRIPTION !== "off";
 export const subscriptionDays = () => { const n = Number(process.env.SUBSCRIPTION_DAYS); return Number.isFinite(n) && n >= 1 ? n : 33; };
-
-const isTopupPurchase = (r: { reason: string; note: string | null }) => r.reason === "PURCHASE" && Boolean(r.note && (r.note.startsWith("Top-up:") || r.note.startsWith("Auto top-up:")));
 
 /** True while a plan payment has been received within the subscription window. */
 export async function hasSubscription(userId: string, client: Client = db): Promise<boolean> {
@@ -28,35 +28,27 @@ export async function hasSubscription(userId: string, client: Client = db): Prom
 }
 
 /**
- * How many of the person's credits came from top-ups and are still unspent. Spending takes other credits first and top-up credits last, so this is
- * worked out by replaying the ledger in order. People who never bought a top-up cost one cheap count.
+ * How many of the person's credits came from top-ups and are still unspent and unexpired. Spending takes plan credits first, other credits next and top-up credits last
+ * (expiry.ts replays the ledger to know). People who never bought anything cost one cheap count.
  */
 export async function topupRemaining(userId: string, client: Client = db): Promise<number> {
-  const bought = await client.creditLedger.count({ where: { userId, reason: "PURCHASE", OR: [{ note: { startsWith: "Top-up:" } }, { note: { startsWith: "Auto top-up:" } }] } });
-  if (!bought) return 0;
-  const rows = await client.creditLedger.findMany({ where: { userId }, orderBy: [{ createdAt: "asc" }, { delta: "desc" }, { id: "asc" }], select: { delta: true, reason: true, note: true } });
-  let others = 0;
-  let top = 0;
-  for (const r of rows) {
-    if (isTopupPurchase(r)) top += r.delta;
-    else if (r.delta > 0) others += r.delta;
-    else {
-      let need = -r.delta;
-      const fromOthers = Math.min(others, need);
-      others -= fromOthers;
-      need -= fromOthers;
-      top = Math.max(0, top - need);
-    }
-  }
-  return top;
+  if (!(await client.creditLedger.count({ where: { userId, reason: "PURCHASE" } }))) return 0;
+  return (await creditState(userId, client)).topup;
+}
+
+/** Credits in the balance that cannot be spent right now: top-up credits while there is no subscription (`locked`), and credits whose time ran out that the expiry job has not removed yet (`expired`). */
+export async function unusable(userId: string, client: Client = db): Promise<{ locked: number; expired: number }> {
+  if (!(await client.creditLedger.count({ where: { userId, reason: "PURCHASE" } }))) return { locked: 0, expired: 0 };
+  const state = await creditState(userId, client);
+  const locked = subscriptionRuleOn() && state.topup > 0 && !(await hasSubscription(userId, client)) ? state.topup : 0;
+  // Credits that ran out of time while a running job holds its price still pay for that job (the hold stays valid); they are removed once it settles.
+  const expired = state.expiredUnswept > 0 ? Math.max(0, state.expiredUnswept - (await heldNow(client, userId))) : 0;
+  return { locked, expired };
 }
 
 /** Top-up credits the person cannot spend right now (0 when subscribed, when the rule is off, or when they have none). */
 export async function lockedTopup(userId: string, client: Client = db): Promise<number> {
-  if (!subscriptionRuleOn()) return 0;
-  const top = await topupRemaining(userId, client);
-  if (top <= 0) return 0;
-  return (await hasSubscription(userId, client)) ? 0 : top;
+  return (await unusable(userId, client)).locked;
 }
 
 export const NEEDS_SUBSCRIPTION = "Top-ups are for subscribers. Subscribe to a plan first, then you can top up.";

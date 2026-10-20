@@ -3,6 +3,8 @@ import { imageCredits, allImageModels } from "./models";
 import { plans } from "./plans";
 import { toCredits } from "./credit-units";
 import { VIDEO_MODELS, videoCredits, type VideoModel } from "./video-models";
+import { audioModels } from "./audio/registry";
+import { creditsFor, usdFor } from "./audio/pricing";
 import { DIRECT_KEY, routeSetting, routeFor } from "./routes";
 
 // The owner's price check (/admin/pricing): every priced model and setting with the provider's list cost, the credits charged, and the margin at what a credit
@@ -14,7 +16,7 @@ export const FEE_FIXED_USD = 0.3;
 export const netPerCredit = (plan: { price: number; credits: number }): number => (plan.price * (1 - FEE_PERCENT) - FEE_FIXED_USD) / toCredits(plan.credits);
 
 export type PriceRow = {
-  kind: "image" | "video";
+  kind: "image" | "video" | "audio";
   model: string;      // Eclipse's id
   label: string;
   setting: string;    // resolution, "5 s, sound on", ...
@@ -72,7 +74,22 @@ export function videoRows(models: VideoModel[] = VIDEO_MODELS): PriceRow[] {
   return rows;
 }
 
-export const allPriceRows = (): PriceRow[] => [...imageRows(), ...videoRows()];
+/** Audio rows: the cost of the standard unit (1,000 characters or bytes, 60 s of speech, 10 s of sound, 60 s of music, 10 minutes of transcription), charged in tenths with AUDIO_MARGIN. */
+export function audioRows(): PriceRow[] {
+  const rows: PriceRow[] = [];
+  for (const m of audioModels()) {
+    if (m.provider === "fake") continue;
+    const kind = m.kinds[0];
+    const units = m.priceUnit === "char" || m.priceUnit === "byte" ? 1000 : kind === "stt" ? 600 : kind === "sfx" || kind === "vsfx" ? 10 : 60; // characters, bytes, seconds
+    const usd = usdFor(m, units);
+    const credits = creditsFor(usd) / 10; // ledger tenths -> credits
+    const setting = m.priceUnit === "char" ? "1,000 characters" : m.priceUnit === "byte" ? "1,000 bytes" : kind === "stt" ? "10 minutes of audio" : `${units} s${m.maxVariants ? " per variant" : ""}`;
+    rows.push({ kind: "audio", model: m.id, label: m.label, setting, route: "higgsfield", usd, credits, estimate: Boolean(m.promo) || m.id === "seed-audio-1.0", margin: margins(usd, credits), note: m.promo ? `launch price to ${m.promo.until}` : m.id === "seed-audio-1.0" ? "third-party price" : undefined });
+  }
+  return rows;
+}
+
+export const allPriceRows = (): PriceRow[] => [...imageRows(), ...videoRows(), ...audioRows()];
 
 /** The direct routes and the key each one needs, for the page. */
 export const directRouteList = () => Object.entries(DIRECT_KEY).map(([model, key]) => ({ model, key, set: Boolean(process.env[key]), setting: routeSetting(model), using: routeFor(model) }));

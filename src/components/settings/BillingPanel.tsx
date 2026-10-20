@@ -6,7 +6,7 @@ import TopUp from "./TopUp";
 import PaymentMethods from "./PaymentMethods";
 import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
-import { CreditBalance, CreditHistory, CreditNotes } from "./BillingLive";
+import { CreditBalance, CreditGrants, CreditHistory, CreditNotes } from "./BillingLive";
 
 // The Upgrade buttons open the payment provider's checkout (needs the Whop keys); the credit balance and history are real.
 export default function BillingPanel() {
@@ -27,6 +27,8 @@ export default function BillingPanel() {
           </div>
         </div>
         <CreditNotes />
+        <p className="st-meta">Plan credits renew monthly and do not roll over. Top-up credits last 90 days and can be used while you are subscribed.</p>
+        <CreditGrants />
       </section>
 
       <TopUp />

@@ -213,6 +213,7 @@ export default function Landing() {
             </article>
           ))}
         </div>
+        <p className="plan-rule">Plan credits renew monthly and do not roll over. Top-up credits last 90 days and can be used while you are subscribed.</p>
       </section>
 
       <section id="faq" className="faq-section section-pad">
