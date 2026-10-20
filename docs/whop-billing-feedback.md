@@ -2,6 +2,8 @@
 
 This document replies to the Whop setup guide for Eclipse Studios (company `biz_rhkNGepOfGhZ5X`, product `prod_zts2nbHmnIhiM`). It covers what the app does today, where it differs from the guide, and what still needs confirming against a live Whop account.
 
+> **Superseded in part (2026-10-20):** after Whop's review, the signature check, the company field and the cancel call changed. See section 5 below and `whop-billing-followup.md` for the current state and the remaining questions.
+
 ## 1. What is implemented
 
 ### Plans in use
