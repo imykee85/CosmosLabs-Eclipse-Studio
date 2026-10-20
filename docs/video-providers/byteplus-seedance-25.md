@@ -21,3 +21,46 @@ SOURCE: two phone screenshots of the model page on ai.byteplus.com (Model Square
 3. The "Price example" explanation: how tokens are counted from resolution, duration and fps, so a price per second can be worked out for 480p, 720p and 1080p, with and without video input.
 4. Edit and Extend request differences (the owner may skip these at first).
 5. Base address and authentication: Seedream already works through `https://ark.ap-southeast.bytepluses.com/api/v3` with `Authorization: Bearer <ARK_API_KEY>`; confirm the same applies to this path and that the model must be "activated" in the console (Seedream returned `ModelNotOpen` until it was).
+
+## PRICE TABLES (read from the owner's screenshots of the BytePlus "Help documentation" price page, 2026-10-20; USD, 16:9, 5 s outputs)
+Source: three phone screenshots. Verified against the provider's page by eye, not through the API. The Seedance 1.5 Pro table was cut off (not captured).
+
+### Seedance 2.5, INPUT WITHOUT VIDEO
+| Resolution | per 5 s video | per second |
+| --- | --- | --- |
+| 480p | 0.514 | 0.103 |
+| 720p | 1.156 | 0.231 |
+| 1080p | 2.843 | 0.569 |
+
+### Seedance 2.5, INPUT WITH VIDEO (5 s output; the price depends on the length of the input video, 2 to 30 s)
+| Resolution | per 5 s video | lowest = 2 to 4 s input, highest = 30 s input |
+| --- | --- | --- |
+| 480p | 0.553 to 2.152 | |
+| 720p | 1.244 to 4.838 | |
+| 1080p | 3.062 to 11.907 | |
+
+### Seedance 2.0 series, INPUT WITHOUT VIDEO (5 s output)
+| Model | 480p | 720p | 1080p | 4K |
+| --- | --- | --- | --- | --- |
+| 2.0 | 0.35 per video, 0.07 per s | 0.76, 0.15 per s | 1.87, 0.37 per s | 3.89, 0.78 per s |
+| 2.0 Fast | 0.28, 0.06 per s | 0.60, 0.12 per s | not supported | not supported |
+| 2.0 Mini | 0.18, 0.04 per s | 0.38, 0.08 per s | not supported | not supported |
+
+### Seedance 2.0 series, INPUT WITH VIDEO (input video 2 to 15 s, 5 s output; lowest = 2 to 4 s input, highest = 15 s input)
+| Model | 480p | 720p | 1080p | 4K |
+| --- | --- | --- | --- | --- |
+| 2.0 | 0.39 to 0.86 | 0.84 to 1.86 | 2.06 to 4.57 | 4.20 to 9.33 |
+| 2.0 Fast | 0.30 to 0.66 | 0.64 to 1.43 | not supported | not supported |
+| 2.0 Mini | 0.19 to 0.42 | 0.41 to 0.91 | not supported | not supported |
+
+### Token prices on the model page (per 1,000 tokens, shown while activating)
+- With video input: $0.0064 to $0.0070. Without video input: $0.0107 to $0.0117.
+
+### Activation
+Activating the model in the console failed with `OperationDenied: No available resource packs. Please purchase a resource pack first.` (action `OpenModelChargeItem`). The BytePlus account needs a prepaid resource pack or balance before the model can be used through the API. BytePlus has no spending-limit feature, so the balance is the cap.
+
+### Check against what the code assumes (`directUsd` in `src/lib/video-models.ts`, brief section 8)
+- Seedance 2.5 (no video input): code 480p 0.1075, 720p 0.2311, 1080p 0.5686 per second; provider page 0.103, 0.231, 0.569. 720p and 1080p MATCH; 480p is 4% above the page (safe side).
+- Seedance 2.0 (no video input): code 480p 0.0643, 720p 0.1382, 1080p 0.311 per second; provider page 0.07, 0.15, 0.37. The code is LOW by 8%, 8% and 16%, so the direct route would earn less margin than the brief designs for. NOT changed yet: the owner decides whether to update `directUsd` (the price test in `tests/integration/price-dry-run.test.ts` would need the same update).
+- Seedance 2.0 4K: provider page 0.78 per second without video input (Higgsfield-only today).
+- Video-input pricing is per clip and depends on the input length: Eclipse's per-second model cannot represent it without the input duration (a later step).
