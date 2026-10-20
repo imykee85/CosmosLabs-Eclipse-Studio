@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, Bell, Check } from "lucide-react";
+import { AlertCircle, Bell, Check, Users } from "lucide-react";
+import { clerkEnabled } from "@/lib/clerk-enabled";
+import TeamInviteFeed, { type TeamInvite } from "./TeamInviteFeed";
 import "./notifications.css";
 
 // Bell in the headers (or, with `label`, a row with the bell next to a text such as "Notifications" in the phone side menu). Opens a small panel listing what finished or failed
@@ -15,6 +17,8 @@ export default function NotificationsButton({ className, up = false, label }: { 
   const ref = useRef<HTMLSpanElement>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [seen, setSeen] = useState(0);
+  const [invites, setInvites] = useState<TeamInvite[]>([]);
+  const [joining, setJoining] = useState("");
   useEffect(() => {
     setSeen(readSeen());
     let live = true;
@@ -23,7 +27,7 @@ export default function NotificationsButton({ className, up = false, label }: { 
     const t = setInterval(load, 60_000);
     return () => { live = false; clearInterval(t); };
   }, []);
-  const unread = items.filter((i) => Date.parse(i.at) > seen).length;
+  const unread = items.filter((i) => Date.parse(i.at) > seen).length + invites.length; // an invitation stays "new" until it is answered
   function toggle() {
     setOpen((o) => {
       if (!o) { const now = Date.now(); try { localStorage.setItem(SEEN, String(now)); } catch {} setTimeout(() => setSeen(now), 1500); } // the dot stays while the list is first read
@@ -41,21 +45,35 @@ export default function NotificationsButton({ className, up = false, label }: { 
     return () => { document.removeEventListener("mousedown", away); document.removeEventListener("touchstart", away); document.removeEventListener("keydown", esc); };
   }, [open]);
 
+  async function join(inv: TeamInvite) {
+    setJoining(inv.id);
+    try { await inv.join(); setOpen(false); } catch { /* the invitation stays in the list so it can be tried again */ }
+    setJoining("");
+  }
+
   return (
     <span className={`nt ${label ? "nt-row" : ""}`} ref={ref}>
+      {clerkEnabled && <TeamInviteFeed onChange={setInvites} />}
       <button type="button" className={className} aria-label="Notifications" aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
         {label ? <><Bell size={19} /> {label}</> : <Bell size={16} />}{unread > 0 && <i className="nt-dot" aria-label={`${unread} new`} />}
       </button>
       {open && (
         <div className={`nt-pop ${up ? "is-up" : ""}`} role="dialog" aria-label="Notifications">
           <h2>Notifications</h2>
-          {items.length === 0 ? (
+          {items.length === 0 && invites.length === 0 ? (
             <div className="nt-empty">
               <Bell size={30} strokeWidth={1.5} aria-hidden="true" />
               <p>You&apos;re all caught up</p>
             </div>
           ) : (
             <ul className="nt-list">
+              {invites.map((inv) => (
+                <li key={inv.id} className="nt-invite">
+                  <span className="nt-ico team"><Users size={13} /></span>
+                  <span className="nt-txt"><b>{inv.team} invited you to join their team</b><small>You would join as {inv.role}. Teams share credits, projects and the Library.</small></span>
+                  <button type="button" className="nt-join" disabled={joining === inv.id} onClick={() => void join(inv)}>Join</button>
+                </li>
+              ))}
               {items.map((i) => (
                 <li key={i.id}>
                   <Link href={i.href} onClick={() => setOpen(false)} className={Date.parse(i.at) > seen ? "is-new" : ""}>
