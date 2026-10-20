@@ -1,5 +1,7 @@
 "use client";
 
+import { fmtCredits } from "@/lib/credit-units";
+import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -197,11 +199,12 @@ export default function Landing() {
           {plans.map((p, i) => (
             <article className={`plan-card ${i === 1 ? "plan-popular" : ""}`} key={p.name}>
               {i === 1 && <span className="plan-tag">Most popular</span>}
-              <h3>{p.name}</h3>
+              <h3>{p.name}{planSaving(p) > 0 && <span className="plan-save">Save {planSaving(p)}%</span>}</h3>
               <p className="plan-price">${p.price}<small>/month</small></p>
               <PriceBadge usd={p.price} className="badge-row" />
+              <p className="plan-value">{planValue(p)}</p>
               <ul>
-                <li><Check size={15} /> {p.credits.toLocaleString("en-US")} credits every month</li>
+                <li><Check size={15} /> {fmtCredits(p.credits)} credits every month</li>
                 <li><Check size={15} /> {p.seats} seat{p.seats === 1 ? "" : "s"}</li>
                 <li><Check size={15} /> Private gallery for every project</li>
               </ul>

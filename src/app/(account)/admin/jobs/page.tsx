@@ -24,7 +24,7 @@ export default async function AdminJobsPage() {
       <div style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%" }}>
           <thead>
-            <tr>{["When", "Kind", "Model", "Status", "Held", "Seconds", "Provider said", "Request", "Error", "Account"].map((h) => <th key={h} style={cell}>{h}</th>)}</tr>
+            <tr>{["When", "Kind", "Model", "Status", "Held (tenths)", "Seconds", "Provider said", "Request", "Error", "Account"].map((h) => <th key={h} style={cell}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((r) => (

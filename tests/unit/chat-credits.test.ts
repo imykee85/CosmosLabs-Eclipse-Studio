@@ -6,7 +6,7 @@ test("a reply is priced from the tokens it used, with the margin, rounded up, at
   const m = new ChatMeter();
   m.add("claude-sonnet-5-5", { input_tokens: 10_000, output_tokens: 1_000 }); // $0.02 + $0.01 = $0.03
   assert.ok(Math.abs(m.usd - 0.03) < 1e-9);
-  assert.equal(m.credits(), Math.ceil((0.03 * 1.25) / 0.008)); // 5
+  assert.equal(m.credits(), Math.ceil((0.03 * 2.5) / 0.01)); // 8 ledger units = 0.8 credits
   const tiny = new ChatMeter();
   tiny.add("claude-haiku-5-5", { input_tokens: 100, output_tokens: 10 });
   assert.equal(tiny.credits(), 1);

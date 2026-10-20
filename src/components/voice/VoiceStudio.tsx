@@ -17,6 +17,7 @@ import { readCurrentProject, timeAgo } from "@/lib/projects";
 import { deleteOwnVoice, deleteVoice, startVoice, useVoiceJobs, useVoiceModels, useVoices, type AudioItem, type OwnVoice, type VoiceOption } from "@/lib/use-voice";
 import "./voice.css";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Audio Studio (AUDIO). A stage, not a form: the chosen voice sits in the middle of a ring that breathes, runs while a take is made and moves (with a red progress ring)
 // while one plays. Voices are a strip of orbs to swipe through (the full list with search is one tap away), the takes are a quiet list under it, and everything you
 // type and set lives in one console docked at the bottom. EVERY control comes from the audio registry (src/lib/audio/registry.ts): one the model cannot use is greyed.
@@ -293,10 +294,10 @@ export default function VoiceStudio() {
             </div>
             <span className="vc-count">{chars.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
           </div>
-          <button type="button" className="vc-go" aria-label="Generate" disabled={!canGo} onClick={() => void generate()} title={price != null ? `About ${price} credits` : "Generate"}>
+          <button type="button" className="vc-go" aria-label="Generate" disabled={!canGo} onClick={() => void generate()} title={price != null ? `About ${fmtCredits(price)} credits` : "Generate"}>
             {submitting ? <Loader2 size={18} className="vc-spin" /> : null}
             <span>Generate</span>
-            {price != null && <span className="vc-cost"><Coins size={13} />{price}</span>}
+            {price != null && <span className="vc-cost"><Coins size={13} />{fmtCredits(price)}</span>}
           </button>
         </div>}
       </div>

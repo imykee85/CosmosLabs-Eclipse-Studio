@@ -6,12 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUp, Camera, ScanFace, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
-import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
+import { imageCost, MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
 import { useRenders } from "@/lib/use-renders";
+import { fmtCredits, creditsText } from "@/lib/credit-units";
 import { useCredits } from "@/lib/use-credits";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
@@ -40,7 +41,6 @@ export default function CreateStudio() {
   const [qty, setQty] = useState(1);
   const [tier, setTier] = useState("1k");
   const models = useModels({ edit: true });
-  const { credits: creditInfo } = useCredits();
   const [refs, setRefs] = useState<RefPick[]>([]);
   // The box survives a refresh: text, shape, count, quality and the attached ingredients are kept as they change and put back on the next visit.
   const [draftReady, setDraftReady] = useState(false);
@@ -75,7 +75,9 @@ export default function CreateStudio() {
     const ok = (models ?? []).filter((m) => m.autoPick && !m.requiresReference && m.maxReferences >= refs.length);
     return ok.find((m) => m.verified) ?? ok[0] ?? null;
   })();
+  const { credits: creditInfo } = useCredits();
   const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;
+  const imgCost = imageCost(model ?? undefined, model?.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, qty); // what Generate will cost, in ledger units
 
   // Fixed seed: the switch (remembered), the number (remembered) and what the chosen model allows. The server always sends a seed to a
   // model that has one (a random one when the switch is off) and never sends one to a model that does not.
@@ -457,7 +459,7 @@ export default function CreateStudio() {
             </div>
           )}
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : model?.credits != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty && model.credits <= (creditInfo?.freeMax ?? 7) ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${model.credits * qty} credits`}><Coins size={14} />{model.credits * qty}</span>}</> : <>Generate <ArrowUp size={16} /></>}
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : imgCost != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${creditsText(imgCost)}${model && model.batch > 1 ? ` (up to ${model.batch} images for one price)` : ""}`}><Coins size={14} />{fmtCredits(imgCost)}</span>}</> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>

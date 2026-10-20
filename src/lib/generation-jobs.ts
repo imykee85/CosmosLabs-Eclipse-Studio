@@ -59,6 +59,9 @@ const reasonText = (r: string) => REASONS[r] ?? "The model could not make this i
 
 // `error` is what the person sees (Eclipse's own words); `detail` is the provider's own text, kept on the row for the owner's job page only.
 const isFree = (params: unknown) => Boolean(params && typeof params === "object" && !Array.isArray(params) && (params as { free?: boolean }).free);
+// The price of a render is the one saved on its row when it started (ledger units; 0 = paid for already, e.g. a later image of a Soul batch). An older row without one
+// is priced by its model and resolution now.
+const chargeOf = (g: Generation, model: ReturnType<typeof getModelById>) => (g.creditsHeld != null ? g.creditsHeld : chargeFor(model, g.resolution ?? undefined));
 
 async function fail(id: string, error: string, detail?: string): Promise<Generation | null> {
   let params: Prisma.InputJsonValue | undefined;
@@ -122,8 +125,8 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
   }
   // Charge only once the render exists (a model with no credit price yet is free).
   const chargedModel = getModelById(g.model);
-  const cost = isFree(g.params) ? null : chargeFor(chargedModel);
-  if (cost != null) {
+  const cost = chargeOf(g, chargedModel);
+  if (cost != null && cost > 0) {
     try { await spendCredits(g.userId, cost, `${chargedModel?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
   return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: s.imageUrl, storageKey: saved?.key ?? null, contentType: saved?.contentType ?? null, sizeBytes: saved?.sizeBytes ?? null, width: saved?.width ?? null, height: saved?.height ?? null, ...(saved?.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), error: null } });
@@ -134,8 +137,8 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
 // The render exists as a picture now: charge once (a model with no credit price is free) and mark it completed. Used by the Google and OpenAI path.
 export async function completeFromBytes(g: Generation, saved: SavedImage, usage: unknown): Promise<Generation> {
   const model = getModelById(g.model);
-  const cost = isFree(g.params) ? null : chargeFor(model);
-  if (cost != null) {
+  const cost = chargeOf(g, model);
+  if (cost != null && cost > 0) {
     try { await spendCredits(g.userId, cost, `${model?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
   return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, ...(saved.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), providerUsage: usage == null ? undefined : (usage as object) } });

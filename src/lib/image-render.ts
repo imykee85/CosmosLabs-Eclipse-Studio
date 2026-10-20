@@ -1,4 +1,5 @@
 import type { PublicModel } from "@/lib/models";
+import { creditsText } from "@/lib/credit-units";
 
 // The shared brains of "make images from a prompt": used by Image Studio and by the Canvas image generator, so the two behave the same.
 
@@ -6,6 +7,27 @@ import type { PublicModel } from "@/lib/models";
 // stand in for 1K and 1.5K. Tiers a model cannot make are greyed out rather than guessed.
 export const TIERS = [{ id: "1k", label: "1K" }, { id: "1.5k", label: "1.5K" }, { id: "2k", label: "2K" }, { id: "4k", label: "4K" }];
 export const MAX_QTY = 4;
+
+/** The short price shown on a model row: "from 4 credits", or "4 images · 1 credit" for a batch model. Null while credits are off. */
+export function priceLabel(model: PublicModel): string | null {
+  const t = model.prices;
+  if (!t) return null;
+  const units = Math.min(...Object.values(t));
+  if (!Number.isFinite(units)) return null;
+  if (model.batch > 1) return `${model.batch} images · ${creditsText(units)}`;
+  return `from ${creditsText(units)}`;
+}
+
+/** What `qty` images cost on a model at a resolution, in LEDGER units (tenths of a credit; show it with fmtCredits). Null while credits are off or the model has no price.
+ * A batch model (Soul 2, Soul Cinema) charges its price once per batch of up to `batch` images. */
+export function imageCost(model: PublicModel | undefined, resolution: string | undefined, qty: number): number | null {
+  const t = model?.prices;
+  if (!model || !t) return null;
+  const key = resolution && t[resolution] != null ? resolution : t.default != null ? "default" : model.defaultResolution && t[model.defaultResolution] != null ? model.defaultResolution : Object.keys(t)[0];
+  const each = key ? t[key] : undefined;
+  if (each == null) return null;
+  return each * (model.batch > 1 ? Math.ceil(qty / model.batch) : qty);
+}
 
 export function tierResolution(resolutions: string[], tier: string): string | undefined {
   if (resolutions.includes(tier)) return tier;
@@ -50,11 +72,12 @@ function pickFor(o: StartInput): PublicModel {
 // or a new one) can be reported and the others can count up from it.
 export async function startImages(o: StartInput): Promise<{ results: StartResult[]; seed?: number; note?: string }> {
   let base = o.seedNum;
+  const batchId = crypto.randomUUID(); // images made in one Generate: the server lets a batch model (Soul) charge one price for up to four of them
   const run = async (i: number): Promise<StartResult> => {
     const m = pickFor(o);
     const lock = o.seedOn && m.seed.supported;
     const seed = lock && base != null ? m.seed.min + ((base - m.seed.min + i) % (m.seed.max - m.seed.min + 1)) : undefined;
-    const body = JSON.stringify({ prompt: o.prompt, aspectRatio: o.ratio, model: m.id, resolution: m.resolutions.length ? tierResolution(m.resolutions, o.tier) : undefined, projectId: o.projectId ?? undefined, references: o.refs, ...(o.soulId && /^soul/.test(m.id) ? { soulId: o.soulId, soulStrength: o.soulStrength } : {}), ...(lock ? { lockSeed: true, ...(seed != null ? { seed } : {}) } : {}) });
+    const body = JSON.stringify({ prompt: o.prompt, aspectRatio: o.ratio, model: m.id, batchId, resolution: m.resolutions.length ? tierResolution(m.resolutions, o.tier) : undefined, projectId: o.projectId ?? undefined, references: o.refs, ...(o.soulId && /^soul/.test(m.id) ? { soulId: o.soulId, soulStrength: o.soulStrength } : {}), ...(lock ? { lockSeed: true, ...(seed != null ? { seed } : {}) } : {}) });
     const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body });
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, error: res.status === 503 ? "Generating is switched off in preview mode." : data.error ?? "Something went wrong. Please try again.", id: typeof data.id === "string" ? data.id : undefined, seed: typeof data.seed === "number" ? data.seed : undefined, note: typeof data.seedNote === "string" ? data.seedNote : undefined };

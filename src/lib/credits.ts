@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { scheduleAutoTopup } from "@/lib/billing";
 import { lockedTopup } from "@/lib/subscription";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Credits live in our own database, as an append-only ledger. A payment provider only tells us a payment happened; it never holds a balance.
 // Balance = sum of delta. Spending takes a per-user lock so two requests at once cannot both spend the same credits.
 
@@ -10,7 +11,7 @@ export type CreditReason = "GRANT" | "PURCHASE" | "CHARGE" | "REFUND" | "ADJUST"
 
 export class InsufficientCreditsError extends Error {
   constructor(readonly balance: number, readonly needed: number) {
-    super(`Not enough credits: ${balance} available, ${needed} needed`);
+    super(`Not enough credits: ${fmtCredits(balance)} available, ${fmtCredits(needed)} needed`);
   }
 }
 

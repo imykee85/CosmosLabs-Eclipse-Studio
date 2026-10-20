@@ -313,3 +313,6 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-edit-acts button { height: 28px; padding: 0 11px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
 .aw-edit-acts .is-send { border-color: #c00707; background: #c00707; color: #fff; }
 .aw-edit-acts .is-send:disabled { opacity: .5; cursor: default; }
+
+/* The short price on a model row ("from 4 credits"). */
+.mp-price { flex: none; color: var(--a-muted); font-size: 12px; white-space: nowrap; }

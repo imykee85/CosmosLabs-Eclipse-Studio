@@ -1,3 +1,4 @@
+import { fmtCredits } from "../credit-units";
 import { unwrapWebhook } from "@whop/sdk/helpers";
 import { InvalidWebhookError } from "./types";
 import { productById } from "@/lib/plans";
@@ -48,7 +49,7 @@ function inlinePlan(price: number, credits: number | undefined) {
   return {
     initial_price: price, currency: "usd", plan_type: "one_time", visibility: "hidden",
     ...(process.env.WHOP_PRODUCT_ID ? { product_id: process.env.WHOP_PRODUCT_ID } : {}),
-    ...(credits ? { title: `Top-up ${credits.toLocaleString("en-US")} credits`, metadata: { credits, type: "topup" } } : {}),
+    ...(credits ? { title: `Top-up ${fmtCredits(credits)} credits`, metadata: { credits, type: "topup" } } : {}),
   };
 }
 

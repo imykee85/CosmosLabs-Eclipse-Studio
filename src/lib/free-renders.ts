@@ -1,13 +1,13 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
-import { FREE_RENDERS_DEFAULT } from "@/lib/plans";
+const FREE_RENDERS_DEFAULT = 2;
 
 // The welcome offer: an account made on or after FREE_RENDERS_FROM (a date, default 2026-10-20) gets FREE_RENDERS_COUNT (default 2) free image renders on
 // ANY image model (set FREE_RENDERS_MAX_CREDITS to leave out the dearest ones; unset means no limit). It only applies in the person's own workspace (never a team's), and only while
 // credits are switched on (otherwise everything is free anyway). Accounts that existed before the offer get a row with nothing left, so Clerk is asked once.
 const count = () => (Number(process.env.FREE_RENDERS_COUNT) >= 0 && process.env.FREE_RENDERS_COUNT ? Math.floor(Number(process.env.FREE_RENDERS_COUNT)) : FREE_RENDERS_DEFAULT);
-export const freeMaxCredits = () => (Number(process.env.FREE_RENDERS_MAX_CREDITS) > 0 ? Math.floor(Number(process.env.FREE_RENDERS_MAX_CREDITS)) : 100000);
+export const freeMaxCredits = () => 100000; // no cap: a free render may be on any model (FREE_RENDERS_MAX_CREDITS is ignored)
 const since = () => { const t = Date.parse(process.env.FREE_RENDERS_FROM ?? "2026-10-20"); return Number.isFinite(t) ? t : Date.parse("2026-10-20"); };
 
 const personal = (userId: string) => userId.startsWith("user_");

@@ -10,7 +10,8 @@ import { refFileUrl, STYLES, type CanvasNodeData, type CNode, type NodeKind } fr
 import { composePrompt, inPortsOf, inputsOf, isGen, outLabelOf, OUT_HANDLE, picturesOf, takesInputs, TITLES } from "@/lib/canvas-flow";
 import { DEFAULT_VIDEO_MODEL, VIDEO_MODELS, capsFor, isLive, videoModelById, videoPrice, workflowFor } from "@/lib/video-models";
 import { refreshCredits } from "@/lib/use-credits";
-import { MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
+import { imageCost, MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
+import { creditsText, fmtCredits } from "@/lib/credit-units";
 import { readCurrentProject } from "@/lib/projects";
 import { useAgent } from "@/lib/use-agent";
 import { useModels } from "@/lib/use-models";
@@ -341,7 +342,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   }, [id]);
 
   const modelLabel = modelId === AUTO ? "Auto" : model?.label ?? "Model";
-  const price = model?.credits != null && modelId !== AUTO ? model.credits * qty : null;
+  const price = modelId !== AUTO ? imageCost(model ?? undefined, model?.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, qty) : null;
   const [showSend, setShowSend] = useState(false);
   const picked = data.pick && gens.includes(data.pick) ? data.pick : gens[0];
   const ingN = (data.refs ?? []).length;
@@ -406,7 +407,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
             </span>
           </div>
           <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={run}>
-            {submitting ? <><Loader2 size={15} className="cv-spin" /> Generating</> : busy ? <><Loader2 size={15} className="cv-spin" /> Creating {pending.length === 1 ? "your image" : `${pending.length} images`}</> : price != null ? <>Generate <span className="cv-cost" title={`${price} credits`}><Coins size={13} />{price}</span></> : <>Generate <ArrowUp size={15} /></>}
+            {submitting ? <><Loader2 size={15} className="cv-spin" /> Generating</> : busy ? <><Loader2 size={15} className="cv-spin" /> Creating {pending.length === 1 ? "your image" : `${pending.length} images`}</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><Coins size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
           </button>
           <button type="button" className="cv-send-toggle nodrag" aria-expanded={showSend} onClick={() => setShowSend((v) => !v)}>What will be sent <ChevronDown size={12} className={showSend ? "is-up" : ""} /></button>
           {showSend && (
@@ -467,11 +468,11 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
   const gens = data.gens ?? [];
   const busy = pending.length > 0;
   const [submitting, setSubmitting] = useState(false);
-  const [config, setConfig] = useState<{ creditsOn?: boolean } | null>(null);
+  const [config, setConfig] = useState<{ creditsOn?: boolean; direct?: string[] } | null>(null);
   useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => c && setConfig(c)).catch(() => {}); }, []);
   const tooManyRefs = refPics.length > caps.refMax || clips.length > caps.refVideoMax;
   const startUnusable = !!start && !model.startFrame;
-  const price = config?.creditsOn ? videoPrice(model, quality || undefined, duration, sound) : null;
+  const price = config?.creditsOn ? videoPrice(model, quality || undefined, duration, sound, config?.direct?.includes(model.id) ? "direct" : "higgsfield") : null;
   const canGo = isLive(model) && (!!prompt || !caps.promptRequired) && !busy && !submitting && waiting.length === 0 && !tooManyRefs && !startUnusable;
 
   // A running video is followed through its status route until it is done (it keeps rendering on the server if you leave).
@@ -525,7 +526,7 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
       const d = await res.json().catch(() => ({}));
       if (res.status === 409 && d.needsConfirm) {
         setSubmitting(false);
-        if (window.confirm(`This video costs ${d.cost} credits. Start it?`)) return run(true);
+        if (window.confirm(`This video costs ${fmtCredits(d.cost)} credits. Start it?`)) return run(true);
         return;
       }
       if (!res.ok || typeof d.id !== "string") throw new Error(typeof d.error === "string" ? d.error : "Could not start the video. Please try again.");
@@ -584,7 +585,7 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
             <button type="button" className="cv-chip" disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on" : "Sound off"} title={caps.audio ? (sound ? "Sound on" : "Sound off") : "This model makes no sound"} onClick={() => updateNodeData(id, { sound: !sound })}>{sound ? <Volume2 size={13} /> : <VolumeX size={13} />}</button>
           </div>
           <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={() => void run()}>
-            {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Making your video</> : price != null ? <>Generate <span className="cv-cost" title={`${price} credits`}><Coins size={13} />{price}</span></> : <>Generate <ArrowUp size={15} /></>}
+            {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Making your video</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><Coins size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
           </button>
           {startUnusable && <p className="cv-nhint">{model.label} can&rsquo;t take a start frame. Choose another model or unplug the picture.</p>}
           {tooManyRefs && <p className="cv-error" role="alert">{model.label} takes up to {caps.refMax} reference {caps.refMax === 1 ? "picture" : "pictures"} and {caps.refVideoMax} {caps.refVideoMax === 1 ? "clip" : "clips"}.</p>}

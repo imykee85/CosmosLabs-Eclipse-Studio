@@ -9,6 +9,7 @@ import EditVideoDialog from "../generate/EditVideoDialog";
 import type { Render } from "@/lib/use-renders";
 import "./library.css";
 
+import { fmtCredits, creditsText } from "@/lib/credit-units";
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -54,7 +55,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
       let res = await fetch(video ? "/api/video" : "/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (video && res.status === 409) {
         const need = await res.clone().json().catch(() => ({}));
-        if (need.needsConfirm && window.confirm(`This video costs ${need.cost} credits. Continue?`)) res = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, confirm: true }) });
+        if (need.needsConfirm && window.confirm(`This video costs ${fmtCredits(need.cost)} credits. Continue?`)) res = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, confirm: true }) });
       }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Could not start this render.");

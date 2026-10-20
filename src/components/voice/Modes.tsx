@@ -6,6 +6,7 @@ import { Coins, Loader2, Mic, Paperclip, Repeat, Square, Users } from "lucide-re
 import { estimateSeconds } from "@/lib/audio/pricing-client";
 import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
 
+import { fmtCredits } from "@/lib/credit-units";
 // The three consoles that sit under the Speak console's place when the mode changes: Transcribe (a recording to text), Effects (a described sound) and Music (a described
 // track). They look like the Speak console and use the same registry-driven rules: an option a model cannot use is greyed, a provider that is not connected says so when
 // you press the button. The parent follows the job (the takes list); a console only collects the input and calls onStart, which returns an error text or null.
@@ -50,10 +51,10 @@ const priceFor = (m: VoiceModel | null, secs: number) => (m?.pricing && m.pricin
 
 function Go({ label, busy, disabled, price, onClick }: { label: string; busy: boolean; disabled?: boolean; price: number | null; onClick: () => void }) {
   return (
-    <button type="button" className="vc-go" aria-label={label} disabled={disabled || busy} onClick={onClick} title={price != null ? `About ${price} credits` : label}>
+    <button type="button" className="vc-go" aria-label={label} disabled={disabled || busy} onClick={onClick} title={price != null ? `About ${fmtCredits(price)} credits` : label}>
       {busy ? <Loader2 size={18} className="vc-spin" /> : null}
       <span>{label}</span>
-      {price != null && <span className="vc-cost"><Coins size={13} />{price}</span>}
+      {price != null && <span className="vc-cost"><Coins size={13} />{fmtCredits(price)}</span>}
     </button>
   );
 }

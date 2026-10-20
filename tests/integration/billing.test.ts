@@ -102,7 +102,7 @@ test("a top-up pack payment grants its credits once and remembers the saved card
   const s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
   assert.deepEqual([s.providerMemberId, s.providerPaymentMethod, s.providerMembershipId], ["mem_9", "pm_9", null], "a top-up's own membership is not kept as the subscription");
   const row = await lib.db.creditLedger.findFirst({ where: { userId: USER } });
-  assert.equal(row.note, "Top-up: 500 credits");
+  assert.equal(row.note, "Top-up: 50 credits");
   assert.equal((await lib.webhook.POST(signed(payment("pay_2", "mystery")))).status, 422, "an unknown product is not granted");
   assert.equal((await lib.webhook.POST(new Request("http://x", { method: "POST", body: "{}" }))).status, 401, "unsigned is refused");
 });
@@ -132,7 +132,7 @@ test("auto top-up charges the saved card once when credits are low, and not befo
   const c = whopState.charges[0];
   assert.equal(c.body.member_id, "mem_1");
   assert.equal(c.body.payment_method_id, "pm_1");
-  assert.deepEqual(c.body.plan, { initial_price: 34, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test" });
+  assert.deepEqual(c.body.plan, { initial_price: 22, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test" });
   assert.deepEqual(c.body.metadata, { userId: USER, planId: "topup_2000", auto: "1" });
   assert.match(c.key ?? "", /^auto-user_bill_a-/);
   assert.equal(c.body.off_session, true);
@@ -156,7 +156,7 @@ test("a pending charge waits for the provider's confirmation, which grants the c
   await lib.webhook.POST(signed(payment(`pay_auto_${whopState.n}`, "topup_500", {}, true)));
   assert.equal(await balance(), 510);
   const row = await lib.db.creditLedger.findFirst({ where: { userId: USER, reason: "PURCHASE", note: { startsWith: "Auto" } } });
-  assert.equal(row.note, "Auto top-up: 500 credits", "counted against the monthly limit");
+  assert.equal(row.note, "Auto top-up: 50 credits", "counted against the monthly limit");
 });
 
 test("a declined card switches auto top-up off and says why", { skip }, async () => {
@@ -315,10 +315,10 @@ test("a custom amount is priced by us, sent as a one-time price, and granted fro
   const { whop } = await import("../../src/lib/payments/whop");
   const { productById } = await import("../../src/lib/plans");
   const prod = productById("topup_custom", 1000)!;
-  assert.equal(prod.price, 18);
+  assert.equal(prod.price, 11.33);
   await whop.createCheckout({ userId: USER, planId: prod.id, returnUrl: "http://x/", custom: { credits: prod.credits, price: prod.price } });
   const sent = whopState.setups[0];
-  assert.deepEqual(sent.plan, { initial_price: 18, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test", title: "Top-up 1,000 credits", metadata: { credits: 1000, type: "topup" } });
+  assert.deepEqual(sent.plan, { initial_price: 11.33, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test", title: "Top-up 100 credits", metadata: { credits: 1000, type: "topup" } });
   assert.equal(sent.plan_id, undefined, "no ready-made plan is used");
   assert.deepEqual(sent.metadata, { userId: USER, planId: "topup_custom", credits: 1000 });
   const ev = payment("pay_c1", "topup_custom", { member: { id: "mem_1" }, payment_method: { id: "pm_1" } });
@@ -346,7 +346,7 @@ test("auto top-up with a custom amount saves it, validates it and charges that p
   await lib.credits.spendCredits(USER, 700, "test");
   await wait(400);
   assert.equal(whopState.charges.length, 1);
-  assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 18, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test", title: "Top-up 1,000 credits", metadata: { credits: 1000, type: "topup" } });
+  assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 11.33, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test", title: "Top-up 100 credits", metadata: { credits: 1000, type: "topup" } });
   assert.deepEqual(whopState.charges[0].body.metadata, { userId: USER, planId: "topup_custom", credits: 1000, auto: "1" });
   await confirm(whopState.n, "topup_custom", { credits: 1000 });
   assert.equal(await balance(), 200 + 1000);
@@ -368,35 +368,35 @@ test("a lapsed plan locks bought top-up credits, keeps them, and unlocks them wh
   assert.equal(await lib.credits.spendUpTo(USER, 50, "x"), 0, "chat cannot dip into locked credits either");
   assert.equal(await balance(), 500, "nothing was taken");
 
-  await lib.webhook.POST(signed(payment("pay_p1", "starter"))); // subscribes: +1000 plan credits
+  await lib.webhook.POST(signed(payment("pay_p1", "starter"))); // subscribes: +2000 plan credits
   assert.equal(await sub.hasSubscription(USER), true);
   assert.equal(await sub.lockedTopup(USER), 0);
-  assert.equal(await lib.credits.getUsableBalance(USER), 1500);
+  assert.equal(await lib.credits.getUsableBalance(USER), 2500);
 
   await setAge(40); // the plan lapses
   assert.equal(await sub.hasSubscription(USER), false);
   assert.equal(await sub.lockedTopup(USER), 500, "plan credits stay usable, top-up credits lock");
-  assert.equal(await lib.credits.getUsableBalance(USER), 1000);
-  await lib.credits.spendCredits(USER, 1000, "x");
+  assert.equal(await lib.credits.getUsableBalance(USER), 2000);
+  await lib.credits.spendCredits(USER, 2000, "x");
   await assert.rejects(lib.credits.spendCredits(USER, 1, "x"), /Not enough credits/);
   assert.equal(await balance(), 500, "the top-up credits are still there");
 
   await lib.webhook.POST(signed(payment("pay_p2", "starter"))); // renews
-  assert.equal(await lib.credits.getUsableBalance(USER), 1500);
+  assert.equal(await lib.credits.getUsableBalance(USER), 2500);
 });
 
 test("spending uses plan credits first and top-up credits last, in order", { skip }, async () => {
   const sub = await import("../../src/lib/subscription");
   await reset(0, false);
-  await lib.webhook.POST(signed(payment("pay_p3", "starter")));      // +1000 plan
+  await lib.webhook.POST(signed(payment("pay_p3", "starter")));      // +2000 plan
   await lib.webhook.POST(signed(payment("pay_t3", "topup_500")));    // +500 top-up
-  await lib.credits.spendCredits(USER, 1200, "x");                   // 1000 plan, then 200 top-up
+  await lib.credits.spendCredits(USER, 2200, "x");                   // 2000 plan, then 200 top-up
   assert.equal(await sub.topupRemaining(USER), 300);
-  await lib.webhook.POST(signed(payment("pay_p4", "starter")));      // renewal adds 1000 plan
+  await lib.webhook.POST(signed(payment("pay_p4", "starter")));      // renewal adds 2000 plan
   assert.equal(await sub.topupRemaining(USER), 300, "a renewal does not refill the top-up bucket");
   await setAge(40);
   assert.equal(await sub.lockedTopup(USER), 300);
-  assert.equal(await lib.credits.getUsableBalance(USER), 1000);
+  assert.equal(await lib.credits.getUsableBalance(USER), 2000);
 });
 
 test("holds and the job gate see only usable credits, and the message says why", { skip }, async () => {
@@ -439,12 +439,12 @@ test("a renewal without our metadata is credited to the subscription's owner, fo
   assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerMembershipId, "ms_sub", "a top-up does not replace the subscription");
   const renewal = { type: "payment.succeeded", data: { id: "pay_r3", plan: { id: "plan_whop_starter" }, membership: { id: "ms_sub" } } };
   assert.equal((await lib.webhook.POST(signed(renewal))).status, 200);
-  assert.equal(await balance(), 1000 + 500 + 1000);
+  assert.equal(await balance(), 2000 + 500 + 2000);
   const stranger = { type: "payment.succeeded", data: { id: "pay_r4", plan: { id: "plan_whop_starter" }, membership: { id: "ms_unknown" } } };
   assert.equal((await lib.webhook.POST(signed(stranger))).status, 422, "an unknown customer is never credited (Whop retries, the owner sees it)");
   const unknownPlan = { type: "payment.succeeded", data: { id: "pay_r5", plan: { id: "plan_nope" }, membership: { id: "ms_sub" } } };
   assert.equal((await lib.webhook.POST(signed(unknownPlan))).status, 200);
-  assert.equal(await balance(), 2500, "a plan we do not know grants nothing");
+  assert.equal(await balance(), 4500, "a plan we do not know grants nothing");
 });
 
 test("membership.updated with an ended status ends the subscription at once; period-end cancellation keeps access; paying again restores it", { skip }, async () => {
@@ -481,18 +481,18 @@ test("refunds take back the refunded share once they succeed, never more than th
   await reset(0, false);
   await lib.webhook.POST(signed(payment("pay_f1", "starter")));
   await lib.webhook.POST(signed(payment("pay_f2", "topup_500")));
-  assert.equal(await balance(), 1500);
+  assert.equal(await balance(), 2500);
   const pending = { type: "refund.created", data: { id: "rf_1", status: "pending", amount: 10, payment: { id: "pay_f2", total: 10 } } };
   assert.equal((await lib.webhook.POST(signed(pending))).status, 200);
-  assert.equal(await balance(), 1500, "a pending refund takes nothing yet");
+  assert.equal(await balance(), 2500, "a pending refund takes nothing yet");
   const full = { type: "refund.updated", data: { id: "rf_1", status: "succeeded", amount: 10, payment: { id: "pay_f2", total: 10 } } };
   assert.equal((await lib.webhook.POST(signed(full))).status, 200);
-  assert.equal(await balance(), 1000);
+  assert.equal(await balance(), 2000);
   assert.equal((await (await lib.webhook.POST(signed(full))).json()).duplicate, true);
-  assert.equal(await balance(), 1000, "the same refund twice takes once");
+  assert.equal(await balance(), 2000, "the same refund twice takes once");
   // Partial refunds of the plan: $9.50 of $19 takes half, the plan's own price is used when the payment carries no total.
   await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_2", status: "succeeded", amount: 9.5, payment: { id: "pay_f1", metadata: { planId: "starter" } } } }));
-  assert.equal(await balance(), 500);
+  assert.equal(await balance(), 1000);
   await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_3", status: "succeeded", amount: 19, payment: { id: "pay_f1", total: 19 } } }));
   assert.equal(await balance(), 0, "a second refund takes only what the payment has left");
   await lib.webhook.POST(signed(payment("pay_f3", "topup_500")));

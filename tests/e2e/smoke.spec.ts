@@ -367,7 +367,7 @@ test.describe("Audio Studio", () => {
     await page.keyboard.press("Escape");
     await page.selectOption('select[aria-label="Voice model"]', "seed-audio-1.0");
     await page.fill("#vc-text", "A calm narrator in the rain.");
-    await expect(page.locator(".vc-cost")).toHaveText("50");
+    await expect(page.locator(".vc-cost")).toHaveText("5");
     await page.getByRole("button", { name: "Generate" }).click();
     await expect.poll(() => sent.length).toBe(2);
     expect(sent[1]).toMatchObject({ model: "seed-audio-1.0", voiceId: "" });
@@ -394,7 +394,7 @@ test.describe("Audio Studio", () => {
     await page.goto("/voice");
     await page.getByRole("button", { name: "Create a voice" }).click();
     const dlg = page.getByRole("dialog", { name: "Create a voice" });
-    await expect(dlg.getByRole("button", { name: "Create voice" })).toContainText("40");
+    await expect(dlg.getByRole("button", { name: "Create voice" })).toContainText("4");
     await dlg.getByRole("button", { name: "Create voice" }).click();
     await expect(dlg.getByRole("alert")).toContainText("Give the voice a name");
     await dlg.getByLabel("Voice name").fill("My voice");

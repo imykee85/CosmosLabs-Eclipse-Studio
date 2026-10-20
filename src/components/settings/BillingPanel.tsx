@@ -1,3 +1,5 @@
+import { fmtCredits } from "@/lib/credit-units";
+import { planSaving, planValue } from "@/lib/plan-copy";
 import { CreditCard, Inbox, Zap } from "lucide-react";
 import UpgradeButton from "./UpgradeButton";
 import TopUp from "./TopUp";
@@ -39,7 +41,9 @@ export default function BillingPanel() {
               <span className="st-pill">{p.name}</span>
               <p className="st-price">${p.price}<small>/mo</small></p>
               <PriceBadge usd={p.price} className="badge-row" />
-              <p className="st-meta">{p.credits.toLocaleString("en-US")} credits/mo · {p.seats} seat{p.seats === 1 ? "" : "s"}</p>
+              <p className="st-meta">{fmtCredits(p.credits)} credits/mo · {p.seats} seat{p.seats === 1 ? "" : "s"}</p>
+              <p className="st-meta st-value">{planValue(p)}</p>
+              {planSaving(p) > 0 && <p className="st-meta st-save">Save {planSaving(p)}% per credit</p>}
               <UpgradeButton planId={p.id} />
             </article>
           ))}

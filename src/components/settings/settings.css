@@ -173,3 +173,9 @@
 .st-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
 .st-backup { display: grid; gap: 10px; padding: 14px; border: 1px dashed var(--a-line3); border-radius: 16px; }
 .st-backup ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+
+/* Plan cards with the saving tag and the "what the credits buy" line: a column whose button sits at the bottom. */
+.st-planCard { display: flex; flex-direction: column; align-items: flex-start; }
+.st-planCard > :last-child { margin-top: auto; }
+.st-save { color: #e5484d; font-weight: 600; }
+.st-value { color: var(--a-fg2); font-weight: 500; }

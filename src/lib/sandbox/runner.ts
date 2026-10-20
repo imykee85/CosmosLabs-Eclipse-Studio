@@ -10,6 +10,7 @@ import { kindDef } from "./kinds";
 import { JobInputError, type KindDef, type StageCtx, type StageResult } from "./kinds/types";
 import { BLOCK_AT, gbHoursFor, recordUsage, usageNow } from "./usage";
 
+import { fmtCredits } from "@/lib/credit-units";
 // The job runner. A job never waits inside one long request: each call to `advance` does ONE short step (create the sandbox, start a stage, look
 // at a running stage, collect, stop, settle) and saves where it got to. What calls it: the person's own polling (GET /api/sandbox/jobs/<id>), a
 // short background drive right after the job is queued, and the daily sweeper. A lock on the row (lockedAt) means two callers never run the same
@@ -70,7 +71,7 @@ export async function enqueue(kind: string, userId: string, input: unknown, opts
     return open >= limits().perUserRunning ? "You already have one of these running. Wait for it to finish or cancel it." : null;
   });
   if ("refused" in r) return { ok: false, status: 409, error: r.refused };
-  if ("have" in r) return { ok: false, status: 402, error: `This needs ${price} credits and you have ${r.have - r.held} free.` };
+  if ("have" in r) return { ok: false, status: 402, error: `This needs ${fmtCredits(price)} credits and you have ${fmtCredits(Math.max(0, r.have - r.held))} free.` };
   return { ok: true, job: r.row };
 }
 

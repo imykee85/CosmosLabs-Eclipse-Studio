@@ -32,7 +32,7 @@ export async function GET() {
       isAdmin: Boolean(admin),
       freeImages,
       freeMax: freeMaxCredits(),
-      history: rows.map((r) => ({ id: r.id, delta: r.delta, reason: r.reason, note: r.note, createdAt: r.createdAt })),
+      history: rows.map((r: { id: string; delta: number; reason: string; note: string | null; createdAt: Date }) => ({ id: r.id, delta: r.delta, reason: r.reason, note: r.note, createdAt: r.createdAt })),
     });
   } catch (err) {
     console.error("loading credits failed", err);

@@ -1,3 +1,4 @@
+import { routeFor } from "@/lib/routes";
 import { outOfCredits } from "@/lib/credit-message";
 import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
 import { autoTrimEnabled } from "@/lib/conform";
@@ -13,6 +14,7 @@ import { createGenerationHeld } from "@/lib/reservations";
 import { claimUsage } from "@/lib/usage";
 import { buildVideoBody, capsFor, findVideoModel, videoPrice, workflowFor } from "@/lib/video-models";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Settings (all Config values, none are secrets). Defaults are deliberately tight; raise them in Vercel when real costs are known (docs/video-pricing.md).
 const num = (name: string, fallback: number) => (Number(process.env[name]) > 0 ? Math.floor(Number(process.env[name])) : fallback);
 export const videoSettings = () => ({
@@ -20,8 +22,8 @@ export const videoSettings = () => ({
   perMinute: num("VIDEO_RENDERS_PER_MINUTE", 6),
   perDay: num("VIDEO_RENDERS_PER_DAY", 30),
   maxRunning: num("VIDEO_MAX_RUNNING", 3),
-  dailyCredits: num("VIDEO_DAILY_CREDITS", 2000),            // a person's credit spend on video per rolling day (only counted while credits are on)
-  confirmAbove: num("VIDEO_CONFIRM_CREDITS", 300),           // above this price one render asks for a confirm first
+  dailyCredits: num("VIDEO_DAILY_CREDITS", 5000),            // a person's spend on video per rolling day, in LEDGER units (tenths of a credit; 5000 = 500 credits), only counted while credits are on
+  confirmAbove: num("VIDEO_CONFIRM_CREDITS", 500),           // above this price (ledger units; 500 = 50 credits) one render asks for a confirm first
   creditsOn: process.env.CREDITS_ENABLED === "1",
 });
 
@@ -154,11 +156,12 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const resolutionUsed = typeof probe.body.resolution === "string" ? probe.body.resolution : undefined;
   const audioCfg = caps.audio ? (audio ?? caps.audioDefault) : false;
   const audioUsed = motion ? motion.kind === "kling" && keepSound : audioCfg;
-  const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed) : null;
+  // The price follows the route the render really uses (routes.ts: the direct routes have no adapter yet, so this is the Higgsfield price today).
+  const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, routeFor(model.id)) : null;
   if (cost != null) {
     const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });
-    if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${cfg.dailyCredits} credits.` };
-    if (cost > cfg.confirmAbove && input.confirm !== true) return { ok: false, status: 409, needsConfirm: true, cost, error: `This video costs ${cost} credits. Confirm to continue.` };
+    if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${fmtCredits(cfg.dailyCredits)} credits.` };
+    if (cost > cfg.confirmAbove && input.confirm !== true) return { ok: false, status: 409, needsConfirm: true, cost, error: `This video costs ${fmtCredits(cost)} credits. Confirm to continue.` };
   }
 
   // Limits per person: a short burst limit, a daily count, how many may run at once, and (with credits on) a daily spend.

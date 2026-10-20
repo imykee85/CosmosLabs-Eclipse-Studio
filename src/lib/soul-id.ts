@@ -6,6 +6,7 @@ import { safeText } from "@/lib/safe-text";
 import { claimUsage } from "@/lib/usage";
 import type { SoulId } from "@prisma/client";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Soul ID training (owner's Higgsfield reference): POST <base>/v1/custom-references { name (max 100), model_version: v1|v2|cinema, input_images: 1 to 100
 // of { type: "image_url", image_url } }, then GET <base>/v1/custom-references/<id> until "completed". The trained id must belong to the same Higgsfield
 // account, so only ids made here are offered. On a Soul render it is sent as custom_reference_id with custom_reference_strength in (0, 1].
@@ -31,7 +32,7 @@ export async function startSoulId(userId: string, input: { name: unknown; versio
   if (!refs) return { ok: false, status: 400, error: "The pictures were not understood." };
   if (refs.length < MIN_PICS) return { ok: false, status: 400, error: `Choose at least ${MIN_PICS} pictures of the same person (${MAX_PICS} at most).` };
   const price = creditsOn() ? PRICE() : null;
-  if (price != null && (await getUsableBalance(userId)) < price) return { ok: false, status: 402, error: `Training a Soul ID costs ${price} credits.` };
+  if (price != null && (await getUsableBalance(userId)) < price) return { ok: false, status: 402, error: `Training a Soul ID costs ${fmtCredits(price)} credits.` };
   if ((await db.soulId.count({ where: { userId, status: "pending" } })) >= 2) return { ok: false, status: 429, error: "Two Soul IDs are already training. Wait for one to finish." };
   if (!(await claimUsage(userId, "soul-id", 10, 24 * 3600_000))) return { ok: false, status: 429, error: "You have trained 10 Soul IDs today. Try again tomorrow." };
   const resolved = await resolveReferences(userId, refs);

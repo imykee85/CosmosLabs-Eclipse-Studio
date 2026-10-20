@@ -23,7 +23,7 @@ import { getObjectBytes, saveImageBytes, storageEnabled } from "@/lib/storage";
 import { sniffImageType } from "@/lib/uploads";
 import type { ReferenceItem } from "@/lib/references";
 
-export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown; soulId?: unknown; soulStrength?: unknown };
+export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown; soulId?: unknown; soulStrength?: unknown; batchId?: unknown };
 export type StartRenderResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string };
 
 // The one place a render is validated and started, used by POST /api/generate and by the Connect agent, so both are
@@ -96,20 +96,23 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   const perMinute = Number(process.env.RENDERS_PER_MINUTE) > 0 ? Math.floor(Number(process.env.RENDERS_PER_MINUTE)) : 20;
   if (!(await claimUsage(userId, "render", perMinute, 60_000))) return { ok: false, status: 429, error: "You are starting renders very quickly. Wait a moment and try again." };
 
-  // Credits are held when the render row is created (see createGenerationHeld) and charged when the render finishes. A model with no credit price yet is free.
-  const cost = chargeFor(model);
+  // Credits are held when the render row is created (see createGenerationHeld) and charged when the render finishes, at the price of the resolution actually sent.
+  // The price is saved on the row (creditsHeld, in ledger units), so what is held, shown and charged is one number.
+  const cost = chargeFor(model, resolution ?? model.defaultResolution);
+  // Soul 2 and Soul Cinema: one credit pays for a batch of up to 4 images made in one Generate (the browser names the batch; the first request pays, see createGenerationHeld).
+  const batch = model.batch && typeof input.batchId === "string" && /^[A-Za-z0-9-]{8,64}$/.test(input.batchId) ? { id: input.batchId, size: model.batch } : undefined;
 
   const resolved = await resolveReferences(userId, refs);
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
-  // The welcome offer: a new account's first few renders on a light model cost nothing (claimed here, given back if the render fails).
+  // The welcome offer: a new account's first 2 image renders, on any model, cost nothing (claimed here, given back if the render fails).
   const free = cost != null && (await claimFreeRender(userId, cost));
 
   // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll.
-  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, items: resolved.items, seedNote, cost, free });
+  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, items: resolved.items, seedNote, cost, batch, free });
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
-  const made = await createGenerationHeld(userId, free ? null : cost, { ...(free ? { creditsHeld: 0 } : {}), userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform || soul.fields || free ? { ...(free ? { free: true } : {}), ...(conform ? { conform } : {}), ...(soul.fields ? { soulId: String(input.soulId), soulStrength: Number(soul.fields.custom_reference_strength) } : {}) } : undefined });
+  const made = await createGenerationHeld(userId, free ? null : cost, { ...(free ? { creditsHeld: 0 } : cost != null ? { creditsHeld: cost } : {}), userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform || soul.fields || batch || free ? { ...(free ? { free: true } : {}), ...(batch ? { batchId: batch.id } : {}), ...(conform ? { conform } : {}), ...(soul.fields ? { soulId: String(input.soulId), soulStrength: Number(soul.fields.custom_reference_strength) } : {}) } : undefined }, batch);
   if (!("row" in made)) return { ok: false, status: 402, error: outOfCredits(model.label, cost as number, made.have, made.held, await freeUsedUp(userId), made.locked) };
   const pre = made.row;
   try {
@@ -146,14 +149,14 @@ async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
 // A render by a provider that answers in the same call. The row is written BEFORE the provider is called (our own double-submit
 // protection: a retry can see that the job exists, and nothing is re-submitted after a timeout), then the picture is decoded from the
 // reply, copied into private storage and the row completed. A failure marks the row failed with a plain sentence.
-async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; exact: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null; free: boolean }): Promise<StartRenderResult> {
+async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; exact: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null; batch?: { id: string; size: number }; free: boolean }): Promise<StartRenderResult> {
   const { model, userId } = a;
   const provider = syncProvider(model.provider);
   if (!provider || !apiModelOf(model)) { if (a.free) await giveBackFreeRender(userId).catch(() => {}); return { ok: false, status: 400, error: "That model is not available." }; }
   // The reply carries the picture itself, so there is no provider link to fall back on: it has to go into our storage.
   if (!storageEnabled) { if (a.free) await giveBackFreeRender(userId).catch(() => {}); return { ok: false, status: 503, error: "Image storage is not set up yet, so this model cannot be used." }; }
   const jobId = randomUUID();
-  const made = await createGenerationHeld(userId, a.free ? null : a.cost, { ...(a.free ? { creditsHeld: 0 } : {}), userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined, params: a.conform || a.free ? { ...(a.free ? { free: true } : {}), ...(a.conform ? { conform: a.conform } : {}) } : undefined });
+  const made = await createGenerationHeld(userId, a.free ? null : a.cost, { ...(a.free ? { creditsHeld: 0 } : a.cost != null ? { creditsHeld: a.cost } : {}), userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined, params: a.conform || a.batch || a.free ? { ...(a.free ? { free: true } : {}), ...(a.batch ? { batchId: a.batch.id } : {}), ...(a.conform ? { conform: a.conform } : {}) } : undefined }, a.batch);
   if (!("row" in made)) return { ok: false, status: 402, error: outOfCredits(model.label, a.cost as number, made.have, made.held, await freeUsedUp(userId), made.locked) };
   const row = made.row;
   // The reply goes out at once with a pending row (the browser follows it like any job); the render continues after it (waitUntil, up to the route's 300 s).

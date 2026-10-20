@@ -739,3 +739,10 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .hero .strip-logo { position: relative; }
 .hero .strip-logo img { opacity: 0; filter: none; }
 .hero .strip-logo::after { content: ""; position: absolute; inset: 0; background: rgba(255, 255, 255, .6); -webkit-mask: var(--logo) center / contain no-repeat; mask: var(--logo) center / contain no-repeat; }
+
+/* Plan cards: the saving tag beside the plan name, the "what the credits buy" line, and the larger middle card (Growth). */
+.plan-card h3 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.plan-save { padding: 3px 10px; border-radius: 999px; background: rgba(255, 90, 90, .16); color: #ff7b7b; font-size: 12px; font-weight: 600; letter-spacing: 0; }
+.plan-value { margin: -6px 0 0; color: #bdb9b2; font-size: 15px; font-weight: 500; }
+.plan-popular { padding-top: 40px; padding-bottom: 40px; box-shadow: 0 0 0 1px #c00707, 0 20px 60px -20px rgba(192, 7, 7, .45); }
+@media (max-width: 800px) { .plan-popular { padding-top: 32px; padding-bottom: 32px; } }

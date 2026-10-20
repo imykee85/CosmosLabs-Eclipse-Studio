@@ -391,11 +391,11 @@ test("chat credits: a message needs free credits first; a reply is charged what 
   assert.equal(await cc.chatCreditCheck(U1), null);
   const m = new cc.ChatMeter();
   m.add("claude-sonnet-5-5", { input_tokens: 10_000, output_tokens: 1_000 });
-  assert.equal(await cc.chargeChat(U1, m, "Core message"), 5);
-  assert.equal(await balance(), 9);
+  assert.equal(await cc.chargeChat(U1, m, "Core message"), 8); // $0.03 x 2.5 / $0.01 a ledger unit
+  assert.equal(await balance(), 6);
   const big = new cc.ChatMeter();
-  big.add("claude-opus-5-5", { output_tokens: 100_000 }); // 2 dollars = 313 credits
-  assert.equal(await cc.chargeChat(U1, big, "Atlas message"), 9); // only what is left
+  big.add("claude-opus-5-5", { output_tokens: 100_000 }); // 2 dollars = 500 ledger units
+  assert.equal(await cc.chargeChat(U1, big, "Atlas message"), 6); // only what is left
   assert.equal(await balance(), 0);
   process.env.CREDITS_ENABLED = "0";
   assert.equal(await cc.chatCreditCheck(U1), null); // charging off: free

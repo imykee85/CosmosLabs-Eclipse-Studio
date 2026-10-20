@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { ModelIcon } from "../create/ModelPicker";
 import SoonTag from "../SoonTag";
-import { PICKER_MODELS as VIDEO_MODELS, isLive, type VideoModel } from "@/lib/video-models";
+import { PICKER_MODELS as VIDEO_MODELS, isLive, videoPrice, type VideoModel } from "@/lib/video-models";
+import { creditsText } from "@/lib/credit-units";
 
 // The video model sheet, the same design as Image Studio's (`ModelPicker`, `mp-` styles from create.css): a search box, Popular (the models that
 // work today) and All models by maker. Models not connected yet are listed with the Soon tag; choosing one still selects it so the controls show its
@@ -13,7 +14,16 @@ import { PICKER_MODELS as VIDEO_MODELS, isLive, type VideoModel } from "@/lib/vi
 const POPULAR = ["kling_3_pro", "seedance_2_5", "seedance_2_0", "happy_horse_1_1", "wan3_0", "pixverse_v6"];
 const range = (m: VideoModel) => `${m.durations[0]} to ${m.durations[m.durations.length - 1]} s${m.qualities.length ? ` · ${m.qualities[0]} to ${m.qualities[m.qualities.length - 1]}` : ""}${m.sound === "toggle" ? " · sound" : ""}`;
 
-export default function VideoModelPicker({ value, onPick, onClose }: { value: string; onPick: (m: VideoModel) => void; onClose: () => void }) {
+// "from 18 credits": a 5 second clip (or the model's shortest) at its cheapest quality, sound off. Null while credits are off or the model is not connected.
+function fromPrice(m: VideoModel, direct: string[]): string | null {
+  if (!isLive(m)) return null;
+  const secs = Math.max(5, m.durations[0] ?? 5);
+  const qualities = m.live && m.live.resolution ? m.live.resolution.values : [undefined];
+  const prices = qualities.map((q) => videoPrice(m, q, secs, false, direct.includes(m.id) ? "direct" : "higgsfield")).filter((p): p is number => p != null);
+  return prices.length ? `from ${creditsText(Math.min(...prices))}` : null;
+}
+
+export default function VideoModelPicker({ value, onPick, onClose, creditsOn = false, direct = [] }: { value: string; onPick: (m: VideoModel) => void; onClose: () => void; creditsOn?: boolean; direct?: string[] }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   useEffect(() => {
@@ -31,6 +41,7 @@ export default function VideoModelPicker({ value, onPick, onClose }: { value: st
       <ModelIcon name={m.maker} />
       <span className="mp-name">{m.label}<small>{m.blurb} {range(m)}</small></span>
       {!isLive(m) && <SoonTag className="mp-tag" />}
+      {creditsOn && fromPrice(m, direct) && <span className="mp-price">{fromPrice(m, direct)}</span>}
       {value === m.id && <Check size={16} />}
     </button>
   );

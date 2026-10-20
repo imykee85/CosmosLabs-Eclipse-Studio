@@ -39,11 +39,11 @@ test("an account made before the offer gets nothing, and Clerk is asked only onc
   assert.equal(asked, 1);
 });
 
-test("with FREE_RENDERS_MAX_CREDITS set, a dearer render is never free and does not use one up", { skip }, async () => {
+test("FREE_RENDERS_MAX_CREDITS is ignored: a free render may be on any model, whatever it costs", { skip }, async () => {
   const id = "user_free_cap";
-  process.env.FREE_RENDERS_MAX_CREDITS = "7";
-  assert.equal(await lib.claimFreeRender(id, 19, async () => NEW), false);
-  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 2);
+  process.env.FREE_RENDERS_MAX_CREDITS = "15";
+  assert.equal(await lib.claimFreeRender(id, 600, async () => NEW), true);
+  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 1);
   delete process.env.FREE_RENDERS_MAX_CREDITS;
 });
 
