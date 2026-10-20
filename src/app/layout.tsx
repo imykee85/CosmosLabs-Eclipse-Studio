@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { ClerkProvider } from "@clerk/nextjs";
+import { clerkLocalization } from "@/lib/clerk-localization";
 import { Analytics } from "@vercel/analytics/react"; // page views; sends nothing until Web Analytics is switched on in the Vercel project
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
@@ -60,5 +61,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </body>
     </html>
   );
-  return clerkEnabled ? <ClerkProvider>{page}</ClerkProvider> : page;
+  return clerkEnabled ? <ClerkProvider localization={clerkLocalization}>{page}</ClerkProvider> : page;
 }
