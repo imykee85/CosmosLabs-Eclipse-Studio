@@ -1,5 +1,4 @@
-// A burst of confetti that falls over the whole screen, and a few pops to go with it. Plain canvas and Web Audio, no files, no libraries.
-// Browsers keep a page silent until the person has touched it, so when the sound is still blocked the pops play on the first tap or key press.
+// A burst of confetti that falls over the whole screen. Plain canvas, no files, no libraries. Silent on purpose (owner 2026-10-20).
 const COLORS = ["#c00707", "#ff4d4d", "#ffffff", "#ffd166", "#ff8fab", "#f4f1ed"];
 
 export function launchConfetti(durationMs = 4200): () => void {
@@ -61,53 +60,4 @@ export function launchConfetti(durationMs = 4200): () => void {
   }
   raf = requestAnimationFrame(frame);
   return stop;
-}
-
-let audio: AudioContext | null = null;
-
-// Short "pop" sounds: a burst of filtered noise with a quick drop in pitch, a handful of them spread over about two seconds.
-function schedulePops(ac: AudioContext) {
-  const rate = ac.sampleRate;
-  const len = Math.floor(rate * 0.12);
-  const noise = ac.createBuffer(1, len, rate);
-  const data = noise.getChannelData(0);
-  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-  const times = [0, 0.04, 0.22, 0.4, 0.58, 0.85, 1.1, 1.45, 1.9];
-  for (const delay of times) {
-    const at = ac.currentTime + delay + Math.random() * 0.05;
-    const src = ac.createBufferSource();
-    src.buffer = noise;
-    const band = ac.createBiquadFilter();
-    band.type = "bandpass";
-    band.frequency.setValueAtTime(1800 + Math.random() * 1800, at);
-    band.frequency.exponentialRampToValueAtTime(500, at + 0.1);
-    band.Q.value = 0.9;
-    const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.exponentialRampToValueAtTime(0.5, at + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.12);
-    src.connect(band).connect(gain).connect(ac.destination);
-    src.start(at);
-  }
-}
-
-export function playPops(): () => void {
-  if (typeof window === "undefined") return () => {};
-  const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctor) return () => {};
-  let off = () => {};
-  try {
-    audio = audio ?? new Ctor();
-    const ac = audio;
-    const go = () => { off(); schedulePops(ac); };
-    if (ac.state === "running") { schedulePops(ac); return () => {}; }
-    // Still locked: try to wake it, and if the browser says no, play on the first touch, click or key.
-    ac.resume().then(() => { if (ac.state === "running") schedulePops(ac); else arm(); }).catch(arm);
-    function arm() {
-      const once = () => { ac.resume().then(go).catch(() => {}); };
-      for (const ev of ["pointerdown", "keydown"] as const) window.addEventListener(ev, once, { once: true });
-      off = () => { for (const ev of ["pointerdown", "keydown"] as const) window.removeEventListener(ev, once); };
-    }
-  } catch { /* no sound is better than an error */ }
-  return () => off();
 }
