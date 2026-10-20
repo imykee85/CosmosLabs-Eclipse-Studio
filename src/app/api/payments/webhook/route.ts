@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const result = await applyPayment(event);
     if (!result.ok) {
       // A configuration problem, not a bad delivery: answer with an error so the provider retries once it is fixed.
-      console.error(`payment ${event.externalId} is for an unknown plan "${event.planId}"`);
+      console.error(`payment ${event.externalId} (plan "${event.planId}") could not be applied: ${result.error}`);
       return NextResponse.json({ error: result.error }, { status: 422 });
     }
     return NextResponse.json({ ok: true, duplicate: result.duplicate });

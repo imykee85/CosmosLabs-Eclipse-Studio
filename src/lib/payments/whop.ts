@@ -4,7 +4,8 @@ import type { CheckoutInput, PaymentEvent, PaymentProvider, PaymentRefs, SavedCa
 // Whop adapter. NOT yet checked against a live Whop account, so before taking real money confirm these against Whop's developer docs:
 //  - the API base address and bearer-token auth (WHOP_API_BASE overrides the default below),
 //  - POST /checkout_configurations with plan_id, metadata and redirect_url, answering with purchase_url,
-//  - that webhooks are signed the Standard Webhooks way and the successful-payment event is "payment.succeeded",
+//  - that webhooks are signed the Standard Webhooks way (the ws_... secret used as-is, as Whop's own SDK does) and the events are
+//    "payment.succeeded", "membership.deactivated" and "refund.created",
 //  - which fields of that event carry the member, saved payment method and membership (read defensively in refsFrom below),
 //  - POST /payments (WHOP_CHARGE_PATH overrides the path) charging a saved payment method for a one-time price, and
 //    POST /memberships/<id>/cancel (WHOP_CANCEL_PATH) ending a subscription,
@@ -15,12 +16,30 @@ import type { CheckoutInput, PaymentEvent, PaymentProvider, PaymentRefs, SavedCa
 const DEFAULT_API_BASE = "https://api.whop.com/api/v1";
 const PAYMENT_SUCCEEDED = "payment.succeeded";
 const SETUP_SUCCEEDED = "setup_intent.succeeded";
+const MEMBERSHIP_DEACTIVATED = "membership.deactivated";
+const REFUND_CREATED = "refund.created";
 
 /** Whop's id for one of our plans, from WHOP_PLAN_<PLANID> (for example WHOP_PLAN_STARTER=plan_xxxx). */
 function whopPlanId(planId: string): string {
   const id = process.env[`WHOP_PLAN_${planId.toUpperCase()}`];
   if (!id) throw new Error(`No Whop plan is set for "${planId}" (WHOP_PLAN_${planId.toUpperCase()})`);
   return id;
+}
+
+/** Our plan or pack id for one of Whop's plan ids (the reverse of whopPlanId), from the same WHOP_PLAN_* settings. */
+export function ourPlanId(whopId: string | undefined): string | undefined {
+  if (!whopId) return undefined;
+  for (const [k, v] of Object.entries(process.env)) if (k.startsWith("WHOP_PLAN_") && v === whopId) return k.slice("WHOP_PLAN_".length).toLowerCase();
+  return undefined;
+}
+
+/** A one-time price with no ready-made plan (a custom top-up or an automatic one), attached to our product so it shows under Eclipse Studios. */
+function inlinePlan(price: number, credits: number | undefined) {
+  return {
+    initial_price: price, currency: "usd", plan_type: "one_time", visibility: "hidden",
+    ...(process.env.WHOP_PRODUCT_ID ? { product_id: process.env.WHOP_PRODUCT_ID } : {}),
+    ...(credits ? { title: `Top-up ${credits.toLocaleString("en-US")} credits`, metadata: { credits, type: "topup" } } : {}),
+  };
 }
 
 const apiBase = () => process.env.WHOP_API_BASE ?? DEFAULT_API_BASE;
@@ -47,7 +66,7 @@ export const whop: PaymentProvider = {
       headers: authHeaders(),
       body: JSON.stringify({
         // A custom amount has no ready-made plan: the one-time price goes in the request itself.
-        ...(custom ? { plan: { initial_price: custom.price, currency: "usd", plan_type: "one_time" } } : { plan_id: whopPlanId(planId) }),
+        ...(custom ? { plan: inlinePlan(custom.price, custom.credits) } : { plan_id: whopPlanId(planId) }),
         ...(process.env.WHOP_COMPANY_ID ? { company_id: process.env.WHOP_COMPANY_ID } : {}),
         redirect_url: returnUrl,
         // Whop copies this onto the payment, which is how the webhook later knows whose purchase it was and which plan.
@@ -72,16 +91,37 @@ export const whop: PaymentProvider = {
       if (typeof d.id !== "string" || typeof who !== "string" || !refs) return null;
       return { provider: "whop", externalId: d.id, userId: who, planId: "", cardOnly: true, refs };
     }
+    if (event.type === MEMBERSHIP_DEACTIVATED) {
+      // A subscription ended (cancelled and run out, or payment failed for good). Its id is the membership's own id.
+      const d = event.data ?? {};
+      const membershipId = text(d.id);
+      if (!membershipId) return null;
+      return { provider: "whop", externalId: `deactivated:${membershipId}`, userId: text((d.metadata as Record<string, unknown> | undefined)?.userId) ?? "", planId: "", kind: "deactivated", refs: { membershipId } };
+    }
+    if (event.type === REFUND_CREATED) {
+      const d = event.data ?? {};
+      const refundId = text(d.id);
+      const paymentId = idOf(d.payment) ?? text(d.payment_id);
+      if (!refundId || !paymentId) { console.error("whop refund event without its ids"); return null; }
+      return { provider: "whop", externalId: `refund:${refundId}`, userId: "", planId: "", kind: "refund", refundOf: paymentId };
+    }
     if (event.type !== PAYMENT_SUCCEEDED) return null;
 
-    const { id, metadata } = event.data ?? {};
-    const refs = event.data ? refsFrom(event.data) : undefined;
-    if (typeof id !== "string" || typeof metadata?.userId !== "string" || typeof metadata?.planId !== "string") {
-      console.error("whop payment event without the expected id or metadata");
+    const d = event.data ?? {};
+    const id = text(d.id);
+    if (!id) { console.error("whop payment event without an id"); return null; }
+    const meta = (d.metadata && typeof d.metadata === "object" ? d.metadata : {}) as Record<string, unknown>;
+    const refs = refsFrom(d);
+    // Our checkout puts userId and planId on the payment. A renewal may arrive without them: then the plan is read from Whop's own plan id
+    // (mapped back through the WHOP_PLAN_* settings) and the person from the subscription's membership id, saved on their first payment.
+    const userId = text(meta.userId) ?? text(meta.app_user_id) ?? "";
+    const planId = text(meta.planId) ?? ourPlanId(idOf(d.plan) ?? text(d.plan_id));
+    if (!planId || (!userId && !refs?.membershipId)) {
+      console.error("whop payment event without a known plan or owner", id);
       return null;
     }
-    const credits = Number((metadata as { credits?: unknown }).credits);
-    return { provider: "whop", externalId: id, userId: metadata.userId, planId: metadata.planId, ...(Number.isInteger(credits) && credits > 0 ? { credits } : {}), auto: (metadata as { auto?: unknown }).auto === "1", refs };
+    const credits = Number(meta.credits);
+    return { provider: "whop", externalId: id, userId, planId, ...(Number.isInteger(credits) && credits > 0 ? { credits } : {}), auto: meta.auto === "1", refs };
   },
 
   async chargeSavedCard({ userId, productId, credits, price, memberId, paymentMethodId, idempotencyKey }: SavedCardCharge) {
@@ -92,7 +132,7 @@ export const whop: PaymentProvider = {
         ...(process.env.WHOP_COMPANY_ID ? { company_id: process.env.WHOP_COMPANY_ID } : {}),
         member_id: memberId,
         payment_method_id: paymentMethodId,
-        plan: { initial_price: price, currency: "usd", plan_type: "one_time" },
+        plan: inlinePlan(price, credits),
         metadata: { userId, planId: productId, ...(credits ? { credits } : {}), auto: "1" },
       }),
     });

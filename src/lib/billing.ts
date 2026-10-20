@@ -60,29 +60,62 @@ export async function saveAutoTopup(userId: string, input: AutoTopupInput): Prom
   return { ok: true, view: viewOf(row, await usedThisMonth(userId)) };
 }
 
-/** Remembers who paid and with what, from a successful payment (only what the provider actually sent; never overwrites with nothing). */
-export async function rememberRefs(userId: string, refs: PaymentRefs | undefined): Promise<void> {
+/** Remembers who paid and with what, from a successful payment (only what the provider actually sent; never overwrites with nothing).
+ * The membership id is kept only for a plan payment: a one-time top-up has its own membership, and the saved id must stay the subscription's
+ * (it finds the owner of a renewal, ends the plan when the account is deleted, and matches the "subscription ended" event). */
+export async function rememberRefs(userId: string, refs: PaymentRefs | undefined, isPlan = false): Promise<void> {
   if (!refs) return;
   // The first card ever used becomes the default; a later payment or a newly added card never replaces a default the person has.
   const current = await db.billingSettings.findUnique({ where: { userId }, select: { providerPaymentMethod: true } });
   const data = {
     ...(refs.memberId ? { providerMemberId: refs.memberId } : {}),
     ...(refs.paymentMethodId && !current?.providerPaymentMethod ? { providerPaymentMethod: refs.paymentMethodId } : {}),
-    ...(refs.membershipId ? { providerMembershipId: refs.membershipId } : {}),
+    ...(refs.membershipId && isPlan ? { providerMembershipId: refs.membershipId } : {}),
   };
   if (!Object.keys(data).length) return;
   await db.billingSettings.upsert({ where: { userId }, create: { userId, ...data }, update: data });
 }
 
-/** Grants the credits for one successful payment (a plan or a top-up pack), once however often the provider delivers it. */
+/** Whose subscription a provider membership id is (a renewal that arrives without our own metadata). */
+async function ownerOfMembership(membershipId: string | undefined): Promise<string | null> {
+  if (!membershipId) return null;
+  const row = await db.billingSettings.findFirst({ where: { providerMembershipId: membershipId }, select: { userId: true } });
+  return row?.userId ?? null;
+}
+
+/** Grants the credits for one successful payment (a plan or a top-up pack), once however often the provider delivers it. Also handles the
+ * provider saying a subscription ended, and a refund (the credits that payment granted are taken back, as far as they are still there). */
 export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Promise<{ ok: true; duplicate: boolean } | { ok: false; error: string }> {
   if (event.cardOnly) { await rememberRefs(event.userId, event.refs); return { ok: true, duplicate: false }; }
+  if (event.kind === "deactivated") {
+    const owner = await ownerOfMembership(event.refs?.membershipId);
+    if (owner) await db.billingSettings.update({ where: { userId: owner }, data: { subscriptionEndedAt: new Date(), autoEnabled: false } });
+    return { ok: true, duplicate: false }; // a top-up's own membership ending, or one we never saw, needs nothing
+  }
+  if (event.kind === "refund") return applyRefund(event);
   const product = productById(event.planId, event.credits);
   if (!product) return { ok: false, error: "Unknown plan" };
+  const userId = event.userId || (await ownerOfMembership(event.refs?.membershipId));
+  if (!userId) return { ok: false, error: "Unknown customer" };
   const note = event.auto ? `Auto top-up: ${product.name}` : product.kind === "pack" ? `Top-up: ${product.name}` : `Plan: ${product.name}`;
-  const added = await grantCredits(event.userId, product.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId, note });
-  await rememberRefs(event.userId, event.refs).catch((e) => console.error("could not save payment references", e));
+  const added = await grantCredits(userId, product.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId, note });
+  if (product.kind === "plan") await db.billingSettings.updateMany({ where: { userId }, data: { subscriptionEndedAt: null } }); // paid again: active
+  await rememberRefs(userId, event.refs, product.kind === "plan").catch((e) => console.error("could not save payment references", e));
   return { ok: true, duplicate: !added };
+}
+
+async function applyRefund(event: PaymentEvent): Promise<{ ok: true; duplicate: boolean } | { ok: false; error: string }> {
+  const paid = await db.creditLedger.findFirst({ where: { provider: event.provider, externalId: event.refundOf ?? "" } });
+  if (!paid || paid.delta <= 0) return { ok: true, duplicate: false }; // nothing was granted for it
+  const done = await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${paid.userId}))`; // the same lock spending takes
+    if (await tx.creditLedger.findFirst({ where: { provider: event.provider, externalId: event.externalId } })) return false;
+    const sum = await tx.creditLedger.aggregate({ where: { userId: paid.userId }, _sum: { delta: true } });
+    const take = Math.min(paid.delta, Math.max(0, sum._sum.delta ?? 0)); // never below zero: credits already spent cannot be taken back
+    await tx.creditLedger.create({ data: { userId: paid.userId, delta: -take, reason: "ADJUST", provider: event.provider, externalId: event.externalId, note: `Refund: ${paid.note ?? "purchase"}` } });
+    return true;
+  });
+  return { ok: true, duplicate: !done };
 }
 
 /**
