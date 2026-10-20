@@ -8,7 +8,7 @@ import { CUSTOM_PACK_ID, creditPacks, plans, productById } from "../../src/lib/p
 import { BEST_VALUE_PACK_ID, KLING_YARDSTICK_CREDITS, planSaving, planValue } from "../../src/lib/plan-copy";
 import { DIRECT_KEY, registerDirectRoute, routeFor, startWithFallback, unregisterDirectRoute } from "../../src/lib/routes";
 import { allPriceRows, netPerCredit } from "../../src/lib/price-table";
-import { creditsFor } from "../../src/lib/audio/pricing";
+import { creditsFor, usdFor } from "../../src/lib/audio/pricing";
 import { outOfCredits } from "../../src/lib/credit-message";
 
 afterEach(() => { for (const k of Object.keys(process.env)) if (k.startsWith("ROUTE_")) delete process.env[k]; delete process.env.CREDITS_ENABLED; for (const k of new Set(Object.values(DIRECT_KEY))) delete process.env[k]; for (const id of Object.keys(DIRECT_KEY)) unregisterDirectRoute(id); });
@@ -186,6 +186,21 @@ test("a direct route is used only with the setting, the key AND an adapter; othe
 test("audio and chat default to a 2.5x margin at $0.01 a ledger unit", () => {
   assert.equal(creditsFor(0.004), 1);
   assert.equal(creditsFor(0.04), 10, "$0.04 of provider cost = 1 credit = 10 ledger units");
+});
+
+test("audio, sound, music and transcription match the master brief section 7 (tenths, shown with one decimal)", async () => {
+  const { findAudioModel } = await import("../../src/lib/audio/registry");
+  const rows: [string, number, string][] = [
+    ["eleven_v4", 1000, "2"], ["eleven_v3", 1000, "2"], ["eleven_multilingual_v2", 1000, "2"], ["eleven_v4_turbo", 1000, "1"], ["eleven_flash_v2_5", 1000, "1"],
+    ["s2.1-pro", 1000, "0.4"], ["s2-pro", 1000, "0.4"], ["speech-2.8-hd", 1000, "2.5"], ["speech-2.8-turbo", 1000, "1.5"], ["qwen3-tts-flash", 1000, "0.3"],
+    ["seed-audio-1.0", 60, "4"], ["eleven_text_to_sound_v2", 10, "0.5"], ["music_v2_5", 60, "3.8"],
+    ["scribe_v2", 600, "1"], ["transcribe-1-pro", 600, "1.5"], ["asr-1.0", 600, "1.6"],
+  ];
+  for (const [id, units, want] of rows) {
+    const m = findAudioModel(id);
+    assert.ok(m, id);
+    assert.equal(fmtCredits(creditsFor(usdFor(m!, units))), want, `${id} per ${units}`);
+  }
 });
 
 test("out-of-credits messages speak in credits", () => {

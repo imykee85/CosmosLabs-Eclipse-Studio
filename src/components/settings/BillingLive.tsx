@@ -8,7 +8,26 @@ import { fmtCredits } from "@/lib/credit-units";
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 function describe(e: CreditEntry): string {
   if (e.note) return e.note;
-  return e.reason === "CHARGE" ? "Image" : e.reason === "PURCHASE" ? "Plan purchase" : e.reason === "REFUND" ? "Refund" : "Credits added";
+  return e.reason === "EXPIRE" ? "Credits expired" : e.reason === "CHARGE" ? "Image" : e.reason === "PURCHASE" ? "Plan purchase" : e.reason === "REFUND" ? "Refund" : "Credits added";
+}
+
+const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+/** What is left of each plan and top-up grant, with its expiry date. Nothing shows while nothing can expire. */
+export function CreditGrants() {
+  const { credits } = useCredits();
+  const rows = (credits?.grants ?? []).filter((g) => g.expiresAt);
+  if (!rows.length) return null;
+  return (
+    <ul className="bl-list">
+      {rows.map((g, i) => (
+        <li key={`${g.grantedAt}-${i}`}>
+          <span className="bl-what">{g.source === "plan" ? "Plan credits" : "Top-up credits"}<small>{`Added ${day(g.grantedAt)} · expire ${day(g.expiresAt!)}`}</small></span>
+          <b className="bl-plus">{fmtCredits(g.remaining)}</b>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function CreditBalance() {
@@ -21,6 +40,7 @@ export function CreditNotes() {
   if (!credits) return null;
   return (
     <>
+      {credits.expiring && <p className="st-meta">{`${fmtCredits(credits.expiring.amount)} credits expire on ${day(credits.expiring.at)}.`}</p>}
       {(credits.lockedTopup ?? 0) > 0 && <p className="st-meta">{`${fmtCredits(credits.lockedTopup ?? 0)} more top-up credits are saved. They unlock when you subscribe to a plan.`}</p>}
       {!credits.charging && <p className="st-meta">Credits are not charged yet, so images are free for now.</p>}
       {credits.isAdmin && <p className="st-meta"><Link href="/admin/credits" className="bl-link">Add credits to an account</Link> · <Link href="/admin/health" className="bl-link">Health check</Link> · <Link href="/admin/pricing" className="bl-link">Price check</Link> · <Link href="/admin/jobs" className="bl-link">Recent renders</Link></p>}

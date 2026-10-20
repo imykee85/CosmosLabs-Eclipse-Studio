@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/admin";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { getBalance } from "@/lib/credits";
-import { hasSubscription, lockedTopup, subscriptionRuleOn, topupRemaining } from "@/lib/subscription";
+import { creditState, liveGrants } from "@/lib/expiry";
+import { hasSubscription, lockedTopup, subscriptionRuleOn, topupRemaining, unusable } from "@/lib/subscription";
 import { db } from "@/lib/db";
 import { freeMaxCredits, freeRendersLeft } from "@/lib/free-renders";
 import { workspaceSession } from "@/lib/workspace";
@@ -22,11 +23,16 @@ export async function GET() {
       hasSubscription(userId),
       topupRemaining(userId),
     ]);
-    const balance = total - locked; // what can be spent now; locked top-up credits are shown separately
+    const state = await creditState(userId);
+    const gone = (await unusable(userId)).expired;
+    const balance = total - locked - gone; // what can be spent now; locked top-up credits and credits past their date are not counted
+    const grants = liveGrants(state);
     return NextResponse.json({
       balance,
       lockedTopup: locked,
       topupCredits: topup,
+      expiring: state.next ? { at: new Date(state.next.at).toISOString(), amount: state.next.amount } : null,
+      grants,
       subscribed: !subscriptionRuleOn() || subscribed,
       charging: process.env.CREDITS_ENABLED === "1",
       isAdmin: Boolean(admin),

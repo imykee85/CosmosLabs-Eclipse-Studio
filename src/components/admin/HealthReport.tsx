@@ -38,6 +38,7 @@ export default function HealthReport() {
         <button type="button" onClick={copy} disabled={!lines} style={{ padding: "10px 16px", borderRadius: 10, background: "#c00707", color: "#fff", fontWeight: 500 }}>{copied ? "Copied" : "Copy report"}</button>
         <button type="button" onClick={run} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--a-border, #3335)", fontWeight: 500 }}>Run again</button>
       </div>
+      <p className="app-muted" style={{ margin: "0 0 12px" }}><a href="/admin/pricing" style={{ textDecoration: "underline" }}>Price check</a> · <a href="/admin/expiry" style={{ textDecoration: "underline" }}>Credit expiry dry run</a> · <a href="/admin/jobs" style={{ textDecoration: "underline" }}>Recent renders</a></p>
       {error && <p style={{ color: "#d90b0b" }}>{error}</p>}
       {!lines && !error && <p className="app-muted">Checking...</p>}
       {lines && (

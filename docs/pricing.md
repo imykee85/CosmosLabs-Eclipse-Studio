@@ -28,3 +28,11 @@ Plan cards show the value line "≈ 200 images or 12 Kling videos" (600: 37, 2,5
 
 ## Not verified
 Master brief section 15 is the list. Nothing in it has been measured by this code.
+
+## Credit expiry (owner addendum 2026-10-20, overrides "do not add expiry")
+Plan credits renew monthly and do not roll over. Top-up credits last 90 days and can be used while you are subscribed.
+- Code: `src/lib/expiry.ts` (pure `replayLedger`, `expireCredits`, `usersToExpire`), `src/lib/held.ts`, `unusable()` in `subscription.ts`, cron `/api/cron/expire-credits`.
+- Nothing expires until the Config value `CREDIT_EXPIRY_START` (a date, e.g. `2026-11-20`) is set. Other Config values: `CREDIT_PLAN_DAYS` (default 33 = SUBSCRIPTION_DAYS: a month plus 3 days grace), `CREDIT_TOPUP_DAYS` (90), `CREDIT_EXPIRY_GRACE_DAYS` (7).
+- Per-grant tracking is derived by replaying the append-only ledger (every positive row is a grant: source plan, top-up or other; what is left of it and its expiry are worked out in order). No new balance table, nothing to migrate or drift. Existing balances: a plan grant that existed before the start date expires at the later of its natural end and start + 7 days; a top-up bought before the start date expires 90 days after the start date; owner grants, refunds and test credits never expire.
+- Spend order: plan credits (soonest expiry first), then credits that never expire, then top-up credits (oldest first). Expired credits are never spendable; a running job's hold stays valid (credits that expire while it runs still pay for it, and are removed after it settles).
+- The expiry job writes one `EXPIRE` ledger row per expired grant (`expire:<grant ledger id>`, unique), so running it twice is the same as once.

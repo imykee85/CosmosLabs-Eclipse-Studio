@@ -3,7 +3,7 @@
 // Four kinds share one path: tts (speak), stt (transcribe), sfx (sound effects) and music. A long MiniMax text runs on the provider's side and is followed until done.
 import { outOfCredits } from "@/lib/credit-message";
 import { refusal } from "@/lib/subscribe-alert";
-import { lockedTopup } from "@/lib/subscription";
+import { unusable } from "@/lib/subscription";
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma, type AudioJob } from "@prisma/client";
 import { scheduleAutoTopup } from "@/lib/billing";
@@ -320,7 +320,8 @@ async function completeJob(job: AudioJob, model: AudioModel, p: Produced): Promi
       let charged: number | null = null;
       if (credits != null) {
         const sum = await tx.creditLedger.aggregate({ where: { userId: job.userId }, _sum: { delta: true } });
-        if ((sum._sum.delta ?? 0) - (await lockedTopup(job.userId, tx)) >= credits) {
+        const u = await unusable(job.userId, tx);
+        if ((sum._sum.delta ?? 0) - u.locked - u.expired >= credits) {
           await tx.creditLedger.create({ data: { userId: job.userId, delta: -credits, reason: "CHARGE", note: what } });
           charged = credits;
         } else console.error("audio price could not be charged: balance too low", id);

@@ -40,7 +40,7 @@ export default function CreditsPill({ className, text = false }: { className: st
   useEffect(() => { try { setTeam((JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "null") as { name?: string | null } | null)?.name ?? null); } catch {} }, []);
   const n = credits ? short(credits.balance) : "";
   const full = credits ? `${fmtCredits(credits.balance)} credit${credits.balance === 10 ? "" : "s"}` : "Credits";
-  const title = (credits && !credits.charging ? `${full} (not charged yet)` : full) + (team ? ` (team ${team})` : "");
+  const title = (credits && !credits.charging ? `${full} (not charged yet)` : full) + (team ? ` (team ${team})` : "") + (credits?.expiring ? `. ${fmtCredits(credits.expiring.amount)} credits expire on ${new Date(credits.expiring.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "");
   return (
     <>
       <TeamChip className={className} text={text} />

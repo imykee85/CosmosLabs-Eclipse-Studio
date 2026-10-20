@@ -1,3 +1,4 @@
+import { expiryRules } from "@/lib/expiry";
 import Anthropic from "@anthropic-ai/sdk";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
@@ -148,6 +149,33 @@ export async function POST() {
     }
   } catch {
     add(null, "Payment events: could not be read");
+  }
+
+  // Free trial farm check (master brief section 13, batch 8): how many accounts took the 2 free images in the last 7 days against how many paid, and what that
+  // costs at the dearest default-resolution image price. A high ratio of free-only accounts is the sign of one person making many accounts.
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    const [claimed, usedAny, paying] = await Promise.all([
+      db.freeRender.count({ where: { createdAt: { gte: since } } }),
+      db.freeRender.count({ where: { createdAt: { gte: since }, remaining: { lt: 2 } } }),
+      db.creditLedger.findMany({ where: { reason: "PURCHASE", createdAt: { gte: since } }, distinct: ["userId"], select: { userId: true } }),
+    ]);
+    add(claimed < 200 || paying.length * 10 >= claimed, `Free trial, last 7 days: ${claimed} accounts got it, ${usedAny} used at least one render, ${paying.length} accounts paid. Worst case about $${(usedAny * 2 * 0.24).toFixed(2)} of provider cost (two dearest renders each).`);
+  } catch {
+    add(null, "Free trial check: could not be read");
+  }
+
+  // Credit expiry and chat cost this month.
+  try {
+    const rules = expiryRules();
+    add(null, rules.start == null ? "Credit expiry: OFF (CREDIT_EXPIRY_START is not set). See /admin/expiry for the dry run." : `Credit expiry: ON from ${new Date(rules.start).toISOString().slice(0, 10)} (plan ${rules.planDays} days, top-ups ${rules.topupDays} days, grace ${rules.graceDays} days)`);
+    const expired = await db.creditLedger.aggregate({ where: { reason: "EXPIRE", createdAt: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000) } }, _sum: { delta: true }, _count: { _all: true } });
+    if (expired._count._all) add(null, `Credits expired in the last 30 days: ${-(expired._sum.delta ?? 0) / 10} credits in ${expired._count._all} grants`);
+    const first = new Date(); first.setUTCDate(1); first.setUTCHours(0, 0, 0, 0);
+    const spend = await db.chatSpend.aggregate({ where: { createdAt: { gte: first } }, _sum: { usd: true, charged: true }, _count: { _all: true } });
+    add(null, `Chat this month: ${spend._count._all} replies, real cost $${(spend._sum.usd ?? 0).toFixed(2)}, charged ${(spend._sum.charged ?? 0) / 10} credits ($${((spend._sum.charged ?? 0) / 100).toFixed(2)})`);
+  } catch {
+    add(null, "Expiry and chat cost: could not be read");
   }
 
   return NextResponse.json({ lines, at: new Date().toISOString() });

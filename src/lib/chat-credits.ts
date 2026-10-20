@@ -1,4 +1,5 @@
 import { autoTopup } from "@/lib/billing";
+import { db } from "@/lib/db";
 import { spendUpTo } from "@/lib/credits";
 import { freeCredits } from "@/lib/reservations";
 import { lockedTopup } from "@/lib/subscription";
@@ -58,8 +59,9 @@ export async function chatRefusal(userId: string): Promise<Refusal | null> {
 
 /** Charges a finished reply (what it used, up to what is left). Returns the credits taken. */
 export async function chargeChat(userId: string, meter: ChatMeter, note: string): Promise<number> {
-  if (!chatCreditsOn()) return 0;
   const c = meter.credits();
-  if (!c) return 0;
-  return spendUpTo(userId, c, note).catch((e) => { console.error("chat charge failed", userId, e); return 0; });
+  const taken = chatCreditsOn() && c ? await spendUpTo(userId, c, note).catch((e) => { console.error("chat charge failed", userId, e); return 0; }) : 0;
+  // The real cost is recorded for the owner's price check (/admin/pricing), also while charging is off. No text is stored.
+  if (meter.usd > 0) await db.chatSpend.create({ data: { userId, kind: note, usd: meter.usd, charged: taken } }).catch((e) => console.error("chat spend not recorded", e));
+  return taken;
 }
