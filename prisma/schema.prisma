@@ -600,3 +600,17 @@ model PaymentEventLog {
   @@index([outcome, createdAt])
   @@map("payment_event_logs")
 }
+
+// What a browser says it would block (report-only) or did block under the page security policy (Content Security Policy). Only the kind of thing
+// and the place, never page text. The newest 300 are kept.
+model CspReport {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  directive String
+  blocked   String
+  page      String
+  sample    String?
+
+  @@index([createdAt])
+  @@map("csp_reports")
+}

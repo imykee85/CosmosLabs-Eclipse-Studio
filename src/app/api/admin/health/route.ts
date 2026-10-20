@@ -152,6 +152,21 @@ export async function POST() {
     add(null, "Payment events: could not be read");
   }
 
+  // Page security policy (Content Security Policy): what browsers reported in the last 7 days. In report mode nothing is blocked; the rule is
+  // ready to enforce (CSP_MODE=enforce) when this shows no real violations after the owner has used sign-in, Image Studio, Settings and checkout.
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    const groups = await db.cspReport.groupBy({ by: ["directive", "blocked"], where: { createdAt: { gte: since } }, _count: { _all: true }, orderBy: { _count: { directive: "desc" } }, take: 8 });
+    const mode = process.env.CSP_MODE === "enforce" ? "ENFORCING" : "report only (nothing is blocked)";
+    if (!groups.length) add(true, `Page security policy: ${mode}; no violations reported in the last 7 days`);
+    else {
+      add(false, `Page security policy: ${mode}; ${groups.reduce((n, g) => n + g._count._all, 0)} violation reports in the last 7 days`);
+      for (const g of groups) add(null, `Policy violation x${g._count._all}: ${safeText(g.directive)} blocked ${safeText(g.blocked) || "(inline)"}`);
+    }
+  } catch {
+    add(null, "Page security policy: could not be read");
+  }
+
   // Free trial farm check (master brief section 13, batch 8): how many accounts took the 2 free images in the last 7 days against how many paid, and what that
   // costs at the dearest default-resolution image price. A high ratio of free-only accounts is the sign of one person making many accounts.
   try {

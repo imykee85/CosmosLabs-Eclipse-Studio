@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { ClerkProvider } from "@clerk/nextjs";
 import { clerkLocalization } from "@/lib/clerk-localization";
@@ -46,14 +47,16 @@ const PHONE_LAYOUT_SCRIPT = `(function(){try{var s=Math.min(screen.width,screen.
 // The provider removes the hiding as soon as the page is translated; the timer here is only a safety net.
 const LANGUAGE_SCRIPT = `try{var c=null;try{var v=JSON.parse(localStorage.getItem('eclipse-locale')||'null');c=v&&v.lang}catch(e){}var m=document.cookie.match(/(?:^|; )eclipse-lang=([^;]*)/),l=c||(m&&m[1])||'en';if(l!=='en'&&!/^\\/(terms|privacy|admin)(\\/|$)/.test(location.pathname)){var h=document.documentElement;h.setAttribute('data-i18n','pending');window.__i18n=fetch('/api/i18n/'+l).then(function(r){return r.ok?r.json():null}).then(function(j){return j&&j.d&&Object.keys(j.d).length?(function(){try{localStorage.setItem('eclipse-i18n-dict-'+l,JSON.stringify({d:j.d,at:Date.now()}))}catch(e){}return j.d})():null}).catch(function(){return null});setTimeout(function(){h.removeAttribute('data-i18n')},3000)}}catch(e){}`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The proxy gives every page request its own CSP nonce; our inline scripts carry it so the browser runs them and nothing else inline.
+  const nonce = (await headers()).get("x-nonce") || undefined;
   const page = (
     <html lang="en" className={`${inter.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: PHONE_LAYOUT_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: STATUS_BAR_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: LANGUAGE_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('eclipse-theme')==='light')document.documentElement.setAttribute('data-app-theme','light')}catch(e){}" }} />
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: PHONE_LAYOUT_SCRIPT }} />
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: STATUS_BAR_SCRIPT }} />
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: LANGUAGE_SCRIPT }} />
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('eclipse-theme')==='light')document.documentElement.setAttribute('data-app-theme','light')}catch(e){}" }} />
       </head>
       <body className="min-h-screen bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
         <LocaleProvider>{children}</LocaleProvider>
