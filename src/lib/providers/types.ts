@@ -50,5 +50,6 @@ export const SAY = {
 // A provider's refusal or failure, with a sentence a person can read (`message`) and the provider's own words for the logs and for us (`detail`).
 export class ProviderError extends Error {
   readonly userMessage: string;
-  constructor(userMessage: string, readonly detail?: string) { super(userMessage); this.userMessage = safeText(userMessage, 400); } // `detail` is for the logs only; the user-facing sentence is cleaned
+  // `fallback`: a failure of the direct route itself (provider unreachable, refused our key, rate limit, timeout), not of the request: the render may be tried on Higgsfield instead.
+  constructor(userMessage: string, readonly detail?: string, readonly fallback = false) { super(userMessage); this.userMessage = safeText(userMessage, 400); } // `detail` is for the logs only; the user-facing sentence is cleaned
 }
