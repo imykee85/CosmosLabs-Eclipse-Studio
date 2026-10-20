@@ -30,7 +30,7 @@ test("the ledger counts in tenths of a credit and people see whole credits, or o
 test("plans and packs grant what the brief says (ledger units) and show whole credits", () => {
   assert.deepEqual(plans.map((p) => [p.id, p.price, p.credits, p.seats]), [["starter", 19, 2000, 1], ["growth", 49, 6000, 3], ["scale", 199, 25000, 10]]);
   assert.deepEqual(plans.map((p) => fmtCredits(p.credits)), ["200", "600", "2,500"]);
-  assert.deepEqual(creditPacks.map((p) => [p.id, p.price, p.credits, p.name]), [["topup_500", 6, 500, "50 credits"], ["topup_2000", 22, 2000, "200 credits"], ["topup_6000", 60, 6000, "600 credits"]]);
+  assert.deepEqual(creditPacks.map((p) => [p.id, p.price, p.credits, p.name]), [["topup_500", 6, 500, "50 credits"], ["topup_2000", 22, 2000, "200 credits"], ["topup_6000", 60, 6000, "600 credits"], ["topup_10000", 100, 10000, "1,000 credits"]]);
   assert.equal(productById("growth")?.credits, 6000);
   assert.equal(productById("topup_6000")?.price, 60);
   assert.equal(productById(CUSTOM_PACK_ID, 1000)?.name, "100 credits");

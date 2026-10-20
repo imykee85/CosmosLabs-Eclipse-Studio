@@ -21,7 +21,7 @@ export function planSaving(plan: Plan): number {
 }
 
 /** The pack shown with "Best value": the biggest one (the lowest price per credit). */
-export const BEST_VALUE_PACK_ID = "topup_6000";
+export const BEST_VALUE_PACK_ID = "topup_10000";
 
 /** The plan highlighted as the middle, larger card. */
 export const POPULAR_PLAN_ID = "growth";

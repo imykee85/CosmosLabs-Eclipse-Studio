@@ -20,6 +20,7 @@ export const creditPacks: CreditPack[] = [
   { id: "topup_500", name: "50 credits", price: 6, credits: 500 },
   { id: "topup_2000", name: "200 credits", price: 22, credits: 2000 },
   { id: "topup_6000", name: "600 credits", price: 60, credits: 6000 },
+  { id: "topup_10000", name: "1,000 credits", price: 100, credits: 10000 },
 ];
 
 // "Your own amount": the person picks how many credits, we work out the price. The price line runs through the three packs (so a custom amount never
