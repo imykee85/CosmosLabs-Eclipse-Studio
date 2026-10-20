@@ -49,6 +49,7 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "WHOP_PLAN_TOPUP_500", kind: "Config", needed: "payments: 500-credit top-up" },
   { name: "WHOP_PLAN_TOPUP_2000", kind: "Config", needed: "payments: 2,000-credit top-up" },
   { name: "WHOP_PLAN_TOPUP_6000", kind: "Config", needed: "payments: 6,000-credit top-up" },
+  { name: "WHOP_PLAN_TOPUP_10000", kind: "Config", needed: "payments: 10,000-credit top-up (1,000 credits)" },
   { name: "SANDBOX_PROVIDER", kind: "Config", needed: "the sandbox platform (set to vercel)" },
 ];
 
