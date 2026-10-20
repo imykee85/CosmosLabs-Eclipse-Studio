@@ -15,10 +15,14 @@ test("a payment is for a plan or a top-up pack, and nothing else", () => {
   assert.equal(new Set(ids).size, ids.length, "plan and pack ids are unique");
 });
 
-test("top-up packs cost more per credit than any plan, so plans stay the better deal", () => {
-  const cheapestPack = Math.min(...creditPacks.map((p) => p.price / p.credits));
-  const dearestPlan = Math.max(...plans.map((p) => p.price / p.credits));
-  assert.ok(cheapestPack > dearestPlan);
+test("top-up packs cost more per credit than the Growth and Scale plans, but stay within about twice Growth (emergency use, not a rip-off)", () => {
+  const rate = (x: { price: number; credits: number }) => x.price / x.credits;
+  const growth = rate(plans.find((p) => p.id === "growth")!);
+  const scale = rate(plans.find((p) => p.id === "scale")!);
+  for (const pack of creditPacks) {
+    assert.ok(rate(pack) > growth && rate(pack) > scale, `${pack.id} is dearer per credit than Growth and Scale`);
+    assert.ok(rate(pack) <= growth * 2.1, `${pack.id} is not far above the Growth rate`);
+  }
 });
 
 test("the auto top-up choices are small whole-number lists", () => {

@@ -11,14 +11,14 @@ export const plans: Plan[] = [
   { id: "scale", name: "Scale", price: 199, credits: 25000, seats: 10 },
 ];
 
-// Pay-as-you-go top-ups: one-time packs anyone can buy when their credits run out before the plan renews. PLACEHOLDER prices, a little dearer per
-// credit than any plan on purpose. The ids map to the payment provider's own one-time plans (Whop: WHOP_PLAN_TOPUP_500 and so on).
+// Pay-as-you-go top-ups: one-time packs anyone can buy when their credits run out before the plan renews. PLACEHOLDER prices, about 1.3 to 1.9 times the Growth plan rate per
+// credit (emergency use; Starter is $19 per 1,000, the packs run $20 down to $14). The ids map to the payment provider's own one-time plans (Whop: WHOP_PLAN_TOPUP_500 and so on).
 export type CreditPack = { id: string; name: string; price: number; credits: number };
 
 export const creditPacks: CreditPack[] = [
-  { id: "topup_500", name: "500 credits", price: 12, credits: 500 },
-  { id: "topup_2000", name: "2,000 credits", price: 42, credits: 2000 },
-  { id: "topup_6000", name: "6,000 credits", price: 120, credits: 6000 },
+  { id: "topup_500", name: "500 credits", price: 10, credits: 500 },
+  { id: "topup_2000", name: "2,000 credits", price: 34, credits: 2000 },
+  { id: "topup_6000", name: "6,000 credits", price: 84, credits: 6000 },
 ];
 
 // "Your own amount": the person picks how many credits, we work out the price. The price line runs through the three packs (so a custom amount never
