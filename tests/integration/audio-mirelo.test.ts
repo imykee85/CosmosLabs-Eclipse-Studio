@@ -229,7 +229,7 @@ test("the quote creates nothing, and not enough credits is refused with the numb
   await reset(1);
   const r = await sfx();
   assert.ok(!r.ok && r.status === 402);
-  assert.match(r.error, new RegExp(`needs ${creditsOf(150 * 0.001)} credits`));
+  assert.match(r.error, new RegExp(`needs ${creditsOf(150 * 0.001) / 10} credits`)); // shown in credits (ledger / 10)
 });
 
 test("deleting a take removes every alternative from storage", { skip }, async () => {

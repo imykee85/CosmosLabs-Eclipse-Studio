@@ -4,11 +4,11 @@ import { priceOf, type AudioModel } from "./registry";
 // Provider cost in USD for a number of units of the model's price unit (chars, bytes, seconds...).
 export const usdFor = (m: AudioModel, units: number) => (Math.max(0, units) / m.per) * priceOf(m);
 
-// Credits: provider cost x margin, converted at USD per credit, rounded UP (at least 1). Config values: AUDIO_MARGIN (default 1.25), AUDIO_CREDIT_USD (default 0.008,
-// a credit on the cheapest placeholder plan). Provisional until real bills are matched (docs/video-pricing.md has the same approach for video).
+// Credits: provider cost x margin, converted at USD per credit, rounded UP (at least 1). Config values: AUDIO_MARGIN (default 2.5), AUDIO_CREDIT_USD (default 0.01,
+// the face value of one LEDGER unit, a tenth of a credit; owner decision 2026-10-20, docs/pricing.md). The result is in ledger units, shown to people with fmtCredits.
 export function creditsFor(usd: number): number {
-  const margin = Number(process.env.AUDIO_MARGIN) > 0 ? Number(process.env.AUDIO_MARGIN) : 1.25;
-  const creditUsd = Number(process.env.AUDIO_CREDIT_USD) > 0 ? Number(process.env.AUDIO_CREDIT_USD) : 0.008;
+  const margin = Number(process.env.AUDIO_MARGIN) > 0 ? Number(process.env.AUDIO_MARGIN) : 2.5;
+  const creditUsd = Number(process.env.AUDIO_CREDIT_USD) > 0 ? Number(process.env.AUDIO_CREDIT_USD) : 0.01;
   return Math.max(1, Math.ceil((usd * margin) / creditUsd));
 }
 
@@ -22,8 +22,8 @@ export const audioCreditsOn = () => process.env.CREDITS_ENABLED === "1";
 // Credits per single character (a fraction), so the page can show the same price the server will hold: max(1, ceil(chars x this)).
 export function creditsPerChar(m: AudioModel): number | null {
   if (m.priceUnit !== "char") return null;
-  const margin = Number(process.env.AUDIO_MARGIN) > 0 ? Number(process.env.AUDIO_MARGIN) : 1.25;
-  const creditUsd = Number(process.env.AUDIO_CREDIT_USD) > 0 ? Number(process.env.AUDIO_CREDIT_USD) : 0.008;
+  const margin = Number(process.env.AUDIO_MARGIN) > 0 ? Number(process.env.AUDIO_MARGIN) : 2.5;
+  const creditUsd = Number(process.env.AUDIO_CREDIT_USD) > 0 ? Number(process.env.AUDIO_CREDIT_USD) : 0.01;
   return ((priceOf(m) / m.per) * margin) / creditUsd;
 }
 
@@ -42,8 +42,8 @@ export function settledUnits(m: AudioModel, text: string, seconds?: number): num
 
 // Credits per unit (a fraction) for the page's price label, and the unit it counts. Seconds cannot be known before the take is made, so the label shows the hold.
 export function pagePricing(m: AudioModel): { unit: "char" | "byte"; perUnit: number } | { unit: "max"; credits: number } | { unit: "sec"; perSec: number } | null {
-  const margin = Number(process.env.AUDIO_MARGIN) > 0 ? Number(process.env.AUDIO_MARGIN) : 1.25;
-  const creditUsd = Number(process.env.AUDIO_CREDIT_USD) > 0 ? Number(process.env.AUDIO_CREDIT_USD) : 0.008;
+  const margin = Number(process.env.AUDIO_MARGIN) > 0 ? Number(process.env.AUDIO_MARGIN) : 2.5;
+  const creditUsd = Number(process.env.AUDIO_CREDIT_USD) > 0 ? Number(process.env.AUDIO_CREDIT_USD) : 0.01;
   if (m.priceUnit === "char" || m.priceUnit === "byte") return { unit: m.priceUnit, perUnit: ((priceOf(m) / m.per) * margin) / creditUsd };
   if (m.priceUnit === "second" && m.maxVariants) return { unit: "sec", perSec: ((priceOf(m) / m.per) * margin) / creditUsd }; // per second per variant (the page multiplies)
   if (m.priceUnit === "second") return { unit: "max", credits: creditsFor(usdFor(m, m.maxSeconds ?? 120)) };

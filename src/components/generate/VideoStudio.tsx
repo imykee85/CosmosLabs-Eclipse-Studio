@@ -28,6 +28,7 @@ import { DEFAULT_VIDEO_MODEL, LONGEST_MODEL_LABEL, VIDEO_MODELS, capsFor, isLive
 import "../create/create.css";
 import "./generate.css";
 
+import { fmtCredits, creditsText } from "@/lib/credit-units";
 // Video Studio (VIDEO step 3): the same layout as Image Studio, for video. A preview above, and below it a prompt box with the shape, length and quality of the clip,
 // the model, an optional start frame and end frame, sound, a fixed seed, and the agent. EVERY control comes from the model registry (src/lib/video-models.ts):
 // one the chosen model (or the chosen way of using it) cannot take is greyed out, never hidden. Models not connected yet are listed greyed with a Soon tag.
@@ -39,7 +40,7 @@ const frameUrl = (p: RefPick) => (p.type === "upload" ? `/api/uploads/${p.id}/fi
 const clock = (ms: number) => { const t = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
 
 type Target = "start" | "end" | "refs";
-type Config = { creditsOn: boolean; paused: boolean; ready: boolean };
+type Config = { creditsOn: boolean; paused: boolean; ready: boolean; direct?: string[] };
 
 export default function VideoStudio() {
   const urlPrompt = useSearchParams().get("prompt");
@@ -245,7 +246,7 @@ export default function VideoStudio() {
   const shotSum = shotList ? shotList.reduce((a, x) => a + x.duration, 0) : 0;
   const shotsBad = !!shotList && (shotList.some((x) => !x.prompt.trim()) || !caps.durations.includes(shotSum));
   const priceSeconds = mc ? (clipSec != null ? Math.min(Math.ceil(clipSec), 30) : null) : shotList ? shotSum : duration;
-  const price = live && config?.creditsOn && priceSeconds != null ? videoPrice(model, caps.qualities.length ? quality : undefined, priceSeconds, mc ? false : hasSound) : null;
+  const price = live && config?.creditsOn && priceSeconds != null ? videoPrice(model, caps.qualities.length ? quality : undefined, priceSeconds, mc ? false : hasSound, config?.direct?.includes(model.id) ? "direct" : "higgsfield") : null;
   const motionReady = !mc || (!!start && vrefs.length === 1);
   const canGo = (!!prompt.trim() || (live && !caps.promptRequired)) && motionReady && !shotsBad;
 
@@ -270,7 +271,7 @@ export default function VideoStudio() {
       const data = await res.json().catch(() => ({}));
       if (res.status === 409 && data.needsConfirm) {
         // A dear render asks first (the server enforces this too).
-        if (window.confirm(`This video costs ${data.cost} credits. Start it?`)) { setSubmitting(false); return generate(true); }
+        if (window.confirm(`This video costs ${fmtCredits(data.cost)} credits. Start it?`)) { setSubmitting(false); return generate(true); }
         return;
       }
       if (!res.ok) { setError(data.error ?? "Could not start the video. Please try again."); return; }
@@ -488,7 +489,7 @@ export default function VideoStudio() {
               <button type="button" className={`cr-chip vs-gear ${settingsInUse ? "is-on" : ""}`} aria-label="Settings" aria-haspopup="dialog" title="Seed, leave out and prompt strength" onClick={(e) => setSettingsAnchor(e.currentTarget.getBoundingClientRect())}><Settings size={16} />{settingsInUse && <i className="vs-dot" />}</button>
             </div>
             <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad}>
-              {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate {price != null ? <span className="cr-cost" title={`About ${price} credits (provisional price)`}><Coins size={14} />{price}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
+              {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate {price != null ? <span className="cr-cost" title={creditsText(price)}><Coins size={14} />{fmtCredits(price)}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
             </button>
           </div>
         </form>
@@ -504,7 +505,7 @@ export default function VideoStudio() {
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} multiShot={!!caps.multiShot && !mc} shotsOn={!!shots} onShots={(on) => setShots(on ? [{ prompt: "", duration: 3 }, { prompt: "", duration: 3 }] : null)} onClose={() => setSettingsAnchor(null)} />}
       {styleOpen && <StyleLibrary onClose={() => setStyleOpen(false)} />}
-      {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} />}
+      {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} creditsOn={!!config?.creditsOn} direct={config?.direct ?? []} />}
     </div>
   );
 }

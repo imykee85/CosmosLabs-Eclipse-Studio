@@ -4,6 +4,10 @@
 // the model lists (several endpoints reject unknown fields), applies defaults, clamps nothing silently (a bad value is an error) and never switches to another model.
 // Shared by the browser (controls, price estimate) and the server (validation, request body, price).
 
+import { toLedger } from "./credit-units";
+import { CREDIT_PROVIDER_USD } from "./price-constants";
+import type { Route } from "./routes";
+
 export type Workflow = "t2v" | "i2v" | "ref" | "motion"; // text, start frame(s), reference pictures/clips, or motion transfer (Motion chip)
 
 type ResSpec = { values: string[]; default: string };
@@ -34,9 +38,10 @@ export type VideoLive = {
   multiShot?: { max: number; promptMax: number; minSec: number; maxSec: number };
   // Motion transfer (the Motion chip): the subject picture is the start frame, the motion clip is the one reference clip; the length follows the clip.
   motion?: { kind: "kling" | "genjutsu"; minSec: number; maxSec: number; trimsAbove?: boolean };
-  // PROVISIONAL credit price (the video docs publish no prices): credits per second by resolution ("default" when there is no resolution field),
-  // multiplied by audioFactor when sound is on. Deliberately high until real costs are measured (docs/video-pricing.md).
-  price: { perSecond: Record<string, number>; audioFactor?: number };
+  // PRICE (owner decision 2026-10-20, docs/video-pricing.md): the provider's LIST cost in USD per second of the clip by resolution ("default" when there is no
+  // resolution field), `usdAudio` where sound on costs more, `directUsd` for the cheaper direct route (routes.ts). A clip costs ceil(seconds x cost / $0.04) whole
+  // credits, rounded ONCE for the whole clip. `estimate` lists the rows that are estimates in the owner's workbook ("audio" = the sound-on row, "direct" = the direct route).
+  price: { usd: Record<string, number>; usdAudio?: Record<string, number>; directUsd?: Record<string, number>; estimate?: string[] };
   timeoutMinutes: number;                           // give up and release the held price after this long without a result
   note?: string;
 };
@@ -74,7 +79,7 @@ const kling3 = (tier: "std" | "pro" | "4k"): VideoLive => ({
   cfgScale: true,
   endFrameField: "last_image_url",
   multiShot: { max: 6, promptMax: 512, minSec: 1, maxSec: 15 },
-  price: { perSecond: { default: tier === "4k" ? 40 : tier === "pro" ? 22 : 14 }, audioFactor: 1.5 },
+  price: { usd: { default: tier === "4k" ? 0.42 : tier === "pro" ? 0.112 : 0.084 }, usdAudio: { default: tier === "4k" ? 0.63 : tier === "pro" ? 0.168 : 0.126 }, estimate: tier === "pro" ? [] : tier === "4k" ? ["default", "audio"] : ["audio"] },
   timeoutMinutes: SLOW,
 });
 
@@ -87,7 +92,7 @@ const kling3Turbo: VideoLive = {
   durationDefault: 5,
   resolution: { values: ["720p", "1080p"], default: "720p" },
   aspect: { values: R3, default: "16:9" },
-  price: { perSecond: { "720p": 10, "1080p": 18 } },
+  price: { usd: { "720p": 0.112, "1080p": 0.14 } },
   timeoutMinutes: SLOW,
 };
 
@@ -101,7 +106,7 @@ const kling26: VideoLive = {
   aspect: { values: R3, default: "16:9" },
   audio: { field: "sound", kind: "onoff", default: true },
   cfgScale: true,
-  price: { perSecond: { default: 22 }, audioFactor: 1.5 },
+  price: { usd: { default: 0.07 }, usdAudio: { default: 0.14 } },
   timeoutMinutes: SLOW,
 };
 
@@ -114,7 +119,7 @@ const kling25t = (tier: "pro" | "standard"): VideoLive => ({
   durationDefault: 5,
   negativePrompt: { max: 2500 },
   cfgScale: true,
-  price: { perSecond: { default: tier === "pro" ? 14 : 8 } },
+  price: { usd: { default: tier === "pro" ? 0.07 : 0.042 } },
   timeoutMinutes: SLOW,
 });
 
@@ -130,7 +135,7 @@ const seedance2: VideoLive = {
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { perSecond: { "480p": 10, "720p": 20, "1080p": 40, "4k": 90 }, audioFactor: 1.25 },
+  price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.0644, "720p": 0.1384, "1080p": 0.3112 }, estimate: ["direct"] },
   timeoutMinutes: SLOW,
   note: "4k can take twice as long.",
 };
@@ -148,7 +153,7 @@ const seedance25: VideoLive = {
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { perSecond: { "480p": 10, "720p": 20, "1080p": 40 }, audioFactor: 1.25 },
+  price: { usd: { "480p": 0.2056, "720p": 0.4622, "1080p": 1.1372 }, directUsd: { "480p": 0.1076, "720p": 0.2312, "1080p": 0.5684 }, estimate: ["direct"] },
   timeoutMinutes: SLOW,
   note: "Clips over 20 seconds can take twice as long.",
 };
@@ -164,7 +169,7 @@ const happyHorse11: VideoLive = {
   resolution: { values: ["720p", "1080p"], default: "1080p" },
   aspect: { values: ["16:9", "9:16", "1:1", "4:3", "3:4"], default: "16:9" },
   seed: { min: 1, max: 2147483646 },
-  price: { perSecond: { "720p": 14, "1080p": 26 } },
+  price: { usd: { "720p": 0.14, "1080p": 0.18 } },
   timeoutMinutes: SLOW,
 };
 
@@ -180,7 +185,7 @@ const pixverse6: VideoLive = {
   seed: { min: 0, max: 2147483647 },
   negativePrompt: { max: 2048 },
   endFrameField: "end_image_url",
-  price: { perSecond: { "360p": 6, "540p": 9, "720p": 14, "1080p": 26 }, audioFactor: 1.3 },
+  price: { usd: { "360p": 0.035, "540p": 0.045, "720p": 0.06, "1080p": 0.115 } },
   timeoutMinutes: SLOW,
 };
 
@@ -197,7 +202,7 @@ const happyHorse10: VideoLive = {
   resolution: { values: ["720p", "1080p"], default: "720p" },
   aspect: { values: ["16:9", "9:16", "1:1", "4:3", "3:4"], default: "16:9" },
   seed: { min: 1, max: 2147483646 },
-  price: { perSecond: { "720p": 12, "1080p": 22 } },
+  price: { usd: { "720p": 0.14, "1080p": 0.28 } },
   timeoutMinutes: SLOW,
 };
 
@@ -218,7 +223,7 @@ const wan3 = (prime: boolean): VideoLive => ({
   audio: { field: "generate_audio", kind: "bool", default: true },
   seed: { min: 1, max: 2147483647 },
   endFrameField: "end_image_url",
-  price: { perSecond: prime ? { "480p": 12, "720p": 20, "1080p": 34 } : { "480p": 8, "720p": 14, "1080p": 24 }, audioFactor: 1.25 },
+  price: { usd: prime ? { "480p": 0.068, "720p": 0.14, "1080p": 0.28 } : { "480p": 0.05, "720p": 0.1, "1080p": 0.2 }, estimate: prime ? ["720p", "1080p"] : [] },
   timeoutMinutes: SLOW,
 });
 
@@ -235,7 +240,7 @@ const wan27: VideoLive = {
   seed: { min: 1, max: 2147483646 },
   negativePrompt: { max: 2000 },
   endFrameField: "end_image_url",
-  price: { perSecond: { "720p": 10, "1080p": 18 } },
+  price: { usd: { "720p": 0.1, "1080p": 0.15 } },
   timeoutMinutes: SLOW,
 };
 
@@ -253,7 +258,7 @@ const wan26: VideoLive = {
   durationDefault: 5,
   resolution: { values: ["720p", "1080p"], default: "720p" },
   seed: { min: 0, max: 10000000 },
-  price: { perSecond: { "480p": 6, "720p": 9, "1080p": 16 } },
+  price: { usd: { "720p": 0.1, "1080p": 0.15 } },
   timeoutMinutes: SLOW,
 };
 
@@ -269,7 +274,7 @@ const minimaxH3: VideoLive = {
   aspect: { values: ["auto", "adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], default: "auto" },
   fixed: { aigc_watermark: false },
   endFrameField: "end_image_url",
-  price: { perSecond: { "2K": 20 } },
+  price: { usd: { "2K": 0.13 } },
   timeoutMinutes: SLOW,
 };
 
@@ -280,7 +285,7 @@ const hailuo23: VideoLive = {
   promptRequired: { t2v: true, i2v: true },
   durations: { t2v: { min: 6, max: 10, values: [6, 10] }, i2v: { min: 6, max: 10, values: [6, 10] } },
   durationDefault: 6,
-  price: { perSecond: { default: 8 } },
+  price: { usd: { default: 0.056 } },
   timeoutMinutes: SLOW,
 };
 
@@ -296,7 +301,7 @@ const ltx25 = (tier: "fast" | "pro"): VideoLive => ({
   aspectOnI2v: true,
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { perSecond: tier === "fast" ? { "720p": 6, "1080p": 10, "2k": 16, "4k": 28 } : { "720p": 10, "1080p": 16 }, audioFactor: 1.2 },
+  price: { usd: tier === "fast" ? { "720p": 0.09, "1080p": 0.13, "2k": 0.19, "4k": 0.3 } : { "720p": 0.12, "1080p": 0.17 } },
   timeoutMinutes: SLOW,
 });
 
@@ -313,7 +318,7 @@ const grok15: VideoLive = {
   resolution: { values: ["480p", "720p", "1080p"], default: "480p" },
   aspect: { values: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"], default: "auto" },
   aspectOnI2v: true,
-  price: { perSecond: { "480p": 8, "720p": 14, "1080p": 26 } },
+  price: { usd: { "480p": 0.08, "720p": 0.14, "1080p": 0.25 } },
   timeoutMinutes: SLOW,
 };
 
@@ -328,7 +333,7 @@ const cinema40: VideoLive = {
   resolution: { values: ["480p", "720p"], default: "720p" },
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
-  price: { perSecond: { "480p": 16, "720p": 28 }, audioFactor: 1.25 },
+  price: { usd: { "480p": 0.2057, "720p": 0.4623 } },
   timeoutMinutes: SLOW,
 };
 
@@ -344,7 +349,7 @@ const klingMotion = (ver: "3" | "26", tier: "std" | "pro"): VideoLive => ({
   promptRequired: { t2v: false, i2v: false },
   durations: { t2v: { min: 3, max: 30 }, i2v: { min: 3, max: 30 } },
   durationDefault: 5,
-  price: { perSecond: { default: tier === "pro" ? 22 : 14 } },
+  price: { usd: { default: ver === "3" ? (tier === "pro" ? 0.168 : 0.126) : 0.168 }, estimate: ver === "26" ? ["default"] : [] },
   timeoutMinutes: SLOW,
 });
 const genjutsuMotion: VideoLive = {
@@ -356,7 +361,7 @@ const genjutsuMotion: VideoLive = {
   durations: { t2v: { min: 4, max: 30 }, i2v: { min: 4, max: 30 } },
   durationDefault: 5,
   resolution: { values: ["480p", "720p", "1080p"], default: "720p" },
-  price: { perSecond: { "480p": 40, "720p": 85, "1080p": 204 } },
+  price: { usd: { "480p": 0.318, "720p": 0.681, "1080p": 1.632 } },
   timeoutMinutes: SLOW,
 };
 
@@ -488,13 +493,24 @@ export function capsFor(m: VideoModel, wf: Workflow): Caps {
 }
 
 // --- Price ------------------------------------------------------------------------------------------------------------------------------------------------------
-// The PROVISIONAL credit price of one render (always a whole number of credits, at least 1), or null for a model that is not connected.
-export function videoPrice(m: VideoModel, resolution: string | undefined, duration: number, audio: boolean): number | null {
+// The price of one render in LEDGER units (tenths of a credit; always a whole number of credits x 10, at least 1 credit), or null for a model that is not connected.
+// For motion transfer `duration` is the length of the MOTION/SOURCE clip. `route` is the route the render really uses (see routes.ts).
+export function videoCredits(m: VideoModel, resolution: string | undefined, duration: number, audio: boolean, route: Route = "higgsfield"): number | null {
   const l = m.live;
   if (!l) return null;
-  const per = l.price.perSecond[resolution ?? "default"] ?? l.price.perSecond.default ?? Math.max(...Object.values(l.price.perSecond));
-  const factor = audio && l.audio && l.price.audioFactor ? l.price.audioFactor : 1;
-  return Math.max(1, Math.ceil(per * factor * duration));
+  const sound = audio && !!l.audio && !!l.price.usdAudio;
+  const normal = sound ? l.price.usdAudio! : l.price.usd;
+  // The direct route has prices only for some resolutions (Seedance: not 4k); any other resolution stays on Higgsfield's price.
+  const direct = route === "direct" ? l.price.directUsd : undefined;
+  const table = direct && direct[resolution ?? "default"] != null ? direct : normal;
+  const key = resolution && table[resolution] != null ? resolution : table.default != null ? "default" : Object.keys(table)[0];
+  const perSecond = table[key] ?? l.price.usd[key] ?? Math.max(...Object.values(l.price.usd));
+  // the 6-decimal round keeps 5 s x 0.084 / 0.04 from becoming 10.500000000000002 style noise; the ceil happens once, on the whole clip
+  return Math.max(1, Math.ceil(Math.round((duration * perSecond) / CREDIT_PROVIDER_USD * 1e6) / 1e6));
+}
+export function videoPrice(m: VideoModel, resolution: string | undefined, duration: number, audio: boolean, route: Route = "higgsfield"): number | null {
+  const c = videoCredits(m, resolution, duration, audio, route);
+  return c == null ? null : toLedger(c);
 }
 
 // How long a render may run before it is given up (the held price is released): longer for 4K and long clips.

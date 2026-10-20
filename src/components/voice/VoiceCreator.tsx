@@ -5,6 +5,7 @@ import { Coins, Loader2, Mic, Pause, Play, X } from "lucide-react";
 import { cloneVoiceRequest, designVoiceRequest, saveDesignRequest, type DesignPreview, type OwnVoice, type VoiceCosts, type VoiceModel } from "@/lib/use-voice";
 import { orbStyle } from "./look";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Make your own voice: CLONE one from a short recording of a voice you own (or have written permission to use), or DESIGN one from a description and pick the preview
 // you like. Providers come from the model list; one that is not connected yet can be chosen and says so when you press the button.
 type Mode = "clone" | "design";
@@ -157,7 +158,7 @@ export default function VoiceCreator({ models, provider, costs, consentText, onC
           <button type="button" className="vc-new-go" disabled={busy} onClick={() => void (mode === "clone" ? createClone() : makeDesign())}>
             {busy ? <Loader2 size={16} className="vc-spin" /> : null}
             {mode === "clone" ? "Create voice" : previews ? "Design again" : "Design voice"}
-            {cost != null && <span className="vc-cost"><Coins size={11} />{cost}</span>}
+            {cost != null && <span className="vc-cost"><Coins size={11} />{fmtCredits(cost)}</span>}
           </button>
         </div>
       </div>

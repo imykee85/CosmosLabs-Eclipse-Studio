@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Gift, X } from "lucide-react";
 import { useCredits } from "@/lib/use-credits";
+import { fmtCredits } from "@/lib/credit-units";
 import { launchConfetti, playPops } from "./confetti";
 
 const SEEN = "eclipse-welcome-offer";
 
-// Shown once on the dashboard to a new account that still has its free image generations.
+// Shown once on the dashboard to a new account that was given its welcome credits (and still has some left).
 export default function WelcomeOffer({ onStart }: { onStart: () => void }) {
   const { credits } = useCredits();
-  const left = credits?.freeImages ?? 0;
+  const left = credits && (credits.welcome ?? 0) > 0 && credits.balance > 0 ? credits.welcome ?? 0 : 0;
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export default function WelcomeOffer({ onStart }: { onStart: () => void }) {
         <button type="button" className="nm-close" aria-label="Close" onClick={close}><X size={16} /></button>
         <span className="wo-icon" aria-hidden><Gift size={26} /></span>
         <h2 id="wo-title">Welcome to Eclipse</h2>
-        <p>You have {left} free image generation{left === 1 ? "" : "s"} on any model. Make something worth keeping.</p>
+        <p>You have {fmtCredits(left)} free credits to use on anything: images, video or voice. Make something worth keeping.</p>
         <button type="button" className="nm-create" onClick={() => { close(); onStart(); }}>Start creating</button>
       </div>
     </div>

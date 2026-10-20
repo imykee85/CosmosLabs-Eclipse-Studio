@@ -11,9 +11,9 @@ import { lockedTopup } from "@/lib/subscription";
 export const SANDBOX_OPEN = ["queued", "creating", "running", "collecting"];
 
 async function heldNow(tx: Prisma.TransactionClient, userId: string): Promise<number> {
-  const running = await tx.generation.findMany({ where: { userId, status: { in: ["pending", "saving"] } }, select: { model: true, creditsHeld: true } });
+  const running = await tx.generation.findMany({ where: { userId, status: { in: ["pending", "saving"] } }, select: { model: true, resolution: true, creditsHeld: true } });
   // A video row carries its own price (it depends on length, quality and sound); an image row uses its model's.
-  const renders = running.reduce((n, r) => n + (r.creditsHeld ?? chargeFor(getModelById(r.model)) ?? 0), 0);
+  const renders = running.reduce((n, r) => n + (r.creditsHeld ?? chargeFor(getModelById(r.model), r.resolution ?? undefined) ?? 0), 0);
   const audio = await tx.audioJob.aggregate({ where: { userId, status: "pending" }, _sum: { creditsHeld: true } });
   // Sandbox jobs (merging sound into a video, running a mini tool, a Core build session) hold their price until they settle.
   const sandbox = await tx.sandboxJob.aggregate({ where: { userId, status: { in: SANDBOX_OPEN }, creditsCharged: 0 }, _sum: { creditsReserved: true } });
@@ -27,12 +27,20 @@ async function withTopup<R>(userId: string, cost: number, run: () => Promise<R>)
   return first;
 }
 
-export function createGenerationHeld(userId: string, cost: number | null, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number; locked: number }> {
-  return cost == null ? db.generation.create({ data }).then((row) => ({ row })) : withTopup(userId, cost, () => createGenerationHeldOnce(userId, cost, data));
+// `batch` (Soul 2 and Soul Cinema): one credit pays for up to `size` images started under the same batch id. The first request of a batch pays; the next
+// ones, up to the size, are created with nothing held. Counted inside the per-person lock, so four requests started at once pay once, in any order.
+export type RenderBatch = { id: string; size: number };
+
+export function createGenerationHeld(userId: string, cost: number | null, data: Prisma.GenerationUncheckedCreateInput, batch?: RenderBatch): Promise<{ row: Generation } | { have: number; held: number; locked: number }> {
+  return cost == null ? db.generation.create({ data }).then((row) => ({ row })) : withTopup(userId, cost, () => createGenerationHeldOnce(userId, cost, data, batch));
 }
-async function createGenerationHeldOnce(userId: string, cost: number, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number; locked: number }> {
+async function createGenerationHeldOnce(userId: string, cost: number, data: Prisma.GenerationUncheckedCreateInput, batch?: RenderBatch): Promise<{ row: Generation } | { have: number; held: number; locked: number }> {
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`; // the same lock spendCredits takes
+    if (batch) {
+      const inBatch = await tx.generation.count({ where: { userId, model: data.model, params: { path: ["batchId"], equals: batch.id } } });
+      if (inBatch > 0 && inBatch < batch.size) return { row: await tx.generation.create({ data: { ...data, creditsHeld: 0 } }) }; // already paid for by the first image of this batch
+    }
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
     const locked = await lockedTopup(userId, tx);
     const have = (sum._sum.delta ?? 0) - locked;

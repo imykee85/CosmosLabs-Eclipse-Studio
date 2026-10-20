@@ -1,5 +1,6 @@
 "use client";
 
+import { fmtCredits } from "@/lib/credit-units";
 import { FormEvent, useState } from "react";
 import "./settings.css";
 
@@ -20,7 +21,7 @@ export default function AdminCredits({ email: me }: { email: string }) {
       const res = await fetch("/api/admin/credits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, amount: Number(amount), note }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
-      setMsg({ ok: true, text: `Added ${data.added.toLocaleString("en-US")} credits to ${data.email}. Their balance is now ${data.balance.toLocaleString("en-US")}.` });
+      setMsg({ ok: true, text: `Added ${fmtCredits(data.added)} credits to ${data.email}. Their balance is now ${fmtCredits(data.balance)}.` });
     } catch (err) {
       setMsg({ ok: false, text: err instanceof Error ? err.message : "Something went wrong." });
     } finally {

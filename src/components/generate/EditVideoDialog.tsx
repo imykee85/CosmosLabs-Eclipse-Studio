@@ -7,6 +7,7 @@ import type { Render } from "@/lib/use-renders";
 import { findVideoModel, videoPrice } from "@/lib/video-models";
 import "../voice/voice.css";
 
+import { fmtCredits, creditsText } from "@/lib/credit-units";
 // "Edit video" on a finished video: Seedance 2.5 changes what is in the clip as the prompt says (Edit), or continues it by 4 to 30 seconds (Extend).
 // The new clip is made like any other video and appears in the Gallery and Library; the original stays as it is.
 export default function EditVideoDialog({ video, onClose, onStarted }: { video: Render; onClose: () => void; onStarted?: (id: string) => void }) {
@@ -19,11 +20,12 @@ export default function EditVideoDialog({ video, onClose, onStarted }: { video: 
   const [error, setError] = useState("");
   const [started, setStarted] = useState(false);
   const [creditsOn, setCreditsOn] = useState(false);
-  useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => setCreditsOn(!!c?.creditsOn)).catch(() => {}); }, []);
+  const [direct, setDirect] = useState<string[]>([]);
+  useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => { setCreditsOn(!!c?.creditsOn); setDirect(Array.isArray(c?.direct) ? c.direct : []); }).catch(() => {}); }, []);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
   const model = findVideoModel("seedance_2_5");
   const seconds = mode === "edit" ? Math.max(1, Math.ceil(video.durationSec ?? 5)) : ext;
-  const price = creditsOn && model ? videoPrice(model, res, seconds, audio) : null;
+  const price = creditsOn && model ? videoPrice(model, res, seconds, audio, direct.includes(model.id) ? "direct" : "higgsfield") : null;
 
   async function go(confirm = false): Promise<void> {
     if (!prompt.trim() || busy) return;
@@ -31,7 +33,7 @@ export default function EditVideoDialog({ video, onClose, onStarted }: { video: 
     try {
       const r = await fetch("/api/video/edit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sourceId: video.id, mode, prompt: prompt.trim(), duration: mode === "extend" ? ext : undefined, resolution: res, audio, projectId: video.projectId ?? undefined, confirm: confirm || undefined }) });
       const d = await r.json().catch(() => ({}));
-      if (r.status === 409 && d.needsConfirm) { setBusy(false); if (window.confirm(`This costs ${d.cost} credits. Start it?`)) return go(true); return; }
+      if (r.status === 409 && d.needsConfirm) { setBusy(false); if (window.confirm(`This costs ${fmtCredits(d.cost)} credits. Start it?`)) return go(true); return; }
       if (!r.ok) { setError(typeof d.error === "string" ? d.error : "Could not start. Please try again."); return; }
       setStarted(true);
       if (typeof d.id === "string") onStarted?.(d.id);
@@ -71,7 +73,7 @@ export default function EditVideoDialog({ video, onClose, onStarted }: { video: 
             {error && <p className="vc-error" role="alert">{error}</p>}
             <button type="button" className="vc-as-go" onClick={() => void go()} disabled={busy || !prompt.trim()}>
               {busy && <Loader2 size={16} className="vc-spin" />} {mode === "edit" ? "Edit with Seedance 2.5" : "Extend with Seedance 2.5"}
-              {price != null && <span className="vc-cost"><Coins size={12} />{price}</span>}
+              {price != null && <span className="vc-cost"><Coins size={12} />{fmtCredits(price)}</span>}
             </button>
           </>
         )}

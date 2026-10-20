@@ -2,9 +2,10 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/admin";
+import { toLedger } from "@/lib/credit-units";
 import { getBalance, grantCredits } from "@/lib/credits";
 
-const MAX_GRANT = 100_000;
+const MAX_GRANT = 100_000; // whole credits
 
 // Owner only: add credits to an account (yours when no e-mail is given). Every grant is recorded in the ledger with who gave it.
 export async function POST(req: Request) {
@@ -27,8 +28,8 @@ export async function POST(req: Request) {
       targetId = user.id;
       targetEmail = email;
     }
-    await grantCredits(targetId, amount, { reason: "GRANT", provider: "admin", externalId: randomUUID(), note: `${note || "Credits added"} (by ${admin.email})` });
-    return NextResponse.json({ email: targetEmail, added: amount, balance: await getBalance(targetId) });
+    await grantCredits(targetId, toLedger(amount), { reason: "GRANT", provider: "admin", externalId: randomUUID(), note: `${note || "Credits added"} (by ${admin.email})` });
+    return NextResponse.json({ email: targetEmail, added: toLedger(amount), balance: await getBalance(targetId) });
   } catch (err) {
     console.error("granting credits failed", err);
     return NextResponse.json({ error: "Could not add the credits." }, { status: 500 });

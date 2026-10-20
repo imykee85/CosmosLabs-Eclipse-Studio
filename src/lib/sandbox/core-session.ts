@@ -8,6 +8,7 @@ import { advance, drive, endSession, enqueue } from "./runner";
 import { tail } from "./provider";
 import { cleanSchema, toolKey } from "@/lib/core-tools";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Core's build machine, as the assistant's tools. A session is a core.exec sandbox job: the first tool that needs it starts one (after the
 // person's plan and price checks), and every tool finds it through the person's own open session, never through an id the model gives.
 // The session is the person's own isolated computer, so a shell command line is allowed here (and only here). What comes back from it is
@@ -65,7 +66,7 @@ export async function runSessionTool(name: string, args: Record<string, unknown>
     const open = await openSession(userId);
     if (!open) return { text: "There is no build session open." };
     const ended = await endSession(open.id);
-    return { text: `The build session was closed after ${(ended?.output as { minutes?: number } | null)?.minutes ?? "?"} minutes.${ended?.creditsCharged ? ` ${ended.creditsCharged} credits were charged.` : ""}` };
+    return { text: `The build session was closed after ${(ended?.output as { minutes?: number } | null)?.minutes ?? "?"} minutes.${ended?.creditsCharged ? ` ${fmtCredits(ended.creditsCharged)} credits were charged.` : ""}` };
   }
   const s = await sessionFor(userId, chatId);
   if ("error" in s) return { text: s.error, isError: true };

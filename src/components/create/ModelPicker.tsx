@@ -1,5 +1,6 @@
 "use client";
 
+import { priceLabel } from "@/lib/image-render";
 import { useMemo, useState } from "react";
 import { Box, Check, ChevronDown, Megaphone, ScanFace, Search, Video, Wand2, X, Zap, type LucideIcon } from "lucide-react";
 import { siGoogle, siOpenai } from "simple-icons";
@@ -105,6 +106,7 @@ export default function ModelPicker({ models, value, onPick, onClose }: {
     <button key={m.id} type="button" className={`mp-row ${value === m.id ? "is-on" : ""}`} onClick={() => onPick(m.id)}>
       <ModelIcon name={group ?? GROUPS.find((g) => g.match?.(m.id))?.name ?? m.label} />
       <span className="mp-name">{m.label}{m.blurb && <small>{m.blurb}</small>}</span>
+      {priceLabel(m) && <span className="mp-price">{priceLabel(m)}</span>}
       {value === m.id && <Check size={16} />}
     </button>
   );

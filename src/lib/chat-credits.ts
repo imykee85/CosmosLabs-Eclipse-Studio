@@ -3,6 +3,7 @@ import { spendUpTo } from "@/lib/credits";
 import { freeCredits } from "@/lib/reservations";
 import { lockedTopup } from "@/lib/subscription";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Core and Atlas (and custom agents) are paid in Eclipse credits, priced from what each reply really used: the model's token prices (Anthropic
 // list prices, read 2026-10-17) x a margin, turned into credits at a dollar value per credit, rounded up, at least CHAT_MIN_CREDITS. Watching a
 // video is included: its frames are input tokens. Only when CREDITS_ENABLED=1. All numbers are Config values and PROVISIONAL.
@@ -18,8 +19,8 @@ const UNKNOWN: Price = { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 
 
 const num = (name: string, fallback: number) => { const v = Number(process.env[name]); return Number.isFinite(v) && v > 0 ? v : fallback; };
 export const chatCreditsOn = () => process.env.CREDITS_ENABLED === "1";
-export const creditUsd = () => num("CHAT_CREDIT_USD", 0.008);
-export const chatMargin = () => num("CHAT_MARGIN", 1.25);
+export const creditUsd = () => num("CHAT_CREDIT_USD", 0.01);
+export const chatMargin = () => num("CHAT_MARGIN", 2.5);
 export const minCredits = () => Math.floor(num("CHAT_MIN_CREDITS", 1));
 /** What a person needs free before a message starts (a typical reply; the real cost is charged after). */
 export const startCredits = () => Math.floor(num("CHAT_START_CREDITS", 5));
@@ -45,7 +46,7 @@ export async function chatCreditCheck(userId: string): Promise<string | null> {
   if ((await freeCredits(userId)) >= startCredits()) return null;
   if (await autoTopup(userId, { needed: startCredits() })) return null; // topped up automatically, as the person asked
   const locked = await lockedTopup(userId);
-  return locked > 0 ? `You're out of credits. Your ${locked.toLocaleString("en-US")} top-up credits are saved but locked until you subscribe to a plan.` : OUT_OF_CREDITS;
+  return locked > 0 ? `You're out of credits. Your ${fmtCredits(locked)} top-up credits are saved but locked until you subscribe to a plan.` : OUT_OF_CREDITS;
 }
 
 /** Charges a finished reply (what it used, up to what is left). Returns the credits taken. */

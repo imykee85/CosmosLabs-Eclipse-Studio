@@ -5,6 +5,7 @@ import { ChevronDown, CreditCard } from "lucide-react";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import { refreshCredits } from "@/lib/use-credits";
 import { CUSTOM_PACK_ID, customPrice } from "@/lib/plans";
+import { fmtCredits, toLedger } from "@/lib/credit-units";
 
 type Pack = { id: string; name: string; price: number; credits: number };
 type Auto = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number; actionUrl?: string | null };
@@ -39,7 +40,7 @@ export default function TopUp() {
       setInfo(data);
       // The amount box starts at the person's saved auto amount, once.
       if (!amountSet) {
-        if (data.auto.credits) setAmount(String(data.auto.credits));
+        if (data.auto.credits) setAmount(String(data.auto.credits / 10));
         if (data.auto.enabled) setSel(data.auto.packId);
         setAmountSet(true);
       }
@@ -83,7 +84,8 @@ export default function TopUp() {
   const a = info?.auto;
   const gated = info?.subscribed === false; // top-ups need a subscription: free accounts cannot buy them, and a lapsed plan locks the ones already bought
   const locked = Boolean(info?.team.isTeam && !info.team.isAdmin); // a team member who is not an admin cannot buy credits for the team
-  const credits = /^\d+$/.test(amount.trim()) ? Number(amount) : NaN;
+  // The box takes whole credits; everything below (price, API, auto top-up) works in ledger units.
+  const credits = /^\d+$/.test(amount.trim()) ? toLedger(Number(amount)) : NaN;
   const customCost = customPrice(credits);
   const chosenPack = info?.packs.find((p) => p.id === sel);
   const selCredits = sel === CUSTOM_PACK_ID ? credits : chosenPack?.credits ?? NaN;
@@ -107,9 +109,9 @@ export default function TopUp() {
   );
   if (!info) return null;
   if (!a) return null;
-  const pack = a.packId === CUSTOM_PACK_ID && a.credits ? { name: `${a.credits.toLocaleString("en-US")} credits` } : info.packs.find((p) => p.id === a.packId) ?? info.packs[0];
+  const pack = a.packId === CUSTOM_PACK_ID && a.credits ? { name: `${fmtCredits(a.credits)} credits` } : info.packs.find((p) => p.id === a.packId) ?? info.packs[0];
 
-  const chipLabel = selPrice === null ? "Choose an amount" : `${selCredits.toLocaleString("en-US")} credits`;
+  const chipLabel = selPrice === null ? "Choose an amount" : `${fmtCredits(selCredits)} credits`;
 
   return (
     <>
@@ -135,10 +137,10 @@ export default function TopUp() {
               <label className="st-amount">
                 <input className="st-input" inputMode="numeric" aria-label="Credits to buy" value={amount}
                   onFocus={() => setSel(CUSTOM_PACK_ID)} onKeyDown={(e) => { if (e.key === "Enter") setOpen(false); }}
-                  onChange={(e) => { setSel(CUSTOM_PACK_ID); setAmount(e.target.value.replace(/[^\d]/g, "").slice(0, 6)); }} />
+                  onChange={(e) => { setSel(CUSTOM_PACK_ID); setAmount(e.target.value.replace(/[^\d]/g, "").slice(0, 5)); }} />
                 <span>credits</span>
               </label>
-              <span className="st-optprice" style={customCost === null ? { color: "#e5484d" } : undefined}>{customCost === null ? `${info.custom.min.toLocaleString("en-US")} to ${info.custom.max.toLocaleString("en-US")}` : `$${customCost.toFixed(2)}`}</span>
+              <span className="st-optprice" style={customCost === null ? { color: "#e5484d" } : undefined}>{customCost === null ? `${fmtCredits(info.custom.min)} to ${fmtCredits(info.custom.max)}` : `$${customCost.toFixed(2)}`}</span>
             </div>
             {info.packs.map((p) => (
               <button key={p.id} type="button" role="option" aria-selected={sel === p.id} className={`st-option ${sel === p.id ? "is-on" : ""}`} onClick={() => { setSel(p.id); setOpen(false); }}>
@@ -155,14 +157,14 @@ export default function TopUp() {
         {a.enabled && pack && (
           <p className="st-meta st-autonote">
             <CreditCard size={14} style={{ verticalAlign: "-2px", marginRight: 6 }} />
-            {`${pack.name} is added by itself when your credits fall below ${a.threshold.toLocaleString("en-US")}, at most ${a.maxPerMonth} a month (used ${a.usedThisMonth}). ${a.hasCard ? "Your saved card is charged." : "Your card is saved the first time you buy credits."}`}
+            {`${pack.name} is added by itself when your credits fall below ${fmtCredits(a.threshold)}, at most ${a.maxPerMonth} a month (used ${a.usedThisMonth}). ${a.hasCard ? "Your saved card is charged." : "Your card is saved the first time you buy credits."}`}
           </p>
         )}
         {a.lastError && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{a.lastError}</p>}
         {a.actionUrl && <a className="st-upgrade st-buy" href={a.actionUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 8, textAlign: "center" }}>Confirm the payment</a>}
         {notice && <p className="st-meta st-notice" role="status">{notice}</p>}
         {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
-        {gated && <p className="st-meta" role="status" style={{ marginTop: 8 }}>{info.lockedTopup ? `Your ${info.lockedTopup.toLocaleString("en-US")} top-up credits are saved. They unlock as soon as you subscribe to a plan.` : "Top-ups are for subscribers. Choose a plan below to unlock them."}</p>}
+        {gated && <p className="st-meta" role="status" style={{ marginTop: 8 }}>{info.lockedTopup ? `Your ${fmtCredits(info.lockedTopup)} top-up credits are saved. They unlock as soon as you subscribe to a plan.` : "Top-ups are for subscribers. Choose a plan below to unlock them."}</p>}
         {locked && <p className="st-meta" style={{ marginTop: 8 }}>Only a team admin can buy credits for the team.</p>}
         {!info.paymentsReady && <p className="st-meta" style={{ marginTop: 8 }}>Payments are not set up yet.</p>}
       </section>

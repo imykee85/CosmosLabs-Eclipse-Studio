@@ -8,6 +8,7 @@ import SheetPortal from "./SheetPortal";
 import SoundTake from "./SoundTake";
 import "./voice.css";
 
+import { fmtCredits } from "@/lib/credit-units";
 // "Add sound" on a finished video (Mirelo sound for video): an optional description, keep the speech or not, how many variants, the file format and the price (asked from the
 // provider BEFORE anything starts). The result is heard on the video itself, and every variant is saved as a take in Audio Studio.
 export default function AddSoundDialog({ video, onClose }: { video: Render; onClose: () => void }) {
@@ -81,7 +82,7 @@ export default function AddSoundDialog({ video, onClose }: { video: Render; onCl
             {error && <p className="vc-error" role="alert">{error}</p>}
             <button type="button" className="vc-as-go" onClick={() => void go()} disabled={busy || !model}>
               {busy ? <Loader2 size={16} className="vc-spin" /> : null} Add sound
-              {price != null && <span className="vc-cost"><Coins size={12} />{price}</span>}
+              {price != null && <span className="vc-cost"><Coins size={12} />{fmtCredits(price)}</span>}
             </button>
           </>
         ) : item.status === "pending" ? (

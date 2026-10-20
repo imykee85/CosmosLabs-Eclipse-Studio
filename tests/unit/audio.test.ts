@@ -125,7 +125,7 @@ test("pricing: provider cost from the registry and credits rounded up", () => {
   const v4 = findAudioModel("eleven_v4")!;
   assert.equal(usdFor(v4, 1000), 0.08);
   assert.equal(usdFor(findAudioModel("eleven_flash_v2_5")!, 1000), 0.04);
-  assert.equal(creditsFor(0.08), Math.ceil((0.08 * 1.25) / 0.008));
+  assert.equal(creditsFor(0.08), Math.ceil((0.08 * 2.5) / 0.01)); // 20 ledger units = 2 credits
   assert.equal(creditsFor(0), 1); // never free
   assert.equal(ttsCredits(v4, 1000), creditsFor(0.08));
 });

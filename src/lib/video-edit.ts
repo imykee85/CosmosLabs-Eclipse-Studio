@@ -9,8 +9,10 @@ import { deliverReferences, parseReferenceRefs, resolveReferences, resolveVideoR
 import { createGenerationHeld } from "@/lib/reservations";
 import { videoSettings } from "@/lib/start-video";
 import { claimUsage } from "@/lib/usage";
+import { routeFor } from "@/lib/routes";
 import { findVideoModel, videoPrice } from "@/lib/video-models";
 
+import { fmtCredits } from "@/lib/credit-units";
 // Seedance 2.5 Edit and Extend, on one of the person's own finished videos (docs/seedance-api.md): `bytedance/seedance-2.5/video-edit` changes what is
 // in the clip as the prompt says (same length and framing, no duration sent); `.../video-extend` continues it by `duration` seconds (4 to 30). Both
 // take `prompt` and `video_url` (a one-hour signed link to our stored copy), optional reference pictures (`image_urls`, up to 30), `resolution`
@@ -51,11 +53,11 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   if (!model?.live) return { ok: false, status: 503, error: "Seedance 2.5 is not connected." };
   const srcSec = Math.max(1, Math.ceil(source.durationSec ?? 5));
   const billedSec = mode === "edit" ? srcSec : ext;
-  const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio) : null;
+  const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, routeFor(model.id)) : null;
   if (cost != null) {
     const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });
-    if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${cfg.dailyCredits} credits.` };
-    if (cost > cfg.confirmAbove && input.confirm !== true) return { ok: false, status: 409, needsConfirm: true, cost, error: `This costs ${cost} credits. Confirm to continue.` };
+    if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${fmtCredits(cfg.dailyCredits)} credits.` };
+    if (cost > cfg.confirmAbove && input.confirm !== true) return { ok: false, status: 409, needsConfirm: true, cost, error: `This costs ${fmtCredits(cost)} credits. Confirm to continue.` };
   }
   const running = await db.generation.count({ where: { userId, kind: "video", status: { in: ["pending", "saving"] } } });
   if (running >= cfg.maxRunning) return { ok: false, status: 429, error: `You already have ${running} videos running. Wait for one to finish.` };
@@ -80,7 +82,7 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
     references: refs.length ? refs : undefined,
     params: { workflow: mode, endpoint: ENDPOINT[mode], sourceId: source.id, duration: mode === "extend" ? ext : undefined, resolution },
   });
-  if (!("row" in made)) return { ok: false, status: 402, error: `This needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}.` };
+  if (!("row" in made)) return { ok: false, status: 402, error: `This needs ${fmtCredits(cost ?? 0)} credits. You have ${fmtCredits(Math.max(0, made.have))}${made.held ? `, and ${fmtCredits(made.held)} are held by renders still running` : ""}.` };
   try {
     const sub = await submitVideo(ENDPOINT[mode], body, idemKey);
     const row = await db.generation.update({ where: { id: made.row.id }, data: { statusUrl: sub.statusUrl, requestId: sub.requestId || null, cancelUrl: sub.cancelUrl } });

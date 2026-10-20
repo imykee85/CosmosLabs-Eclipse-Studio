@@ -6,10 +6,13 @@ import { useOrganization } from "@clerk/nextjs";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { useEffect, useState } from "react";
 import { useCredits } from "@/lib/use-credits";
+import { fmtCredits, toCredits } from "@/lib/credit-units";
 import { WORKSPACE_KEY } from "@/components/WorkspaceWatcher";
 
-// 999 stays 999, 1000 becomes 1k, 1250 becomes 1.2k (rounded down so the pill never overstates), 1,000,000 becomes 1M.
-function short(n: number): string {
+// Whole credits stay as they are (one decimal only when fractional); 1000 becomes 1k, 1250 becomes 1.2k (rounded down so the pill never overstates), 1,000,000 becomes 1M.
+function short(units: number): string {
+  const n = toCredits(units);
+  if (n < 1000) return fmtCredits(units);
   const fmt = (v: number, unit: string) => `${(Math.floor(v * 10) / 10).toString()}${unit}`;
   if (n >= 1_000_000) return fmt(n / 1_000_000, "M");
   if (n >= 1000) return n >= 999_950 ? "999.9k" : fmt(n / 1000, "k");
@@ -36,7 +39,7 @@ export default function CreditsPill({ className, text = false }: { className: st
   const [team, setTeam] = useState<string | null>(null);
   useEffect(() => { try { setTeam((JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "null") as { name?: string | null } | null)?.name ?? null); } catch {} }, []);
   const n = credits ? short(credits.balance) : "";
-  const full = credits ? `${credits.balance.toLocaleString("en-US")} credits` : "Credits";
+  const full = credits ? `${fmtCredits(credits.balance)} credit${credits.balance === 10 ? "" : "s"}` : "Credits";
   const title = (credits && !credits.charging ? `${full} (not charged yet)` : full) + (team ? ` (team ${team})` : "");
   return (
     <>

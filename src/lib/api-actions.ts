@@ -14,12 +14,12 @@ export type ApiResult = { ok: true; data: unknown } | { ok: false; status: numbe
 // A render as the API shows it: no internal fields; `url` is a short-lived signed link (fetch the render again for a fresh one).
 export function publicRender(r: RenderItem) {
   return { id: r.id, kind: r.kind, status: r.status, prompt: r.prompt, model: r.model, model_label: r.modelLabel, aspect_ratio: r.aspectRatio, resolution: r.resolution,
-    width: r.width, height: r.height, duration_sec: r.durationSec, has_audio: r.hasAudio, seed: r.seed, credits: r.credits, error: r.error,
+    width: r.width, height: r.height, duration_sec: r.durationSec, has_audio: r.hasAudio, seed: r.seed, credits: r.credits != null ? r.credits / 10 : null, error: r.error,
     url: r.status === "completed" ? r.imageUrl : null, project_id: r.projectId, created_at: r.createdAt };
 }
 
 export function listModels(): ApiResult {
-  const images = enabledModels().map(toPublic).map((m) => ({ id: m.id, label: m.label, aspect_ratios: m.ratios, resolutions: m.resolutions, max_prompt: m.maxPrompt, max_references: m.maxReferences, needs_reference: m.requiresReference, seed: m.seed.supported ? { min: m.seed.min, max: m.seed.max } : null, credits: m.credits }));
+  const images = enabledModels().map(toPublic).map((m) => ({ id: m.id, label: m.label, aspect_ratios: m.ratios, resolutions: m.resolutions, max_prompt: m.maxPrompt, max_references: m.maxReferences, needs_reference: m.requiresReference, seed: m.seed.supported ? { min: m.seed.min, max: m.seed.max } : null, credits: m.prices ? Object.fromEntries(Object.entries(m.prices).map(([k, v]) => [k, v / 10])) : null }));
   const videos = VIDEO_MODELS.filter((m) => isLive(m) && !m.hidden).map((m) => { const t = capsFor(m, "t2v"); const i = capsFor(m, "i2v"); return { id: m.id, label: m.label, durations: t.durations, start_frame_durations: i.durations, resolutions: t.qualities, aspect_ratios: t.ratios, sound: t.audio, start_frame: m.startFrame, end_frame: m.endFrame, max_reference_images: t.refMax, max_reference_videos: t.refVideoMax }; });
   return { ok: true, data: { image_models: images, video_models: videos } };
 }
@@ -56,5 +56,5 @@ export async function listRenders(userId: string, opts: { limit?: unknown; kind?
 }
 
 export async function credits(userId: string): Promise<ApiResult> {
-  return { ok: true, data: { balance: await getBalance(userId), charging: process.env.CREDITS_ENABLED === "1" } };
+  return { ok: true, data: { balance: (await getBalance(userId)) / 10, charging: process.env.CREDITS_ENABLED === "1" } };
 }
