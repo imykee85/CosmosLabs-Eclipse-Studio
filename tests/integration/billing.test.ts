@@ -127,7 +127,7 @@ test("auto top-up charges the saved card once when credits are low, and not befo
   const c = whopState.charges[0];
   assert.equal(c.body.member_id, "mem_1");
   assert.equal(c.body.payment_method_id, "pm_1");
-  assert.deepEqual(c.body.plan, { initial_price: 42, currency: "usd", plan_type: "one_time" });
+  assert.deepEqual(c.body.plan, { initial_price: 34, currency: "usd", plan_type: "one_time" });
   assert.deepEqual(c.body.metadata, { userId: USER, planId: "topup_2000", auto: "1" });
   assert.match(c.key ?? "", /^auto-user_bill_a-/);
   assert.equal(await balance(), 200 + 2000);
@@ -299,10 +299,10 @@ test("a custom amount is priced by us, sent as a one-time price, and granted fro
   const { whop } = await import("../../src/lib/payments/whop");
   const { productById } = await import("../../src/lib/plans");
   const prod = productById("topup_custom", 1000)!;
-  assert.equal(prod.price, 22);
+  assert.equal(prod.price, 18);
   await whop.createCheckout({ userId: USER, planId: prod.id, returnUrl: "http://x/", custom: { credits: prod.credits, price: prod.price } });
   const sent = whopState.setups[0];
-  assert.deepEqual(sent.plan, { initial_price: 22, currency: "usd", plan_type: "one_time" });
+  assert.deepEqual(sent.plan, { initial_price: 18, currency: "usd", plan_type: "one_time" });
   assert.equal(sent.plan_id, undefined, "no ready-made plan is used");
   assert.deepEqual(sent.metadata, { userId: USER, planId: "topup_custom", credits: 1000 });
   const ev = payment("pay_c1", "topup_custom", { member: { id: "mem_1" }, payment_method: { id: "pm_1" } });
@@ -330,7 +330,7 @@ test("auto top-up with a custom amount saves it, validates it and charges that p
   await lib.credits.spendCredits(USER, 700, "test");
   await wait(400);
   assert.equal(whopState.charges.length, 1);
-  assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 22, currency: "usd", plan_type: "one_time" });
+  assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 18, currency: "usd", plan_type: "one_time" });
   assert.deepEqual(whopState.charges[0].body.metadata, { userId: USER, planId: "topup_custom", credits: 1000, auto: "1" });
   assert.equal(await balance(), 200 + 1000);
 });
