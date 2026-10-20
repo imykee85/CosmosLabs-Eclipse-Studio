@@ -13,6 +13,7 @@ import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
 import { useRenders } from "@/lib/use-renders";
 import { fmtCredits, creditsText } from "@/lib/credit-units";
+import { useCredits } from "@/lib/use-credits";
 import RenderDetails from "../library/RenderDetails";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import PromptEdge, { type EdgeMessage } from "./PromptEdge";
@@ -74,6 +75,7 @@ export default function CreateStudio() {
     const ok = (models ?? []).filter((m) => m.autoPick && !m.requiresReference && m.maxReferences >= refs.length);
     return ok.find((m) => m.verified) ?? ok[0] ?? null;
   })();
+  const { credits: creditInfo } = useCredits();
   const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;
   const imgCost = imageCost(model ?? undefined, model?.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, qty); // what Generate will cost, in ledger units
 
@@ -457,7 +459,7 @@ export default function CreateStudio() {
             </div>
           )}
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : imgCost != null && modelId !== AUTO ? <>Generate <span className="cr-cost" title={`${creditsText(imgCost)}${model && model.batch > 1 ? ` (up to ${model.batch} images for one price)` : ""}`}><Coins size={14} />{fmtCredits(imgCost)}</span></> : <>Generate <ArrowUp size={16} /></>}
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : imgCost != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${creditsText(imgCost)}${model && model.batch > 1 ? ` (up to ${model.batch} images for one price)` : ""}`}><Coins size={14} />{fmtCredits(imgCost)}</span>}</> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>

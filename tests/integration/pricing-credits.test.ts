@@ -1,4 +1,4 @@
-// The welcome credits and the render holds (batch pricing, resolution pricing) against a throwaway Postgres.
+// The render holds (batch pricing, resolution pricing) against a throwaway Postgres.
 // Run: DATABASE_URL=postgresql://postgres@localhost:5444/jobs npm run test:integration   (skips itself when DATABASE_URL is not set)
 import test, { before } from "node:test";
 import assert from "node:assert/strict";
@@ -7,15 +7,12 @@ const DB = process.env.DATABASE_URL;
 const skip = DB ? false : "DATABASE_URL not set";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let welcome: any, db: any, res: any, credits: any, models: any;
-const NEW = Date.parse("2026-11-01"), OLD = Date.parse("2026-09-01");
+let db: any, res: any, credits: any, models: any;
 const U = (n: string) => `user_price_${n}`;
 
 before(async () => {
   if (skip) return;
   process.env.CREDITS_ENABLED = "1";
-  delete process.env.WELCOME_FROM; delete process.env.FREE_RENDERS_FROM; delete process.env.WELCOME_CREDITS;
-  welcome = await import("../../src/lib/welcome-credits");
   db = (await import("../../src/lib/db")).db;
   res = await import("../../src/lib/reservations");
   credits = await import("../../src/lib/credits");
@@ -23,52 +20,6 @@ before(async () => {
   await db.creditLedger.deleteMany({ where: { userId: { startsWith: "user_price_" } } });
   await db.generation.deleteMany({ where: { userId: { startsWith: "user_price_" } } });
   await db.freeRender.deleteMany({ where: { userId: { startsWith: "user_price_" } } });
-});
-
-test("a new account gets 10 free credits once, as a plain grant line, usable on anything", { skip }, async () => {
-  const id = U("new");
-  assert.equal(await welcome.ensureWelcomeCredits(id, async () => NEW), 100);
-  assert.equal(await credits.getBalance(id), 100);
-  assert.equal(await welcome.ensureWelcomeCredits(id, async () => NEW), 100);
-  assert.equal(await credits.getBalance(id), 100, "asking again grants nothing more");
-  const rows = await db.creditLedger.findMany({ where: { userId: id } });
-  assert.deepEqual([rows.length, rows[0].reason, rows[0].delta, rows[0].note], [1, "GRANT", 100, "Welcome credits"]);
-  assert.equal(await welcome.hadWelcome(id), true);
-  assert.equal(await credits.getUsableBalance(id), 100, "welcome credits are never locked behind a plan");
-});
-
-test("8 simultaneous first visits still grant exactly once", { skip }, async () => {
-  const id = U("race");
-  await Promise.all(Array.from({ length: 8 }, () => welcome.ensureWelcomeCredits(id, async () => NEW)));
-  assert.equal(await credits.getBalance(id), 100);
-});
-
-test("an account made before the offer gets nothing, and Clerk is asked only once", { skip }, async () => {
-  let asked = 0;
-  const lookup = async () => { asked++; return OLD; };
-  assert.equal(await welcome.ensureWelcomeCredits(U("old"), lookup), 0);
-  assert.equal(await welcome.ensureWelcomeCredits(U("old"), lookup), 0);
-  assert.equal(asked, 1);
-  assert.equal(await credits.getBalance(U("old")), 0);
-  assert.equal(await welcome.hadWelcome(U("old")), false);
-});
-
-test("a team workspace never gets the welcome credits; credits off grants nothing; WELCOME_CREDITS=0 ends the offer", { skip }, async () => {
-  assert.equal(await welcome.ensureWelcomeCredits("org_price_team", async () => NEW), 0);
-  process.env.CREDITS_ENABLED = "0";
-  assert.equal(await welcome.ensureWelcomeCredits(U("off"), async () => NEW), 0);
-  process.env.CREDITS_ENABLED = "1";
-  process.env.WELCOME_CREDITS = "0";
-  assert.equal(await welcome.ensureWelcomeCredits(U("ended"), async () => NEW), 0);
-  delete process.env.WELCOME_CREDITS;
-  assert.equal(await credits.getBalance(U("off")) + await credits.getBalance(U("ended")), 0);
-});
-
-test("an account that got the old 2 free renders is given the 10 credits instead", { skip }, async () => {
-  const id = U("had");
-  await db.freeRender.create({ data: { userId: id, remaining: 1, granted: 2 } });
-  assert.equal(await welcome.ensureWelcomeCredits(id, async () => OLD), 100);
-  assert.equal(await credits.getBalance(id), 100);
 });
 
 const base = (userId: string, extra: Record<string, unknown> = {}) => ({ userId, status: "pending", prompt: "p", model: "soul_v2", kind: "image", ...extra });

@@ -1,8 +1,7 @@
 import { fmtCredits } from "./credit-units";
 // Plans, packs and the welcome grant. `credits` everywhere in this file is in LEDGER units (tenths of a credit, see credit-units.ts): Starter's 2,000 is
 // shown to people as 200 credits. One credit is worth $0.10 to the customer and pays for $0.04 of provider cost (a 2.5x markup, owner decision 2026-10-20).
-// New accounts get 10 free credits (100 ledger units) once, usable on anything.
-export const WELCOME_CREDITS = 100;
+// The free trial is 2 free image renders (src/lib/free-renders.ts), not credits.
 export const freePlan = { id: "free", name: "Free", price: 0 } as const;
 
 export type Plan = { id: string; name: string; price: number; credits: number; seats: number };

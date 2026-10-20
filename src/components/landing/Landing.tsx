@@ -188,7 +188,7 @@ export default function Landing() {
             <h3>Trial</h3>
             <p className="plan-price">$0</p>
             <ul>
-              <li><Check size={15} /> 10 free credits</li>
+              <li><Check size={15} /> Free trial credits</li>
               <li><Check size={15} /> Any image model</li>
               <li><Check size={15} /> Private gallery for every project</li>
               <li><Check size={15} /> Access to free tutorials</li>

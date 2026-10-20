@@ -4,7 +4,7 @@ import { fmtCredits, toLedger, toCredits, LEDGER_UNITS_PER_CREDIT } from "../../
 import { allImageModels, chargeFor, getModelById, imageCredits, toPublic } from "../../src/lib/models";
 import { imageCost } from "../../src/lib/image-render";
 import { VIDEO_MODELS, videoCredits, videoPrice, videoModelById } from "../../src/lib/video-models";
-import { CUSTOM_PACK_ID, WELCOME_CREDITS, creditPacks, plans, productById } from "../../src/lib/plans";
+import { CUSTOM_PACK_ID, creditPacks, plans, productById } from "../../src/lib/plans";
 import { KLING_YARDSTICK_CREDITS, planSaving, planValue } from "../../src/lib/plan-copy";
 import { DIRECT_KEY, registerDirectRoute, routeFor, startWithFallback, unregisterDirectRoute } from "../../src/lib/routes";
 import { allPriceRows, netPerCredit } from "../../src/lib/price-table";
@@ -34,7 +34,6 @@ test("plans and packs grant what the brief says (ledger units) and show whole cr
   assert.equal(productById("growth")?.credits, 6000);
   assert.equal(productById("topup_6000")?.price, 60);
   assert.equal(productById(CUSTOM_PACK_ID, 1000)?.name, "100 credits");
-  assert.equal(WELCOME_CREDITS, 100, "10 free credits");
 });
 
 test("plan cards: what the credits buy and the saving against Starter", () => {
@@ -176,7 +175,7 @@ test("audio and chat default to a 2.5x margin at $0.01 a ledger unit", () => {
 
 test("out-of-credits messages speak in credits", () => {
   assert.match(outOfCredits("Soul", 20, 5, 0, false, 0), /needs 2 credits\. You have 0\.5/);
-  assert.match(outOfCredits("Soul", 20, 0, 0, true, 0), /used your free credits/);
+  assert.match(outOfCredits("Soul", 20, 0, 0, true, 0), /used your free images/);
   assert.match(outOfCredits("Soul", 20, 5, 0, false, 1874), /187\.4 top-up credits/);
 });
 

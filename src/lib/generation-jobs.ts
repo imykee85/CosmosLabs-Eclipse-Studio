@@ -3,6 +3,7 @@
 // render runs at Higgsfield on its own, and the first request after it completes copies it into storage and charges credits.
 import type { Generation } from "@prisma/client";
 import { spendCredits } from "./credits";
+import { giveBackFreeRender } from "./free-renders";
 import { db } from "./db";
 import type { Prisma } from "@prisma/client";
 import { higgsfield } from "./higgsfield";
@@ -57,6 +58,7 @@ const REASONS: Record<string, string> = {
 const reasonText = (r: string) => REASONS[r] ?? "The model could not make this image. Please try again.";
 
 // `error` is what the person sees (Eclipse's own words); `detail` is the provider's own text, kept on the row for the owner's job page only.
+const isFree = (params: unknown) => Boolean(params && typeof params === "object" && !Array.isArray(params) && (params as { free?: boolean }).free);
 // The price of a render is the one saved on its row when it started (ledger units; 0 = paid for already, e.g. a later image of a Soul batch). An older row without one
 // is priced by its model and resolution now.
 const chargeOf = (g: Generation, model: ReturnType<typeof getModelById>) => (g.creditsHeld != null ? g.creditsHeld : chargeFor(model, g.resolution ?? undefined));
@@ -70,6 +72,7 @@ async function fail(id: string, error: string, detail?: string): Promise<Generat
   }
   const res = await db.generation.updateMany({ where: { id, status: { in: ["pending", "saving"] } }, data: { status: "failed", error, ...(params ? { params } : {}) } });
   const row = await db.generation.findUnique({ where: { id } });
+  if (res.count > 0 && row && isFree(row.params)) await giveBackFreeRender(row.userId).catch(() => {}); // a free render that failed does not use up the offer
   return row;
 }
 
