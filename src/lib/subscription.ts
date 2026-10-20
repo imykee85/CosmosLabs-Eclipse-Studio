@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 // Top-up credits need a subscription to be USED. They are never taken away: bought credits stay in the balance, and spending them is locked while
 // the plan has lapsed. A person is subscribed while their latest plan payment is recent (a monthly plan renews every month, so the window is a
-// month plus a few days of grace). Credits from other sources (plan credits, owner grants, refunds) are not affected.
+// month plus a few days of grace), unless the provider has since said the subscription ended (BillingSettings.subscriptionEndedAt). Credits from other sources (plan credits, owner grants, refunds) are not affected.
 // Switch the whole rule off with TOPUP_REQUIRES_SUBSCRIPTION=off.
 
 const DAY = 24 * 3600 * 1000;
@@ -18,9 +18,13 @@ const isTopupPurchase = (r: { reason: string; note: string | null }) => r.reason
 export async function hasSubscription(userId: string, client: Client = db): Promise<boolean> {
   const row = await client.creditLedger.findFirst({
     where: { userId, reason: "PURCHASE", note: { startsWith: "Plan:" }, createdAt: { gte: new Date(Date.now() - subscriptionDays() * DAY) } },
-    select: { id: true },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
   });
-  return Boolean(row);
+  if (!row) return false;
+  // The provider told us the subscription ended after its latest payment (cancelled and run out, or payment failed for good).
+  const s = await client.billingSettings.findUnique({ where: { userId }, select: { subscriptionEndedAt: true } });
+  return !(s?.subscriptionEndedAt && s.subscriptionEndedAt > row.createdAt);
 }
 
 /**

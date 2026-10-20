@@ -537,9 +537,11 @@ model BillingSettings {
   autoLastError         String?   @map("auto_last_error")
   providerMemberId      String?   @map("provider_member_id")
   providerPaymentMethod String?   @map("provider_payment_method")
-  providerMembershipId  String?   @map("provider_membership_id")
+  providerMembershipId  String?   @map("provider_membership_id") // the SUBSCRIPTION's membership (top-up purchases never overwrite it)
+  subscriptionEndedAt   DateTime? @map("subscription_ended_at") // set when the provider says the subscription ended; a later plan payment wins
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
+  @@index([providerMembershipId])
   @@map("billing_settings")
 }
 

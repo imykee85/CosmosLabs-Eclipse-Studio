@@ -9,7 +9,13 @@ export type CheckoutInput = { userId: string; planId: string; returnUrl: string;
 export type PaymentRefs = { memberId?: string; paymentMethodId?: string; membershipId?: string };
 
 /** A payment that went through. Credits are granted from this, by us, in our own ledger. */
-export type PaymentEvent = { provider: string; externalId: string; userId: string; planId: string; credits?: number; auto?: boolean; refs?: PaymentRefs; /** A card was saved without buying anything: only the references are kept, no credits. */ cardOnly?: boolean };
+export type PaymentEvent = {
+  provider: string; externalId: string; userId: string; planId: string; credits?: number; auto?: boolean; refs?: PaymentRefs;
+  /** A card was saved without buying anything: only the references are kept, no credits. */ cardOnly?: boolean;
+  /** "payment" (default): credits are granted. "deactivated": the subscription with refs.membershipId ended. "refund": the payment `refundOf` was refunded. */
+  kind?: "payment" | "deactivated" | "refund";
+  /** The payment a refund is for. */ refundOf?: string;
+};
 
 export type SavedCardCharge = { userId: string; productId: string; credits?: number; price: number; memberId: string; paymentMethodId: string; idempotencyKey: string };
 
