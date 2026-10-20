@@ -7,7 +7,7 @@ import { refreshCredits } from "@/lib/use-credits";
 import { CUSTOM_PACK_ID, customPrice } from "@/lib/plans";
 
 type Pack = { id: string; name: string; price: number; credits: number };
-type Auto = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number };
+type Auto = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number; actionUrl?: string | null };
 type Info = { subscribed?: boolean; lockedTopup?: number; topupCredits?: number; custom: { min: number; max: number }; team: { isTeam: boolean; isAdmin: boolean }; packs: Pack[]; thresholds: number[]; caps: number[]; paymentsReady: boolean; autoReady: boolean; auto: Auto };
 
 async function startCheckout(packId: string, credits?: number): Promise<string | null> {
@@ -159,6 +159,7 @@ export default function TopUp() {
           </p>
         )}
         {a.lastError && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{a.lastError}</p>}
+        {a.actionUrl && <a className="st-upgrade st-buy" href={a.actionUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 8, textAlign: "center" }}>Confirm the payment</a>}
         {notice && <p className="st-meta st-notice" role="status">{notice}</p>}
         {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
         {gated && <p className="st-meta" role="status" style={{ marginTop: 8 }}>{info.lockedTopup ? `Your ${info.lockedTopup.toLocaleString("en-US")} top-up credits are saved. They unlock as soon as you subscribe to a plan.` : "Top-ups are for subscribers. Choose a plan below to unlock them."}</p>}

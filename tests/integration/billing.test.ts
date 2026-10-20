@@ -447,7 +447,7 @@ test("a renewal without our metadata is credited to the subscription's owner, fo
   assert.equal(await balance(), 2500, "a plan we do not know grants nothing");
 });
 
-test("membership.deactivated ends the subscription at once; paying again restores it", { skip }, async () => {
+test("membership.updated with an ended status ends the subscription at once; period-end cancellation keeps access; paying again restores it", { skip }, async () => {
   const sub = await import("../../src/lib/subscription");
   await reset(0, false);
   await lib.webhook.POST(signed(payment("pay_d1", "starter", { membership: { id: "ms_d" } })));
@@ -455,31 +455,111 @@ test("membership.deactivated ends the subscription at once; paying again restore
   await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_500" });
   assert.equal(await sub.hasSubscription(USER), true);
   await wait(5);
-  assert.equal((await lib.webhook.POST(signed({ type: "membership.deactivated", data: { id: "ms_d" } }))).status, 200);
+  // Cancelled for the end of the period: still active, nothing changes yet.
+  await lib.webhook.POST(signed({ type: "membership.updated", data: { id: "ms_d", status: "active", cancel_at_period_end: true } }));
+  assert.equal(await sub.hasSubscription(USER), true, "access stays until the status changes");
+  const ended = { type: "membership.updated", data: { id: "ms_d", status: "canceled", cancel_at_period_end: true, canceled_at: new Date().toISOString() } };
+  assert.equal((await lib.webhook.POST(signed(ended))).status, 200);
   assert.equal(await sub.hasSubscription(USER), false);
   assert.equal(await sub.lockedTopup(USER), 500);
   assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).autoEnabled, false, "auto top-up is switched off with the plan");
-  await lib.webhook.POST(signed({ type: "membership.deactivated", data: { id: "ms_someone_else" } })); // harmless
+  // An older "active" update arriving late does not undo the end.
+  await lib.webhook.POST(signed({ type: "membership.updated", data: { id: "ms_d", status: "active", updated_at: new Date(Date.now() - 3600_000).toISOString() } }));
+  assert.equal(await sub.hasSubscription(USER), false, "out-of-order delivery is ignored");
+  for (const status of ["expired", "completed"]) {
+    await lib.webhook.POST(signed({ type: "membership.updated", data: { id: "ms_someone_else", status } })); // not this person's subscription: harmless
+  }
   await wait(5);
   await lib.webhook.POST(signed(payment("pay_d3", "starter", { membership: { id: "ms_d2" } })));
   assert.equal(await sub.hasSubscription(USER), true);
+  await wait(5);
+  await lib.webhook.POST(signed({ type: "membership.updated", data: { id: "ms_d", status: "expired" } }));
+  assert.equal(await sub.hasSubscription(USER), true, "the old membership ending does not end the new subscription");
 });
 
-test("refund.created takes back what that payment granted, once, never below zero", { skip }, async () => {
+test("refunds take back the refunded share once they succeed, never more than the payment granted, never below zero", { skip }, async () => {
   await reset(0, false);
   await lib.webhook.POST(signed(payment("pay_f1", "starter")));
   await lib.webhook.POST(signed(payment("pay_f2", "topup_500")));
   assert.equal(await balance(), 1500);
-  const refund = { type: "refund.created", data: { id: "rf_1", payment: { id: "pay_f2" } } };
-  assert.equal((await lib.webhook.POST(signed(refund))).status, 200);
+  const pending = { type: "refund.created", data: { id: "rf_1", status: "pending", amount: 10, payment: { id: "pay_f2", total: 10 } } };
+  assert.equal((await lib.webhook.POST(signed(pending))).status, 200);
+  assert.equal(await balance(), 1500, "a pending refund takes nothing yet");
+  const full = { type: "refund.updated", data: { id: "rf_1", status: "succeeded", amount: 10, payment: { id: "pay_f2", total: 10 } } };
+  assert.equal((await lib.webhook.POST(signed(full))).status, 200);
   assert.equal(await balance(), 1000);
-  assert.equal((await (await lib.webhook.POST(signed(refund))).json()).duplicate, true);
+  assert.equal((await (await lib.webhook.POST(signed(full))).json()).duplicate, true);
   assert.equal(await balance(), 1000, "the same refund twice takes once");
-  await lib.credits.spendCredits(USER, 900, "x");
-  await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_2", payment_id: "pay_f1" } }));
+  // Partial refunds of the plan: $9.50 of $19 takes half, the plan's own price is used when the payment carries no total.
+  await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_2", status: "succeeded", amount: 9.5, payment: { id: "pay_f1", metadata: { planId: "starter" } } } }));
+  assert.equal(await balance(), 500);
+  await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_3", status: "succeeded", amount: 19, payment: { id: "pay_f1", total: 19 } } }));
+  assert.equal(await balance(), 0, "a second refund takes only what the payment has left");
+  await lib.webhook.POST(signed(payment("pay_f3", "topup_500")));
+  await lib.credits.spendCredits(USER, 400, "x");
+  await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_4", status: "succeeded", amount: 10, payment: { id: "pay_f3", total: 10 } } }));
   assert.equal(await balance(), 0, "only what was left is taken back");
-  await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_3", payment: { id: "pay_none" } } }));
-  assert.equal(await balance(), 0);
+  const early = { type: "refund.created", data: { id: "rf_5", status: "succeeded", amount: 10, payment: { id: "pay_not_yet" } } };
+  assert.equal((await lib.webhook.POST(signed(early))).status, 422, "a refund before its payment is retried later");
+});
+
+test("a retried delivery (same webhook-id) is handled once; a delivery that failed is handled again", { skip }, async () => {
+  await reset(0, false);
+  const raw = JSON.stringify(payment("pay_w1", "topup_500"));
+  const ts = String(Math.floor(Date.now() / 1000)), run = Math.random().toString(36).slice(2);
+  const sig = createHmac("sha256", Buffer.from(SECRET, "utf8")).update(`msg_same${run}.${ts}.${raw}`).digest("base64");
+  const req = () => new Request("http://x/api/payments/webhook", { method: "POST", body: raw, headers: { "webhook-id": `msg_same${run}`, "webhook-timestamp": ts, "webhook-signature": `v1,${sig}` } });
+  await lib.webhook.POST(req());
+  const again = await (await lib.webhook.POST(req())).json();
+  assert.equal(again.duplicate, true);
+  assert.equal(await balance(), 500);
+  const early = JSON.stringify({ type: "refund.created", data: { id: "rf_w", status: "succeeded", amount: 1, payment: { id: "pay_w_later" } } });
+  const sig2 = createHmac("sha256", Buffer.from(SECRET, "utf8")).update(`msg_retry${run}.${ts}.${early}`).digest("base64");
+  const req2 = () => new Request("http://x/api/payments/webhook", { method: "POST", body: early, headers: { "webhook-id": `msg_retry${run}`, "webhook-timestamp": ts, "webhook-signature": `v1,${sig2}` } });
+  assert.equal((await lib.webhook.POST(req2())).status, 422);
+  assert.equal((await lib.webhook.POST(req2())).status, 422, "a failed delivery is not remembered, so its retry is processed");
+});
+
+test("payment.failed switches auto top-up off; payment.requires_action keeps it on and offers the bank's page", { skip }, async () => {
+  await reset(10);
+  await arm({ autoPack: "topup_500" });
+  whopState.mode = "pending";
+  await lib.billing.autoTopup(USER);
+  const pend = (await lib.db.billingSettings.findUnique({ where: { userId: USER } })).autoPendingPaymentId;
+  assert.ok(pend);
+  await lib.webhook.POST(signed({ type: "payment.requires_action", data: { id: pend, recovery_url: "https://whop.com/confirm/x" } }));
+  let s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
+  assert.equal(s.autoEnabled, true);
+  assert.equal(s.autoActionUrl, "https://whop.com/confirm/x");
+  assert.match(s.autoLastError, /confirm/);
+  await lib.db.billingSettings.update({ where: { userId: USER }, data: { autoLastAttemptAt: null, autoPendingAt: new Date(Date.now() - 40 * 60_000) } });
+  const before = whopState.charges.length;
+  assert.equal(await lib.billing.autoTopup(USER), false);
+  assert.equal(whopState.charges.length, before, "no new charge while the bank waits for the person");
+  await lib.webhook.POST(signed({ type: "payment.failed", data: { id: pend, decline_code: "do_not_honor", failure_message: "Declined" } }));
+  s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
+  assert.equal(s.autoEnabled, false);
+  assert.equal(s.autoActionUrl, null);
+  assert.match(s.autoLastError, /could not be charged/);
+  // A failed checkout someone was present for changes nothing.
+  await arm({ autoPack: "topup_500" });
+  await lib.webhook.POST(signed({ type: "payment.failed", data: { id: "pay_checkout", metadata: { userId: USER, planId: "starter" } } }));
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).autoEnabled, true);
+});
+
+test("a saved card without our metadata is matched by member id; an event for another company is ignored", { skip }, async () => {
+  await reset(0, false);
+  await lib.db.billingSettings.create({ data: { userId: USER, providerMemberId: "mem_x" } });
+  await lib.webhook.POST(signed({ type: "setup_intent.succeeded", data: { id: "si_1", member: { id: "mem_x", user: { id: "user_whop" } }, payment_method: { id: "pm_x" } } }));
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).providerPaymentMethod, "pm_x");
+  process.env.WHOP_COMPANY_ID = "biz_ours";
+  try {
+    await lib.webhook.POST(signed({ type: "payment.succeeded", account_id: "biz_other", data: { id: "pay_c1", metadata: { userId: USER, planId: "topup_500" } } }));
+    await lib.webhook.POST(signed({ type: "payment.succeeded", company_id: "biz_other", data: { id: "pay_c2", metadata: { userId: USER, planId: "topup_500" } } }));
+    assert.equal(await balance(), 0);
+    await lib.webhook.POST(signed({ type: "payment.succeeded", company_id: "biz_ours", data: { id: "pay_c3", metadata: { userId: USER, planId: "topup_500" } } }));
+    assert.equal(await balance(), 500);
+  } finally { delete process.env.WHOP_COMPANY_ID; }
 });
 
 test("auto top-up charges only a card saved for off-session use", { skip }, async () => {

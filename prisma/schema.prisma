@@ -537,6 +537,7 @@ model BillingSettings {
   autoLastError         String?   @map("auto_last_error")
   autoPendingPaymentId  String?   @map("auto_pending_payment_id") // an automatic charge started but not yet confirmed by the webhook
   autoPendingAt         DateTime? @map("auto_pending_at")
+  autoActionUrl         String?   @map("auto_action_url") // the provider's page to confirm a held automatic charge with the bank (3D Secure)
   providerMemberId      String?   @map("provider_member_id")
   providerPaymentMethod String?   @map("provider_payment_method")
   providerMembershipId  String?   @map("provider_membership_id") // the SUBSCRIPTION's membership (top-up purchases never overwrite it)
@@ -560,6 +561,16 @@ model FreeRender {
 
 // Every payment-provider webhook delivery that passed the signature check: its type, what we did with it, and its SHAPE (field names and value
 // types only, never values), so the owner can see what the provider really sends. "unmatched" rows are deliveries we could not credit to anyone.
+// Webhook deliveries already handled, by the provider's delivery id (Whop retries reuse it), so a retry is answered without doing anything twice.
+// Only deliveries we answered with success are recorded: a failed one must be processed again when it comes back. Older than 7 days are removed.
+model ProcessedWebhook {
+  id        String   @id // provider name + ":" + delivery id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("processed_webhooks")
+}
+
 model PaymentEventLog {
   id         String   @id @default(cuid())
   provider   String

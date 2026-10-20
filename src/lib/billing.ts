@@ -15,8 +15,10 @@ const DAY = 24 * 3600 * 1000;
 const PENDING_WAIT = 30 * 60_000;
 const NOT_OFF_SESSION = "Your saved card is not set up for automatic charges, so auto top-up was switched off. Buy credits once with the card you want to use, then switch it on again.";
 const DECLINED = "The last automatic top-up could not be charged, so auto top-up was switched off. Check your card and switch it on again.";
+const NEEDS_ACTION = "Your bank asked you to confirm the last automatic top-up. Confirm it to receive the credits; auto top-up waits until then.";
+const ACTION_WAIT = DAY;
 
-export type AutoTopupView = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number };
+export type AutoTopupView = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number; actionUrl: string | null };
 
 export async function usedThisMonth(userId: string): Promise<number> {
   return db.creditLedger.count({ where: { userId, reason: "PURCHASE", note: { startsWith: "Auto top-up" }, createdAt: { gte: new Date(Date.now() - 30 * DAY) } } });
@@ -32,6 +34,7 @@ export function viewOf(s: BillingSettings | null, used = 0): AutoTopupView {
     hasCard: Boolean(s?.providerMemberId && s?.providerPaymentMethod),
     lastError: s?.autoLastError ?? null,
     usedThisMonth: used,
+    actionUrl: s?.autoActionUrl ?? null,
   };
 }
 
@@ -88,11 +91,29 @@ async function ownerOfMembership(membershipId: string | undefined): Promise<stri
 /** Grants the credits for one successful payment (a plan or a top-up pack), once however often the provider delivers it. Also handles the
  * provider saying a subscription ended, and a refund (the credits that payment granted are taken back, as far as they are still there). */
 export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Promise<{ ok: true; duplicate: boolean } | { ok: false; error: string }> {
-  if (event.cardOnly) { await rememberRefs(event.userId, event.refs); return { ok: true, duplicate: false }; }
-  if (event.kind === "deactivated") {
+  if (event.cardOnly) {
+    const owner = event.userId || (event.refs?.memberId ? (await db.billingSettings.findFirst({ where: { providerMemberId: event.refs.memberId }, select: { userId: true } }))?.userId : null);
+    if (!owner) return { ok: false, error: "Unknown customer" };
+    await rememberRefs(owner, event.refs);
+    return { ok: true, duplicate: false };
+  }
+  if (event.kind === "deactivated" || event.kind === "activated") {
+    // Only the subscription we saved counts: a top-up's own membership, an old subscription after a new one, or one we never saw changes nothing.
     const owner = await ownerOfMembership(event.refs?.membershipId);
-    if (owner) await db.billingSettings.update({ where: { userId: owner }, data: { subscriptionEndedAt: new Date(), autoEnabled: false } });
-    return { ok: true, duplicate: false }; // a top-up's own membership ending, or one we never saw, needs nothing
+    if (!owner) return { ok: true, duplicate: false };
+    const at = event.at ?? new Date();
+    if (event.kind === "deactivated") await db.billingSettings.update({ where: { userId: owner }, data: { subscriptionEndedAt: at, autoEnabled: false } });
+    // Deliveries can arrive out of order: an "active" update older than the end we recorded does not undo it.
+    else await db.billingSettings.updateMany({ where: { userId: owner, subscriptionEndedAt: { lt: at } }, data: { subscriptionEndedAt: null } });
+    return { ok: true, duplicate: false };
+  }
+  if (event.kind === "failed" || event.kind === "action") {
+    const owner = (await db.billingSettings.findFirst({ where: { autoPendingPaymentId: event.externalId }, select: { userId: true } }))?.userId ?? (event.auto && event.userId ? event.userId : null);
+    if (!owner) return { ok: true, duplicate: false }; // a checkout the person was present for: Whop shows them the error itself
+    if (event.kind === "failed") await db.billingSettings.updateMany({ where: { userId: owner }, data: { autoEnabled: false, autoLastError: DECLINED, autoPendingPaymentId: null, autoPendingAt: null, autoActionUrl: null } });
+    // 3D Secure: auto top-up stays on; the person confirms with their bank and payment.succeeded grants the credits.
+    else await db.billingSettings.updateMany({ where: { userId: owner }, data: { autoLastError: NEEDS_ACTION, autoActionUrl: event.actionUrl ?? null, autoPendingPaymentId: event.externalId, autoPendingAt: new Date() } });
+    return { ok: true, duplicate: false };
   }
   if (event.kind === "refund") return applyRefund(event);
   const product = productById(event.planId, event.credits);
@@ -101,20 +122,30 @@ export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Pr
   if (!userId) return { ok: false, error: "Unknown customer" };
   const note = event.auto ? `Auto top-up: ${product.name}` : product.kind === "pack" ? `Top-up: ${product.name}` : `Plan: ${product.name}`;
   const added = await grantCredits(userId, product.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId, note });
-  if (event.auto) await db.billingSettings.updateMany({ where: { userId }, data: { autoPendingPaymentId: null, autoPendingAt: null } }); // confirmed
+  if (event.auto) await db.billingSettings.updateMany({ where: { userId }, data: { autoPendingPaymentId: null, autoPendingAt: null, autoActionUrl: null, autoLastError: null } }); // confirmed
   if (product.kind === "plan") await db.billingSettings.updateMany({ where: { userId }, data: { subscriptionEndedAt: null } }); // paid again: active
   await rememberRefs(userId, event.refs, product.kind === "plan").catch((e) => console.error("could not save payment references", e));
   return { ok: true, duplicate: !added };
 }
 
+/** Takes back the credits a refunded payment granted: the refunded share of them (a partial refund takes back part), as far as they are still
+ * there. Several refunds of one payment never take back more than it granted. A refund that arrives before its payment is answered with an
+ * error so the provider delivers it again later. */
 async function applyRefund(event: PaymentEvent): Promise<{ ok: true; duplicate: boolean } | { ok: false; error: string }> {
   const paid = await db.creditLedger.findFirst({ where: { provider: event.provider, externalId: event.refundOf ?? "" } });
-  if (!paid || paid.delta <= 0) return { ok: true, duplicate: false }; // nothing was granted for it
+  if (!paid) return { ok: false, error: "Refund for a payment not recorded yet" };
+  if (paid.delta <= 0) return { ok: true, duplicate: false }; // nothing was granted for it
+  let share = 1;
+  if (event.refundAmount !== undefined && event.paymentTotal) share = Math.min(1, event.refundAmount / event.paymentTotal);
+  else console.error("PAYMENT ALERT: refund without an amount or payment total, the whole grant is taken back", event.externalId);
   const done = await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${paid.userId}))`; // the same lock spending takes
     if (await tx.creditLedger.findFirst({ where: { provider: event.provider, externalId: event.externalId } })) return false;
+    const before = await tx.creditLedger.aggregate({ where: { provider: event.provider, externalId: { startsWith: `refund:${event.refundOf}:` } }, _sum: { delta: true } });
+    const left = paid.delta + (before._sum.delta ?? 0); // earlier refunds of this payment are negative rows
     const sum = await tx.creditLedger.aggregate({ where: { userId: paid.userId }, _sum: { delta: true } });
-    const take = Math.min(paid.delta, Math.max(0, sum._sum.delta ?? 0)); // never below zero: credits already spent cannot be taken back
+    // never below zero: credits already spent cannot be taken back
+    const take = Math.max(0, Math.min(Math.round(paid.delta * share), left, Math.max(0, sum._sum.delta ?? 0)));
     await tx.creditLedger.create({ data: { userId: paid.userId, delta: -take, reason: "ADJUST", provider: event.provider, externalId: event.externalId, note: `Refund: ${paid.note ?? "purchase"}` } });
     return true;
   });
@@ -134,7 +165,7 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
     if (!s?.autoEnabled || !s.providerMemberId || !s.providerPaymentMethod) return false;
     if (subscriptionRuleOn() && !(await hasSubscription(userId))) return false; // top-ups are for subscribers: never charge a card that could not use the credits
     // A charge already started and not yet confirmed: wait for its webhook rather than charging again. After 30 minutes it is given up on.
-    if (s.autoPendingAt && Date.now() - s.autoPendingAt.getTime() < PENDING_WAIT) return false;
+    if (s.autoPendingAt && Date.now() - s.autoPendingAt.getTime() < (s.autoActionUrl ? ACTION_WAIT : PENDING_WAIT)) return false;
     if (s.autoPendingAt) console.error("PAYMENT ALERT: an automatic top-up was never confirmed", userId, s.autoPendingPaymentId);
     const provider = paymentProvider();
     if (!provider?.chargeSavedCard) return false;
@@ -178,7 +209,7 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
       return false;
     }
     if (charge.status !== "paid") { // the provider confirms by webhook, which grants the credits (once); Whop always answers this way
-      await db.billingSettings.update({ where: { userId }, data: { autoLastError: null, autoPendingPaymentId: charge.externalId, autoPendingAt: new Date() } });
+      await db.billingSettings.update({ where: { userId }, data: { autoLastError: null, autoActionUrl: null, autoPendingPaymentId: charge.externalId, autoPendingAt: new Date() } });
       return false;
     }
     await grantCredits(userId, pack.credits, { reason: "PURCHASE", provider: provider.name, externalId: charge.externalId, note: `Auto top-up: ${pack.name}` });
