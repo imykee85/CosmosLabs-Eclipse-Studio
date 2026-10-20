@@ -35,11 +35,11 @@ export interface PaymentProvider {
   parseWebhook(rawBody: string, headers: Headers): Promise<PaymentEvent | null>;
   /**
    * Charges a top-up to the card the person saved earlier, without them present. "paid" means the money is taken (credits can be granted now);
-   * "pending" means the provider will confirm by webhook. Throws when the charge is refused or fails.
+   * "pending" means the provider will confirm by webhook (Whop always answers "pending"). Throws when the charge is refused or fails.
    */
   chargeSavedCard?(input: SavedCardCharge): Promise<{ externalId: string; status: "paid" | "pending" }>;
-  /** The cards saved for this member. */
-  listPaymentMethods?(memberId: string): Promise<SavedCard[]>;
+  /** The cards saved for this member; offSessionOnly lists only those saved for charging without the person present. */
+  listPaymentMethods?(memberId: string, opts?: { offSessionOnly?: boolean }): Promise<SavedCard[]>;
   /** Deletes one saved card at the provider. Throws when it refuses. */
   removePaymentMethod?(memberId: string, paymentMethodId: string): Promise<void>;
   /** Opens the provider's hosted page where the person adds a card without paying; returns its address. */

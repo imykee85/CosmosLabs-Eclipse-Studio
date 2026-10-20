@@ -8,10 +8,10 @@ import { createServer, type IncomingMessage, type Server } from "node:http";
 const DB = process.env.DATABASE_URL;
 const skip = DB ? false : "DATABASE_URL not set";
 
-const whopState = { charges: [] as { body: Record<string, unknown>; key: string | undefined }[], mode: "paid" as "paid" | "pending" | "decline", cancels: [] as string[], cancelFails: false, n: 0, cards: [] as { id: string; brand: string; last4: string; exp_month: number; exp_year: number }[], removed: [] as string[], setups: [] as Record<string, unknown>[] };
+const whopState = { cancelBodies: [] as unknown[], offSession: ["pm_1"] as string[], charges: [] as { body: Record<string, unknown>; key: string | undefined }[], mode: "paid" as "paid" | "pending" | "decline", cancels: [] as string[], cancelFails: false, n: 0, cards: [] as { id: string; brand: string; last4: string; exp_month: number; exp_year: number }[], removed: [] as string[], setups: [] as Record<string, unknown>[] };
 const objects = new Map<string, Buffer>();
 let whopSrv: Server, r2: Server;
-const SECRET = "whsec_" + Buffer.from("billing-test-secret").toString("base64");
+const SECRET = "ws_billing-test-secret"; // Whop signs with the literal bytes of the whole secret, prefix included
 
 const body = (req: IncomingMessage) => new Promise<Buffer>((res) => { const c: Buffer[] = []; req.on("data", (d) => c.push(d)); req.on("end", () => res(Buffer.concat(c))); });
 const listen = (s: Server) => new Promise<number>((res) => s.listen(0, "127.0.0.1", () => res((s.address() as { port: number }).port)));
@@ -31,12 +31,13 @@ before(async () => {
       if (whopState.mode === "decline") return json(res, 402, { error: "card_declined" });
       return json(res, 200, { id: `pay_auto_${++whopState.n}`, status: whopState.mode === "paid" ? "paid" : "processing" });
     }
+    if (req.method === "GET" && (req.url ?? "").startsWith("/payment_methods?member_id=mem_1") && (req.url ?? "").includes("future_usage=off_session")) return json(res, 200, { data: whopState.offSession.map((id) => ({ id, card: { brand: "visa", last4: "4242" } })) });
     if (req.method === "GET" && (req.url ?? "").startsWith("/payment_methods?member_id=mem_1")) return json(res, 200, { data: whopState.cards.map((c) => ({ id: c.id, card: { brand: c.brand, last4: c.last4, exp_month: c.exp_month, exp_year: c.exp_year } })) });
     const pm = /^\/payment_methods\/([^/]+)$/.exec(req.url ?? "");
     if (pm && req.method === "DELETE") { whopState.removed.push(pm[1]); whopState.cards = whopState.cards.filter((c) => c.id !== pm[1]); return json(res, 200, {}); }
     if (req.url === "/checkout_configurations") { whopState.setups.push(JSON.parse(b.toString())); return json(res, 200, { purchase_url: "https://whop.test/setup" }); }
     const m = /^\/memberships\/([^/]+)\/cancel$/.exec(req.url ?? "");
-    if (m) { whopState.cancels.push(m[1]); return whopState.cancelFails ? json(res, 500, { error: "boom" }) : json(res, 200, {}); }
+    if (m) { whopState.cancels.push(m[1]); whopState.cancelBodies.push(JSON.parse(b.toString() || "{}")); return whopState.cancelFails ? json(res, 500, { error: "boom" }) : json(res, 200, {}); }
     json(res, 404, {});
   });
   r2 = createServer(async (req, res) => {
@@ -74,7 +75,7 @@ const reset = async (credits: number, subscribed = true) => {
   await wipe();
   if (subscribed) await lib.db.creditLedger.create({ data: { userId: USER, delta: 0, reason: "PURCHASE", note: "Plan: Test" } });
   if (credits > 0) await lib.credits.grantCredits(USER, credits, { reason: "GRANT", note: "test" });
-  Object.assign(whopState, { charges: [], mode: "paid", cancels: [], cancelFails: false, cards: [], removed: [], setups: [] });
+  Object.assign(whopState, { offSession: ["pm_1"], charges: [], mode: "paid", cancels: [], cancelFails: false, cards: [], removed: [], setups: [] });
   objects.clear();
 };
 const balance = () => lib.credits.getBalance(USER);
@@ -82,10 +83,12 @@ const balance = () => lib.credits.getBalance(USER);
 function signed(event: unknown) {
   const raw = JSON.stringify(event);
   const id = "msg_" + Math.random().toString(36).slice(2), ts = String(Math.floor(Date.now() / 1000));
-  const sig = createHmac("sha256", Buffer.from(SECRET.slice(6), "base64")).update(`${id}.${ts}.${raw}`).digest("base64");
+  const sig = createHmac("sha256", Buffer.from(SECRET, "utf8")).update(`${id}.${ts}.${raw}`).digest("base64");
   return new Request("http://x/api/payments/webhook", { method: "POST", body: raw, headers: { "webhook-id": id, "webhook-timestamp": ts, "webhook-signature": `v1,${sig}` } });
 }
 const payment = (id: string, planId: string, extra: Record<string, unknown> = {}, auto = false) => ({ type: "payment.succeeded", data: { id, metadata: { userId: USER, planId, ...(auto ? { auto: "1" } : {}) }, ...extra } });
+// Whop's answer to a charge only means "created": the credits arrive with its payment.succeeded webhook.
+const confirm = (n: number, planId: string, metadata: Record<string, unknown> = {}) => lib.webhook.POST(signed({ type: "payment.succeeded", data: { id: `pay_auto_${n}`, metadata: { userId: USER, planId, auto: "1", ...metadata } } }));
 const arm = (extra: Record<string, unknown> = {}) => lib.db.billingSettings.upsert({ where: { userId: USER }, create: { userId: USER, autoEnabled: true, providerMemberId: "mem_1", providerPaymentMethod: "pm_1", ...extra }, update: { autoEnabled: true, providerMemberId: "mem_1", providerPaymentMethod: "pm_1", autoLastAttemptAt: null, autoLastError: null, ...extra } });
 
 test("a top-up pack payment grants its credits once and remembers the saved card", { skip }, async () => {
@@ -132,18 +135,22 @@ test("auto top-up charges the saved card once when credits are low, and not befo
   assert.deepEqual(c.body.plan, { initial_price: 34, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test" });
   assert.deepEqual(c.body.metadata, { userId: USER, planId: "topup_2000", auto: "1" });
   assert.match(c.key ?? "", /^auto-user_bill_a-/);
+  assert.equal(c.body.off_session, true);
+  assert.equal(await balance(), 200, "the charge's answer grants nothing: only the webhook does");
+  await lib.db.billingSettings.update({ where: { userId: USER }, data: { autoLastAttemptAt: null } });
+  assert.equal(await lib.billing.autoTopup(USER), false, "while the charge is unconfirmed, no second charge");
+  assert.equal(whopState.charges.length, 1);
+  assert.equal((await confirm(1, "topup_2000")).status, 200);
   assert.equal(await balance(), 200 + 2000);
-  assert.equal(await lib.billing.autoTopup(USER), false, "now above the limit again");
-  // the provider's own confirmation of the same payment adds nothing more
-  const r = await (await lib.webhook.POST(signed(payment("pay_auto_1", "topup_2000", {}, true)))).json();
-  assert.equal(r.duplicate, true);
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).autoPendingAt, null, "confirmed, so nothing is pending");
+  const r = await (await confirm(1, "topup_2000")).json();
+  assert.equal(r.duplicate, true, "the same confirmation twice adds once");
   assert.equal(await balance(), 2200);
 });
 
 test("a pending charge waits for the provider's confirmation, which grants the credits once", { skip }, async () => {
   await reset(10);
   await arm({ autoPack: "topup_500" });
-  whopState.mode = "pending";
   assert.equal(await lib.billing.autoTopup(USER), false);
   assert.equal(await balance(), 10);
   await lib.webhook.POST(signed(payment(`pay_auto_${whopState.n}`, "topup_500", {}, true)));
@@ -169,8 +176,10 @@ test("a declined card switches auto top-up off and says why", { skip }, async ()
 test("the monthly limit stops further automatic top-ups", { skip }, async () => {
   await reset(0);
   await arm({ autoPack: "topup_500", autoMaxPerMonth: 1 });
-  assert.equal(await lib.billing.autoTopup(USER), true);
+  assert.equal(await lib.billing.autoTopup(USER), false);
+  await confirm(whopState.n, "topup_500");
   await lib.credits.spendCredits(USER, 480, "test");
+  await wait(400); // let the background top-up the spend started finish first
   await lib.db.billingSettings.update({ where: { userId: USER }, data: { autoLastAttemptAt: null } });
   whopState.charges = [];
   assert.equal(await lib.billing.autoTopup(USER), false);
@@ -185,17 +194,22 @@ test("two renders starting at once cause one top-up", { skip }, async () => {
   await arm({ autoPack: "topup_500" });
   const data = (n: number) => ({ userId: USER, prompt: `p${n}`, status: "pending", model: "soul_v2" });
   const [a, b] = await Promise.all([lib.res.createGenerationHeld(USER, 2, data(1)), lib.res.createGenerationHeld(USER, 2, data(2))]);
-  assert.equal(whopState.charges.length, 1);
-  assert.ok("row" in a || "row" in b, "at least one render started after the top-up");
+  assert.equal(whopState.charges.length, 1, "one charge, however many jobs asked");
+  assert.ok("have" in a && "have" in b, "neither starts before the payment is confirmed");
+  await confirm(whopState.n, "topup_500");
   assert.equal(await balance(), 500);
+  assert.ok("row" in (await lib.res.createGenerationHeld(USER, 2, data(3))), "after the confirmation the next job starts");
 });
 
-test("a job that cannot start for lack of credits tops up and then starts", { skip }, async () => {
+test("a job that cannot start for lack of credits starts a top-up; once confirmed the job can start", { skip }, async () => {
   await reset(1);
   await arm({ autoPack: "topup_500", autoThreshold: 100 });
   const r = await lib.res.createGenerationHeld(USER, 300, { userId: USER, prompt: "big", status: "pending", model: "soul_v2" });
-  assert.ok("row" in r);
+  assert.ok("have" in r, "refused this time: the charge is only confirmed by the webhook");
+  assert.equal(whopState.charges.length, 1);
+  await confirm(whopState.n, "topup_500");
   assert.equal(await balance(), 501);
+  assert.ok("row" in (await lib.res.createGenerationHeld(USER, 300, { userId: USER, prompt: "big", status: "pending", model: "soul_v2" })));
   // without auto top-up the same request is refused with the numbers
   await lib.db.billingSettings.update({ where: { userId: USER }, data: { autoEnabled: false } });
   const none = await lib.res.createGenerationHeld(USER, 9999, { userId: USER, prompt: "huge", status: "pending", model: "soul_v2" });
@@ -334,6 +348,7 @@ test("auto top-up with a custom amount saves it, validates it and charges that p
   assert.equal(whopState.charges.length, 1);
   assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 18, currency: "usd", plan_type: "one_time", visibility: "hidden", product_id: "prod_test", title: "Top-up 1,000 credits", metadata: { credits: 1000, type: "topup" } });
   assert.deepEqual(whopState.charges[0].body.metadata, { userId: USER, planId: "topup_custom", credits: 1000, auto: "1" });
+  await confirm(whopState.n, "topup_custom", { credits: 1000 });
   assert.equal(await balance(), 200 + 1000);
 });
 
@@ -465,4 +480,42 @@ test("refund.created takes back what that payment granted, once, never below zer
   assert.equal(await balance(), 0, "only what was left is taken back");
   await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_3", payment: { id: "pay_none" } } }));
   assert.equal(await balance(), 0);
+});
+
+test("auto top-up charges only a card saved for off-session use", { skip }, async () => {
+  await reset(10);
+  await arm({ autoPack: "topup_500" });
+  whopState.offSession = ["pm_other"];
+  assert.equal(await lib.billing.autoTopup(USER), false);
+  assert.equal(whopState.charges.length, 0, "the card was not charged");
+  const s = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
+  assert.equal(s.autoEnabled, false);
+  assert.match(s.autoLastError, /not set up for automatic charges/);
+});
+
+test("checkout and cancel use Whop's field names: account_id, cancel_at_period_end", { skip }, async () => {
+  process.env.WHOP_COMPANY_ID = "biz_test";
+  try {
+    const { whop } = await import("../../src/lib/payments/whop");
+    await whop.createCheckout({ userId: USER, planId: "starter", returnUrl: "http://x/" });
+    const sent = whopState.setups.at(-1)!;
+    assert.equal(sent.account_id, "biz_test");
+    assert.equal(sent.company_id, undefined);
+    await whop.cancelMembership!("ms_c");
+    assert.deepEqual(whopState.cancelBodies.at(-1), { cancel_at_period_end: false });
+  } finally { delete process.env.WHOP_COMPANY_ID; }
+});
+
+test("every verified delivery is logged with its shape only, and an unmatched one is flagged", { skip }, async () => {
+  await reset(0, false);
+  await lib.db.paymentEventLog.deleteMany({});
+  await lib.webhook.POST(signed(payment("pay_l1", "starter", { member: { id: "mem_secret_value" } })));
+  await lib.webhook.POST(signed({ type: "payment.succeeded", data: { id: "pay_l2", plan: { id: "plan_whop_starter" }, membership: { id: "ms_nobody" } } }));
+  await lib.webhook.POST(signed({ type: "something.else", data: { id: "x" } }));
+  const rows = await lib.db.paymentEventLog.findMany({ orderBy: { createdAt: "asc" } });
+  assert.deepEqual(rows.map((r: { outcome: string }) => r.outcome), ["applied", "unmatched", "ignored"]);
+  assert.equal(rows[0].shape["data.member.id"], "string");
+  assert.ok(!JSON.stringify(rows).includes("mem_secret_value"), "values are never stored");
+  assert.equal((await lib.webhook.POST(new Request("http://x", { method: "POST", body: "{}" }))).status, 401);
+  assert.equal(await lib.db.paymentEventLog.count(), 3, "an unsigned delivery is not logged");
 });
