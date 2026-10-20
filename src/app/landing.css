@@ -726,7 +726,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .results-more { bottom: 4%; }
 
 /* Top-edge colour for iPhone Safari's floating bar (see BarTint.tsx). */
-.bar-tint { position: fixed; top: 0; left: 0; right: 0; height: calc(64px + env(safe-area-inset-top, 0px)); background: #551e1e; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); z-index: 60; pointer-events: none; transition: opacity .25s; }
+.bar-tint { position: fixed; top: 0; left: 0; right: 0; height: max(28px, env(safe-area-inset-top, 0px)); background: #551e1e; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); z-index: 60; pointer-events: none; transition: opacity .25s; }
 
 /* Nav row shrinks to fit long translated words (NavFit.tsx sets --nf only when the row would run past the screen). */
 .nav-wrap[data-fit] .nav-links a, .nav-wrap[data-fit] .nav-actions .login, .nav-wrap[data-fit] .lang-menu.is-nav .lang-btn { font-size: var(--nf) !important; }
