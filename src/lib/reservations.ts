@@ -2,6 +2,7 @@ import type { AudioJob, Generation, Prisma, SandboxJob } from "@prisma/client";
 import { autoTopup } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { chargeFor, getModelById } from "@/lib/models";
+import { lockedTopup } from "@/lib/subscription";
 
 // A paid render is charged when it finishes, so its price has to be HELD while it runs: otherwise several renders started at once all see the same
 // balance and all go ahead. The render row is created inside the same per-person lock that reads the balance, and a running render (pending or
@@ -26,48 +27,51 @@ async function withTopup<R>(userId: string, cost: number, run: () => Promise<R>)
   return first;
 }
 
-export function createGenerationHeld(userId: string, cost: number | null, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number }> {
+export function createGenerationHeld(userId: string, cost: number | null, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number; locked: number }> {
   return cost == null ? db.generation.create({ data }).then((row) => ({ row })) : withTopup(userId, cost, () => createGenerationHeldOnce(userId, cost, data));
 }
-async function createGenerationHeldOnce(userId: string, cost: number, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number }> {
+async function createGenerationHeldOnce(userId: string, cost: number, data: Prisma.GenerationUncheckedCreateInput): Promise<{ row: Generation } | { have: number; held: number; locked: number }> {
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`; // the same lock spendCredits takes
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
-    const have = sum._sum.delta ?? 0;
+    const locked = await lockedTopup(userId, tx);
+    const have = (sum._sum.delta ?? 0) - locked;
     const held = await heldNow(tx, userId);
-    if (have - held < cost) return { have, held };
+    if (have - held < cost) return { have, held, locked };
     return { row: await tx.generation.create({ data }) };
   });
 }
 
-export function createAudioJobHeld(userId: string, cost: number | null, data: Prisma.AudioJobUncheckedCreateInput): Promise<{ row: AudioJob } | { have: number; held: number }> {
+export function createAudioJobHeld(userId: string, cost: number | null, data: Prisma.AudioJobUncheckedCreateInput): Promise<{ row: AudioJob } | { have: number; held: number; locked: number }> {
   return cost == null ? db.audioJob.create({ data }).then((row) => ({ row })) : withTopup(userId, cost, () => createAudioJobHeldOnce(userId, cost, data));
 }
-async function createAudioJobHeldOnce(userId: string, cost: number, data: Prisma.AudioJobUncheckedCreateInput): Promise<{ row: AudioJob } | { have: number; held: number }> {
+async function createAudioJobHeldOnce(userId: string, cost: number, data: Prisma.AudioJobUncheckedCreateInput): Promise<{ row: AudioJob } | { have: number; held: number; locked: number }> {
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
-    const have = sum._sum.delta ?? 0;
+    const locked = await lockedTopup(userId, tx);
+    const have = (sum._sum.delta ?? 0) - locked;
     const held = await heldNow(tx, userId);
-    if (have - held < cost) return { have, held };
+    if (have - held < cost) return { have, held, locked };
     return { row: await tx.audioJob.create({ data }) };
   });
 }
 
 /** A sandbox job row, created only when the person's balance (minus everything already held) covers its price. Runs `check` inside the same lock. */
-export function createSandboxJobHeld(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number } | { refused: string }> {
+export function createSandboxJobHeld(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number; locked: number } | { refused: string }> {
   return withTopup(userId, cost, () => createSandboxJobHeldOnce(userId, cost, data, check));
 }
-async function createSandboxJobHeldOnce(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number } | { refused: string }> {
+async function createSandboxJobHeldOnce(userId: string, cost: number, data: Prisma.SandboxJobUncheckedCreateInput, check?: (tx: Prisma.TransactionClient) => Promise<string | null>): Promise<{ row: SandboxJob } | { have: number; held: number; locked: number } | { refused: string }> {
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const why = check ? await check(tx) : null;
     if (why) return { refused: why };
     if (cost > 0) {
       const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
-      const have = sum._sum.delta ?? 0;
+      const locked = await lockedTopup(userId, tx);
+      const have = (sum._sum.delta ?? 0) - locked;
       const held = await heldNow(tx, userId);
-      if (have - held < cost) return { have, held };
+      if (have - held < cost) return { have, held, locked };
     }
     return { row: await tx.sandboxJob.create({ data }) };
   });
@@ -77,6 +81,6 @@ async function createSandboxJobHeldOnce(userId: string, cost: number, data: Pris
 export async function freeCredits(userId: string): Promise<number> {
   return db.$transaction(async (tx) => {
     const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
-    return (sum._sum.delta ?? 0) - (await heldNow(tx, userId));
+    return (sum._sum.delta ?? 0) - (await lockedTopup(userId, tx)) - (await heldNow(tx, userId));
   });
 }

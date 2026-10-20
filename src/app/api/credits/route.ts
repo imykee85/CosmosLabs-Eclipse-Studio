@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/admin";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { getBalance } from "@/lib/credits";
+import { hasSubscription, lockedTopup, subscriptionRuleOn, topupRemaining } from "@/lib/subscription";
 import { db } from "@/lib/db";
 import { freeMaxCredits, freeRendersLeft } from "@/lib/free-renders";
 import { workspaceSession } from "@/lib/workspace";
@@ -12,14 +13,21 @@ export async function GET() {
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const [balance, rows, admin, freeImages] = await Promise.all([
+    const [total, rows, admin, freeImages, locked, subscribed, topup] = await Promise.all([
       getBalance(userId),
       db.creditLedger.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 25 }),
       getAdmin(),
       freeRendersLeft(userId).catch(() => 0),
+      lockedTopup(userId),
+      hasSubscription(userId),
+      topupRemaining(userId),
     ]);
+    const balance = total - locked; // what can be spent now; locked top-up credits are shown separately
     return NextResponse.json({
       balance,
+      lockedTopup: locked,
+      topupCredits: topup,
+      subscribed: !subscriptionRuleOn() || subscribed,
       charging: process.env.CREDITS_ENABLED === "1",
       isAdmin: Boolean(admin),
       freeImages,

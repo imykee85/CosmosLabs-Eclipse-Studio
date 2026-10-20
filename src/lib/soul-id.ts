@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getBalance, spendUpTo } from "@/lib/credits";
+import { getUsableBalance, spendUpTo } from "@/lib/credits";
 import { BASE_URL, headers, HiggsfieldError } from "@/lib/higgsfield";
 import { deliverReferences, parseReferenceRefs, resolveReferences } from "@/lib/references";
 import { safeText } from "@/lib/safe-text";
@@ -31,7 +31,7 @@ export async function startSoulId(userId: string, input: { name: unknown; versio
   if (!refs) return { ok: false, status: 400, error: "The pictures were not understood." };
   if (refs.length < MIN_PICS) return { ok: false, status: 400, error: `Choose at least ${MIN_PICS} pictures of the same person (${MAX_PICS} at most).` };
   const price = creditsOn() ? PRICE() : null;
-  if (price != null && (await getBalance(userId)) < price) return { ok: false, status: 402, error: `Training a Soul ID costs ${price} credits.` };
+  if (price != null && (await getUsableBalance(userId)) < price) return { ok: false, status: 402, error: `Training a Soul ID costs ${price} credits.` };
   if ((await db.soulId.count({ where: { userId, status: "pending" } })) >= 2) return { ok: false, status: 429, error: "Two Soul IDs are already training. Wait for one to finish." };
   if (!(await claimUsage(userId, "soul-id", 10, 24 * 3600_000))) return { ok: false, status: 429, error: "You have trained 10 Soul IDs today. Try again tomorrow." };
   const resolved = await resolveReferences(userId, refs);

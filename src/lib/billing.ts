@@ -4,6 +4,7 @@ import { waitUntil } from "@vercel/functions";
 import { db } from "@/lib/db";
 import { grantCredits } from "@/lib/credits";
 import { paymentProvider, type PaymentEvent, type PaymentRefs } from "@/lib/payments";
+import { hasSubscription, subscriptionRuleOn, NEEDS_SUBSCRIPTION } from "@/lib/subscription";
 import { AUTO_MONTHLY_CAPS, AUTO_THRESHOLDS, CUSTOM_PACK_ID, creditPacks, productById } from "@/lib/plans";
 
 // Money settings per person: the auto top-up choice, and what the payment provider told us when they paid, so a top-up can be charged to the same
@@ -43,6 +44,7 @@ export type AutoTopupInput = { enabled?: unknown; packId?: unknown; credits?: un
 export async function saveAutoTopup(userId: string, input: AutoTopupInput): Promise<{ ok: true; view: AutoTopupView } | { ok: false; error: string }> {
   const prev = await db.billingSettings.findUnique({ where: { userId } });
   const cur = viewOf(prev);
+  if (input.enabled === true && subscriptionRuleOn() && !(await hasSubscription(userId))) return { ok: false, error: NEEDS_SUBSCRIPTION };
   const enabled = input.enabled === undefined ? cur.enabled : input.enabled === true;
   if (input.enabled !== undefined && typeof input.enabled !== "boolean") return { ok: false, error: "Switch must be on or off." };
   const packId = input.packId === undefined ? cur.packId : input.packId;
@@ -93,6 +95,7 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
     if (!creditsOn()) return false;
     const s = await db.billingSettings.findUnique({ where: { userId } });
     if (!s?.autoEnabled || !s.providerMemberId || !s.providerPaymentMethod) return false;
+    if (subscriptionRuleOn() && !(await hasSubscription(userId))) return false; // top-ups are for subscribers: never charge a card that could not use the credits
     const provider = paymentProvider();
     if (!provider?.chargeSavedCard) return false;
     const pack = s.autoPack === CUSTOM_PACK_ID ? productById(CUSTOM_PACK_ID, s.autoCredits) : creditPacks.find((p) => p.id === s.autoPack);
