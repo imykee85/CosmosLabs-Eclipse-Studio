@@ -3,6 +3,7 @@
 // are rate-limited, a person has at most MAX_OWN_VOICES, the flat price (credits, from config) is charged only after the provider succeeded, and deleting a voice
 // deletes it at the provider too. Cloned voices are private: there is no sharing.
 import { outOfCredits } from "@/lib/credit-message";
+import { refusal } from "@/lib/subscribe-alert";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { UserVoice } from "@prisma/client";
 import { InsufficientCreditsError, getUsableBalance, spendCredits } from "@/lib/credits";
@@ -28,8 +29,8 @@ const num = (name: string, fallback: number) => (Number(process.env[name]) > 0 ?
 // $3 (MiniMax design), Fish design $0.01, ElevenLabs not stated.
 export const voiceCredits = (kind: "clone" | "design"): number | null => (audioCreditsOn() ? (kind === "clone" ? num("AUDIO_CLONE_CREDITS", 40) : num("AUDIO_DESIGN_CREDITS", 60)) : null);
 
-export type VoiceResult<T> = ({ ok: true } & T) | { ok: false; status: number; error: string };
-const fail = (status: number, error: string) => ({ ok: false as const, status, error });
+export type VoiceResult<T> = ({ ok: true } & T) | { ok: false; status: number; error: string; code?: string };
+const fail = (status: number, error: string, code?: string) => ({ ok: false as const, status, error, ...(code ? { code } : {}) });
 
 // What kind of audio a sample is, from its first bytes (never from the file name or the browser's claim).
 export function sniffAudio(b: Uint8Array): { mime: string; ext: string; ogg?: boolean } | null {
@@ -57,10 +58,12 @@ async function charge(userId: string, cost: number | null, note: string) {
   try { await spendCredits(userId, cost, note); }
   catch (err) { if (err instanceof InsufficientCreditsError) console.error("voice price could not be charged: balance dropped meanwhile", userId); else throw err; }
 }
-async function enough(userId: string, cost: number | null): Promise<string | null> {
+async function enough(userId: string, cost: number | null): Promise<{ error: string; code?: string } | null> {
   if (cost == null) return null;
   const have = await getUsableBalance(userId);
-  return have >= cost ? null : outOfCredits("This", cost, have, 0, false, await lockedTopup(userId));
+  if (have >= cost) return null;
+  const locked = await lockedTopup(userId);
+  return refusal(userId, outOfCredits("This", cost, have, 0, false, locked), locked > 0);
 }
 function failure(err: unknown, what: string): { status: number; error: string } {
   if (err instanceof ProviderFailure) {
@@ -114,7 +117,7 @@ export async function cloneOwnVoice(input: CloneInput): Promise<VoiceResult<{ vo
   if (!(await claimUsage(userId, "voice-clone", 5, 3600_000)) || !(await claimUsage(userId, "voice-clone-day", 20, 24 * 3600_000))) return fail(429, "You have cloned several voices very quickly. Please try again later.");
   const cost = voiceCredits("clone");
   const short = await enough(userId, cost);
-  if (short) return fail(402, short);
+  if (short) return fail(402, short.error, short.code);
 
   let voiceId: string;
   const release = await limiterFor(provider).acquire();
@@ -148,7 +151,7 @@ export async function designOwnVoice(input: { userId: string; provider: unknown;
   if (!(await claimUsage(userId, "voice-design", 10, 3600_000)) || !(await claimUsage(userId, "voice-design-day", 40, 24 * 3600_000))) return fail(429, "You have designed several voices very quickly. Please try again later.");
   const cost = voiceCredits("design");
   const short = await enough(userId, cost);
-  if (short) return fail(402, short);
+  if (short) return fail(402, short.error, short.code);
 
   const release = await limiterFor(provider).acquire();
   let previews;

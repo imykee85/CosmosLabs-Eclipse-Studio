@@ -5,7 +5,7 @@ import { allImageModels, chargeFor, getModelById, imageCredits, toPublic } from 
 import { imageCost } from "../../src/lib/image-render";
 import { VIDEO_MODELS, videoCredits, videoPrice, videoModelById } from "../../src/lib/video-models";
 import { CUSTOM_PACK_ID, creditPacks, plans, productById } from "../../src/lib/plans";
-import { KLING_YARDSTICK_CREDITS, planSaving, planValue } from "../../src/lib/plan-copy";
+import { BEST_VALUE_PACK_ID, KLING_YARDSTICK_CREDITS, planSaving, planValue } from "../../src/lib/plan-copy";
 import { DIRECT_KEY, registerDirectRoute, routeFor, startWithFallback, unregisterDirectRoute } from "../../src/lib/routes";
 import { allPriceRows, netPerCredit } from "../../src/lib/price-table";
 import { creditsFor } from "../../src/lib/audio/pricing";
@@ -37,10 +37,10 @@ test("plans and packs grant what the brief says (ledger units) and show whole cr
 });
 
 test("plan cards: what the credits buy and the saving against Starter", () => {
-  assert.deepEqual(plans.map(planValue), ["≈ 200 images or 9 Kling videos", "≈ 600 images or 28 Kling videos", "≈ 2,500 images or 119 Kling videos"]);
+  assert.deepEqual(plans.map(planValue), ["≈ 200 images or 12 Kling videos", "≈ 600 images or 37 Kling videos", "≈ 2,500 images or 156 Kling videos"]);
   assert.deepEqual(plans.map(planSaving), [0, 14, 16]);
-  const kling = videoModelById("kling_3_pro")!;
-  assert.equal(videoCredits(kling, undefined, 5, true), KLING_YARDSTICK_CREDITS, "the yardstick is Kling 3.0 Pro, 5 s, sound on");
+  assert.equal(KLING_YARDSTICK_CREDITS, 16, "Kling 3.0 Pro, 5 s, sound on (checked against the price table in batch 3)");
+  assert.equal(BEST_VALUE_PACK_ID, creditPacks[creditPacks.length - 1].id, "the biggest pack is Best value");
 });
 
 // ---- images ---------------------------------------------------------------------------------------------------------------------------------------------------------

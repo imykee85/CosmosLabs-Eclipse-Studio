@@ -2,6 +2,7 @@ import { autoTopup } from "@/lib/billing";
 import { spendUpTo } from "@/lib/credits";
 import { freeCredits } from "@/lib/reservations";
 import { lockedTopup } from "@/lib/subscription";
+import { refusal, type Refusal } from "@/lib/subscribe-alert";
 
 import { fmtCredits } from "@/lib/credit-units";
 // Core and Atlas (and custom agents) are paid in Eclipse credits, priced from what each reply really used: the model's token prices (Anthropic
@@ -47,6 +48,12 @@ export async function chatCreditCheck(userId: string): Promise<string | null> {
   if (await autoTopup(userId, { needed: startCredits() })) return null; // topped up automatically, as the person asked
   const locked = await lockedTopup(userId);
   return locked > 0 ? `You're out of credits. Your ${fmtCredits(locked)} top-up credits are saved but locked until you subscribe to a plan.` : OUT_OF_CREDITS;
+}
+
+/** The same check as a ready answer for the route: the subscription alert for an unsubscribed account, the usual sentence otherwise. Null when the message may go ahead. */
+export async function chatRefusal(userId: string): Promise<Refusal | null> {
+  const why = await chatCreditCheck(userId);
+  return why ? refusal(userId, why, why !== OUT_OF_CREDITS) : null;
 }
 
 /** Charges a finished reply (what it used, up to what is left). Returns the credits taken. */

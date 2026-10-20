@@ -18,6 +18,6 @@ export async function POST(req: Request) {
     sample = new Uint8Array(await file.arrayBuffer());
   }
   const r = await cloneOwnVoice({ userId: u.userId, provider: form.get("provider"), name: form.get("name"), description: form.get("description"), consent: form.get("consent") === "1", sample });
-  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  if (!r.ok) return NextResponse.json({ error: r.error, ...("code" in r && r.code ? { code: r.code } : {}) }, { status: r.status });
   return NextResponse.json({ voice: r.voice });
 }

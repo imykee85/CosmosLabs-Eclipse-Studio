@@ -6,7 +6,7 @@ import { connectModels } from "@/lib/connect-models";
 import { checkPrompt } from "@/lib/moderation";
 import { engineById } from "@/lib/prompt-engines";
 import { claimUsage } from "@/lib/usage";
-import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
+import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 import { workspaceSession } from "@/lib/workspace";
 
@@ -20,8 +20,8 @@ export async function POST(req: Request) {
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "The prompt engine is not available yet. Please try again later." }, { status: 503 });
-  const broke = await chatCreditCheck(userId);
-  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
+  const broke = await chatRefusal(userId);
+  if (broke) return NextResponse.json(broke, { status: 402 });
   if (!(await claimUsage(userId, "prompts", 12, 60_000))) return NextResponse.json({ error: "Slow down a little: try again in a minute." }, { status: 429 });
 
   const body = await req.json().catch(() => null);

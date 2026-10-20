@@ -12,6 +12,6 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const b = await req.json().catch(() => null);
   const r = await startVideoEdit({ userId, sourceId: b?.sourceId, mode: b?.mode, prompt: b?.prompt, duration: b?.duration, resolution: b?.resolution, audio: b?.audio, refs: b?.refs, projectId: b?.projectId, confirm: b?.confirm });
-  if (!r.ok) return NextResponse.json({ error: r.error, ...(r.needsConfirm ? { needsConfirm: true, cost: r.cost } : {}) }, { status: r.status });
+  if (!r.ok) return NextResponse.json({ error: r.error, ...(r.code ? { code: r.code } : {}), ...(r.needsConfirm ? { needsConfirm: true, cost: r.cost } : {}) }, { status: r.status });
   return NextResponse.json(r.item);
 }

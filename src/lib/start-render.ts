@@ -5,6 +5,7 @@ import { claimUsage } from "@/lib/usage";
 import { createGenerationHeld } from "@/lib/reservations";
 import { claimFreeRender, freeUsedUp, giveBackFreeRender } from "@/lib/free-renders";
 import { outOfCredits } from "@/lib/credit-message";
+import { refusal } from "@/lib/subscribe-alert";
 import { db } from "@/lib/db";
 import { getAdmin } from "@/lib/admin";
 import { completeFromBytes, failRender, SYNC_MARK, toItem, type RenderItem } from "@/lib/generation-jobs";
@@ -24,7 +25,7 @@ import { sniffImageType } from "@/lib/uploads";
 import type { ReferenceItem } from "@/lib/references";
 
 export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown; soulId?: unknown; soulStrength?: unknown; batchId?: unknown };
-export type StartRenderResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string };
+export type StartRenderResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; code?: string };
 
 // The one place a render is validated and started, used by POST /api/generate and by the Connect agent, so both are
 // priced, checked and recorded exactly the same way.
@@ -113,7 +114,7 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
   const made = await createGenerationHeld(userId, free ? null : cost, { ...(free ? { creditsHeld: 0 } : cost != null ? { creditsHeld: cost } : {}), userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform || soul.fields || batch || free ? { ...(free ? { free: true } : {}), ...(batch ? { batchId: batch.id } : {}), ...(conform ? { conform } : {}), ...(soul.fields ? { soulId: String(input.soulId), soulStrength: Number(soul.fields.custom_reference_strength) } : {}) } : undefined }, batch);
-  if (!("row" in made)) return { ok: false, status: 402, error: outOfCredits(model.label, cost as number, made.have, made.held, await freeUsedUp(userId), made.locked) };
+  if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (cost as number))) };
   const pre = made.row;
   try {
     const { requestId, statusUrl } = await startGeneration({ model, prompt, aspectRatio, resolution, references: await deliverReferences(resolved.items), seed: seed ?? undefined, extra: soul.fields ?? undefined });
@@ -157,7 +158,7 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
   if (!storageEnabled) { if (a.free) await giveBackFreeRender(userId).catch(() => {}); return { ok: false, status: 503, error: "Image storage is not set up yet, so this model cannot be used." }; }
   const jobId = randomUUID();
   const made = await createGenerationHeld(userId, a.free ? null : a.cost, { ...(a.free ? { creditsHeld: 0 } : a.cost != null ? { creditsHeld: a.cost } : {}), userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined, params: a.conform || a.batch || a.free ? { ...(a.free ? { free: true } : {}), ...(a.batch ? { batchId: a.batch.id } : {}), ...(a.conform ? { conform: a.conform } : {}) } : undefined }, a.batch);
-  if (!("row" in made)) return { ok: false, status: 402, error: outOfCredits(model.label, a.cost as number, made.have, made.held, await freeUsedUp(userId), made.locked) };
+  if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, a.cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (a.cost as number))) };
   const row = made.row;
   // The reply goes out at once with a pending row (the browser follows it like any job); the render continues after it (waitUntil, up to the route's 300 s).
   const work = (async () => {

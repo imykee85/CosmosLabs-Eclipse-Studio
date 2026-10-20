@@ -9,6 +9,7 @@ import { deliverReferences, parseReferenceRefs, resolveReferences, resolveVideoR
 import { createGenerationHeld } from "@/lib/reservations";
 import { videoSettings } from "@/lib/start-video";
 import { claimUsage } from "@/lib/usage";
+import { refusal } from "@/lib/subscribe-alert";
 import { routeFor } from "@/lib/routes";
 import { findVideoModel, videoPrice } from "@/lib/video-models";
 
@@ -24,7 +25,7 @@ const ENDPOINT: Record<EditMode, string> = { edit: "bytedance/seedance-2.5/video
 const RES = ["480p", "720p", "1080p"];
 
 export type EditInput = { userId: string; sourceId: unknown; mode: unknown; prompt: unknown; duration?: unknown; resolution?: unknown; audio?: unknown; refs?: unknown; projectId?: unknown; confirm?: unknown };
-export type EditResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number };
+export type EditResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string };
 
 export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   const { userId } = input;
@@ -82,7 +83,7 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
     references: refs.length ? refs : undefined,
     params: { workflow: mode, endpoint: ENDPOINT[mode], sourceId: source.id, duration: mode === "extend" ? ext : undefined, resolution },
   });
-  if (!("row" in made)) return { ok: false, status: 402, error: `This needs ${fmtCredits(cost ?? 0)} credits. You have ${fmtCredits(Math.max(0, made.have))}${made.held ? `, and ${fmtCredits(made.held)} are held by renders still running` : ""}.` };
+  if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, `This needs ${fmtCredits(cost ?? 0)} credits. You have ${fmtCredits(Math.max(0, made.have))}${made.held ? `, and ${fmtCredits(made.held)} are held by renders still running` : ""}.`)) };
   try {
     const sub = await submitVideo(ENDPOINT[mode], body, idemKey);
     const row = await db.generation.update({ where: { id: made.row.id }, data: { statusUrl: sub.statusUrl, requestId: sub.requestId || null, cancelUrl: sub.cancelUrl } });

@@ -15,6 +15,6 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const result = await startRender({ userId, prompt: body?.prompt, model: body?.model, aspectRatio: body?.aspectRatio, resolution: body?.resolution, projectId: body?.projectId, references: body?.references, seed: body?.seed, lockSeed: body?.lockSeed, soulId: body?.soulId, soulStrength: body?.soulStrength });
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  if (!result.ok) return NextResponse.json({ error: result.error, ...(result.code ? { code: result.code } : {}) }, { status: result.status });
   return NextResponse.json(result.seedNote ? { ...result.item, seedNote: result.seedNote } : result.item);
 }

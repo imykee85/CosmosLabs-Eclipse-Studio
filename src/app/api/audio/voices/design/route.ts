@@ -11,6 +11,6 @@ export async function POST(req: Request) {
   if ("res" in u) return u.res;
   const b = (await req.json().catch(() => null)) as { provider?: unknown; description?: unknown } | null;
   const r = await designOwnVoice({ userId: u.userId, provider: b?.provider, description: b?.description });
-  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  if (!r.ok) return NextResponse.json({ error: r.error, ...("code" in r && r.code ? { code: r.code } : {}) }, { status: r.status });
   return NextResponse.json({ previews: r.previews });
 }
