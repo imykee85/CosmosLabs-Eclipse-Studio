@@ -4,6 +4,7 @@ import { BRAND_RULE } from "@/lib/brand";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { ChatMeter, chargeChat } from "@/lib/chat-credits";
 import { runTool, toolDefs } from "@/lib/connect-tools";
+import { cacheLast, cachedSystem, trimHistory } from "@/lib/prompt-cache";
 import { openImage } from "@/lib/storage";
 
 type Block = Anthropic.Beta.Messages.BetaContentBlockParam;
@@ -17,7 +18,7 @@ export type AgentEvent =
   | { t: "error"; message: string }
   | { t: "done" };
 
-const MAX_CHAT_MESSAGES = 120; // stored rows per chat; past this a new chat is needed (history is never trimmed, the model needs it whole)
+const MAX_CHAT_MESSAGES = 120; // stored rows per chat; past this a new chat is needed (the stored chat is never trimmed; what is SENT shortens old pictures and big results, see prompt-cache.ts)
 const MAX_STEPS = 8;
 const TIME_BUDGET_MS = 48_000; // no new step after this; the route may run 120 s (a build-machine step can take 25 s)
 const MAX_IMAGES = 3;
@@ -134,9 +135,10 @@ export async function runTurn(opts: {
       const stream = sdk.beta.messages.stream({
         model: opts.model,
         max_tokens: 16000,
-        system: `${SYSTEM}\n\n${BRAND_RULE}`,
+        // cache breakpoints: system + tools, and the last block of the history (moved forward every step); SYSTEM and BRAND_RULE stay byte-identical between calls
+        system: cachedSystem(`${SYSTEM}\n\n${BRAND_RULE}`),
         tools: toolDefs,
-        messages,
+        messages: cacheLast(trimHistory(messages)) as Param[],
         ...(useFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
       });
       stream.on("text", (d) => emit({ t: "text", d }));

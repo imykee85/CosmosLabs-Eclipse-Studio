@@ -1,3 +1,4 @@
+import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE } from "@/lib/brand";
 import { NextResponse } from "next/server";
@@ -87,14 +88,15 @@ export async function POST(req: Request) {
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
     // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
     const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
-    const system = `${persona.system}${director}\n\n${BRAND_RULE}\n\n<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`;
+    // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
+    const system = cachedSystem(`${persona.system}${director}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
     const tools = isAtlas ? [...TOOLS, ...VIDEO_TOOLS] : TOOLS;
     // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
     const convo: Anthropic.MessageParam[] = messages;
     const earlier: Action[] = [];
     const frames: Frame[] = [];
     const state = { captures: 0 };
-    let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: convo });
+    let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
     meter.add(res.model, res.usage);
     for (let round = 1; round < MAX_ROUNDS && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
       const results: Anthropic.ToolResultBlockParam[] = [];
@@ -108,7 +110,7 @@ export async function POST(req: Request) {
       }
       earlier.push(...buildReply(res.content, res.stop_reason).actions);
       convo.push({ role: "assistant", content: res.content }, { role: "user", content: results });
-      res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: convo });
+      res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
       meter.add(res.model, res.usage);
     }
     const final = buildReply(res.content, res.stop_reason);
