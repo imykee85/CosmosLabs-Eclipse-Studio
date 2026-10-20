@@ -39,6 +39,15 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "NEXT_PUBLIC_CONTACT_EMAIL", kind: "Config", needed: "contact on legal pages" },
   { name: "NEXT_PUBLIC_SITE_URL", kind: "Config", needed: "links and sharing image" },
   { name: "WHOP_API_KEY", kind: "Secret", needed: "payments" },
+  { name: "WHOP_WEBHOOK_SECRET", kind: "Secret", needed: "payments: checking Whop's webhook deliveries" },
+  { name: "WHOP_COMPANY_ID", kind: "Config", needed: "payments: checkout (biz_...)" },
+  { name: "WHOP_PRODUCT_ID", kind: "Config", needed: "payments: custom and automatic top-ups (prod_...)" },
+  { name: "WHOP_PLAN_STARTER", kind: "Config", needed: "payments: Starter plan" },
+  { name: "WHOP_PLAN_GROWTH", kind: "Config", needed: "payments: Growth plan" },
+  { name: "WHOP_PLAN_SCALE", kind: "Config", needed: "payments: Scale plan" },
+  { name: "WHOP_PLAN_TOPUP_500", kind: "Config", needed: "payments: 500-credit top-up" },
+  { name: "WHOP_PLAN_TOPUP_2000", kind: "Config", needed: "payments: 2,000-credit top-up" },
+  { name: "WHOP_PLAN_TOPUP_6000", kind: "Config", needed: "payments: 6,000-credit top-up" },
   { name: "SANDBOX_PROVIDER", kind: "Config", needed: "the sandbox platform (set to vercel)" },
 ];
 
@@ -112,10 +121,10 @@ export async function POST() {
   try {
     if (!process.env.SANDBOX_PROVIDER) add(null, "Sandbox: switched off (SANDBOX_PROVIDER is not set)");
     else {
-      const [snap, smoke, u, failed] = await Promise.all([baseSnapshotId(), getSetting(SETTING.smokePassed), usageNow(), db.sandboxJob.findFirst({ where: { status: { in: ["failed", "expired"] } }, orderBy: { updatedAt: "desc" }, select: { kind: true, error: true } })]);
+      const [snap, smoke, u, failed] = await Promise.all([baseSnapshotId(), getSetting(SETTING.smokePassed), usageNow(), db.sandboxJob.findFirst({ where: { status: { in: ["failed", "expired"] } }, orderBy: { updatedAt: "desc" }, select: { kind: true, error: true, updatedAt: true } })]);
       add(Boolean(snap), snap ? `Sandbox base snapshot: ${snap}${smoke === snap ? " (smoke test passed)" : " (smoke test NOT passed yet: run it from /admin/sandbox)"}` : "Sandbox: no base snapshot yet (Build the base on /admin/sandbox)");
       add(u.share < 0.8, `Sandbox use this month: ${Math.round(u.share * 100)}% of the free allowance (${u.used.creations} sandboxes, ${(u.used.activeCpuMs / 3_600_000).toFixed(2)} CPU hours)`);
-      if (failed) add(null, `Latest sandbox failure (${failed.kind}): ${safeText((failed.error as { message?: string; detail?: string } | null)?.detail ?? (failed.error as { message?: string } | null)?.message ?? "no text")}`);
+      if (failed) add(null, `Latest sandbox failure (${failed.kind}, ${failed.updatedAt.toISOString().slice(0, 16).replace("T", " ")} UTC${failed.kind === "build.base" && snap && smoke === snap ? ", the base built and passed its smoke test since: nothing to do" : ""}): ${safeText((failed.error as { message?: string; detail?: string } | null)?.detail ?? (failed.error as { message?: string } | null)?.message ?? "no text")}`);
     }
   } catch {
     add(null, "Sandbox: could not be checked");
