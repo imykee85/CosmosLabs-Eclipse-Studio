@@ -18,7 +18,7 @@ export default function UpgradeButton({ planId }: { planId: string }) {
   }
   return (
     <>
-      <button type="button" className="st-upgrade" onClick={go} disabled={busy}>{busy ? "Opening..." : "Upgrade"}</button>
+      <button type="button" className="st-upgrade" onClick={go} disabled={busy}>Upgrade</button>
       {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
     </>
   );
