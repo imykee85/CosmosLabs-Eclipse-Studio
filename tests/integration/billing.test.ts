@@ -69,8 +69,10 @@ after(async () => { if (skip) return; await wipe(); await lib.db.$disconnect(); 
 async function wipe() {
   for (const u of [USER, OTHER]) for (const t of lib.del.USER_TABLES) await lib.db[t].deleteMany({ where: { userId: u } });
 }
-const reset = async (credits: number) => {
+// Top-ups need a subscription, so most tests start subscribed: a zero-credit plan payment row stands in for a live plan.
+const reset = async (credits: number, subscribed = true) => {
   await wipe();
+  if (subscribed) await lib.db.creditLedger.create({ data: { userId: USER, delta: 0, reason: "PURCHASE", note: "Plan: Test" } });
   if (credits > 0) await lib.credits.grantCredits(USER, credits, { reason: "GRANT", note: "test" });
   Object.assign(whopState, { charges: [], mode: "paid", cancels: [], cancelFails: false, cards: [], removed: [], setups: [] });
   objects.clear();
@@ -87,7 +89,7 @@ const payment = (id: string, planId: string, extra: Record<string, unknown> = {}
 const arm = (extra: Record<string, unknown> = {}) => lib.db.billingSettings.upsert({ where: { userId: USER }, create: { userId: USER, autoEnabled: true, providerMemberId: "mem_1", providerPaymentMethod: "pm_1", ...extra }, update: { autoEnabled: true, providerMemberId: "mem_1", providerPaymentMethod: "pm_1", autoLastAttemptAt: null, autoLastError: null, ...extra } });
 
 test("a top-up pack payment grants its credits once and remembers the saved card", { skip }, async () => {
-  await reset(0);
+  await reset(0, false);
   const ev = payment("pay_1", "topup_500", { member: { id: "mem_9" }, payment_method: { id: "pm_9" }, membership: { id: "ms_9" } });
   assert.equal((await lib.webhook.POST(signed(ev))).status, 200);
   assert.equal(await balance(), 500);
@@ -146,7 +148,7 @@ test("a pending charge waits for the provider's confirmation, which grants the c
   assert.equal(await balance(), 10);
   await lib.webhook.POST(signed(payment(`pay_auto_${whopState.n}`, "topup_500", {}, true)));
   assert.equal(await balance(), 510);
-  const row = await lib.db.creditLedger.findFirst({ where: { userId: USER, reason: "PURCHASE" } });
+  const row = await lib.db.creditLedger.findFirst({ where: { userId: USER, reason: "PURCHASE", note: { startsWith: "Auto" } } });
   assert.equal(row.note, "Auto top-up: 500 credits", "counted against the monthly limit");
 });
 
@@ -333,4 +335,83 @@ test("auto top-up with a custom amount saves it, validates it and charges that p
   assert.deepEqual(whopState.charges[0].body.plan, { initial_price: 18, currency: "usd", plan_type: "one_time" });
   assert.deepEqual(whopState.charges[0].body.metadata, { userId: USER, planId: "topup_custom", credits: 1000, auto: "1" });
   assert.equal(await balance(), 200 + 1000);
+});
+
+// ---- Top-up credits need a subscription to be used ----
+// Moves the whole history back in time together (so the order of events stays the same), which is what makes a plan payment old.
+const setAge = (days: number) => lib.db.$executeRawUnsafe(`UPDATE credit_ledger SET created_at = created_at - interval '${Number(days)} days' WHERE user_id = '${USER}'`);
+
+test("a lapsed plan locks bought top-up credits, keeps them, and unlocks them when the plan is bought again", { skip }, async () => {
+  const sub = await import("../../src/lib/subscription");
+  await reset(0, false);
+  assert.equal(await sub.hasSubscription(USER), false);
+  await lib.webhook.POST(signed(payment("pay_t1", "topup_500")));
+  assert.equal(await balance(), 500);
+  assert.equal(await sub.lockedTopup(USER), 500, "a free account's top-up credits are locked");
+  assert.equal(await lib.credits.getUsableBalance(USER), 0);
+  await assert.rejects(lib.credits.spendCredits(USER, 5, "x"), /Not enough credits/);
+  assert.equal(await lib.credits.spendUpTo(USER, 50, "x"), 0, "chat cannot dip into locked credits either");
+  assert.equal(await balance(), 500, "nothing was taken");
+
+  await lib.webhook.POST(signed(payment("pay_p1", "starter"))); // subscribes: +1000 plan credits
+  assert.equal(await sub.hasSubscription(USER), true);
+  assert.equal(await sub.lockedTopup(USER), 0);
+  assert.equal(await lib.credits.getUsableBalance(USER), 1500);
+
+  await setAge(40); // the plan lapses
+  assert.equal(await sub.hasSubscription(USER), false);
+  assert.equal(await sub.lockedTopup(USER), 500, "plan credits stay usable, top-up credits lock");
+  assert.equal(await lib.credits.getUsableBalance(USER), 1000);
+  await lib.credits.spendCredits(USER, 1000, "x");
+  await assert.rejects(lib.credits.spendCredits(USER, 1, "x"), /Not enough credits/);
+  assert.equal(await balance(), 500, "the top-up credits are still there");
+
+  await lib.webhook.POST(signed(payment("pay_p2", "starter"))); // renews
+  assert.equal(await lib.credits.getUsableBalance(USER), 1500);
+});
+
+test("spending uses plan credits first and top-up credits last, in order", { skip }, async () => {
+  const sub = await import("../../src/lib/subscription");
+  await reset(0, false);
+  await lib.webhook.POST(signed(payment("pay_p3", "starter")));      // +1000 plan
+  await lib.webhook.POST(signed(payment("pay_t3", "topup_500")));    // +500 top-up
+  await lib.credits.spendCredits(USER, 1200, "x");                   // 1000 plan, then 200 top-up
+  assert.equal(await sub.topupRemaining(USER), 300);
+  await lib.webhook.POST(signed(payment("pay_p4", "starter")));      // renewal adds 1000 plan
+  assert.equal(await sub.topupRemaining(USER), 300, "a renewal does not refill the top-up bucket");
+  await setAge(40);
+  assert.equal(await sub.lockedTopup(USER), 300);
+  assert.equal(await lib.credits.getUsableBalance(USER), 1000);
+});
+
+test("holds and the job gate see only usable credits, and the message says why", { skip }, async () => {
+  const { outOfCredits } = await import("../../src/lib/credit-message");
+  await reset(0, false);
+  await lib.webhook.POST(signed(payment("pay_t5", "topup_500")));
+  const made = await lib.res.createAudioJobHeld(USER, 10, { userId: USER, kind: "tts", status: "pending", model: "x", chars: 1, creditsHeld: 10, text: "t", params: {} });
+  assert.ok("have" in made);
+  assert.deepEqual([made.have, made.locked], [0, 500]);
+  assert.match(outOfCredits("This", 10, made.have, made.held, false, made.locked), /locked until you subscribe/);
+  assert.equal(await lib.res.freeCredits(USER), 0);
+});
+
+test("top-ups are for subscribers: auto top-up cannot be switched on or run, and a free account is never charged", { skip }, async () => {
+  await reset(0, false);
+  const refused = await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_500" });
+  assert.equal(refused.ok, false);
+  assert.match(refused.error, /subscribers/);
+  await arm({ autoPack: "topup_500" });
+  assert.equal(await lib.billing.autoTopup(USER, { needed: 100 }), false);
+  assert.equal(whopState.charges.length, 0, "the card was never charged");
+  await lib.webhook.POST(signed(payment("pay_p5", "starter")));
+  const ok = await lib.billing.saveAutoTopup(USER, { enabled: true, packId: "topup_500" });
+  assert.equal(ok.ok, true, "a subscriber can switch it on");
+});
+
+test("the rule can be switched off", { skip }, async () => {
+  const sub = await import("../../src/lib/subscription");
+  await reset(0, false);
+  await lib.webhook.POST(signed(payment("pay_t6", "topup_500")));
+  process.env.TOPUP_REQUIRES_SUBSCRIPTION = "off";
+  try { assert.equal(await sub.lockedTopup(USER), 0); } finally { delete process.env.TOPUP_REQUIRES_SUBSCRIPTION; }
 });

@@ -5,7 +5,8 @@
 import { outOfCredits } from "@/lib/credit-message";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { UserVoice } from "@prisma/client";
-import { InsufficientCreditsError, getBalance, spendCredits } from "@/lib/credits";
+import { InsufficientCreditsError, getUsableBalance, spendCredits } from "@/lib/credits";
+import { lockedTopup } from "@/lib/subscription";
 import { db } from "@/lib/db";
 import { checkPrompt } from "@/lib/moderation";
 import { claimUsage } from "@/lib/usage";
@@ -58,8 +59,8 @@ async function charge(userId: string, cost: number | null, note: string) {
 }
 async function enough(userId: string, cost: number | null): Promise<string | null> {
   if (cost == null) return null;
-  const have = await getBalance(userId);
-  return have >= cost ? null : outOfCredits("This", cost, have);
+  const have = await getUsableBalance(userId);
+  return have >= cost ? null : outOfCredits("This", cost, have, 0, false, await lockedTopup(userId));
 }
 function failure(err: unknown, what: string): { status: number; error: string } {
   if (err instanceof ProviderFailure) {

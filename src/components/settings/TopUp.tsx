@@ -8,7 +8,7 @@ import { CUSTOM_PACK_ID, customPrice } from "@/lib/plans";
 
 type Pack = { id: string; name: string; price: number; credits: number };
 type Auto = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number };
-type Info = { custom: { min: number; max: number }; team: { isTeam: boolean; isAdmin: boolean }; packs: Pack[]; thresholds: number[]; caps: number[]; paymentsReady: boolean; autoReady: boolean; auto: Auto };
+type Info = { subscribed?: boolean; lockedTopup?: number; topupCredits?: number; custom: { min: number; max: number }; team: { isTeam: boolean; isAdmin: boolean }; packs: Pack[]; thresholds: number[]; caps: number[]; paymentsReady: boolean; autoReady: boolean; auto: Auto };
 
 async function startCheckout(packId: string, credits?: number): Promise<string | null> {
   try {
@@ -81,6 +81,7 @@ export default function TopUp() {
   }
 
   const a = info?.auto;
+  const gated = info?.subscribed === false; // top-ups need a subscription: free accounts cannot buy them, and a lapsed plan locks the ones already bought
   const locked = Boolean(info?.team.isTeam && !info.team.isAdmin); // a team member who is not an admin cannot buy credits for the team
   const credits = /^\d+$/.test(amount.trim()) ? Number(amount) : NaN;
   const customCost = customPrice(credits);
@@ -123,7 +124,7 @@ export default function TopUp() {
           <div className="st-autoside">
             <span>Auto top-up</span>
             <button type="button" role="switch" aria-checked={autoOn} aria-label="Auto top-up with the chosen amount" className={`st-switch ${autoOn ? "is-on" : ""}`}
-              disabled={busy === "auto" || !info.autoReady || locked || (!autoOn && selPrice === null)}
+              disabled={busy === "auto" || !info.autoReady || locked || gated || (!autoOn && selPrice === null)}
               onClick={() => save(autoOn ? { enabled: false } : sel === CUSTOM_PACK_ID ? { enabled: true, packId: CUSTOM_PACK_ID, credits } : { enabled: true, packId: sel })}><i /></button>
           </div>
         </div>
@@ -147,8 +148,8 @@ export default function TopUp() {
             ))}
           </div>
         )}
-        <button type="button" className="st-upgrade st-buy" onClick={() => buy(sel, sel === CUSTOM_PACK_ID ? credits : undefined)} disabled={Boolean(busy) || locked || selPrice === null}>
-          {busy === sel ? "Opening..." : selPrice === null ? "Buy credits" : `Buy credits · $${selPrice.toFixed(2)}`}
+        <button type="button" className="st-upgrade st-buy" onClick={() => buy(sel, sel === CUSTOM_PACK_ID ? credits : undefined)} disabled={Boolean(busy) || locked || gated || selPrice === null}>
+          {busy === sel ? "Opening..." : gated ? "Subscribe to top up" : selPrice === null ? "Buy credits" : `Buy credits · $${selPrice.toFixed(2)}`}
         </button>
         {selPrice !== null && <PriceBadge usd={selPrice} className="badge-row" />}
         {a.enabled && pack && (
@@ -160,6 +161,7 @@ export default function TopUp() {
         {a.lastError && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{a.lastError}</p>}
         {notice && <p className="st-meta st-notice" role="status">{notice}</p>}
         {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
+        {gated && <p className="st-meta" role="status" style={{ marginTop: 8 }}>{info.lockedTopup ? `Your ${info.lockedTopup.toLocaleString("en-US")} top-up credits are saved. They unlock as soon as you subscribe to a plan.` : "Top-ups are for subscribers. Choose a plan below to unlock them."}</p>}
         {locked && <p className="st-meta" style={{ marginTop: 8 }}>Only a team admin can buy credits for the team.</p>}
         {!info.paymentsReady && <p className="st-meta" style={{ marginTop: 8 }}>Payments are not set up yet.</p>}
       </section>

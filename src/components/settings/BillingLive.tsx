@@ -20,6 +20,7 @@ export function CreditNotes() {
   if (!credits) return null;
   return (
     <>
+      {(credits.lockedTopup ?? 0) > 0 && <p className="st-meta">{`${(credits.lockedTopup ?? 0).toLocaleString("en-US")} more top-up credits are saved. They unlock when you subscribe to a plan.`}</p>}
       {!credits.charging && <p className="st-meta">Credits are not charged yet, so images are free for now.</p>}
       {credits.isAdmin && <p className="st-meta"><Link href="/admin/credits" className="bl-link">Add credits to an account</Link> · <Link href="/admin/health" className="bl-link">Health check</Link> · <Link href="/admin/jobs" className="bl-link">Recent renders</Link></p>}
     </>

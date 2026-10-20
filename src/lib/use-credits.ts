@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 export type CreditEntry = { id: string; delta: number; reason: string; note: string | null; createdAt: string };
-export type Credits = { balance: number; charging: boolean; isAdmin: boolean; freeImages?: number; freeMax?: number; history: CreditEntry[] };
+export type Credits = { balance: number; charging: boolean; isAdmin: boolean; freeImages?: number; freeMax?: number; lockedTopup?: number; topupCredits?: number; subscribed?: boolean; history: CreditEntry[] };
 
 // The last balance seen is kept for the whole visit (and across page loads), so a header that mounts on a new screen
 // shows the real amount at once instead of waiting for the network, and the number never flashes 0.
