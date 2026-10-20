@@ -15,7 +15,7 @@ import { createGenerationHeld } from "@/lib/reservations";
 import { claimUsage } from "@/lib/usage";
 import { buildVideoBody, capsFor, findVideoModel, videoPrice, workflowFor } from "@/lib/video-models";
 
-import { fmtCredits } from "@/lib/credit-units";
+import { fmtCredits, LEDGER_UNITS_PER_CREDIT } from "@/lib/credit-units";
 // Settings (all Config values, none are secrets). Defaults are deliberately tight; raise them in Vercel when real costs are known (docs/video-pricing.md).
 const num = (name: string, fallback: number) => (Number(process.env[name]) > 0 ? Math.floor(Number(process.env[name])) : fallback);
 export const videoSettings = () => ({
@@ -23,8 +23,8 @@ export const videoSettings = () => ({
   perMinute: num("VIDEO_RENDERS_PER_MINUTE", 6),
   perDay: num("VIDEO_RENDERS_PER_DAY", 30),
   maxRunning: num("VIDEO_MAX_RUNNING", 3),
-  dailyCredits: num("VIDEO_DAILY_CREDITS", 5000),            // a person's spend on video per rolling day, in LEDGER units (tenths of a credit; 5000 = 500 credits), only counted while credits are on
-  confirmAbove: num("VIDEO_CONFIRM_CREDITS", 500),           // above this price (ledger units; 500 = 50 credits) one render asks for a confirm first
+  dailyCredits: num("VIDEO_DAILY_CREDITS", 5000) * LEDGER_UNITS_PER_CREDIT,            // a person's spend on video per rolling day: the setting is in CREDITS (5000), held here in LEDGER units, only counted while credits are on
+  confirmAbove: num("VIDEO_CONFIRM_CREDITS", 500) * LEDGER_UNITS_PER_CREDIT,           // above this price (the setting is in CREDITS, 500) one render asks for a confirm first
   creditsOn: process.env.CREDITS_ENABLED === "1",
 });
 

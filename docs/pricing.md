@@ -9,8 +9,8 @@ A credit is worth $0.10. The ledger counts in TENTHS of a credit (`LEDGER_UNITS_
 | Batch | Code | Status |
 |---|---|---|
 | 1. Units and plans | `credit-units.ts`, `plans.ts`, `plan-copy.ts`, `subscribe-alert.ts`, `SubscribeAlert.tsx`, Billing and landing copy | built |
-| 2. Image prices | `usd` per resolution in `models.ts`, `imageCredits`, `chargeFor`, Soul batch (`batchId`), GPT Image 1 off | built earlier (PR #58); checked against section 4 in batch 2 |
-| 3. Video prices | `price.usd` in `video-models.ts`, `videoCredits` | NOT to the master brief yet: still the earlier 2.5x rule (`/ $0.04`), batch 3 moves it to 1.8x with `VIDEO_MARGIN` and `VIDEO_CREDIT_USD` |
+| 2. Image prices | `usd` per resolution in `models.ts`, `imageCredits`, `chargeFor`, Soul batch (`batchId`), GPT Image 1 off | built earlier (PR #58); every row of section 4 asserted in batch 2 |
+| 3. Video prices | `price.usd` in `video-models.ts`, `videoCredits` | built: 1.8x with `VIDEO_MARGIN` / `VIDEO_CREDIT_USD`, every row of section 5 asserted for 5 s and 4 s, daily cap and confirm defaults now in credits (5000 / 500) |
 | 4. Anthropic (Auto to Sonnet, caching, trimming) | `connect-models.ts`, `chat-credits.ts`, `connect-agent.ts`, `agent/chat` | not started |
 | 5. Audio config | `AUDIO_MARGIN`, `AUDIO_CREDIT_USD` | defaults already 2.5 and 0.01; display check in batch 5 |
 | 6. Direct routes | `src/lib/routes.ts` | switch, prices and fallback exist against a fake provider; no real provider |
