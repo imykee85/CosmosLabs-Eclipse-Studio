@@ -64,3 +64,34 @@ Activating the model in the console failed with `OperationDenied: No available r
 - Seedance 2.0 (no video input): code 480p 0.0643, 720p 0.1382, 1080p 0.311 per second; provider page 0.07, 0.15, 0.37. The code is LOW by 8%, 8% and 16%, so the direct route would earn less margin than the brief designs for. NOT changed yet: the owner decides whether to update `directUsd` (the price test in `tests/integration/price-dry-run.test.ts` would need the same update).
 - Seedance 2.0 4K: provider page 0.78 per second without video input (Higgsfield-only today).
 - Video-input pricing is per clip and depends on the input length: Eclipse's per-second model cannot represent it without the input duration (a later step).
+
+## CREATE-TASK REQUEST EXAMPLE (BytePlus' own curl sample, pasted by the owner 2026-10-20; the API KEY in the paste was REDACTED here and must be rotated)
+Not verified against the live API; read from the provider's sample only.
+
+```
+POST https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks
+Content-Type: application/json
+Authorization: Bearer <ARK_API_KEY>
+
+{
+  "model": "dreamina-seedance-2-5-260628",
+  "content": [
+    { "type": "text", "text": "<prompt; refers to inputs as Image 1, Video 1, Audio 1 in the order given>" },
+    { "type": "image_url", "image_url": { "url": "https://..." }, "role": "reference_image" },
+    { "type": "image_url", "image_url": { "url": "https://..." }, "role": "reference_image" },
+    { "type": "video_url", "video_url": { "url": "https://...mp4" }, "role": "reference_video" },
+    { "type": "audio_url", "audio_url": { "url": "https://...mp3" }, "role": "reference_audio" }
+  ],
+  "generate_audio": true,
+  "ratio": "16:9",
+  "duration": 11,
+  "watermark": false
+}
+```
+What this tells us:
+- Same host, base path and `Authorization: Bearer` header as Seedream (`https://ark.ap-southeast.bytepluses.com/api/v3`); the path is `/contents/generations/tasks` (the model page said `/v3/contents/generations`).
+- Inputs are a `content` array of typed items with a `role`: text, `image_url` (`reference_image`), `video_url` (`reference_video`), `audio_url` (`reference_audio`). Items are addressed in the prompt by order ("Image 1", "Video 1", "Audio 1"), which matches how Eclipse already numbers references.
+- Top-level fields seen: `generate_audio` (bool), `ratio` (like "16:9"), `duration` (seconds, 11 in the sample), `watermark` (bool). `resolution` and `seed` were NOT in the sample.
+- Reference files are public URLs (Eclipse already makes signed links for them).
+
+STILL MISSING: the QUERY-TASK page (the address to poll, the status words, where the finished video address is, the error shape, token usage), the field names for resolution, first and last frame (their `role` names) and seed, and how Edit and Extend are sent. Ask the owner for those pages.
