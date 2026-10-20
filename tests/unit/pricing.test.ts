@@ -93,54 +93,69 @@ test("Soul 2 and Soul Cinema: one credit for a batch of up to four images", () =
 });
 
 // ---- video ----------------------------------------------------------------------------------------------------------------------------------------------------------
-// [model, resolution, sound, credits for a 5 s clip] copied from the owner's table (brief section 8, "5 s clip with sound" column).
-const VIDEO_TABLE: [string, string | undefined, boolean, number][] = [
-  ["kling_3_std", undefined, true, 16], ["kling_3_pro", undefined, true, 21], ["kling_3_4k", undefined, true, 79], ["kling3_0_turbo", "720p", false, 14], ["kling3_0_turbo", "1080p", false, 18],
-  ["kling2_6", undefined, true, 18], ["kling_2_5_turbo_pro", undefined, false, 9], ["kling_2_5_turbo_std", undefined, false, 6],
-  ["seedance_2_0", "480p", false, 18], ["seedance_2_0", "720p", false, 38], ["seedance_2_0", "1080p", false, 86], ["seedance_2_0", "4k", false, 195],
-  ["seedance_2_5", "480p", false, 26], ["seedance_2_5", "720p", false, 58], ["seedance_2_5", "1080p", false, 143],
-  ["happy_horse_1_1", "720p", false, 18], ["happy_horse_1_1", "1080p", false, 23], ["happy_horse_video", "720p", false, 18], ["happy_horse_video", "1080p", false, 35],
-  ["wan3_0", "480p", false, 7], ["wan3_0", "720p", false, 13], ["wan3_0", "1080p", false, 25], ["wan3_0_prime", "480p", false, 9], ["wan3_0_prime", "720p", false, 18], ["wan3_0_prime", "1080p", false, 35],
-  ["wan2_7", "720p", false, 13], ["wan2_7", "1080p", false, 19], ["wan2_6", "720p", false, 13], ["wan2_6", "1080p", false, 19],
-  ["minimax_h3", "2K", false, 17], ["minimax_hailuo", undefined, false, 7],
-  ["ltx_2_5", "720p", false, 12], ["ltx_2_5", "1080p", false, 17], ["ltx_2_5", "2k", false, 24], ["ltx_2_5", "4k", false, 38], ["ltx_2_5_pro", "720p", false, 15], ["ltx_2_5_pro", "1080p", false, 22],
-  ["grok_video_v15", "480p", false, 10], ["grok_video_v15", "720p", false, 18], ["grok_video_v15", "1080p", false, 32],
-  ["cinematic_studio_video_4_0", "480p", false, 26], ["cinematic_studio_video_4_0", "720p", false, 58],
-  ["pixverse_v6", "360p", false, 5], ["pixverse_v6", "540p", false, 6], ["pixverse_v6", "720p", false, 8], ["pixverse_v6", "1080p", false, 15],
-  ["kling_mc_3_pro", undefined, false, 21], ["kling_mc_3_std", undefined, false, 16], ["kling_mc_26_pro", undefined, false, 21], ["kling_mc_26_std", undefined, false, 21],
-  ["genjutsu_motion", "480p", false, 40], ["genjutsu_motion", "720p", false, 86], ["genjutsu_motion", "1080p", false, 204],
+// [model, resolution, 5 s clip credits, 4 s clip credits] copied from the master brief section 5 ("sound on" columns; models without a separate sound price are the same).
+const VIDEO_TABLE: [string, string | undefined, number, number][] = [
+  ["kling_3_std", undefined, 12, 10], ["kling_3_pro", undefined, 16, 13], ["kling_3_4k", undefined, 57, 46], ["kling3_0_turbo", "720p", 11, 9], ["kling3_0_turbo", "1080p", 13, 11],
+  ["kling2_6", undefined, 13, 11], ["kling_2_5_turbo_pro", undefined, 7, 6], ["kling_2_5_turbo_std", undefined, 4, 4],
+  ["seedance_2_0", "480p", 13, 11], ["seedance_2_0", "720p", 28, 22], ["seedance_2_0", "1080p", 62, 49], ["seedance_2_0", "4k", 140, 112],
+  ["seedance_2_5", "480p", 19, 15], ["seedance_2_5", "720p", 42, 34], ["seedance_2_5", "1080p", 103, 82],
+  ["happy_horse_1_1", "720p", 13, 11], ["happy_horse_1_1", "1080p", 17, 13], ["happy_horse_video", "720p", 13, 11], ["happy_horse_video", "1080p", 26, 21],
+  ["wan3_0", "480p", 5, 4], ["wan3_0", "720p", 9, 8], ["wan3_0", "1080p", 18, 15], ["wan3_0_prime", "480p", 7, 5], ["wan3_0_prime", "720p", 13, 11], ["wan3_0_prime", "1080p", 26, 21],
+  ["wan2_7", "720p", 9, 8], ["wan2_7", "1080p", 14, 11], ["wan2_6", "720p", 9, 8], ["wan2_6", "1080p", 14, 11],
+  ["minimax_h3", "2K", 12, 10], ["minimax_hailuo", undefined, 6, 5],
+  ["ltx_2_5", "720p", 9, 7], ["ltx_2_5", "1080p", 12, 10], ["ltx_2_5", "2k", 18, 14], ["ltx_2_5", "4k", 27, 22], ["ltx_2_5_pro", "720p", 11, 9], ["ltx_2_5_pro", "1080p", 16, 13],
+  ["grok_video_v15", "480p", 8, 6], ["grok_video_v15", "720p", 13, 11], ["grok_video_v15", "1080p", 23, 18],
+  ["cinematic_studio_video_4_0", "480p", 19, 15], ["cinematic_studio_video_4_0", "720p", 42, 34],
+  ["pixverse_v6", "360p", 4, 3], ["pixverse_v6", "540p", 5, 4], ["pixverse_v6", "720p", 6, 5], ["pixverse_v6", "1080p", 11, 9],
+  ["kling_mc_3_pro", undefined, 16, 13], ["kling_mc_3_std", undefined, 12, 10], ["kling_mc_26_pro", undefined, 16, 13], ["kling_mc_26_std", undefined, 16, 13],
+  ["genjutsu_motion", "480p", 29, 23], ["genjutsu_motion", "720p", 62, 50], ["genjutsu_motion", "1080p", 147, 118],
 ];
 
-test("a 5 second clip costs what the table says for every model and resolution", () => {
-  for (const [id, res, sound, want] of VIDEO_TABLE) {
+test("5 s and 4 s clips cost what the master brief table says for every model and resolution (1.8x)", () => {
+  for (const [id, res, five, four] of VIDEO_TABLE) {
     const m = videoModelById(id);
     assert.ok(m?.live, `${id} is connected`);
-    assert.equal(videoCredits(m!, res, 5, sound), want, `${id} ${res ?? ""}${sound ? " sound" : ""}`);
-    assert.equal(videoPrice(m!, res, 5, sound), want * 10, "the ledger unit is a tenth of a credit");
+    assert.equal(videoCredits(m!, res, 5, true), five, `${id} ${res ?? ""} 5 s`);
+    assert.equal(videoCredits(m!, res, 4, true), four, `${id} ${res ?? ""} 4 s`);
+    assert.equal(videoPrice(m!, res, 5, true), five * 10, "the ledger unit is a tenth of a credit");
   }
+});
+
+test("the video markup and credit value come from VIDEO_MARGIN and VIDEO_CREDIT_USD", () => {
+  const m = videoModelById("kling_3_pro")!;
+  assert.equal(videoCredits(m, undefined, 5, true), 16);
+  process.env.VIDEO_MARGIN = "2.5"; process.env.VIDEO_CREDIT_USD = "0.10";
+  try { assert.equal(videoCredits(m, undefined, 5, true), 21); } finally { delete process.env.VIDEO_MARGIN; delete process.env.VIDEO_CREDIT_USD; }
 });
 
 test("video is rounded ONCE for the whole clip, never per second", () => {
   const std = videoModelById("kling_3_std")!;
-  // 2.10 credits a second without sound: 3 s = 6.3 -> 7, not 3 x ceil(2.1) = 9
-  assert.equal(videoCredits(std, undefined, 3, false), 7);
-  assert.equal(videoCredits(std, undefined, 10, false), 21);
-  // sound off costs less than sound on where the provider charges differently, and the same where it does not
+  // 0.084 x 1.8 / 0.10 = 1.512 credits a second without sound: 3 s = 4.536 -> 5, not 3 x ceil(1.512) = 6
+  assert.equal(videoCredits(std, undefined, 3, false), 5);
+  assert.equal(videoCredits(std, undefined, 10, false), 16);
   assert.ok(videoCredits(std, undefined, 5, false)! < videoCredits(std, undefined, 5, true)!);
   const seed = videoModelById("seedance_2_0")!;
   assert.equal(videoCredits(seed, "720p", 5, true), videoCredits(seed, "720p", 5, false));
-  assert.equal(videoCredits(seed, "720p", 1, false), 8, "never below 1 credit, and 7.56 rounds up");
+  assert.equal(videoCredits(seed, "720p", 1, false), 6, "5.44 rounds up");
+});
+
+test("Seedance clips can be 4 s: the minimum comes from the model settings", () => {
+  for (const id of ["seedance_2_0", "seedance_2_5"]) for (const wf of ["t2v", "i2v"] as const) assert.equal(videoModelById(id)!.live!.durations[wf].min, 4, `${id} ${wf}`);
 });
 
 test("Seedance direct is cheaper and follows the route that is really used", () => {
   const s25 = videoModelById("seedance_2_5")!;
-  assert.equal(videoCredits(s25, "720p", 5, false, "direct"), 29);
-  assert.equal(videoPrice(s25, "720p", 5, false, "direct"), 290);
-  assert.equal(videoCredits(s25, "720p", 5, false, "higgsfield"), 58);
+  assert.equal(videoCredits(s25, "720p", 5, false, "direct"), 21);
+  assert.equal(videoPrice(s25, "720p", 5, false, "direct"), 210);
+  assert.equal(videoCredits(s25, "1080p", 4, false, "direct"), 41);
+  assert.equal(videoPrice(s25, "1080p", 4, false, "direct"), 410);
+  assert.equal(videoCredits(s25, "720p", 5, false, "higgsfield"), 42);
   const s20 = videoModelById("seedance_2_0")!;
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 5, false, "direct")), [9, 18, 39]);
-  assert.equal(videoCredits(s20, "4k", 5, false, "direct"), 195, "4k stays on Higgsfield");
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s25, r, 5, false, "direct")), [14, 29, 72]);
+  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 5, false, "direct")), [6, 13, 28]);
+  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 4, false, "direct")), [5, 10, 23]);
+  assert.equal(videoCredits(s20, "4k", 5, false, "direct"), 140, "4k stays on Higgsfield");
+  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s25, r, 5, false, "direct")), [10, 21, 52]);
+  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s25, r, 4, false, "direct")), [8, 17, 41]);
 });
 
 // ---- routes ---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -180,10 +195,10 @@ test("out-of-credits messages speak in credits", () => {
 });
 
 // ---- the owner's price check ----------------------------------------------------------------------------------------------------------------------------------------
-test("every plan earns a margin above 40 percent on every row, and the estimates are flagged", () => {
+test("every plan earns the margin floor on every row (20% video, 40% the rest), and the estimates are flagged", () => {
   const rows = allPriceRows();
   assert.ok(rows.length > 100);
-  for (const r of rows) for (const [plan, m] of Object.entries(r.margin)) assert.ok(m > 0.4, `${r.model} ${r.setting} on ${plan}: ${m}`);
+  for (const r of rows) for (const [plan, m] of Object.entries(r.margin)) assert.ok(m > (r.kind === "video" ? 0.2 : 0.4), `${r.model} ${r.setting} on ${plan}: ${m}`);
   assert.deepEqual(plans.map((p) => Number(netPerCredit(p).toFixed(4))), [0.0876, 0.0761, 0.0745]);
   const flagged = (id: string, setting: string) => rows.find((r) => r.model === id && r.setting === setting)?.estimate;
   assert.equal(flagged("soul_cinema", "1080p"), true);

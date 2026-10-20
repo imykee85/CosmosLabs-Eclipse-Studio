@@ -5,7 +5,7 @@
 // Shared by the browser (controls, price estimate) and the server (validation, request body, price).
 
 import { toLedger } from "./credit-units";
-import { CREDIT_PROVIDER_USD } from "./price-constants";
+import { videoCreditsForUsd } from "./price-constants";
 import type { Route } from "./routes";
 
 export type Workflow = "t2v" | "i2v" | "ref" | "motion"; // text, start frame(s), reference pictures/clips, or motion transfer (Motion chip)
@@ -135,7 +135,7 @@ const seedance2: VideoLive = {
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.0644, "720p": 0.1384, "1080p": 0.3112 }, estimate: ["direct"] },
+  price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.0643, "720p": 0.1382, "1080p": 0.311 }, estimate: ["direct"] },
   timeoutMinutes: SLOW,
   note: "4k can take twice as long.",
 };
@@ -153,7 +153,7 @@ const seedance25: VideoLive = {
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { usd: { "480p": 0.2056, "720p": 0.4622, "1080p": 1.1372 }, directUsd: { "480p": 0.1076, "720p": 0.2312, "1080p": 0.5684 }, estimate: ["direct"] },
+  price: { usd: { "480p": 0.2056, "720p": 0.4622, "1080p": 1.1372 }, directUsd: { "480p": 0.1075, "720p": 0.2311, "1080p": 0.5686 }, estimate: ["direct"] },
   timeoutMinutes: SLOW,
   note: "Clips over 20 seconds can take twice as long.",
 };
@@ -505,8 +505,8 @@ export function videoCredits(m: VideoModel, resolution: string | undefined, dura
   const table = direct && direct[resolution ?? "default"] != null ? direct : normal;
   const key = resolution && table[resolution] != null ? resolution : table.default != null ? "default" : Object.keys(table)[0];
   const perSecond = table[key] ?? l.price.usd[key] ?? Math.max(...Object.values(l.price.usd));
-  // the 6-decimal round keeps 5 s x 0.084 / 0.04 from becoming 10.500000000000002 style noise; the ceil happens once, on the whole clip
-  return Math.max(1, Math.ceil(Math.round((duration * perSecond) / CREDIT_PROVIDER_USD * 1e6) / 1e6));
+  // video markup 1.8x (master brief section 1); the ceil happens once, on the whole clip
+  return videoCreditsForUsd(duration * perSecond);
 }
 export function videoPrice(m: VideoModel, resolution: string | undefined, duration: number, audio: boolean, route: Route = "higgsfield"): number | null {
   const c = videoCredits(m, resolution, duration, audio, route);
