@@ -86,3 +86,15 @@ If an account is deleted, its subscription is cancelled with `POST /memberships/
 4. Refund the pack. Expect 500 credits taken back.
 5. Cancel the subscription. On `membership.deactivated`, expect top-up credits to lock and auto top-up to switch off.
 6. Wait for or trigger a renewal. Expect +1,000 credits even if the metadata is missing.
+
+## 5. Changes made after Whop's review (2026-10-20)
+- **Webhook check:** deliveries are now verified with `unwrapWebhook` from `@whop/sdk/helpers` (version 2.1.0), with the `ws_...` secret passed as-is. Reading the helper's code confirmed that it HMACs with the literal bytes of the whole secret. That is the same thing our earlier hand-written check did, so the switch changes no behavior.
+- **Company field:** checkout and charge requests send `account_id` (the `biz_...` id), not `company_id`.
+- **Cancel:** sends `cancel_at_period_end: false` (immediate). `cancellation_mode` is gone.
+- **Off-session charge:**
+  - `POST /payments` now sends `off_session: true`.
+  - Its response is treated as "created" only. Credits are granted only by `payment.succeeded`.
+  - While a charge is unconfirmed, no second automatic charge is made. After 30 minutes without confirmation, an alert is logged.
+  - The job that triggered the top-up is refused that time, and runs once the credits arrive.
+- **Off-session cards only:** before an automatic charge we call `GET /payment_methods?member_id=...&future_usage=off_session`. If the saved card is not listed, the charge is not made, auto top-up switches off, and the person is told why.
+- **Event log and alert:** every verified delivery is stored with its outcome (applied, duplicate, ignored, unmatched, error) and its field names and value types only, never values. Unmatched deliveries (still answered 422 so Whop retries) and errors are flagged in our owner health page and logged as `PAYMENT ALERT`. The first real events will be checked against this log.

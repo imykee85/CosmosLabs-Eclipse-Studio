@@ -27,6 +27,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.0.0",
     "@vercel/sandbox": "3.8.0",
+    "@whop/sdk": "2.1.0",
     "@xyflow/react": "^12.12.0",
     "lucide-react": "^1.51.0",
     "mammoth": "1.13.0",

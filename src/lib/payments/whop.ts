@@ -1,16 +1,16 @@
-import { verifyStandardWebhook } from "./standard-webhooks";
+import { unwrapWebhook } from "@whop/sdk/helpers";
+import { InvalidWebhookError } from "./types";
 import type { CheckoutInput, PaymentEvent, PaymentProvider, PaymentRefs, SavedCard, SavedCardCharge } from "./types";
 
-// Whop adapter. NOT yet checked against a live Whop account, so before taking real money confirm these against Whop's developer docs:
-//  - the API base address and bearer-token auth (WHOP_API_BASE overrides the default below),
-//  - POST /checkout_configurations with plan_id, metadata and redirect_url, answering with purchase_url,
-//  - that webhooks are signed the Standard Webhooks way (the ws_... secret used as-is, as Whop's own SDK does) and the events are
-//    "payment.succeeded", "membership.deactivated" and "refund.created",
-//  - which fields of that event carry the member, saved payment method and membership (read defensively in refsFrom below),
-//  - POST /payments (WHOP_CHARGE_PATH overrides the path) charging a saved payment method for a one-time price, and
-//    POST /memberships/<id>/cancel (WHOP_CANCEL_PATH) ending a subscription,
-//  - saved cards: GET /payment_methods?member_id= (WHOP_PAYMENT_METHODS_PATH), DELETE /payment_methods/<id> (WHOP_PAYMENT_METHOD_PATH),
-//    a card-only checkout (POST /checkout_configurations with mode "setup") and its "setup_intent.succeeded" webhook.
+// Whop adapter. Checked with Whop's assistant against its API definitions on 2026-10-20: inline plans on checkout, POST /payments for an
+// off-session charge (its answer means CREATED, never "paid": credits come only from the payment.succeeded webhook), GET /payment_methods
+// (with future_usage=off_session for cards that may be charged without the person present), checkout mode "setup", the account_id field, and
+// cancel with cancel_at_period_end. Webhooks are verified with Whop's own SDK helper (unwrapWebhook, the ws_... secret passed as-is).
+// Still NOT confirmed (the first real events are logged with their shape on /admin/health; code against what arrives):
+//  - the fields each event carries: member, payment method and membership on payment.succeeded (read defensively in refsFrom), whether a
+//    renewal carries our metadata (if not, the plan id and the saved membership id are used), the membership id on membership.deactivated,
+//    and the payment id and any partial amount on refund.created,
+//  - DELETE /payment_methods/<id> (WHOP_PAYMENT_METHOD_PATH) and the "setup_intent.succeeded" event of a card-only checkout.
 // Everything fails closed: a delivery that does not verify or does not parse never grants credits.
 
 const DEFAULT_API_BASE = "https://api.whop.com/api/v1";
@@ -42,6 +42,9 @@ function inlinePlan(price: number, credits: number | undefined) {
   };
 }
 
+/** Whop calls the company field account_id. The value is the company id (biz_...) from WHOP_COMPANY_ID. */
+const account = () => (process.env.WHOP_COMPANY_ID ? { account_id: process.env.WHOP_COMPANY_ID } : {});
+
 const apiBase = () => process.env.WHOP_API_BASE ?? DEFAULT_API_BASE;
 const authHeaders = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${process.env.WHOP_API_KEY}` });
 const text = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
@@ -67,7 +70,7 @@ export const whop: PaymentProvider = {
       body: JSON.stringify({
         // A custom amount has no ready-made plan: the one-time price goes in the request itself.
         ...(custom ? { plan: inlinePlan(custom.price, custom.credits) } : { plan_id: whopPlanId(planId) }),
-        ...(process.env.WHOP_COMPANY_ID ? { company_id: process.env.WHOP_COMPANY_ID } : {}),
+        ...account(),
         redirect_url: returnUrl,
         // Whop copies this onto the payment, which is how the webhook later knows whose purchase it was and which plan.
         metadata: { userId, planId, ...(custom ? { credits: custom.credits } : {}) },
@@ -80,7 +83,11 @@ export const whop: PaymentProvider = {
   },
 
   async parseWebhook(rawBody: string, headers: Headers): Promise<PaymentEvent | null> {
-    verifyStandardWebhook(rawBody, headers, process.env.WHOP_WEBHOOK_SECRET ?? "");
+    try {
+      unwrapWebhook(rawBody, { headers: Object.fromEntries(headers), key: process.env.WHOP_WEBHOOK_SECRET ?? "" });
+    } catch {
+      throw new InvalidWebhookError("Signature does not verify"); // a missing key also fails closed
+    }
 
     const event = JSON.parse(rawBody) as { type?: string; data?: { id?: string; metadata?: { userId?: unknown; planId?: unknown } } & Record<string, unknown> };
     if (event.type === SETUP_SUCCEEDED) {
@@ -129,22 +136,25 @@ export const whop: PaymentProvider = {
       method: "POST",
       headers: { ...authHeaders(), "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({
-        ...(process.env.WHOP_COMPANY_ID ? { company_id: process.env.WHOP_COMPANY_ID } : {}),
+        ...account(),
         member_id: memberId,
         payment_method_id: paymentMethodId,
+        off_session: true,
         plan: inlinePlan(price, credits),
         metadata: { userId, planId: productId, ...(credits ? { credits } : {}), auto: "1" },
       }),
     });
     if (!res.ok) throw new Error(`Whop charge failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
-    const body = (await res.json()) as { id?: string; status?: string };
+    const body = (await res.json()) as { id?: string };
     if (!body.id) throw new Error("Whop did not return a payment id");
-    return { externalId: body.id, status: body.status === "paid" ? ("paid" as const) : ("pending" as const) };
+    // The answer is the payment as CREATED, not a promise it went through: the credits are granted only by the payment.succeeded webhook.
+    return { externalId: body.id, status: "pending" as const };
   },
 
-  async listPaymentMethods(memberId: string): Promise<SavedCard[]> {
+  async listPaymentMethods(memberId: string, opts: { offSessionOnly?: boolean } = {}): Promise<SavedCard[]> {
     const path = process.env.WHOP_PAYMENT_METHODS_PATH ?? "/payment_methods";
-    const res = await fetch(`${apiBase()}${path}?member_id=${encodeURIComponent(memberId)}`, { headers: authHeaders() });
+    const filter = opts.offSessionOnly ? "&future_usage=off_session" : "";
+    const res = await fetch(`${apiBase()}${path}?member_id=${encodeURIComponent(memberId)}${filter}`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`Whop card list failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
     const body = (await res.json()) as { data?: unknown[] } | unknown[];
     const rows = Array.isArray(body) ? body : Array.isArray(body.data) ? body.data : [];
@@ -173,7 +183,7 @@ export const whop: PaymentProvider = {
       headers: authHeaders(),
       body: JSON.stringify({
         mode: "setup",
-        ...(process.env.WHOP_COMPANY_ID ? { company_id: process.env.WHOP_COMPANY_ID } : {}),
+        ...account(),
         redirect_url: returnUrl,
         metadata: { userId, kind: "card" },
       }),
@@ -186,7 +196,7 @@ export const whop: PaymentProvider = {
 
   async cancelMembership(membershipId: string) {
     const path = (process.env.WHOP_CANCEL_PATH ?? "/memberships/{id}/cancel").replace("{id}", encodeURIComponent(membershipId));
-    const res = await fetch(`${apiBase()}${path}`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ cancellation_mode: "immediate" }) });
+    const res = await fetch(`${apiBase()}${path}`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ cancel_at_period_end: false }) });
     if (!res.ok) throw new Error(`Whop cancel failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
   },
 };

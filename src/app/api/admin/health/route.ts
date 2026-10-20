@@ -121,5 +121,25 @@ export async function POST() {
     add(null, "Sandbox: could not be checked");
   }
 
+  // Payment provider deliveries: what arrived and what we did with it. The field list is the SHAPE only (names and types, never values),
+  // to compare with what the code expects and to send to the provider's support when something does not match.
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    const [unmatched, recent] = await Promise.all([
+      db.paymentEventLog.count({ where: { createdAt: { gte: since }, outcome: { in: ["unmatched", "error"] } } }),
+      db.paymentEventLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+    ]);
+    if (!recent.length) add(null, "Payment events: none received yet");
+    else {
+      add(unmatched === 0, `Payment events needing attention in the last 7 days: ${unmatched}`);
+      for (const e of recent) {
+        add(e.outcome === "unmatched" || e.outcome === "error" ? false : null, `Payment event ${e.createdAt.toISOString()} ${e.type}: ${e.outcome}${e.detail ? ` (${safeText(e.detail)})` : ""}`);
+        lines.push(`      fields: ${Object.entries((e.shape ?? {}) as Record<string, string>).map(([k, v]) => `${k}:${v}`).join(", ").slice(0, 1500)}`);
+      }
+    }
+  } catch {
+    add(null, "Payment events: could not be read");
+  }
+
   return NextResponse.json({ lines, at: new Date().toISOString() });
 }

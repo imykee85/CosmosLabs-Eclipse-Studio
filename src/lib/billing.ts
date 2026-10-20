@@ -12,6 +12,8 @@ import { AUTO_MONTHLY_CAPS, AUTO_THRESHOLDS, CUSTOM_PACK_ID, creditPacks, produc
 
 export const creditsOn = () => process.env.CREDITS_ENABLED === "1";
 const DAY = 24 * 3600 * 1000;
+const PENDING_WAIT = 30 * 60_000;
+const NOT_OFF_SESSION = "Your saved card is not set up for automatic charges, so auto top-up was switched off. Buy credits once with the card you want to use, then switch it on again.";
 const DECLINED = "The last automatic top-up could not be charged, so auto top-up was switched off. Check your card and switch it on again.";
 
 export type AutoTopupView = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number };
@@ -99,6 +101,7 @@ export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Pr
   if (!userId) return { ok: false, error: "Unknown customer" };
   const note = event.auto ? `Auto top-up: ${product.name}` : product.kind === "pack" ? `Top-up: ${product.name}` : `Plan: ${product.name}`;
   const added = await grantCredits(userId, product.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId, note });
+  if (event.auto) await db.billingSettings.updateMany({ where: { userId }, data: { autoPendingPaymentId: null, autoPendingAt: null } }); // confirmed
   if (product.kind === "plan") await db.billingSettings.updateMany({ where: { userId }, data: { subscriptionEndedAt: null } }); // paid again: active
   await rememberRefs(userId, event.refs, product.kind === "plan").catch((e) => console.error("could not save payment references", e));
   return { ok: true, duplicate: !added };
@@ -120,7 +123,8 @@ async function applyRefund(event: PaymentEvent): Promise<{ ok: true; duplicate: 
 
 /**
  * Tops up automatically when the person has asked for it, has a saved card, and their free credits are below their limit (or below `needed`, the
- * price of the job they just tried to start). Returns true when credits were added. Never throws: a failure switches auto top-up off and says why.
+ * price of the job they just tried to start). Returns true only when credits were added at once; with Whop the charge is confirmed later by the
+ * payment.succeeded webhook, so this starts the charge and returns false (the job that triggered it is refused this time). Never throws: a failure switches auto top-up off and says why.
  * Guards: one attempt at a time per person (a 2 minute claim), a monthly limit of their choosing, and a hard cap of 3 a day.
  */
 export async function autoTopup(userId: string, opts: { needed?: number } = {}): Promise<boolean> {
@@ -129,6 +133,9 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
     const s = await db.billingSettings.findUnique({ where: { userId } });
     if (!s?.autoEnabled || !s.providerMemberId || !s.providerPaymentMethod) return false;
     if (subscriptionRuleOn() && !(await hasSubscription(userId))) return false; // top-ups are for subscribers: never charge a card that could not use the credits
+    // A charge already started and not yet confirmed: wait for its webhook rather than charging again. After 30 minutes it is given up on.
+    if (s.autoPendingAt && Date.now() - s.autoPendingAt.getTime() < PENDING_WAIT) return false;
+    if (s.autoPendingAt) console.error("PAYMENT ALERT: an automatic top-up was never confirmed", userId, s.autoPendingPaymentId);
     const provider = paymentProvider();
     if (!provider?.chargeSavedCard) return false;
     const pack = s.autoPack === CUSTOM_PACK_ID ? productById(CUSTOM_PACK_ID, s.autoCredits) : creditPacks.find((p) => p.id === s.autoPack);
@@ -151,6 +158,17 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
       return false;
     }
 
+    // Only a card the person saved for charging without them present may be charged here.
+    if (provider.listPaymentMethods) {
+      let offSession;
+      try { offSession = await provider.listPaymentMethods(s.providerMemberId, { offSessionOnly: true }); }
+      catch (err) { console.error("auto top-up could not check the saved card", userId, err); return false; }
+      if (!offSession.some((c) => c.id === s.providerPaymentMethod)) {
+        await db.billingSettings.update({ where: { userId }, data: { autoEnabled: false, autoLastError: NOT_OFF_SESSION } });
+        return false;
+      }
+    }
+
     let charge;
     try {
       charge = await provider.chargeSavedCard({ userId, productId: pack.id, ...(pack.id === CUSTOM_PACK_ID ? { credits: pack.credits } : {}), price: pack.price, memberId: s.providerMemberId, paymentMethodId: s.providerPaymentMethod, idempotencyKey: `auto-${userId}-${randomUUID()}` });
@@ -159,7 +177,10 @@ export async function autoTopup(userId: string, opts: { needed?: number } = {}):
       await db.billingSettings.update({ where: { userId }, data: { autoEnabled: false, autoLastError: DECLINED } });
       return false;
     }
-    if (charge.status !== "paid") return false; // the provider confirms by webhook, which grants the credits (once)
+    if (charge.status !== "paid") { // the provider confirms by webhook, which grants the credits (once); Whop always answers this way
+      await db.billingSettings.update({ where: { userId }, data: { autoLastError: null, autoPendingPaymentId: charge.externalId, autoPendingAt: new Date() } });
+      return false;
+    }
     await grantCredits(userId, pack.credits, { reason: "PURCHASE", provider: provider.name, externalId: charge.externalId, note: `Auto top-up: ${pack.name}` });
     await db.billingSettings.update({ where: { userId }, data: { autoLastError: null } });
     return true;

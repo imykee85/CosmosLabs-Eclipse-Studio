@@ -535,6 +535,8 @@ model BillingSettings {
   autoMaxPerMonth       Int       @default(3) @map("auto_max_per_month")
   autoLastAttemptAt     DateTime? @map("auto_last_attempt_at")
   autoLastError         String?   @map("auto_last_error")
+  autoPendingPaymentId  String?   @map("auto_pending_payment_id") // an automatic charge started but not yet confirmed by the webhook
+  autoPendingAt         DateTime? @map("auto_pending_at")
   providerMemberId      String?   @map("provider_member_id")
   providerPaymentMethod String?   @map("provider_payment_method")
   providerMembershipId  String?   @map("provider_membership_id") // the SUBSCRIPTION's membership (top-up purchases never overwrite it)
@@ -554,4 +556,21 @@ model FreeRender {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("free_renders")
+}
+
+// Every payment-provider webhook delivery that passed the signature check: its type, what we did with it, and its SHAPE (field names and value
+// types only, never values), so the owner can see what the provider really sends. "unmatched" rows are deliveries we could not credit to anyone.
+model PaymentEventLog {
+  id         String   @id @default(cuid())
+  provider   String
+  type       String
+  externalId String?  @map("external_id")
+  outcome    String // applied | duplicate | ignored | unmatched | error
+  detail     String?
+  shape      Json
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([outcome, createdAt])
+  @@map("payment_event_logs")
 }
