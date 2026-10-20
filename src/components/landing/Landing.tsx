@@ -6,7 +6,7 @@ import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
-import { FREE_RENDERS_DEFAULT, freePlan, plans } from "@/lib/plans";
+import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import LanguageMenu from "@/components/i18n/LanguageMenu";
 import HeroImage from "./HeroImage";
@@ -183,12 +183,13 @@ export default function Landing() {
         <h2 className="plans-title">pick the plan<br /><em>that fits.</em></h2>
         <div className="plan-grid has-free">
           <article className="plan-card plan-free">
-            <h3>{freePlan.name}</h3>
-            <p className="plan-price">$0<small>/forever</small></p>
+            <h3>Trial</h3>
+            <p className="plan-price">$0</p>
             <ul>
-              <li><Check size={15} /> {FREE_RENDERS_DEFAULT} free image generations</li>
+              <li><Check size={15} /> Free trial credits</li>
               <li><Check size={15} /> Any image model</li>
               <li><Check size={15} /> Private gallery for every project</li>
+              <li><Check size={15} /> Access to free tutorials</li>
             </ul>
             <SignedOut><Link className="pill-btn" href="/sign-up">Start free</Link></SignedOut>
             <SignedIn><Link className="pill-btn" href="/dashboard">Open Eclipse</Link></SignedIn>
