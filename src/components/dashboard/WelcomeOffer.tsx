@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Gift, X } from "lucide-react";
 import { useCredits } from "@/lib/use-credits";
+import { launchConfetti, playPops } from "./confetti";
 
 const SEEN = "eclipse-welcome-offer";
 
@@ -16,6 +17,15 @@ export default function WelcomeOffer({ onStart }: { onStart: () => void }) {
     if (left <= 0) return;
     try { if (!localStorage.getItem(SEEN)) setOpen(true); } catch { setOpen(true); }
   }, [left]);
+
+  // Confetti falls over the whole screen, with pops, as the pop-up opens.
+  // It keeps falling for a moment if the pop-up is closed (a tap that also unlocks the sound), and stops for good when the dashboard is left.
+  const stops = useRef<(() => void)[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    stops.current = [launchConfetti(), playPops()];
+  }, [open]);
+  useEffect(() => () => stops.current.forEach((fn) => fn()), []);
 
   useEffect(() => {
     if (!open) return;
