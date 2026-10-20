@@ -16,7 +16,7 @@ This follows up on `whop-billing-feedback.md` (company `biz_rhkNGepOfGhZ5X`, pro
 | 422 for an unknown customer is fine, but add an alert | It still answers 422 so Whop retries. Every unmatched or failed delivery is also flagged on our owner health page and logged as `PAYMENT ALERT`. |
 
 **Webhook address:** `https://eclipse.cosmoslabsai.com/api/payments/webhook`
-**Events subscribed:** `payment.succeeded`, `membership.deactivated`, `refund.created`
+**Events subscribed:** see section 5 (`membership.deactivated` turned out not to exist).
 
 ## 2. How the unconfirmed items are handled
 
@@ -57,3 +57,34 @@ Until then, the app reads each field defensively, in this order:
 6. **Cancel the subscription.** On `membership.deactivated`, expect top-up credits to lock and auto top-up to switch off.
 
 We will send you the field log from these events if anything does not match.
+
+## 5. Changes after Whop's second review (2026-10-20)
+
+**Events to subscribe the webhook to:**
+- `payment.succeeded`
+- `payment.failed`
+- `payment.requires_action`
+- `membership.activated`
+- `membership.updated`
+- `refund.created`
+- `refund.updated`
+- `setup_intent.succeeded`
+
+| Your answer | What the app does now |
+|---|---|
+| `membership.deactivated` does not exist | **Subscription status.** The app reads `membership.updated` and `membership.activated`. `data.id` is the membership id. The status `canceled`, `expired` or `completed` ends the subscription at once: top-up credits lock and auto top-up switches off. `cancel_at_period_end: true` with status `active` changes nothing, so access stays until the status itself changes.<br>**Statuses that change nothing.** `past_due` and other in-between statuses change nothing.<br>**Older subscriptions.** Only the subscription we saved counts. A top-up's own membership, or an older subscription after a new one, is ignored.<br>**Out-of-order updates.** An `active` update older than a recorded end does not undo the end. The time used is `data.updated_at`, falling back to the envelope `timestamp`. |
+| `payment.failed` and `payment.requires_action` exist | **Matching.** These are matched to a pending automatic top-up by payment id, or by our metadata (`auto: "1"` plus `userId`). A failed checkout the person was present for changes nothing.<br>**`payment.failed`.** Auto top-up switches off, with a plain message to the customer.<br>**`payment.requires_action`.** Auto top-up stays on. Settings shows "Confirm the payment", linking to `data.recovery_url` (https only). No new automatic charge is made for up to 24 hours while the bank waits for the customer. |
+| `refund.created` carries `data.amount` (dollars) and `data.status` | **Status.** Credits are taken back only when `data.status` is `succeeded`. `refund.updated` is handled the same way, once per refund id.<br>**Amount.** The share taken back is `data.amount` divided by the payment's total. The total is read from `data.payment.total`, `final_amount`, `usd_total`, `subtotal` or `amount`, in that order. If none is present, our own price for what was bought is used. A partial refund takes back the same share of the credits.<br>**Limits.** Several refunds of one payment never take back more than it granted. Credits already spent are not taken back. |
+| Order isn't guaranteed | A refund that arrives before its payment is answered with 422, so Whop delivers it again later. |
+| Dedupe on `webhook-id` | **Retries.** A delivery answered with success is recorded by its `webhook-id` for 7 days, and a retry with the same id is acknowledged without doing anything.<br>**Failed deliveries.** A delivery that failed (422 or 500) is not recorded, so its retry is processed again.<br>**Payment ids.** Granting credits stays idempotent per payment id as well. |
+| Envelope `account_id` or `company_id` | **Company check.** Either is read. A delivery naming a company other than ours (`WHOP_COMPANY_ID`) is ignored. |
+| `setup_intent.succeeded` carries `data.member.id`, `data.payment_method.id` | **Matching the person.** The card is saved for the person named by our metadata, or found by the member id saved from an earlier payment. |
+| Respond within 5 seconds | Handling is a few database writes, well under the limit. Unmatched deliveries (422) and errors are flagged on our owner health page and logged as `PAYMENT ALERT`. |
+
+**Still to confirm with the first real events:**
+- **Renewals:** whether a renewal carries our checkout metadata. The membership-id fallback stays in place.
+- **Plan field:** where the plan sits on `payment.succeeded`.
+- **Payment total:** which field holds the payment's total on a refund.
+- **Payment ids:** that the id returned by `POST /payments` matches `data.id` on the later events.
+
+Whop's delivery log, which Whop keeps for 30 days, and our own field log (field names and value types only) will be compared after the first test payments.

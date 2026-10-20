@@ -12,9 +12,16 @@ export type PaymentRefs = { memberId?: string; paymentMethodId?: string; members
 export type PaymentEvent = {
   provider: string; externalId: string; userId: string; planId: string; credits?: number; auto?: boolean; refs?: PaymentRefs;
   /** A card was saved without buying anything: only the references are kept, no credits. */ cardOnly?: boolean;
-  /** "payment" (default): credits are granted. "deactivated": the subscription with refs.membershipId ended. "refund": the payment `refundOf` was refunded. */
-  kind?: "payment" | "deactivated" | "refund";
+  /**
+   * "payment" (default): credits are granted. "deactivated": the subscription with refs.membershipId ended (at `at`). "activated": it is live again.
+   * "refund": the payment `refundOf` was refunded (`refundAmount` of `paymentTotal`, in dollars, when the provider says). "failed": a payment was
+   * refused. "action": a payment waits for the person to confirm it with their bank (`actionUrl`).
+   */
+  kind?: "payment" | "deactivated" | "activated" | "refund" | "failed" | "action";
   /** The payment a refund is for. */ refundOf?: string;
+  refundAmount?: number; paymentTotal?: number;
+  /** When the provider says the subscription ended. */ at?: Date;
+  /** The provider's page where the person confirms a payment their bank holds back (3D Secure). */ actionUrl?: string;
 };
 
 export type SavedCardCharge = { userId: string; productId: string; credits?: number; price: number; memberId: string; paymentMethodId: string; idempotencyKey: string };
