@@ -68,7 +68,7 @@ export default function PaymentMethods() {
     <section className="st-section" aria-labelledby="st-cards">
       <div className="st-cardshead">
         <h3 id="st-cards" className="st-h3">Payment methods</h3>
-        <button type="button" className="st-addcard" onClick={add} disabled={busy === "add" || cards === null}><Plus size={15} /> {busy === "add" ? "Opening..." : "Add card"}</button>
+        <button type="button" className="st-addcard" onClick={add} disabled={busy === "add" || cards === null}><Plus size={15} /> Add card</button>
       </div>
       {cards === null ? null : list.length === 0 ? (
         <p className="st-meta">{loadError || "No saved cards. The card you pay with first is saved here as your default."}</p>

@@ -149,7 +149,7 @@ export default function TopUp() {
           </div>
         )}
         <button type="button" className="st-upgrade st-buy" onClick={() => buy(sel, sel === CUSTOM_PACK_ID ? credits : undefined)} disabled={Boolean(busy) || locked || gated || selPrice === null}>
-          {busy === sel ? "Opening..." : gated ? "Subscribe to top up" : selPrice === null ? "Buy credits" : `Buy credits · $${selPrice.toFixed(2)}`}
+          {gated ? "Subscribe to top up" : selPrice === null ? "Buy credits" : `Buy credits · $${selPrice.toFixed(2)}`}
         </button>
         {selPrice !== null && <PriceBadge usd={selPrice} className="badge-row" />}
         {a.enabled && pack && (
