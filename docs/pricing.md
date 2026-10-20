@@ -11,7 +11,7 @@ A credit is worth $0.10. The ledger counts in TENTHS of a credit (`LEDGER_UNITS_
 | 1. Units and plans | `credit-units.ts`, `plans.ts`, `plan-copy.ts`, `subscribe-alert.ts`, `SubscribeAlert.tsx`, Billing and landing copy | built |
 | 2. Image prices | `usd` per resolution in `models.ts`, `imageCredits`, `chargeFor`, Soul batch (`batchId`), GPT Image 1 off | built earlier (PR #58); every row of section 4 asserted in batch 2 |
 | 3. Video prices | `price.usd` in `video-models.ts`, `videoCredits` | built: 1.8x with `VIDEO_MARGIN` / `VIDEO_CREDIT_USD`, every row of section 5 asserted for 5 s and 4 s, daily cap and confirm defaults now in credits (5000 / 500) |
-| 4. Anthropic (Auto to Sonnet, caching, trimming) | `connect-models.ts`, `chat-credits.ts`, `connect-agent.ts`, `agent/chat` | not started |
+| 4. Anthropic (Auto to Sonnet, caching, trimming) | `connect-models.ts`, `chat-credits.ts`, `connect-agent.ts`, `agent/chat` | built: Auto = Sonnet (Max stays Opus with a credits note), Sonnet cache read $0.10, `src/lib/prompt-cache.ts` (breakpoints on system+tools and on the last history block, old pictures and big tool results shortened in what is SENT), used by Core's loop and Atlas/agent chat; Treatment, Prompts and the one-shot Haiku calls are not cached (see report) |
 | 5. Audio config | `AUDIO_MARGIN`, `AUDIO_CREDIT_USD` | defaults already 2.5 and 0.01; display check in batch 5 |
 | 6. Direct routes | `src/lib/routes.ts` | switch, prices and fallback exist against a fake provider; no real provider |
 | 7. `/admin/pricing` | `price-table.ts`, `app/(account)/admin/pricing` | exists from PR #58; redone to the master brief in batch 7 |

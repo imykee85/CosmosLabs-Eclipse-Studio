@@ -1,3 +1,4 @@
+import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE } from "@/lib/brand";
 import { NextResponse } from "next/server";
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 8000, system: `${engine.system}\n\n${BRAND_RULE}`, messages });
+    const res = await client.messages.create({ model, max_tokens: 8000, system: cachedSystem(`${engine.system}\n\n${BRAND_RULE}`), messages: cacheLast(messages) as typeof messages });
     meter.add(res.model, res.usage);
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
     return NextResponse.json({ text: text || "I couldn't write a prompt from that. Tell me a little more." });
