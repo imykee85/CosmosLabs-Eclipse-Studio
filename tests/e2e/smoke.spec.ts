@@ -8,9 +8,9 @@ test.describe("language and local prices", () => {
     const page = await co.newPage();
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "es");
-    await expect(page.locator(".plan-card .pill-btn").first()).toHaveText("Empezar");
-    await expect(page.locator(".plan-card .price-badge").first()).toContainText("COP");
-    await expect(page.locator(".plan-price").first()).toContainText("$19"); // the real price stays in dollars
+    await expect(page.locator(".plan-card:not(.plan-free) .pill-btn").first()).toHaveText("Empezar");
+    await expect(page.locator(".plan-card:not(.plan-free) .price-badge").first()).toContainText("COP");
+    await expect(page.locator(".plan-card:not(.plan-free) .plan-price").first()).toContainText("$19"); // the real price stays in dollars
     await co.close();
     const us = await browser.newContext({ extraHTTPHeaders: { "x-vercel-ip-country": "US", "accept-language": "en-US" } });
     const p2 = await us.newPage();

@@ -1,3 +1,4 @@
+import { outOfCredits } from "@/lib/credit-message";
 import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
 import { autoTrimEnabled } from "@/lib/conform";
 import { randomInt, randomUUID } from "node:crypto";
@@ -200,7 +201,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
     params: { conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, audioRefs: audioRefIds.length ? audioRefIds : undefined, shots, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
   });
-  if (!("row" in made)) return { ok: false, status: 402, error: `${model.label} needs ${cost} credits. You have ${made.have}${made.held ? `, and ${made.held} are held by renders still running` : ""}. Ask the owner to add more credits.` };
+  if (!("row" in made)) return { ok: false, status: 402, error: outOfCredits(model.label, cost as number, made.have, made.held) };
 
   try {
     const sub = await submitVideo(built.endpoint, built.body, idemKey);

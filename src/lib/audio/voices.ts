@@ -2,6 +2,7 @@
 // clones. Rules: a clone needs the person's explicit consent (stored: who, when, which wording, a hash of the sample; the sample itself is never kept), attempts
 // are rate-limited, a person has at most MAX_OWN_VOICES, the flat price (credits, from config) is charged only after the provider succeeded, and deleting a voice
 // deletes it at the provider too. Cloned voices are private: there is no sharing.
+import { outOfCredits } from "@/lib/credit-message";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { UserVoice } from "@prisma/client";
 import { InsufficientCreditsError, getBalance, spendCredits } from "@/lib/credits";
@@ -58,7 +59,7 @@ async function charge(userId: string, cost: number | null, note: string) {
 async function enough(userId: string, cost: number | null): Promise<string | null> {
   if (cost == null) return null;
   const have = await getBalance(userId);
-  return have >= cost ? null : `This needs ${cost} credits. You have ${have}. Ask the owner to add more credits.`;
+  return have >= cost ? null : outOfCredits("This", cost, have);
 }
 function failure(err: unknown, what: string): { status: number; error: string } {
   if (err instanceof ProviderFailure) {

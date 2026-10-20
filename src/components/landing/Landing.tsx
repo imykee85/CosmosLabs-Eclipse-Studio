@@ -6,7 +6,7 @@ import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
-import { plans } from "@/lib/plans";
+import { FREE_RENDERS_DEFAULT, freePlan, plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import LanguageMenu from "@/components/i18n/LanguageMenu";
 import HeroImage from "./HeroImage";
@@ -181,7 +181,18 @@ export default function Landing() {
       <section id="pricing" className="pricing-section section-pad">
         <div className="eyebrow">SIMPLE PRICING</div>
         <h2 className="plans-title">pick the plan<br /><em>that fits.</em></h2>
-        <div className="plan-grid">
+        <div className="plan-grid has-free">
+          <article className="plan-card plan-free">
+            <h3>{freePlan.name}</h3>
+            <p className="plan-price">$0<small>/forever</small></p>
+            <ul>
+              <li><Check size={15} /> {FREE_RENDERS_DEFAULT} free image generations</li>
+              <li><Check size={15} /> Any image model</li>
+              <li><Check size={15} /> Private gallery for every project</li>
+            </ul>
+            <SignedOut><Link className="pill-btn" href="/sign-up">Start free</Link></SignedOut>
+            <SignedIn><Link className="pill-btn" href="/dashboard">Open Eclipse</Link></SignedIn>
+          </article>
           {plans.map((p, i) => (
             <article className={`plan-card ${i === 1 ? "plan-popular" : ""}`} key={p.name}>
               {i === 1 && <span className="plan-tag">Most popular</span>}
