@@ -8,9 +8,9 @@
 // provider accepts the job the render falls back to Higgsfield and is charged the Higgsfield price (the person is shown the price before generating, and
 // the Generate button asks again if the fallback price is higher than what was shown).
 //
-// NO direct adapter exists yet: the request shapes (BytePlus ModelArk video tasks, Alibaba Model Studio Qwen Image, xAI Imagine) are waiting for the owner's
-// reference files (docs/video-providers/byteplus-seedance.md, docs/image-providers/qwen-image.md, docs/image-providers/xai-imagine.md) and are NOT built from
-// memory. Until they are registered, every model resolves to "higgsfield".
+// Adapters built so far (from the owner's reference files): Qwen Image (docs/image-providers/qwen-image.md, src/lib/providers/qwen.ts). Still waiting for their
+// reference files, and NOT built from memory: BytePlus Seedance video (docs/video-providers/byteplus-seedance.md) and xAI Imagine
+// (docs/image-providers/xai-imagine.md). Until an adapter exists its model resolves to "higgsfield".
 
 export type Route = "higgsfield" | "direct";
 
@@ -23,6 +23,9 @@ export const DIRECT_KEY: Record<string, string> = {
   grok_image_2: "XAI_API_KEY",
 };
 
+// Models whose direct adapter exists in the code.
+const BUILT = new Set<string>(["qwen_image_3", "qwen_image_3_edit"]);
+// Extra registrations (tests register a fake one).
 const registered = new Set<string>();
 
 /** Registers a direct adapter for a model (done by the adapter's own module; tests register a fake). */
@@ -38,7 +41,7 @@ export function routeSetting(modelId: string): Route {
 export function routeFor(modelId: string): Route {
   if (routeSetting(modelId) !== "direct") return "higgsfield";
   const key = DIRECT_KEY[modelId];
-  if (!key || !process.env[key] || !registered.has(modelId)) return "higgsfield";
+  if (!key || !process.env[key] || !(BUILT.has(modelId) || registered.has(modelId))) return "higgsfield";
   return "direct";
 }
 

@@ -2,7 +2,8 @@ import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
 import { autoTrimEnabled, ratioString, type ConformTarget } from "@/lib/conform";
 import { waitUntil } from "@vercel/functions";
 import { claimUsage } from "@/lib/usage";
-import { createGenerationHeld } from "@/lib/reservations";
+import { createGenerationHeld, freeCredits } from "@/lib/reservations";
+import { routeFor } from "@/lib/routes";
 import { claimFreeRender, freeUsedUp, giveBackFreeRender } from "@/lib/free-renders";
 import { outOfCredits } from "@/lib/credit-message";
 import { refusal } from "@/lib/subscribe-alert";
@@ -18,8 +19,8 @@ import { watchRender } from "@/lib/render-watch";
 import { soulIdFields } from "@/lib/soul-id";
 import { randomUUID } from "node:crypto";
 import { openaiUser } from "@/lib/providers/openai";
-import { syncProvider } from "@/lib/providers";
-import { ProviderError, type ReferenceImage } from "@/lib/providers/types";
+import { directAdapter, syncProvider } from "@/lib/providers";
+import { ProviderError, type ReferenceImage, type SyncImageProvider } from "@/lib/providers/types";
 import { getObjectBytes, saveImageBytes, storageEnabled } from "@/lib/storage";
 import { sniffImageType } from "@/lib/uploads";
 import type { ReferenceItem } from "@/lib/references";
@@ -109,8 +110,10 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   // The welcome offer: a new account's first 2 image renders, on any model, cost nothing (claimed here, given back if the render fails).
   const free = cost != null && (await claimFreeRender(userId, cost));
 
-  // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll.
-  if (model.provider !== "higgsfield") return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, items: resolved.items, seedNote, cost, batch, free });
+  // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll. A model on its DIRECT route
+  // (cheaper, routes.ts: setting + key + adapter, so far Qwen Image) is the same kind of render; the price was already worked out for that route above.
+  const direct = model.provider === "higgsfield" && routeFor(model.id) === "direct" ? directAdapter(model.id) : null;
+  if (model.provider !== "higgsfield" || direct) return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, items: resolved.items, seedNote, cost, batch, free, direct });
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
   const made = await createGenerationHeld(userId, free ? null : cost, { ...(free ? { creditsHeld: 0 } : cost != null ? { creditsHeld: cost } : {}), userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform || soul.fields || batch || free ? { ...(free ? { free: true } : {}), ...(batch ? { batchId: batch.id } : {}), ...(conform ? { conform } : {}), ...(soul.fields ? { soulId: String(input.soulId), soulStrength: Number(soul.fields.custom_reference_strength) } : {}) } : undefined }, batch);
@@ -150,24 +153,30 @@ async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
 // A render by a provider that answers in the same call. The row is written BEFORE the provider is called (our own double-submit
 // protection: a retry can see that the job exists, and nothing is re-submitted after a timeout), then the picture is decoded from the
 // reply, copied into private storage and the row completed. A failure marks the row failed with a plain sentence.
-async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; exact: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null; batch?: { id: string; size: number }; free: boolean }): Promise<StartRenderResult> {
+async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; exact: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null; batch?: { id: string; size: number }; free: boolean; direct?: { provider: SyncImageProvider; apiModel: string } | null }): Promise<StartRenderResult> {
   const { model, userId } = a;
-  const provider = syncProvider(model.provider);
-  if (!provider || !apiModelOf(model)) { if (a.free) await giveBackFreeRender(userId).catch(() => {}); return { ok: false, status: 400, error: "That model is not available." }; }
+  const provider = a.direct?.provider ?? syncProvider(model.provider);
+  const apiModel = a.direct?.apiModel ?? apiModelOf(model);
+  if (!provider || !apiModel) { if (a.free) await giveBackFreeRender(userId).catch(() => {}); return { ok: false, status: 400, error: "That model is not available." }; }
   // The reply carries the picture itself, so there is no provider link to fall back on: it has to go into our storage.
   if (!storageEnabled) { if (a.free) await giveBackFreeRender(userId).catch(() => {}); return { ok: false, status: 503, error: "Image storage is not set up yet, so this model cannot be used." }; }
   const jobId = randomUUID();
-  const made = await createGenerationHeld(userId, a.free ? null : a.cost, { ...(a.free ? { creditsHeld: 0 } : a.cost != null ? { creditsHeld: a.cost } : {}), userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined, params: a.conform || a.batch || a.free ? { ...(a.free ? { free: true } : {}), ...(a.batch ? { batchId: a.batch.id } : {}), ...(a.conform ? { conform: a.conform } : {}) } : undefined }, a.batch);
+  const made = await createGenerationHeld(userId, a.free ? null : a.cost, { ...(a.free ? { creditsHeld: 0 } : a.cost != null ? { creditsHeld: a.cost } : {}), userId, projectId: a.projectId, prompt: a.prompt, status: "pending", statusUrl: `${SYNC_MARK}${jobId}`, requestId: jobId, model: model.id, provider: model.provider, aspectRatio: a.aspectRatio ?? null, resolution: a.resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed: null, seedLocked: false, references: a.refs.length ? a.refs : undefined, params: a.conform || a.batch || a.free || a.direct ? { ...(a.free ? { free: true } : {}), ...(a.batch ? { batchId: a.batch.id } : {}), ...(a.conform ? { conform: a.conform } : {}), ...(a.direct ? { route: "direct" } : {}) } : undefined }, a.batch);
   if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, a.cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (a.cost as number))) };
   const row = made.row;
   // The reply goes out at once with a pending row (the browser follows it like any job); the render continues after it (waitUntil, up to the route's 300 s).
   const work = (async () => {
     try {
       const references = await Promise.all(a.items.map(loadReference));
-      const out = await provider.generate({ apiModel: apiModelOf(model)!, prompt: a.prompt, aspectRatio: a.exact && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.exact) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+      const out = await provider.generate({ apiModel, prompt: a.prompt, aspectRatio: a.exact && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.exact) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
       const saved = await saveImageBytes(userId, out.bytes, out.contentType, a.conform);
       await completeFromBytes(row, saved, out.usage);
     } catch (err) {
+      // The DIRECT route itself failed (provider unreachable, our key refused, rate limit, timeout): try the same render on Higgsfield, at the Higgsfield price.
+      if (a.direct && err instanceof ProviderError && err.fallback) {
+        console.error("direct route failed, falling back to Higgsfield", model.id, err.detail);
+        try { await fallbackToHiggsfield(a, row); return; } catch (fb) { err = fb instanceof ProviderError ? fb : new ProviderError("This render could not be started. Please try again in a moment.", fb instanceof Error ? fb.message : undefined); }
+      }
       console.error("inline generation failed", model.id, err instanceof ProviderError ? err.detail : err);
       const message = err instanceof ProviderError ? err.userMessage : "Eclipse could not make or save this image. Please try again.";
       await failRender(row.id, message, err instanceof ProviderError ? err.detail : err instanceof Error ? err.message : undefined).catch(() => {});
@@ -175,4 +184,20 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
   })();
   try { waitUntil(work); } catch { /* not on Vercel: the promise simply keeps running */ }
   return { ok: true, item: await toItem(row), seedNote: a.seedNote };
+}
+
+// A render whose direct start failed is started on Higgsfield instead. The person pays the Higgsfield price: the hold on the row is raised to it (when
+// the balance allows; otherwise the render fails and nothing is charged), then it carries on as an ordinary Higgsfield job on the SAME row.
+async function fallbackToHiggsfield(a: { model: ImageModel; userId: string; prompt: string; aspectRatio?: string; resolution?: string; items: ReferenceItem[]; free: boolean }, row: { id: string; creditsHeld: number | null; params: unknown }): Promise<void> {
+  const { model, userId } = a;
+  const hf = chargeFor(model, a.resolution ?? model.defaultResolution, "higgsfield");
+  const held = row.creditsHeld ?? 0;
+  if (!a.free && hf != null && hf > held) {
+    if ((await freeCredits(userId)) < hf - held) throw new ProviderError("This render needs more credits than you have left for the backup route. Please try again in a moment.", "not enough credits for the Higgsfield fallback price");
+    await db.generation.update({ where: { id: row.id }, data: { creditsHeld: hf } });
+  }
+  const { requestId, statusUrl } = await startGeneration({ model, prompt: a.prompt, aspectRatio: a.aspectRatio, resolution: a.resolution, references: await deliverReferences(a.items) });
+  const params = row.params && typeof row.params === "object" ? (row.params as Record<string, unknown>) : {};
+  await db.generation.update({ where: { id: row.id }, data: { statusUrl, requestId: requestId || null, params: { ...params, route: "higgsfield-fallback" } } });
+  watchRender(row.id);
 }
