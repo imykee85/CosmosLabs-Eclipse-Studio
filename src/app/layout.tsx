@@ -61,5 +61,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </body>
     </html>
   );
-  return clerkEnabled ? <ClerkProvider localization={clerkLocalization}>{page}</ClerkProvider> : page;
+  return clerkEnabled ? <ClerkProvider localization={clerkLocalization as never}>{page}</ClerkProvider> : page;
 }
