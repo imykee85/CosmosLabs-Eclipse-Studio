@@ -229,7 +229,13 @@ test("the quote creates nothing, and not enough credits is refused with the numb
   await reset(1);
   const r = await sfx();
   assert.ok(!r.ok && r.status === 402);
-  assert.match(r.error, new RegExp(`needs ${creditsOf(150 * 0.001) / 10} credits`)); // shown in credits (ledger / 10)
+  // an account with no plan is told to subscribe (master brief section 2); with a plan it sees the number, shown in credits (ledger / 10)
+  assert.equal(r.error, "Subscribe to keep creating.");
+  assert.equal(r.code, "SUBSCRIBE");
+  await lib.db.creditLedger.create({ data: { userId: USER, delta: 1, reason: "PURCHASE", provider: "test", externalId: `plan-${Math.random()}`, note: "Plan: Starter" } });
+  const r2 = await sfx();
+  assert.ok(!r2.ok && r2.status === 402);
+  assert.match(r2.error, new RegExp(`needs ${creditsOf(150 * 0.001) / 10} credits`));
 });
 
 test("deleting a take removes every alternative from storage", { skip }, async () => {

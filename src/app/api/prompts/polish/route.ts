@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
-import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
+import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { connectModels } from "@/lib/connect-models";
 import { checkPrompt } from "@/lib/moderation";
 import { claimUsage } from "@/lib/usage";
@@ -20,8 +20,8 @@ export async function POST(req: Request) {
   if (!text) return NextResponse.json({ error: "Write a prompt first." }, { status: 400 });
   const check = checkPrompt(text);
   if (!check.ok) return NextResponse.json({ error: check.reason }, { status: 422 });
-  const broke = await chatCreditCheck(u.userId);
-  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
+  const broke = await chatRefusal(u.userId);
+  if (broke) return NextResponse.json(broke, { status: 402 });
   if (!(await claimUsage(u.userId, "polish", 20, 60_000))) return NextResponse.json({ error: "Too many at once. Try again in a minute." }, { status: 429 });
   const meter = new ChatMeter();
   try {

@@ -14,6 +14,6 @@ export async function POST(req: Request) {
     userId: u.userId, kind: b.kind, text: b.text, model: b.model, durationSec: b.durationSec, loop: b.loop,
     videoId: b.videoId, variants: b.variants, negativePrompt: b.negativePrompt, preserveSpeech: b.preserveSpeech, format: b.format,
   }, { dryRun: true });
-  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  if (!r.ok) return NextResponse.json({ error: r.error, ...("code" in r && r.code ? { code: r.code } : {}) }, { status: r.status });
   return NextResponse.json({ credits: r.quote });
 }

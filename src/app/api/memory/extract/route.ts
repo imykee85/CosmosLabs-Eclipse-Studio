@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
-import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
+import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { connectModels } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
 import { sniffImageType } from "@/lib/uploads";
@@ -22,8 +22,8 @@ export async function POST(req: Request) {
   const isPdf = Buffer.from(bytes.subarray(0, 5)).toString("latin1") === "%PDF-";
   const img = isPdf ? null : sniffImageType(bytes);
   if (!isPdf && !img) return NextResponse.json({ error: "Upload a PDF or a PNG, JPEG or WebP picture." }, { status: 400 });
-  const broke = await chatCreditCheck(u.userId);
-  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
+  const broke = await chatRefusal(u.userId);
+  if (broke) return NextResponse.json(broke, { status: 402 });
   if (!(await claimUsage(u.userId, "memory-extract", 30, 24 * 3600 * 1000))) return NextResponse.json({ error: "You have read 30 files today. Try again tomorrow." }, { status: 429 });
   const meter = new ChatMeter();
   try {

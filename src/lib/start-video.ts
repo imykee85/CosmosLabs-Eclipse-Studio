@@ -1,5 +1,6 @@
 import { routeFor } from "@/lib/routes";
 import { outOfCredits } from "@/lib/credit-message";
+import { refusal } from "@/lib/subscribe-alert";
 import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
 import { autoTrimEnabled } from "@/lib/conform";
 import { randomInt, randomUUID } from "node:crypto";
@@ -31,7 +32,7 @@ export type StartVideoInput = {
   userId: string; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
   seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; audioRefs?: unknown; shots?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown;
 };
-export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number };
+export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string };
 
 const oneRef = (v: unknown): ReferenceRef | null | undefined => {
   if (v == null) return undefined;
@@ -204,7 +205,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
     params: { conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, audioRefs: audioRefIds.length ? audioRefIds : undefined, shots, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
   });
-  if (!("row" in made)) return { ok: false, status: 402, error: outOfCredits(model.label, cost as number, made.have, made.held, false, made.locked) };
+  if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (cost as number))) };
 
   try {
     const sub = await submitVideo(built.endpoint, built.body, idemKey);

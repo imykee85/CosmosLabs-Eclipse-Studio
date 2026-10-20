@@ -6,7 +6,7 @@ import { connectModels } from "@/lib/connect-models";
 import { checkPrompt } from "@/lib/moderation";
 import { cleanTreatment, mergeTreatment, treatmentText } from "@/lib/treatment";
 import { claimUsage } from "@/lib/usage";
-import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
+import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { fetchPageText } from "@/lib/fetch-page";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 import { workspaceSession } from "@/lib/workspace";
@@ -77,8 +77,8 @@ export async function POST(req: Request) {
   const pdf = body?.pdf && typeof body.pdf.data === "string" && typeof body.pdf.name === "string" ? { name: String(body.pdf.name).slice(0, 120), data: String(body.pdf.data) } : null;
   if (pdf && (pdf.data.length > 4_000_000 || !/^[A-Za-z0-9+/=]+$/.test(pdf.data) || !Buffer.from(pdf.data.slice(0, 8), "base64").toString("latin1").startsWith("%PDF"))) return NextResponse.json({ error: "That PDF could not be read (PDFs up to 3 MB)." }, { status: 400 });
 
-  const broke = await chatCreditCheck(userId);
-  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
+  const broke = await chatRefusal(userId);
+  if (broke) return NextResponse.json(broke, { status: 402 });
   const limit = Number(process.env.TREATMENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.TREATMENT_DAILY_MESSAGES)) : 100;
   if (!(await claimUsage(userId, "treatment", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} planner messages. It resets on a rolling 24 hours.` }, { status: 429 });
 

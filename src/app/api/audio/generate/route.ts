@@ -17,6 +17,6 @@ export async function POST(req: Request) {
     durationSec: b.durationSec, loop: b.loop, instrumental: b.instrumental, inputKey: b.inputKey, inputName: b.inputName, diarize: b.diarize, language: b.language,
     videoId: b.videoId, variants: b.variants, negativePrompt: b.negativePrompt, preserveSpeech: b.preserveSpeech, format: b.format,
   });
-  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  if (!r.ok) return NextResponse.json({ error: r.error, ...("code" in r && r.code ? { code: r.code } : {}) }, { status: r.status });
   return NextResponse.json(r.item);
 }

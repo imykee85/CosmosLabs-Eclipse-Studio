@@ -6,6 +6,7 @@ import PriceBadge from "@/components/i18n/PriceBadge";
 import { refreshCredits } from "@/lib/use-credits";
 import { CUSTOM_PACK_ID, customPrice } from "@/lib/plans";
 import { fmtCredits, toLedger } from "@/lib/credit-units";
+import { BEST_VALUE_PACK_ID } from "@/lib/plan-copy";
 
 type Pack = { id: string; name: string; price: number; credits: number };
 type Auto = { enabled: boolean; packId: string; credits: number | null; threshold: number; maxPerMonth: number; hasCard: boolean; lastError: string | null; usedThisMonth: number; actionUrl?: string | null };
@@ -144,7 +145,7 @@ export default function TopUp() {
             </div>
             {info.packs.map((p) => (
               <button key={p.id} type="button" role="option" aria-selected={sel === p.id} className={`st-option ${sel === p.id ? "is-on" : ""}`} onClick={() => { setSel(p.id); setOpen(false); }}>
-                <span className="st-optname">{p.name}</span>
+                <span className="st-optname">{p.name}{p.id === BEST_VALUE_PACK_ID && <em className="st-best">Best value</em>}</span>
                 <span className="st-optprice">${p.price}</span>
               </button>
             ))}

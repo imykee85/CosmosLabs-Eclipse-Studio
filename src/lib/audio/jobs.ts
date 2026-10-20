@@ -2,6 +2,7 @@
 // provider call runs in the background (waitUntil) and the browser asks GET /api/audio/<id>. The raw provider text never reaches a person: only ProviderError.userMessage.
 // Four kinds share one path: tts (speak), stt (transcribe), sfx (sound effects) and music. A long MiniMax text runs on the provider's side and is followed until done.
 import { outOfCredits } from "@/lib/credit-message";
+import { refusal } from "@/lib/subscribe-alert";
 import { lockedTopup } from "@/lib/subscription";
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma, type AudioJob } from "@prisma/client";
@@ -96,7 +97,7 @@ export type StartAudioInput = {
   durationSec?: unknown; loop?: unknown; instrumental?: unknown; inputKey?: unknown; inputName?: unknown; diarize?: unknown; language?: unknown;
   videoId?: unknown; variants?: unknown; negativePrompt?: unknown; preserveSpeech?: unknown; format?: unknown; // Mirelo: sound for a video, several alternatives
 };
-export type StartAudioResult = { ok: true; item: AudioItem } | { ok: false; status: number; error: string };
+export type StartAudioResult = { ok: true; item: AudioItem } | { ok: false; status: number; error: string; code?: string };
 
 // Where a recording to transcribe is kept while it is worked on: audio/<user>/in/<name>, put there by the browser through a signed link (see /api/audio/input).
 export const inputKeyPattern = (userId: string) => new RegExp(`^audio/${userId.replace(/[^A-Za-z0-9_-]/g, "")}/in/[A-Za-z0-9._-]{1,100}$`);
@@ -255,7 +256,7 @@ export async function startAudioJob(input: StartAudioInput, opts?: { dryRun?: bo
     id: randomUUID().replace(/-/g, "").slice(0, 25), userId, projectId, kind, provider: model.provider, model: model.id, voiceId: voiceId || null, voiceName: voiceId ? voiceName : null, text, textHash: createHash("sha256").update(text).digest("hex"),
     chars: text.length, status: "pending", creditsHeld: cost, params: Object.keys(params).length ? (params as Prisma.InputJsonValue) : undefined,
   });
-  if (!("row" in made)) { await release(); return { ok: false, status: 402, error: outOfCredits("This", cost as number, made.have, made.held, false, made.locked) }; }
+  if (!("row" in made)) { await release(); return { ok: false, status: 402, ...(await refusal(userId, outOfCredits("This", cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (cost as number))) }; }
 
   if (voiceId) void touchVoice(userId, model.provider, voiceId); // keeps the "last used" date of the person's own voices (MiniMax deletes unused clones)
   waitUntil(runAudioJob(made.row.id).catch((err) => console.error("audio job crashed", made.row.id, err)));

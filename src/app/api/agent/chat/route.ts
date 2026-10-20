@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
 import { claimUsage } from "@/lib/usage";
-import { ChatMeter, chargeChat, chatCreditCheck } from "@/lib/chat-credits";
+import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
 import { buildReply, type Action } from "@/lib/agent-reply";
@@ -74,8 +74,8 @@ export async function POST(req: Request) {
   // The pictures attached to the box are shown to the agent (up to 4, ids only, owner-checked, read from our own storage).
   const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
 
-  const broke = await chatCreditCheck(userId);
-  if (broke) return NextResponse.json({ error: broke }, { status: 402 });
+  const broke = await chatRefusal(userId);
+  if (broke) return NextResponse.json(broke, { status: 402 });
   // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
   const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
   if (!(await claimUsage(personId ?? userId, "agent", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` }, { status: 429 });

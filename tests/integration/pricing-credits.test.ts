@@ -61,3 +61,37 @@ test("a render that costs more than the balance is refused, in credits", { skip 
   const out = await res.createGenerationHeld(id, 50, base(id, { creditsHeld: 50 }));
   assert.deepEqual([("row" in out), out.have, out.held, out.locked], [false, 30, 0, 0]);
 });
+
+test("subscription alert: an unsubscribed account that cannot pay is told to subscribe, with the code the browser reacts to", { skip }, async () => {
+  const { refusal, SUBSCRIBE_CODE } = await import("../../src/lib/subscribe-alert");
+  const { chatRefusal } = await import("../../src/lib/chat-credits");
+  const id = U("alert");
+  await db.freeRender.create({ data: { userId: id, remaining: 0, granted: 2 } }); // used both free images
+  assert.deepEqual(await refusal(id, "Soul needs 1 credit."), { error: "You've used your 2 free images. Subscribe to keep creating.", code: SUBSCRIBE_CODE });
+  // video, audio and chat on a free account: the same alert at once
+  const chat = await chatRefusal(id);
+  assert.deepEqual(chat, { error: "You've used your 2 free images. Subscribe to keep creating.", code: SUBSCRIBE_CODE });
+  // an account that never had the free images (an older one) is just asked to subscribe
+  assert.deepEqual(await refusal(U("older"), "x"), { error: "Subscribe to keep creating.", code: SUBSCRIBE_CODE });
+  // saved but locked top-up credits keep their own wording and also carry the code
+  const locked = "Your 50 top-up credits are saved but locked until you subscribe to a plan.";
+  assert.deepEqual(await refusal(id, locked, true), { error: locked, code: SUBSCRIBE_CODE });
+  // a subscribed account gets the usual sentence, no code
+  await db.creditLedger.create({ data: { userId: id, delta: 2000, reason: "PURCHASE", provider: "test", externalId: `plan-${id}`, note: "Plan: Starter" } });
+  assert.deepEqual(await refusal(id, "Soul needs 1 credit."), { error: "Soul needs 1 credit." });
+  assert.equal(await chatRefusal(id), null, "and with credits the message may go ahead");
+  // the rule can be switched off together with the top-up lock
+  process.env.TOPUP_REQUIRES_SUBSCRIPTION = "off";
+  assert.deepEqual(await refusal(U("older"), "usual"), { error: "usual" });
+  delete process.env.TOPUP_REQUIRES_SUBSCRIPTION;
+});
+
+test("a free account's refused image render carries the alert end to end (start-render path)", { skip }, async () => {
+  const { refusal } = await import("../../src/lib/subscribe-alert");
+  const id = U("e2e");
+  await db.freeRender.create({ data: { userId: id, remaining: 0, granted: 2 } });
+  const made = await res.createGenerationHeld(id, 20, base(id, { creditsHeld: 20 }));
+  assert.equal("row" in made, false);
+  const r = await refusal(id, "n", made.locked > 0);
+  assert.equal(r.code, "SUBSCRIBE");
+});
