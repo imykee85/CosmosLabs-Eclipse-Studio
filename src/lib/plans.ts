@@ -1,4 +1,8 @@
 // PLACEHOLDER plans: names, prices and credit amounts are not final. Edit them here once pricing is decided.
+// The welcome offer shown on the Free plan card and the dashboard pop-up. The server reads FREE_RENDERS_COUNT (default this number) when it grants them.
+export const FREE_RENDERS_DEFAULT = 2;
+export const freePlan = { id: "free", name: "Free", price: 0 } as const;
+
 export type Plan = { id: string; name: string; price: number; credits: number; seats: number };
 
 export const plans: Plan[] = [

@@ -175,3 +175,9 @@
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .db-header-right .db-pill.db-credits { height: 36px; gap: 5px; padding: 0 11px; background: transparent; font-size: 14px; font-weight: 500; white-space: nowrap; }
 }
+
+/* Welcome offer pop-up */
+.wo-card { text-align: center; }
+.wo-icon { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; background: #c00707; color: #fff; }
+.wo-card h2, .wo-card p { text-align: center; }
+.wo-card .nm-create { padding-left: 34px; padding-right: 34px; }

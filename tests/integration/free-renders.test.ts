@@ -19,15 +19,16 @@ before(async () => {
   await db.freeRender.deleteMany({ where: { userId: { startsWith: "user_free_" } } }); // a clean start on a database that has been used before
 });
 
-test("a new account gets 3 free renders, and each claim uses one", { skip }, async () => {
+test("a new account gets 2 free renders on any model, and each claim uses one", { skip }, async () => {
   const id = "user_free_new";
-  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 3);
-  assert.equal(await lib.claimFreeRender(id, 2, async () => NEW), true);
   assert.equal(await lib.freeRendersLeft(id, async () => NEW), 2);
-  assert.equal(await lib.claimFreeRender(id, 7, async () => NEW), true);
-  assert.equal(await lib.claimFreeRender(id, 7, async () => NEW), true);
-  assert.equal(await lib.claimFreeRender(id, 7, async () => NEW), false, "the fourth is paid");
+  assert.equal(await lib.freeUsedUp(id), false);
+  assert.equal(await lib.claimFreeRender(id, 2, async () => NEW), true);
+  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 1);
+  assert.equal(await lib.claimFreeRender(id, 32, async () => NEW), true, "even the dearest model");
+  assert.equal(await lib.claimFreeRender(id, 7, async () => NEW), false, "the third is paid");
   assert.equal(await lib.freeRendersLeft(id, async () => NEW), 0);
+  assert.equal(await lib.freeUsedUp(id), true, "so the message can say the free images are used");
 });
 
 test("an account made before the offer gets nothing, and Clerk is asked only once", { skip }, async () => {
@@ -38,19 +39,30 @@ test("an account made before the offer gets nothing, and Clerk is asked only onc
   assert.equal(asked, 1);
 });
 
-test("a render dearer than the cap is never free and does not use one up", { skip }, async () => {
+test("with FREE_RENDERS_MAX_CREDITS set, a dearer render is never free and does not use one up", { skip }, async () => {
   const id = "user_free_cap";
+  process.env.FREE_RENDERS_MAX_CREDITS = "7";
   assert.equal(await lib.claimFreeRender(id, 19, async () => NEW), false);
-  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 3);
+  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 2);
+  delete process.env.FREE_RENDERS_MAX_CREDITS;
+});
+
+test("an account made while the offer was 3 never gets more than 2 in all", { skip }, async () => {
+  const id = "user_free_three";
+  await db.freeRender.create({ data: { userId: id, remaining: 3, granted: 3 } });
+  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 2);
+  assert.equal(await lib.claimFreeRender(id, 2, async () => NEW), true);
+  assert.equal(await lib.claimFreeRender(id, 2, async () => NEW), true);
+  assert.equal(await lib.claimFreeRender(id, 2, async () => NEW), false);
 });
 
 test("a failed free render is given back, never above what was granted", { skip }, async () => {
   const id = "user_free_back";
   await lib.claimFreeRender(id, 2, async () => NEW);
   await lib.giveBackFreeRender(id);
-  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 3);
+  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 2);
   await lib.giveBackFreeRender(id);
-  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 3);
+  assert.equal(await lib.freeRendersLeft(id, async () => NEW), 2);
 });
 
 test("teams, switched-off credits and unknown account dates give nothing", { skip }, async () => {
@@ -65,6 +77,6 @@ test("teams, switched-off credits and unknown account dates give nothing", { ski
 test("claims at the same moment never go below zero", { skip }, async () => {
   const id = "user_free_race";
   const results = await Promise.all(Array.from({ length: 8 }, () => lib.claimFreeRender(id, 2, async () => NEW)));
-  assert.equal(results.filter(Boolean).length, 3);
+  assert.equal(results.filter(Boolean).length, 2);
   assert.equal(await lib.freeRendersLeft(id, async () => NEW), 0);
 });

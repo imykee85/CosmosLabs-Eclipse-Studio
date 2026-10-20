@@ -19,6 +19,7 @@ import BinImages from "./BinImages";
 import HomeFeed from "./HomeFeed";
 import ProjectDetailsModal from "./ProjectDetailsModal";
 import RenameProjectModal from "./RenameProjectModal";
+import WelcomeOffer from "./WelcomeOffer";
 import "@/components/app-theme.css";
 import "./dashboard.css";
 
@@ -253,6 +254,7 @@ export default function DashboardView() {
       {renaming && <RenameProjectModal project={renaming} onClose={() => setRenaming(null)} onDone={load} />}
       {details && <ProjectDetailsModal project={details} onClose={() => setDetails(null)} />}
       {creating && <NewProjectModal onClose={() => setCreating(false)} />}
+      <WelcomeOffer onStart={() => goTo("/create")} />
     </div>
   );
 }
