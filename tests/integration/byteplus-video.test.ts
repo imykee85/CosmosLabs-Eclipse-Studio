@@ -211,3 +211,64 @@ test("a video whose length was never recorded cannot be priced at BytePlus and s
   assert.equal(e.ok, true, e.error);
   assert.equal(arkSent.length, 0);
 });
+
+test("Seedance 2.0 Fast: direct only, the right BytePlus model, and a refusal is NOT moved to Higgsfield", { skip }, async () => {
+  const ok = await make({ model: "seedance_2_0_fast", resolution: "480p" });
+  assert.equal(ok.ok, true, ok.error);
+  assert.equal(arkSent[0].body.model, "dreamina-seedance-2-0-fast-260128"); assert.equal(hfSent.length, 0);
+  await clean(); await lib.credits.grantCredits(A, 20000, { reason: "GRANT", note: "t" }); arkSent.length = 0;
+  arkMode.kind = "refuse";
+  const bad = await make({ model: "seedance_2_0_fast", resolution: "480p" });
+  assert.equal(bad.ok, false); assert.equal(hfSent.length, 0, "never sent to Higgsfield");
+  assert.equal(await lib.db.generation.count({ where: { userId: A } }), 0, "nothing held or kept");
+  const mini = await make({ model: "seedance_2_0_mini", resolution: "1080p" });
+  assert.equal(mini.ok, false, "Mini has no 1080p"); assert.equal(mini.status, 400);
+});
+
+test("Fast and Mini cost the BytePlus list price and are refused when the direct route is switched off", { skip }, async () => {
+  const { findVideoModel, videoPrice } = await import("../../src/lib/video-models");
+  const fast = findVideoModel("seedance_2_0_fast")!, mini = findVideoModel("seedance_2_0_mini")!;
+  assert.ok(videoPrice(mini, "480p", 5, true, "direct")! < videoPrice(fast, "480p", 5, true, "direct")!);
+  process.env.ROUTE_SEEDANCE_2_0_FAST = "higgsfield";
+  const off = await make({ model: "seedance_2_0_fast", resolution: "480p" });
+  delete process.env.ROUTE_SEEDANCE_2_0_FAST;
+  assert.equal(off.ok, false); assert.equal(off.status, 503); assert.equal(arkSent.length, 0); assert.equal(hfSent.length, 0);
+});
+
+test("Seedance 2.0 Edit and Extend run at BytePlus only, clips up to 15 s", { skip }, async () => {
+  process.env.ROUTE_SEEDANCE_2_0 = "direct";
+  await lib.db.generation.create({ data: { id: "bpv-s20", userId: A, kind: "video", prompt: "x", status: "completed", imageUrl: "", storageKey: "u/a/c20.mp4", model: "seedance_2_0", durationSec: 6, aspectRatio: "16:9" } });
+  await lib.db.generation.create({ data: { id: "bpv-long", userId: A, kind: "video", prompt: "x", status: "completed", imageUrl: "", storageKey: "u/a/long.mp4", model: "seedance_2_0", durationSec: 20, aspectRatio: "16:9" } });
+  const e = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-s20", mode: "edit", prompt: "make it night", resolution: "480p", audio: false, model: "seedance_2_0" });
+  assert.equal(e.ok, true, e.error);
+  const b = arkSent[0].body as { model: string; omni_reference_task_type?: string; duration: number };
+  assert.equal(b.model, "dreamina-seedance-2-0-260128"); assert.equal(b.omni_reference_task_type, undefined); assert.equal(b.duration, -1); assert.equal(hfSent.length, 0);
+  const x = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-s20", mode: "extend", prompt: "and then it rains", duration: 16, model: "seedance_2_0" });
+  assert.equal(x.ok, false, "2.0 extends by 4 to 15 s");
+  const long = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-long", mode: "edit", prompt: "make it night", model: "seedance_2_0" });
+  assert.equal(long.ok, false);
+  arkMode.kind = "refuse";
+  const bad = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-s20", mode: "edit", prompt: "make it night", model: "seedance_2_0" });
+  assert.equal(bad.ok, false); assert.equal(hfSent.length, 0);
+});
+
+test("draft mode: a 480p draft task, then the final 1080p from the draft id; no Higgsfield, once only", { skip }, async () => {
+  process.env.ROUTE_SEEDANCE_2_5 = "direct";
+  const { startDraftFinal } = await import("../../src/lib/video-draft");
+  const d = await make({ draft: true, resolution: "1080p" });
+  assert.equal(d.ok, true, d.error);
+  const db = arkSent[0].body as { draft?: boolean; resolution: string };
+  assert.equal(db.draft, true); assert.equal(db.resolution, "480p");
+  const early = await startDraftFinal({ userId: A, draftId: d.item.id });
+  assert.equal(early.ok, false, "a draft that has not finished cannot be finalised");
+  const row = await lib.db.generation.findUnique({ where: { id: d.item.id } });
+  await lib.db.generation.update({ where: { id: row.id }, data: { status: "completed", storageKey: "u/a/d.mp4", imageUrl: "" } });
+  const fin = await startDraftFinal({ userId: A, draftId: d.item.id });
+  assert.equal(fin.ok, true, fin.ok ? "" : fin.error);
+  const f = arkSent[arkSent.length - 1].body as { content: { type: string; draft_task?: { id: string } }[]; resolution: string; prompt?: string };
+  assert.deepEqual(f.content, [{ type: "draft_task", draft_task: { id: row.requestId } }]); assert.equal(f.resolution, "1080p"); assert.equal(hfSent.length, 0);
+  const again = await startDraftFinal({ userId: A, draftId: d.item.id });
+  assert.equal(again.ok, false); assert.equal(again.status, 409);
+  const other = await make({ draft: true, model: "seedance_2_0" });
+  assert.equal(other.ok, false, "drafts are Seedance 2.5 only");
+});
