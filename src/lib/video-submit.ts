@@ -10,6 +10,13 @@ import { arkVideoBody, ArkError, hasArkVideo, submitArk, type ArkWorkflow } from
 import { routeFor, type Route } from "@/lib/routes";
 import { findVideoModel, hasDirectVideoPrice } from "@/lib/video-models";
 
+// When BytePlus refuses because the account or model is not open (not activated, no balance, bad key: HTTP 400/401/403/404), asking it again at once only fails
+// again, so for a few minutes new videos are priced and sent to Higgsfield from the start. Kept per server instance; another instance learns the same way.
+let arkBlockedUntil = 0;
+const BLOCK_MS = 10 * 60_000;
+export const arkRouteBlocked = () => Date.now() < arkBlockedUntil;
+export const resetArkBlock = () => { arkBlockedUntil = 0; };
+
 const maxDirect = () => (Number(process.env.ARK_VIDEO_MAX_CONCURRENT) > 0 ? Math.floor(Number(process.env.ARK_VIDEO_MAX_CONCURRENT)) : 3);
 
 /**
@@ -19,7 +26,7 @@ const maxDirect = () => (Number(process.env.ARK_VIDEO_MAX_CONCURRENT) > 0 ? Math
  * because it cannot be priced.
  */
 export async function videoRouteNow(modelId: string, resolution?: string, inputVideoSec?: number | null): Promise<Route> {
-  if (!hasArkVideo(modelId) || routeFor(modelId) !== "direct") return "higgsfield";
+  if (!hasArkVideo(modelId) || routeFor(modelId) !== "direct" || arkRouteBlocked()) return "higgsfield";
   if (inputVideoSec !== undefined) {
     const m = findVideoModel(modelId);
     if (inputVideoSec === null || !m || !hasDirectVideoPrice(m, resolution ?? m.live?.resolution?.default)) return "higgsfield";
@@ -31,8 +38,10 @@ export async function videoRouteNow(modelId: string, resolution?: string, inputV
 }
 
 export class NeedsMoreCredits extends Error {}
+/** The direct start was refused and the Higgsfield price is higher than the one the person was shown: they are asked again before paying it. */
+export class PriceChanged extends Error { constructor(readonly cost: number) { super("price changed"); } }
 
-export type RoutedStart = { row: { id: string; userId: string; creditsHeld: number | null; params: unknown }; route: Route; modelId: string; workflow: string; endpoint: string; body: Record<string, unknown>; idemKey: string; higgsfieldCost: number | null };
+export type RoutedStart = { row: { id: string; userId: string; creditsHeld: number | null; params: unknown }; route: Route; modelId: string; workflow: string; endpoint: string; body: Record<string, unknown>; idemKey: string; higgsfieldCost: number | null; confirm?: boolean };
 
 /** Submits the job and records where it runs on the row. Throws on failure (the caller deletes the row, which releases the hold). */
 export async function submitRouted(a: RoutedStart) {
@@ -44,7 +53,9 @@ export async function submitRouted(a: RoutedStart) {
     } catch (err) {
       if (!(err instanceof ArkError) || err.ambiguous) throw err;
       console.error("direct video route refused before starting, falling back to Higgsfield", a.modelId, err.detail);
+      if (err.status != null && [400, 401, 403, 404].includes(err.status)) arkBlockedUntil = Date.now() + BLOCK_MS;
       const held = a.row.creditsHeld ?? 0;
+      if (a.higgsfieldCost != null && a.higgsfieldCost > held && !a.confirm) throw new PriceChanged(a.higgsfieldCost);
       if (a.higgsfieldCost != null && a.higgsfieldCost > held) {
         if ((await freeCredits(a.row.userId)) < a.higgsfieldCost - held) throw new NeedsMoreCredits("This video needs more credits than you have left for the backup route.");
         await db.generation.update({ where: { id: a.row.id }, data: { creditsHeld: a.higgsfieldCost } });

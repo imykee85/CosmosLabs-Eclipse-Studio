@@ -33,8 +33,14 @@ export function registerDirectRoute(modelId: string): void { registered.add(mode
 export function unregisterDirectRoute(modelId: string): void { registered.delete(modelId); }
 
 /** What the owner asked for, whether or not it can run. */
+// Seedance video is ON by default (owner 2026-10-21: "turn them on"); set ROUTE_SEEDANCE_2_5=higgsfield (or _2_0) to switch one off. It still needs ARK_API_KEY, and if
+// BytePlus is not activated the start falls back to Higgsfield (src/lib/video-submit.ts). Every other model stays on Higgsfield until its setting says direct.
+const DEFAULT_DIRECT = new Set(["seedance_2_0", "seedance_2_5"]);
 export function routeSetting(modelId: string): Route {
-  return process.env[`ROUTE_${modelId.toUpperCase()}`]?.trim().toLowerCase() === "direct" ? "direct" : "higgsfield";
+  const v = process.env[`ROUTE_${modelId.toUpperCase()}`]?.trim().toLowerCase();
+  if (v === "direct") return "direct";
+  if (v === "higgsfield") return "higgsfield";
+  return DEFAULT_DIRECT.has(modelId) ? "direct" : "higgsfield";
 }
 
 /** The route a render of this model really uses right now. */

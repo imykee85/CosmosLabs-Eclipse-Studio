@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getAdmin } from "@/lib/admin";
 import { HiggsfieldError } from "@/lib/higgsfield";
-import { NeedsMoreCredits, submitRouted, videoRouteNow } from "@/lib/video-submit";
+import { NeedsMoreCredits, PriceChanged, submitRouted, videoRouteNow } from "@/lib/video-submit";
 import { ArkError } from "@/lib/providers/byteplus-video";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
 import { checkPrompt } from "@/lib/moderation";
@@ -88,13 +88,14 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   });
   if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, `This needs ${fmtCredits(cost ?? 0)} credits. You have ${fmtCredits(Math.max(0, made.have))}${made.held ? `, and ${fmtCredits(made.held)} are held by renders still running` : ""}.`)) };
   try {
-    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: mode, endpoint: ENDPOINT[mode], body, idemKey, higgsfieldCost });
+    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: mode, endpoint: ENDPOINT[mode], body, idemKey, higgsfieldCost, confirm: input.confirm === true });
     return { ok: true, item: await toItem(row) };
   } catch (err) {
     await db.generation.delete({ where: { id: made.row.id } }).catch(() => {});
     console.error("starting video edit failed", mode, err instanceof HiggsfieldError ? err.message : err);
     const rejected = err instanceof HiggsfieldError && err.status != null && err.status >= 400 && err.status < 500;
     // Eclipse's own words for people; the provider's reply goes to the logs, and to the owner here so a setting can be fixed fast.
+    if (err instanceof PriceChanged) return { ok: false, status: 409, needsConfirm: true, cost: err.cost, error: `This video now costs ${fmtCredits(err.cost)} credits. Confirm to continue.` };
     if (err instanceof NeedsMoreCredits) return { ok: false, status: 402, error: err.message };
     const detail = err instanceof HiggsfieldError || err instanceof ArkError ? err.detail : "";
     const why = (await getAdmin().catch(() => null)) && detail ? ` (Owner only: ${detail})` : "";

@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { getAdmin } from "@/lib/admin";
 import { HiggsfieldError } from "@/lib/higgsfield";
 import { ArkError } from "@/lib/providers/byteplus-video";
-import { NeedsMoreCredits, submitRouted, videoRouteNow } from "@/lib/video-submit";
+import { NeedsMoreCredits, PriceChanged, submitRouted, videoRouteNow } from "@/lib/video-submit";
 import type { Route } from "@/lib/routes";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
 import { checkPrompt } from "@/lib/moderation";
@@ -217,7 +217,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (cost as number))) };
 
   try {
-    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: built.workflow, endpoint: built.endpoint, body: built.body, idemKey, higgsfieldCost });
+    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: built.workflow, endpoint: built.endpoint, body: built.body, idemKey, higgsfieldCost, confirm: input.confirm === true });
     return { ok: true, item: await toItem(row), seedNote };
   } catch (err) {
     await db.generation.delete({ where: { id: made.row.id } }).catch(() => {}); // nothing was started, so nothing stays held
@@ -225,6 +225,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     // A 4xx is Higgsfield's own rejection (it never succeeds on retry): shown cleaned, so it can be fixed fast. Anything else is on a network hiccup.
     const rejected = err instanceof HiggsfieldError && err.status != null && err.status >= 400 && err.status < 500;
     // Eclipse's own words for people; the provider's reply goes to the logs, and to the owner here so a setting can be fixed fast.
+    if (err instanceof PriceChanged) return { ok: false, status: 409, needsConfirm: true, cost: err.cost, error: `This video now costs ${fmtCredits(err.cost)} credits. Confirm to continue.` };
     if (err instanceof NeedsMoreCredits) return { ok: false, status: 402, error: err.message };
     const detail = err instanceof HiggsfieldError || err instanceof ArkError ? err.detail : "";
     const why = (await getAdmin().catch(() => null)) && detail ? ` (Owner only: ${detail})` : "";

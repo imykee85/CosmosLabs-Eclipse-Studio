@@ -9,7 +9,7 @@ const A = "user_bpv_a";
 let hf: Server, ark: Server, r2: Server;
 const hfSent: { path: string; body: Record<string, unknown> }[] = [];
 const arkSent: { method: string; path: string; auth: string; body: Record<string, unknown> }[] = [];
-const arkMode = { kind: "ok" as "ok" | "refuse" | "drop", status: "running" };
+const arkMode = { kind: "ok" as "ok" | "refuse" | "forbid" | "drop", status: "running" };
 const body = (req: IncomingMessage) => new Promise<string>((res) => { let s = ""; req.on("data", (d) => (s += d)); req.on("end", () => res(s)); });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let lib: any;
@@ -26,6 +26,7 @@ before(async () => {
     arkSent.push({ method: req.method ?? "", path: req.url ?? "", auth: String(req.headers.authorization ?? ""), body: raw ? JSON.parse(raw) : {} });
     if (req.method === "POST" && arkMode.kind === "drop") { req.socket.destroy(); return; }
     res.setHeader("Content-Type", "application/json");
+    if (req.method === "POST" && arkMode.kind === "forbid") { res.statusCode = 404; res.end(JSON.stringify({ error: { code: "ModelNotOpen", message: "activate the model" } })); return; }
     if (req.method === "POST" && arkMode.kind === "refuse") { res.statusCode = 429; res.end(JSON.stringify({ error: { code: "RateLimit", message: "slow down" } })); return; }
     if (req.method === "POST") { res.end(JSON.stringify({ id: `cgt-${arkSent.length}` })); return; }
     if (req.method === "DELETE") { res.end("{}"); return; }
@@ -55,11 +56,11 @@ beforeEach(async () => {
   await clean();
   await lib.credits.grantCredits(A, 20000, { reason: "GRANT", note: "t" });
   hfSent.length = 0; arkSent.length = 0; arkMode.kind = "ok"; arkMode.status = "running";
-  delete process.env.ROUTE_SEEDANCE_2_5; delete process.env.ARK_VIDEO_MAX_CONCURRENT;
+  process.env.ROUTE_SEEDANCE_2_5 = "higgsfield"; process.env.ROUTE_SEEDANCE_2_0 = "higgsfield"; delete process.env.ARK_VIDEO_MAX_CONCURRENT; (await import("../../src/lib/video-submit")).resetArkBlock();
 });
 const make = (extra: Record<string, unknown> = {}) => lib.start.startVideoRender({ userId: A, prompt: "a cat", model: "seedance_2_5", duration: 5, resolution: "720p", aspectRatio: "16:9", audio: true, ...extra });
 
-test("the switch is off by default: Higgsfield runs it and BytePlus is never called", { skip }, async () => {
+test("with the setting at higgsfield, Higgsfield runs it and BytePlus is never called", { skip }, async () => {
   const r = await make();
   assert.equal(r.ok, true, r.error);
   assert.equal(hfSent.length, 1); assert.equal(arkSent.length, 0);
@@ -88,6 +89,33 @@ test("direct: BytePlus gets the task with the key, the row records it, status an
   assert.equal(arkSent[arkSent.length - 1].method, "DELETE");
 });
 
+test("Seedance is ON by default: with no setting at all the direct route is used", { skip }, async () => {
+  delete process.env.ROUTE_SEEDANCE_2_5;
+  const r = await make();
+  assert.equal(r.ok, true, r.error);
+  assert.equal(arkSent.length, 1); assert.equal(hfSent.length, 0);
+  assert.equal((await lib.db.generation.findUnique({ where: { id: r.item.id } })).provider, "byteplus");
+});
+
+test("BytePlus not activated (404): the person is asked before paying the higher Higgsfield price, and the next video is priced there at once", { skip }, async () => {
+  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
+  const first = await make();
+  assert.equal(first.ok, false); assert.equal(first.status, 409); assert.equal(first.needsConfirm, true);
+  assert.equal(hfSent.length, 0); assert.equal(await lib.db.generation.count({ where: { userId: A } }), 0, "nothing held or kept");
+  const hfPrice = first.cost;
+  const second = await make();            // BytePlus is now known to be closed: priced and sent to Higgsfield straight away
+  assert.equal(second.ok, true, second.error);
+  assert.equal(arkSent.length, 1, "BytePlus was not asked again"); assert.equal(hfSent.length, 1);
+  assert.equal((await lib.db.generation.findUnique({ where: { id: second.item.id } })).creditsHeld, hfPrice);
+});
+
+test("confirming the higher price after a refusal goes through on Higgsfield", { skip }, async () => {
+  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
+  const ok = await make({ confirm: true });
+  assert.equal(ok.ok, true, ok.error);
+  assert.equal(hfSent.length, 1);
+});
+
 test("direct costs less: the hold is the direct price, the backup price is the Higgsfield one", { skip }, async () => {
   const hfRow = (await make()).item; // switch off
   const heldHf = (await lib.db.generation.findUnique({ where: { id: hfRow.id } })).creditsHeld;
@@ -100,12 +128,12 @@ test("direct costs less: the hold is the direct price, the backup price is the H
 
 test("BytePlus refuses before starting: the same row carries on at Higgsfield at the Higgsfield price", { skip }, async () => {
   process.env.ROUTE_SEEDANCE_2_5 = "direct"; arkMode.kind = "refuse";
-  const r = await make();
+  const r = await make({ confirm: true });
   assert.equal(r.ok, true, r.error);
   assert.equal(arkSent.length, 1); assert.equal(hfSent.length, 1);
   const row = await lib.db.generation.findUnique({ where: { id: r.item.id } });
   assert.equal(row.provider, "higgsfield"); assert.equal((row.params as { route: string }).route, "higgsfield-fallback");
-  await clean(); await lib.credits.grantCredits(A, 20000, { reason: "GRANT", note: "t" }); delete process.env.ROUTE_SEEDANCE_2_5; hfSent.length = 0;
+  await clean(); await lib.credits.grantCredits(A, 20000, { reason: "GRANT", note: "t" }); process.env.ROUTE_SEEDANCE_2_5 = "higgsfield"; hfSent.length = 0;
   const plain = (await make()).item;
   assert.equal(row.creditsHeld, (await lib.db.generation.findUnique({ where: { id: plain.id } })).creditsHeld, "held the Higgsfield price");
 });
@@ -117,12 +145,12 @@ test("a fallback the balance cannot cover fails cleanly and releases the hold", 
     const r = await make();
     return (await lib.db.generation.findUnique({ where: { id: r.item.id } })).creditsHeld as number;
   };
-  const hfPrice = await price(""); const directPrice = await price("direct");
+  const hfPrice = await price("higgsfield"); const directPrice = await price("direct");
   assert.ok(directPrice < hfPrice);
   // enough for the direct price but not for the dearer backup price
   await clean(); await lib.credits.grantCredits(A, Math.floor((directPrice + hfPrice) / 2 / 10), { reason: "GRANT", note: "t" });
   hfSent.length = 0; arkSent.length = 0; arkMode.kind = "refuse"; process.env.ROUTE_SEEDANCE_2_5 = "direct";
-  const r = await make();
+  const r = await make({ confirm: true });
   assert.equal(r.ok, false); assert.equal(r.status, 402); assert.equal(hfSent.length, 0);
   assert.equal(await lib.db.generation.count({ where: { userId: A } }), 0);
 });
@@ -151,7 +179,7 @@ test("Seedance 2.0 4K runs one at a time on BytePlus; the next 4K goes to Higgsf
   const got = await Promise.all([a, b, c].map((r) => lib.db.generation.findUnique({ where: { id: r.item.id } })));
   assert.deepEqual(got.map((g: { provider: string }) => g.provider), ["byteplus", "higgsfield", "byteplus"]);
   assert.equal((arkSent[0].body as { resolution: string }).resolution, "4k");
-  delete process.env.ROUTE_SEEDANCE_2_0;
+  process.env.ROUTE_SEEDANCE_2_0 = "higgsfield";
 });
 
 test("jobs with a video input go direct at BytePlus' token price when the clip's length is known", { skip }, async () => {
