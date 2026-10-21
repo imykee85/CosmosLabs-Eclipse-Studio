@@ -40,6 +40,8 @@ export type AudioModel = {
 };
 
 // The provider names shown as groups in the model menu.
+// Providers kept in the code but not offered to people (Qwen and Seed Audio are V2, owner 2026-10-21; see docs/v2.md).
+export const HIDDEN_PROVIDERS: AudioProviderId[] = ["qwen", "seed"];
 export const PROVIDER_LABEL: Record<AudioProviderId, string> = { elevenlabs: "ElevenLabs", fish: "Fish Audio", minimax: "MiniMax", qwen: "Qwen", seed: "Seed Audio", mirelo: "Mirelo", fake: "Test" };
 
 const ELEVEN_TAGS = ["[whispers]", "[laughs]", "[sighs]", "[excited]", "[sarcastic]", "[crying]"];
