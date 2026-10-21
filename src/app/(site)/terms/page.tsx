@@ -34,7 +34,7 @@ export default function TermsPage() {
 
       <h2>Plans, renewal and cancellation</h2>
       <p>Paid plans are monthly subscriptions. A plan renews automatically every 30 days at the price shown when you bought it, until you cancel. Taxes may be added at checkout. We will tell you before a price change takes effect, and it applies from your next renewal.</p>
-      <p>You can cancel at any time. Cancelling stops future renewals; you keep your plan until the end of the period you have already paid for, and no further payment is taken. You can cancel from the membership page of our payment provider (the link is in your payment receipt), or by contacting us. Deleting your Eclipse account also cancels your plan.</p>
+      <p>You can cancel at any time. Cancelling stops future renewals; you keep your plan until the end of the period you have already paid for, and no further payment is taken. You can cancel in Settings, Billing, with the Cancel plan button, from the membership page of our payment provider (the link is in your payment receipt), or by contacting us. Deleting your Eclipse account also cancels your plan.</p>
 
       <h2>Refunds</h2>
       <ul>

@@ -124,7 +124,7 @@ export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Pr
   const note = event.auto ? `Auto top-up: ${product.name}` : product.kind === "pack" ? `Top-up: ${product.name}` : `Plan: ${product.name}`;
   const added = await grantCredits(userId, product.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId, note });
   if (event.auto) await db.billingSettings.updateMany({ where: { userId }, data: { autoPendingPaymentId: null, autoPendingAt: null, autoActionUrl: null, autoLastError: null } }); // confirmed
-  if (product.kind === "plan") await db.billingSettings.updateMany({ where: { userId }, data: { subscriptionEndedAt: null } }); // paid again: active
+  if (product.kind === "plan") await db.billingSettings.updateMany({ where: { userId }, data: { subscriptionEndedAt: null, cancelRequestedAt: null } }); // paid again: active
   if (product.kind === "plan") await syncTeamSeats(userId, product.id); // a team's member limit follows its plan (no-op for a person)
   await rememberRefs(userId, event.refs, product.kind === "plan").catch((e) => console.error("could not save payment references", e));
   return { ok: true, duplicate: !added };
@@ -280,4 +280,18 @@ export async function setDefaultCard(userId: string, cardId: string): Promise<Ca
   if (!r.cards.some((c) => c.id === cardId)) return { ok: false, error: "That card was not found.", status: 404 };
   await db.billingSettings.update({ where: { userId }, data: { providerPaymentMethod: cardId } });
   return { ok: true, cards: r.cards.map((c) => ({ ...c, isDefault: c.id === cardId })) };
+}
+
+
+/** "Cancel plan": asks the provider to stop the subscription at the END of the period already paid for (the person keeps the plan until then; the
+ * membership update that follows ends it in our records). Needs the subscription's membership id, saved from the first plan payment. */
+export async function cancelPlan(userId: string): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  const settings = await db.billingSettings.findUnique({ where: { userId }, select: { providerMembershipId: true, subscriptionEndedAt: true } });
+  if (!settings?.providerMembershipId || settings.subscriptionEndedAt) return { ok: false, error: "There is no active plan to cancel.", status: 409 };
+  const provider = paymentProvider();
+  if (!provider?.cancelMembership) return { ok: false, error: "Cancelling is not available yet. Please contact us.", status: 503 };
+  try { await provider.cancelMembership(settings.providerMembershipId, { atPeriodEnd: true }); }
+  catch (e) { console.error("PAYMENT ALERT: could not cancel a plan", userId, e instanceof Error ? e.message : e); return { ok: false, error: "We could not cancel your plan just now. Please try again in a moment or contact us.", status: 502 }; }
+  await db.billingSettings.update({ where: { userId }, data: { cancelRequestedAt: new Date(), autoEnabled: false } }); // no automatic top-ups on a plan that is ending
+  return { ok: true };
 }

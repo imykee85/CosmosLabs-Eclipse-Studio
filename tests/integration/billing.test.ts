@@ -599,3 +599,24 @@ test("every verified delivery is logged with its shape only, and an unmatched on
   assert.equal((await lib.webhook.POST(new Request("http://x", { method: "POST", body: "{}" }))).status, 401);
   assert.equal(await lib.db.paymentEventLog.count(), 3, "an unsigned delivery is not logged");
 });
+
+test("Cancel plan stops the subscription at the end of the period, keeps access until then, and a failure or a missing plan changes nothing", { skip }, async () => {
+  await reset(0, false);
+  assert.deepEqual(await lib.billing.cancelPlan(USER), { ok: false, error: "There is no active plan to cancel.", status: 409 }, "nothing to cancel");
+  await lib.webhook.POST(signed(payment("pay_c1", "starter", { membership: { id: "ms_c" } })));
+  const sub = await import("../../src/lib/subscription");
+  whopState.cancelFails = true;
+  const failed = await lib.billing.cancelPlan(USER);
+  assert.equal(failed.ok, false);
+  assert.equal(failed.status, 502);
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).cancelRequestedAt, null, "a failed cancel is not recorded");
+  whopState.cancelFails = false;
+  assert.deepEqual(await lib.billing.cancelPlan(USER), { ok: true });
+  assert.deepEqual(whopState.cancels.slice(-1), ["ms_c"]);
+  assert.deepEqual(whopState.cancelBodies.slice(-1), [{ cancel_at_period_end: true }], "ends at the period end, not at once");
+  const row = await lib.db.billingSettings.findUnique({ where: { userId: USER } });
+  assert.ok(row.cancelRequestedAt, "the request is recorded");
+  assert.equal(await sub.hasSubscription(USER), true, "the plan stays active until the provider ends it");
+  await lib.webhook.POST(signed(payment("pay_c2", "starter", { membership: { id: "ms_c" } })));
+  assert.equal((await lib.db.billingSettings.findUnique({ where: { userId: USER } })).cancelRequestedAt, null, "paying again clears the request");
+});

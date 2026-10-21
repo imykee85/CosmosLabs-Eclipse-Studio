@@ -185,3 +185,5 @@
 /* The saving sits beside the plan name as a badge, like the homepage plan cards (owner 2026-10-21). */
 .st-planHead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .st-planSave { padding: 3px 10px; border-radius: 999px; background: rgba(229, 72, 77, .16); color: #e5484d; font-size: 12px; font-weight: 600; }
+.st-cancel { display: grid; gap: 12px; margin-top: 18px; justify-items: start; }
+.st-cancel-row { display: flex; flex-wrap: wrap; gap: 10px; }

@@ -6,6 +6,7 @@ import CurrentPlan from "./CurrentPlan";
 import PlanBenefits from "@/components/PlanBenefits";
 import TopUp from "./TopUp";
 import PaymentMethods from "./PaymentMethods";
+import CancelPlan from "./CancelPlan";
 import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
 import { CreditBalance, CreditGrants, CreditHistory, CreditNotes } from "./BillingLive";
@@ -31,6 +32,7 @@ export default function BillingPanel() {
         <CreditNotes />
         <p className="st-meta">Plan credits renew monthly and do not roll over. Top-up credits last 90 days and can be used while you are subscribed.</p>
         <CreditGrants />
+        <CancelPlan />
       </section>
 
       <TopUp />

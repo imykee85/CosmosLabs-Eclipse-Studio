@@ -230,9 +230,9 @@ export const whop: PaymentProvider = {
     return { url: body.purchase_url };
   },
 
-  async cancelMembership(membershipId: string) {
+  async cancelMembership(membershipId: string, opts?: { atPeriodEnd?: boolean }) {
     const path = (process.env.WHOP_CANCEL_PATH ?? "/memberships/{id}/cancel").replace("{id}", encodeURIComponent(membershipId));
-    const res = await fetch(`${apiBase()}${path}`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ cancel_at_period_end: false }) });
+    const res = await fetch(`${apiBase()}${path}`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ cancel_at_period_end: Boolean(opts?.atPeriodEnd) }) });
     if (!res.ok) throw new Error(`Whop cancel failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
   },
 };

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAutoTopup } from "@/lib/billing";
+import { db } from "@/lib/db";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { paymentProvider } from "@/lib/payments";
 import { AUTO_MONTHLY_CAPS, AUTO_THRESHOLDS, CUSTOM_MAX_CREDITS, CUSTOM_MIN_CREDITS, creditPacks } from "@/lib/plans";
@@ -13,6 +14,7 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const provider = paymentProvider();
   const [subscribed, locked, topup] = await Promise.all([hasSubscription(userId), lockedTopup(userId), topupRemaining(userId)]);
+  const row = await db.billingSettings.findUnique({ where: { userId }, select: { providerMembershipId: true, cancelRequestedAt: true, subscriptionEndedAt: true } });
   return NextResponse.json({
     packs: creditPacks,
     custom: { min: CUSTOM_MIN_CREDITS, max: CUSTOM_MAX_CREDITS },
@@ -20,6 +22,7 @@ export async function GET() {
     caps: AUTO_MONTHLY_CAPS,
     team: { isTeam, isAdmin },
     subscribed: !subscriptionRuleOn() || subscribed,
+    plan: { cancellable: Boolean(row?.providerMembershipId && subscribed && !row.subscriptionEndedAt), cancelling: Boolean(row?.cancelRequestedAt && !row.subscriptionEndedAt) },
     lockedTopup: locked,
     topupCredits: topup,
     paymentsReady: Boolean(provider),

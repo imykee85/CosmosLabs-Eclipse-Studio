@@ -557,6 +557,7 @@ model BillingSettings {
   providerMemberId      String?   @map("provider_member_id")
   providerPaymentMethod String?   @map("provider_payment_method")
   providerMembershipId  String?   @map("provider_membership_id") // the SUBSCRIPTION's membership (top-up purchases never overwrite it)
+  cancelRequestedAt     DateTime? @map("cancel_requested_at") // the person pressed Cancel plan: the plan ends at the end of the paid period (cleared by a later plan payment)
   subscriptionEndedAt   DateTime? @map("subscription_ended_at") // set when the provider says the subscription ended; a later plan payment wins
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
