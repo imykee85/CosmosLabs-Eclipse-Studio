@@ -66,5 +66,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </body>
     </html>
   );
-  return clerkEnabled ? <ClerkProvider localization={clerkLocalization as never}>{page}</ClerkProvider> : page;
+  // `dynamic` makes Clerk read the per-request CSP nonce and put it on its own script tag; without it Clerk loaded WITHOUT a nonce and the enforced policy blocked it (health report 2026-10-21).
+  return clerkEnabled ? <ClerkProvider dynamic localization={clerkLocalization as never}>{page}</ClerkProvider> : page;
 }
