@@ -55,3 +55,10 @@ FIXES FOR COMMON PROBLEMS
 
 SHAPE OF A GOOD LONG PROMPT (example)
 "Realistic nature-documentary style, natural light. On a warm afternoon on a grassy forest slope a chubby panda cub rolls downhill. [Character, setting, camera: low-angle medium-wide, slight handheld, panda always in frame.] 0-3 s: ... 3-8 s: ... [Sound: only wind, rustling grass and the soft plop of the roll. Mood: warm, natural.]" — one-sentence summary, setting and camera notes, then timed beats, then sound and mood.
+
+IF THE PERSON IS USING THE PREVIOUS VERSION (2.0) OF THE MODEL
+- Limits are smaller: 4 to 15 seconds, up to 9 pictures, 3 video clips and 3 sound clips; a sound clip needs a picture or a clip with it (sound alone is not allowed); six fixed shapes (21:9, 16:9, 4:3, 1:1, 3:4, 9:16); up to 4K (sharp, but 4K files use a video format some browsers cannot play, they download fine).
+- It does not follow timestamps, only shot numbers: write "Shot 1 ... Shot 2 ..." instead of seconds. Prefer one single-view picture per subject.
+- References are named by type and order ("Image 1", "Video 1", "Audio 1") exactly the same way. Voice: `"Character" says: "line", voice timbre references Audio 1`.
+- Edit and Extend work through the prompt with a reference clip: for Edit say what is added (what, when, where), what is removed (and what stays), or what replaces what; for Extend say "Extend Video 1 forward/backward" and what happens next, and add "and then end with Video 1" to keep the original footage; for a fill-in give 2 or 3 clips with the transition between them ("Video 1, then <transition>, into Video 2").
+- A picture whose shape differs from the output can make frames stretch or jump: use a start picture cropped to the output shape.

@@ -54,7 +54,7 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   if (!model?.live) return { ok: false, status: 503, error: "Seedance 2.5 is not connected." };
   const srcSec = Math.max(1, Math.ceil(source.durationSec ?? 5));
   const billedSec = mode === "edit" ? srcSec : ext;
-  const route = await videoRouteNow(model.id);
+  const route = await videoRouteNow(model.id, resolution);
   const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, route) : null;
   const higgsfieldCost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, "higgsfield") : null;
   if (cost != null) {

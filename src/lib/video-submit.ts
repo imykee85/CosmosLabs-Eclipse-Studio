@@ -11,11 +11,13 @@ import { routeFor, type Route } from "@/lib/routes";
 
 const maxDirect = () => (Number(process.env.ARK_VIDEO_MAX_CONCURRENT) > 0 ? Math.floor(Number(process.env.ARK_VIDEO_MAX_CONCURRENT)) : 3);
 
-/** The route a NEW video of this model should use right now (the price must be worked out for it before anything is held). */
-export async function videoRouteNow(modelId: string): Promise<Route> {
+/** The route a NEW video of this model should use right now (the price must be worked out for it before anything is held). 4K runs ONE at a time on an individual BytePlus account (Seedance 2.0 only), on top of the overall limit. */
+export async function videoRouteNow(modelId: string, resolution?: string): Promise<Route> {
   if (!hasArkVideo(modelId) || routeFor(modelId) !== "direct") return "higgsfield";
   const running = await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending" } });
-  return running < maxDirect() ? "direct" : "higgsfield";
+  if (running >= maxDirect()) return "higgsfield";
+  if (resolution?.toLowerCase() === "4k" && (await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending", resolution: { in: ["4k", "4K"] } } })) >= 1) return "higgsfield";
+  return "direct";
 }
 
 export class NeedsMoreCredits extends Error {}

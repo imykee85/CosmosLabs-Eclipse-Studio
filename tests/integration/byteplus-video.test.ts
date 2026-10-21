@@ -143,6 +143,17 @@ test("BytePlus runs 3 at a time: the next video goes to Higgsfield from the star
   assert.deepEqual(providers, ["byteplus", "byteplus", "higgsfield"]);
 });
 
+test("Seedance 2.0 4K runs one at a time on BytePlus; the next 4K goes to Higgsfield, other sizes still go direct", { skip }, async () => {
+  process.env.ROUTE_SEEDANCE_2_0 = "direct";
+  const four = (extra: Record<string, unknown> = {}) => lib.start.startVideoRender({ userId: A, prompt: "a cat", model: "seedance_2_0", duration: 5, resolution: "4k", aspectRatio: "16:9", audio: true, ...extra });
+  const a = await four(), b = await four(), c = await four({ resolution: "720p" });
+  for (const r of [a, b, c]) assert.equal(r.ok, true, r.error);
+  const got = await Promise.all([a, b, c].map((r) => lib.db.generation.findUnique({ where: { id: r.item.id } })));
+  assert.deepEqual(got.map((g: { provider: string }) => g.provider), ["byteplus", "higgsfield", "byteplus"]);
+  assert.equal((arkSent[0].body as { resolution: string }).resolution, "4k");
+  delete process.env.ROUTE_SEEDANCE_2_0;
+});
+
 test("Edit on the direct route: reference video, task type edit, length -1; no key means Higgsfield", { skip }, async () => {
   await lib.db.generation.create({ data: { id: "bpv-src", userId: A, kind: "video", prompt: "x", status: "completed", imageUrl: "", storageKey: "u/a/clip.mp4", model: "seedance_2_5", durationSec: 6, aspectRatio: "16:9" } });
   process.env.ROUTE_SEEDANCE_2_5 = "direct";

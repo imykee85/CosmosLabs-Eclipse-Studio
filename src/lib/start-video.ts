@@ -159,7 +159,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const audioCfg = caps.audio ? (audio ?? caps.audioDefault) : false;
   const audioUsed = motion ? motion.kind === "kling" && keepSound : audioCfg;
   // The price follows the route the render really uses (routes.ts: the direct routes have no adapter yet, so this is the Higgsfield price today).
-  const route: Route = motion ? "higgsfield" : await videoRouteNow(model.id);
+  const route: Route = motion ? "higgsfield" : await videoRouteNow(model.id, resolutionUsed);
   const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, route) : null;
   const higgsfieldCost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, "higgsfield") : null;
   if (cost != null) {
