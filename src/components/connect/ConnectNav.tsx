@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Brain, MessageSquare, Puzzle, Wrench } from "lucide-react";
 import BrandLogo from "./brands";
+import SoonTag from "@/components/SoonTag";
 
 const ITEMS = [
   { href: "/connect", label: "Chat", icon: <MessageSquare size={15} /> },
@@ -15,7 +16,7 @@ export default function ConnectNav({ current }: { current: string }) {
   return (
     <nav className="cn-nav" aria-label="Connect sections">
       {ITEMS.map((i) => (
-        <Link key={i.href} href={i.href} className={`cn-navlink ${i.href === current ? "is-on" : ""}`} aria-current={i.href === current ? "page" : undefined}>{i.icon} {i.label}</Link>
+        <Link key={i.href} href={i.href} className={`cn-navlink ${i.href === current ? "is-on" : ""}`} aria-current={i.href === current ? "page" : undefined}>{i.icon} {i.label}{i.href === "/connect/apps" && <> <SoonTag /></>}</Link>
       ))}
     </nav>
   );
