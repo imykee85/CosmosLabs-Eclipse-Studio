@@ -1,17 +1,18 @@
 import { toCredits } from "./credit-units";
 import { plans, type Plan } from "./plans";
 
-// The wording around a plan's price (pricing psychology, owner decision 2026-10-20): what the credits buy, and how much cheaper a credit is than on Starter.
-// A plain image costs 1 credit; the video yardstick is Seedance 2.5 on the DIRECT route, 5 seconds, 720p, sound on = 21 credits at the master brief's video price
-// (1.8x, section 5; owner 2026-10-21 replaced the Kling yardstick). A unit test checks this number against the real price table.
-export const SEEDANCE_YARDSTICK_CREDITS = 21;
+// The wording around a plan's price (owner 2026-10-21): what the credits buy if every credit goes on the CHEAPEST model. Cheapest image = 1 credit (Soul 2),
+// cheapest video = 4 credits (5 s, no sound, default quality: Kling 2.5 Turbo Standard, PixVerse V6, Seedance 2.0 Mini). A unit test checks both numbers
+// against the real price tables, so a price change fails it until these are updated.
+export const CHEAPEST_IMAGE_CREDITS = 1;
+export const CHEAPEST_VIDEO_CREDITS = 4;
 
 const n = (v: number) => v.toLocaleString("en-US");
 
-/** "≈ 200 images or 9 Seedance videos". */
+/** "200 images or 50 videos". */
 export function planValue(plan: Plan): string {
   const credits = toCredits(plan.credits);
-  return `≈ ${n(credits)} images or ${n(Math.floor(credits / SEEDANCE_YARDSTICK_CREDITS))} Seedance videos`;
+  return `${n(Math.floor(credits / CHEAPEST_IMAGE_CREDITS))} images or ${n(Math.floor(credits / CHEAPEST_VIDEO_CREDITS))} videos`;
 }
 
 /** Whole percent a credit is cheaper than on the first (smallest) plan; 0 for the first plan itself. */

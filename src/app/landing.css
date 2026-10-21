@@ -746,3 +746,17 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (max-width: 800px) { .plan-popular { padding-top: 32px; padding-bottom: 32px; } }
 
 .plan-rule { max-width: 760px; margin: 28px auto 0; text-align: center; color: #5e5953; font-size: 16px; line-height: 1.5; }
+
+/* Plans (owner 2026-10-21): the benefit lists run on without a gap, every card's button sits at the bottom of its card (so the Trial card's button lines up
+   with the others), and the nav Sign Up / Log In button is the same size as Start Creating. */
+.plan-card { display: flex; flex-direction: column; align-content: normal; }
+.plan-card ul:has(+ .pb) { margin-bottom: 0; }
+.plan-card ul + .pb { margin-top: -8px; }
+.plan-card .pill-btn { margin-top: auto; align-self: stretch; }
+.plan-card > ul { margin-bottom: 8px; }
+.plan-card > ul:has(+ .pb) { margin-bottom: 0; }
+.nav-actions .pill-btn { height: auto; padding: 14px 20px 14px 22px; font-size: 16px; line-height: 24px; gap: 13px; }
+.hero-trial { margin: 14px 0 0; color: #d1cec9; font-size: 16px; font-weight: 500; }
+/* The last row of tiles must not leave a thin line at the bottom edge of the wall: the columns fade out with a mask instead of relying on the overlay alone. */
+.results-cols { -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 96%); mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 96%); }
+.results-fade { bottom: -2px; height: calc(18% + 2px); }

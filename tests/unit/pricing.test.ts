@@ -5,7 +5,7 @@ import { allImageModels, chargeFor, getModelById, imageCredits, toPublic } from 
 import { imageCost } from "../../src/lib/image-render";
 import { VIDEO_MODELS, videoCredits, videoPrice, videoModelById } from "../../src/lib/video-models";
 import { CUSTOM_PACK_ID, creditPacks, plans, productById } from "../../src/lib/plans";
-import { BEST_VALUE_PACK_ID, SEEDANCE_YARDSTICK_CREDITS, planSaving, planValue } from "../../src/lib/plan-copy";
+import { BEST_VALUE_PACK_ID, CHEAPEST_IMAGE_CREDITS, CHEAPEST_VIDEO_CREDITS, planSaving, planValue } from "../../src/lib/plan-copy";
 import { DIRECT_KEY, registerDirectRoute, routeFor, startWithFallback, unregisterDirectRoute } from "../../src/lib/routes";
 import { allPriceRows, netPerCredit } from "../../src/lib/price-table";
 import { creditsFor, usdFor } from "../../src/lib/audio/pricing";
@@ -37,9 +37,12 @@ test("plans and packs grant what the brief says (ledger units) and show whole cr
 });
 
 test("plan cards: what the credits buy and the saving against Starter", () => {
-  assert.deepEqual(plans.map(planValue), ["≈ 200 images or 9 Seedance videos", "≈ 600 images or 28 Seedance videos", "≈ 2,500 images or 119 Seedance videos"]);
+  assert.deepEqual(plans.map(planValue), ["200 images or 50 videos", "600 images or 150 videos", "2,500 images or 625 videos"]);
   assert.deepEqual(plans.map(planSaving), [0, 14, 16]);
-  assert.equal(SEEDANCE_YARDSTICK_CREDITS, toCredits(videoPrice(videoModelById("seedance_2_5")!, "720p", 5, true, "direct")!), "Seedance 2.5, 5 s, 720p, sound on, direct route");
+  const imgs = allImageModels().flatMap((m) => Object.keys(m.usd).map((k) => imageCredits(m, k === "default" ? undefined : k)).filter((c): c is number => c != null));
+  assert.equal(CHEAPEST_IMAGE_CREDITS, Math.min(...imgs), "the cheapest image on any model");
+  const vids = (VIDEO_MODELS as any[]).filter((m) => m.live).map((m) => videoCredits(m, undefined, 5, false)).filter((c): c is number => c != null);
+  assert.equal(CHEAPEST_VIDEO_CREDITS, Math.min(...vids), "the cheapest 5 s video, no sound, default quality");
   assert.equal(BEST_VALUE_PACK_ID, creditPacks[creditPacks.length - 1].id, "the biggest pack is Best value");
 });
 
