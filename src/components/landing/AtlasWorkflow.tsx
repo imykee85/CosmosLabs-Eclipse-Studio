@@ -78,6 +78,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
         <div className="atl-intro" ref={introRow}>
         <div className={`atl-bot${intro ? " is-intro" : ""}`} ref={bot} role="img" aria-label="Atlas, the Eclipse agent">
           <div className="atl-glow" />
+          <div className="atl-stage">
           <div className="atl-hop">
             <div className="atl-float">
               <div className="atl-ball" />
@@ -90,6 +91,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
             </div>
           </div>
           <div className="atl-ground" />
+          </div>
         </div>
         <AtlasTyping lines={atlasDirections} />
         </div>
