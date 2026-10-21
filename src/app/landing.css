@@ -760,3 +760,9 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* The last row of tiles must not leave a thin line at the bottom edge of the wall: the columns fade out with a mask instead of relying on the overlay alone. */
 .results-cols { -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 96%); mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 96%); }
 .results-fade { bottom: -2px; height: calc(18% + 2px); }
+
+/* Hero (owner 2026-10-21): the line under "AI Creative Suite" has the same size as it; an outlined "Why Eclipse?" button sits above "Trusted by" (after the owner's reference). */
+.hero-deck { font-size: 20px; }
+@media (min-width: 801px) { .hero-deck { font-size: 24px; } }
+.hero-why { display: inline-flex; align-items: center; gap: 12px; margin: 0 0 34px; padding: 14px 24px 14px 20px; border: 1px solid rgba(255,255,255,.75); border-radius: 999px; color: #fff; font-size: 16px; line-height: 24px; font-weight: 500; background: rgba(0,0,0,.12); transition: background .2s ease, transform .18s var(--ease); }
+.hero-why:hover { background: rgba(255,255,255,.14); transform: translateY(-2px); }

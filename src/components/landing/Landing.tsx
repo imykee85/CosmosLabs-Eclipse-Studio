@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Play, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
 import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
@@ -98,7 +98,7 @@ export default function Landing() {
           <Cta glint />
           <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
         </div>
-        <IndustryStrip />
+        <IndustryStrip above={<a className="hero-why" href="#how-it-works"><Play size={16} fill="currentColor" strokeWidth={0} aria-hidden="true" />Why Eclipse?</a>} />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
       </section>
 
