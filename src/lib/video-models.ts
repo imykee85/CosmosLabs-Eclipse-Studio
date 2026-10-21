@@ -135,7 +135,7 @@ const seedance2: VideoLive = {
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.0643, "720p": 0.1382, "1080p": 0.311 }, estimate: ["direct"] },
+  price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.07, "720p": 0.15, "1080p": 0.37, "4k": 0.78 } },
   timeoutMinutes: SLOW,
   note: "4k can take twice as long.",
 };

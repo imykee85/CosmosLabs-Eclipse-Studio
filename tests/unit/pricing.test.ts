@@ -151,9 +151,10 @@ test("Seedance direct is cheaper and follows the route that is really used", () 
   assert.equal(videoPrice(s25, "1080p", 4, false, "direct"), 410);
   assert.equal(videoCredits(s25, "720p", 5, false, "higgsfield"), 42);
   const s20 = videoModelById("seedance_2_0")!;
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 5, false, "direct")), [6, 13, 28]);
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 4, false, "direct")), [5, 10, 23]);
-  assert.equal(videoCredits(s20, "4k", 5, false, "direct"), 140, "4k stays on Higgsfield");
+  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 5, false, "direct")), [7, 14, 34]);
+  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 4, false, "direct")), [6, 11, 27]);
+  assert.equal(videoCredits(s20, "4k", 5, false, "direct"), 71, "BytePlus' own 4k list price, 0.78 a second");
+  assert.equal(videoCredits(s20, "4k", 5, false, "higgsfield"), 140);
   assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s25, r, 5, false, "direct")), [10, 21, 52]);
   assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s25, r, 4, false, "direct")), [8, 17, 41]);
 });
