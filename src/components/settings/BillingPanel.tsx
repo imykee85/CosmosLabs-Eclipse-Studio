@@ -40,12 +40,11 @@ export default function BillingPanel() {
         <div className="st-plans">
           {plans.map((p) => (
             <article key={p.name} className="st-planCard">
-              <span className="st-pill">{p.name}</span>
+              <div className="st-planHead"><span className="st-pill">{p.name}</span>{planSaving(p) > 0 && <span className="st-planSave">Save {planSaving(p)}%</span>}</div>
               <p className="st-price">${p.price}<small>/mo</small></p>
               <PriceBadge usd={p.price} className="badge-row" />
               <p className="st-meta">{fmtCredits(p.credits)} credits/mo · {p.seats} seat{p.seats === 1 ? "" : "s"}</p>
               <p className="st-meta st-value">{planValue(p)}</p>
-              {planSaving(p) > 0 && <p className="st-meta st-save">Save {planSaving(p)}% per credit</p>}
               <UpgradeButton planId={p.id} />
             </article>
           ))}
