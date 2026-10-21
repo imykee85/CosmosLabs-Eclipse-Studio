@@ -1,5 +1,6 @@
 "use client";
 
+import SoonTag from "@/components/SoonTag";
 import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -185,7 +186,7 @@ function ConnectChat() {
           <Link href="/tools" className="cn-chip"><Wrench size={15} /> Tools</Link>
           <Link href="/memory" className="cn-chip"><Brain size={15} /> Memory</Link>
           <Link href="/connect/apps" className="cn-chip">
-            <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connectors
+            <span className="cn-stack" aria-hidden="true">{["tiktok", "telegram", "youtube"].map((b) => <BrandLogo key={b} brand={b} size={24} />)}</span> Connectors <SoonTag />
           </Link>
         </div>
 
