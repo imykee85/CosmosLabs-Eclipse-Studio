@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { audioCreditsOn, pagePricing } from "@/lib/audio/pricing";
 import { modelAvailable } from "@/lib/audio/providers";
-import { PROVIDER_LABEL, audioModels, kindOf, musicMaxSeconds } from "@/lib/audio/registry";
+import { HIDDEN_PROVIDERS, PROVIDER_LABEL, audioModels, kindOf, musicMaxSeconds } from "@/lib/audio/registry";
 import { CLONE_PROVIDERS, CONSENT_TEXT, DESIGN_PROVIDERS, voiceCredits } from "@/lib/audio/voices";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function GET() {
   if (clerkEnabled && !(await auth()).userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const on = audioCreditsOn();
   return NextResponse.json({
-    models: audioModels().map((m) => ({
+    models: audioModels().filter((m) => !HIDDEN_PROVIDERS.includes(m.provider)).map((m) => ({
       kind: kindOf(m), kinds: m.kinds,
       options: { maxVariants: m.maxVariants ?? null, negativePrompt: !!m.negativePrompt, videoInput: !!m.videoInput, durationRequired: !!m.durationRequired, formats: m.formats ?? null, diarize: !!m.diarize, loop: !!m.loop, instrumental: !!m.instrumental, minSeconds: m.minSeconds ?? null, maxSeconds: m.kinds.includes("music") ? musicMaxSeconds(m) : m.maxSeconds ?? null, maxInputBytes: m.maxInputBytes ?? null, maxInputSeconds: m.maxInputSeconds ?? null, long: !!m.asyncAbove },
       id: m.id, label: m.label, provider: m.provider, providerLabel: PROVIDER_LABEL[m.provider], maxChars: m.maxChars, supports: m.supports, note: m.note ?? null,
