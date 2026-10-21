@@ -766,3 +766,5 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 @media (min-width: 801px) { .hero-deck { font-size: 24px; } }
 .hero-why { display: inline-flex; align-items: center; gap: 12px; margin: 0 0 34px; padding: 14px 24px 14px 20px; border: 1px solid rgba(255,255,255,.75); border-radius: 999px; color: #fff; font-size: 16px; line-height: 24px; font-weight: 500; background: rgba(0,0,0,.12); transition: background .2s ease, transform .18s var(--ease); }
 .hero-why:hover { background: rgba(255,255,255,.14); transform: translateY(-2px); }
+/* "Trusted by— creatives, ..." is plain sentence text, not capitals (owner 2026-10-21). */
+.strip-label, .hero .strip-label { text-transform: none; letter-spacing: 0; font-weight: 500; }

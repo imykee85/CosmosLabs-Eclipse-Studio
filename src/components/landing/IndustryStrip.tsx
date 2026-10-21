@@ -37,7 +37,7 @@ export default function IndustryStrip({ above }: { above?: React.ReactNode }) {
   return (
     <section className="strip" aria-label="What Eclipse is made for">
       {above}
-      <p className="strip-label">{logos.length > 0 ? "TRUSTED BY CREATIVES, ENTERPRISES, AGENCIES AND STUDIOS" : "MADE FOR BRANDS IN"}</p>
+      <p className="strip-label">{logos.length > 0 ? "Trusted by— creatives, enterprises, agencies and studios" : "MADE FOR BRANDS IN"}</p>
       <div className="strip-viewport">
         <div className="strip-track">
           <Set />
