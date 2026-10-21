@@ -13,7 +13,7 @@ export function isArkUrl(url: string): boolean {
 export type ArkWorkflow = "t2v" | "i2v" | "ref" | "edit" | "extend";
 
 // Eclipse model id -> BytePlus model id (ARK_VIDEO_MODEL_<ID> overrides, a Config value, in case BytePlus issues a new dated version).
-const MODELS: Record<string, string> = { seedance_2_5: "dreamina-seedance-2-5-260628", seedance_2_0: "dreamina-seedance-2-0-260128" };
+const MODELS: Record<string, string> = { seedance_2_5: "dreamina-seedance-2-5-260628", seedance_2_0: "dreamina-seedance-2-0-260128", seedance_2_0_fast: "dreamina-seedance-2-0-fast-260128", seedance_2_0_mini: "dreamina-seedance-2-0-mini-260615" };
 export const hasArkVideo = (modelId: string) => modelId in MODELS;
 export const arkVideoModel = (modelId: string) => process.env[`ARK_VIDEO_MODEL_${modelId.toUpperCase()}`]?.trim() || MODELS[modelId];
 
@@ -44,6 +44,8 @@ export function arkVideoBody(modelId: string, workflow: ArkWorkflow, hf: Record<
   body.ratio = workflow === "i2v" || workflow === "edit" || workflow === "extend" ? "adaptive" : typeof hf.aspect_ratio === "string" ? hf.aspect_ratio : "adaptive";
   body.duration = workflow === "edit" ? -1 : typeof hf.duration === "number" ? hf.duration : -1;
   if (typeof hf.seed === "number") body.seed = hf.seed;
+  // Draft mode (2.5 only): a cheap 480p preview whose id can later be turned into the final 1080p video (src/lib/video-draft.ts).
+  if (hf.draft === true && modelId === "seedance_2_5") body.draft = true;
   if (modelId === "seedance_2_5" && (workflow === "ref" || workflow === "edit" || workflow === "extend")) body.omni_reference_task_type = workflow === "ref" ? "reference" : workflow;
   return body;
 }

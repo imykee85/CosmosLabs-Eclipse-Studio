@@ -18,13 +18,15 @@ export type Route = "higgsfield" | "direct";
 export const DIRECT_KEY: Record<string, string> = {
   seedance_2_0: "ARK_API_KEY",
   seedance_2_5: "ARK_API_KEY",
+  seedance_2_0_fast: "ARK_API_KEY",
+  seedance_2_0_mini: "ARK_API_KEY",
   qwen_image_3: "DASHSCOPE_API_KEY",
   qwen_image_3_edit: "DASHSCOPE_API_KEY",
   grok_image_2: "XAI_API_KEY",
 };
 
 // Models whose direct adapter exists in the code.
-const BUILT = new Set<string>(["qwen_image_3", "qwen_image_3_edit", "grok_image_2", "seedance_2_0", "seedance_2_5"]);
+const BUILT = new Set<string>(["qwen_image_3", "qwen_image_3_edit", "grok_image_2", "seedance_2_0", "seedance_2_5", "seedance_2_0_fast", "seedance_2_0_mini"]);
 // Extra registrations (tests register a fake one).
 const registered = new Set<string>();
 
@@ -35,7 +37,7 @@ export function unregisterDirectRoute(modelId: string): void { registered.delete
 /** What the owner asked for, whether or not it can run. */
 // Seedance video is ON by default (owner 2026-10-21: "turn them on"); set ROUTE_SEEDANCE_2_5=higgsfield (or _2_0) to switch one off. It still needs ARK_API_KEY, and if
 // BytePlus is not activated the start falls back to Higgsfield (src/lib/video-submit.ts). Every other model stays on Higgsfield until its setting says direct.
-const DEFAULT_DIRECT = new Set(["seedance_2_0", "seedance_2_5"]);
+const DEFAULT_DIRECT = new Set(["seedance_2_0", "seedance_2_5", "seedance_2_0_fast", "seedance_2_0_mini"]);
 export function routeSetting(modelId: string): Route {
   const v = process.env[`ROUTE_${modelId.toUpperCase()}`]?.trim().toLowerCase();
   if (v === "direct") return "direct";

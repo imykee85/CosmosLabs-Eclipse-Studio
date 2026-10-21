@@ -51,6 +51,7 @@ export type VideoLive = {
   price: { usd: Record<string, number>; usdAudio?: Record<string, number>; directUsd?: Record<string, number>; directWithVideo?: DirectWithVideo; estimate?: string[] };
   timeoutMinutes: number;                           // give up and release the held price after this long without a result
   note?: string;
+  directOnly?: boolean; // runs ONLY on the direct BytePlus route (no Higgsfield endpoint exists); refused when that route is unavailable
 };
 
 export type VideoModel = {
@@ -145,6 +146,29 @@ const seedance2: VideoLive = {
   price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.07, "720p": 0.15, "1080p": 0.37, "4k": 0.78 }, directWithVideo: { perMillion: { "480p": 4.3, "720p": 4.3, "1080p": 4.7, "4k": 2.4 }, px: { "480p": 864 * 496, "720p": 1280 * 720, "1080p": 1920 * 1080, "4k": 3840 * 2160 }, minExtraSec: 4 } },
   timeoutMinutes: SLOW,
   note: "4k can take twice as long.",
+};
+
+// Seedance 2.0 Fast and Mini: BytePlus-only (Higgsfield has no endpoint for them), 480p and 720p, no 4k/1080p. Direct list prices from BytePlus' pricing page
+// (docs/video-providers/byteplus-seedance-25.md): without video 0.06/0.12 (Fast) and 0.04/0.08 (Mini) USD per second; with video the token rates 3.3 (Fast) and 2.1 (Mini)
+// per million at both resolutions. `usd` repeats the direct price because there is no Higgsfield route to price.
+const seedance2Small = (tier: "fast" | "mini"): VideoLive => {
+  const direct = tier === "fast" ? { "480p": 0.06, "720p": 0.12 } : { "480p": 0.04, "720p": 0.08 };
+  const rate = tier === "fast" ? 3.3 : 2.1;
+  return {
+    directOnly: true,
+    endpoints: { t2v: `byteplus/seedance-2.0-${tier}/text-to-video`, i2v: `byteplus/seedance-2.0-${tier}/image-to-video`, ref: `byteplus/seedance-2.0-${tier}/reference-to-video` },
+    refs: { max: 9, videos: { max: 3 }, audio: { max: 3 } },
+    promptMax: 5000,
+    promptRequired: { t2v: true, i2v: false, ref: false },
+    durations: { t2v: { min: 4, max: 15 }, i2v: { min: 4, max: 15 }, ref: { min: 4, max: 15 } },
+    durationDefault: 5,
+    resolution: { values: ["480p", "720p"], default: "720p" },
+    aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
+    audio: { field: "generate_audio", kind: "bool", default: true },
+    endFrameField: "end_image_url",
+    price: { usd: direct, directUsd: direct, directWithVideo: { perMillion: { "480p": rate, "720p": rate }, px: { "480p": 864 * 496, "720p": 1280 * 720 }, minExtraSec: 4 } },
+    timeoutMinutes: SLOW,
+  };
 };
 
 // Seedance 2.5 (text-to-video and image-to-video; the reference, edit and extend endpoints are not built yet, see docs/seedance-api.md). Longer clips (4 to 30 s),
@@ -383,6 +407,8 @@ export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling_2_5_turbo_std", label: "Kling 2.5 Turbo Standard", maker: "Kling", blurb: "Start-frame animation only (needs a start frame), 5 or 10 seconds.", ratios: [], durations: [5, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling25t("standard") },
   { id: "seedance_2_0", label: "Seedance 2.0", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 4K.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: SEEDANCE_RES, sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2 },
   { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 30 seconds.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 30, live: seedance25 },
+  { id: "seedance_2_0_fast", label: "Seedance 2.0 Fast", maker: "Bytedance", blurb: "Quicker, lower-cost Seedance 2.0, up to 720p.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2Small("fast") },
+  { id: "seedance_2_0_mini", label: "Seedance 2.0 Mini", maker: "Bytedance", blurb: "The lowest-cost Seedance 2.0, up to 720p.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2Small("mini") },
   { id: "happy_horse_1_1", label: "Happy Horse 1.1", maker: "Happy Horse", blurb: "Text, start frame and reference pictures, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 9, live: happyHorse11 },
   { id: "pixverse_v6", label: "PixVerse V6", maker: "PixVerse", blurb: "Fast clips from 1 to 15 seconds, with sound and a seed.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(1, 15), qualities: ["360p", "540p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: pixverse6 },
   { id: "happy_horse_video", label: "Happy Horse 1.0", maker: "Happy Horse", blurb: "Text, start frame and reference pictures, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 9, live: happyHorse10 },
@@ -405,7 +431,6 @@ export const VIDEO_MODELS: VideoModel[] = [
 
   // Listed with the settings the catalog gives; not connected yet (greyed out, Soon).
   { id: "kling_o3_image_reference", label: "Kling 3.0 Omni", maker: "Kling", blurb: "Video from text and several reference pictures.", ratios: R3, durations: range(3, 15), qualities: ["Standard", "Pro", "4K"], sound: "toggle", startFrame: false, endFrame: false, refImages: 7 },
-  { id: "seedance_2_0_mini", label: "Seedance 2.0 Mini", maker: "Bytedance", blurb: "Fast, budget Seedance 2.0.", ratios: RWIDE, durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },
   { id: "seedance1_5", label: "Seedance 1.5 Pro", maker: "Bytedance", blurb: "Reliable motion, improved quality.", ratios: RWIDE, durations: [4, 8, 12], qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "cinematic_studio_3_0", label: "Cinema Studio Video 3.0", maker: "Cinema Studio", blurb: "Cinema-grade video, the most advanced.", ratios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(4, 15), qualities: ["480p", "720p", "1080p", "4K"], sound: "toggle", startFrame: true, endFrame: true, refImages: 0 },
   { id: "flux_3_video", label: "FLUX 3 Video", maker: "Black Forest Labs", blurb: "Text, multi-frame and continuation, with sound.", ratios: ["auto", "21:9", "2:1", "16:9", "4:3", "1:1", "3:4", "9:16"], durations: range(5, 20), qualities: ["720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 4 },

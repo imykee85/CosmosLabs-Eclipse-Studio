@@ -41,7 +41,7 @@ export class NeedsMoreCredits extends Error {}
 /** The direct start was refused and the Higgsfield price is higher than the one the person was shown: they are asked again before paying it. */
 export class PriceChanged extends Error { constructor(readonly cost: number) { super("price changed"); } }
 
-export type RoutedStart = { row: { id: string; userId: string; creditsHeld: number | null; params: unknown }; route: Route; modelId: string; workflow: string; endpoint: string; body: Record<string, unknown>; idemKey: string; higgsfieldCost: number | null; confirm?: boolean };
+export type RoutedStart = { row: { id: string; userId: string; creditsHeld: number | null; params: unknown }; route: Route; modelId: string; workflow: string; endpoint: string; body: Record<string, unknown>; idemKey: string; higgsfieldCost: number | null; confirm?: boolean; noFallback?: boolean };
 
 /** Submits the job and records where it runs on the row. Throws on failure (the caller deletes the row, which releases the hold). */
 export async function submitRouted(a: RoutedStart) {
@@ -54,6 +54,8 @@ export async function submitRouted(a: RoutedStart) {
       if (!(err instanceof ArkError) || err.ambiguous) throw err;
       console.error("direct video route refused before starting, falling back to Higgsfield", a.modelId, err.detail);
       if (err.status != null && [400, 401, 403, 404].includes(err.status)) arkBlockedUntil = Date.now() + BLOCK_MS;
+      // A job that exists only at BytePlus (Seedance 2.0 Fast/Mini, a draft's final) has nowhere else to run: the start simply fails and the hold is released.
+      if (a.noFallback) throw err;
       const held = a.row.creditsHeld ?? 0;
       if (a.higgsfieldCost != null && a.higgsfieldCost > held && !a.confirm) throw new PriceChanged(a.higgsfieldCost);
       if (a.higgsfieldCost != null && a.higgsfieldCost > held) {

@@ -31,7 +31,7 @@ export const videoSettings = () => ({
 
 export type StartVideoInput = {
   userId: string; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
-  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; audioRefs?: unknown; shots?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown;
+  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; audioRefs?: unknown; shots?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown; draft?: unknown;
 };
 export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string };
 
@@ -107,7 +107,10 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   // The result must end up in the REFERENCE's exact ratio: the model gets the nearest one it offers and the stored clip is trimmed to the exact ratio (src/lib/conform.ts). Saved on the row as `params.conform`.
   const conform = autoTrimEnabled() && input.aspectRatio === AUTO_RATIO && caps.ratios.length ? await autoTarget(userId, refs[0] ?? start ?? undefined) : null;
   if (aspectIn === AUTO_RATIO && !caps.ratios.includes(AUTO_RATIO)) aspectIn = await resolveAutoRatio(userId, refs[0] ?? start ?? undefined, caps.ratios, caps.defaultRatio);
-  const resolution = typeof input.resolution === "string" ? input.resolution : undefined;
+  // Draft mode (Seedance 2.5 only): a cheap 480p preview that can later be turned into the final 1080p video (src/lib/video-draft.ts). Direct route only.
+  const draft = input.draft === true;
+  if (draft && (model.id !== "seedance_2_5" || motion || shots)) return { ok: false, status: 400, error: "Draft previews are available for Seedance 2.5 only." };
+  const resolution = draft ? "480p" : typeof input.resolution === "string" ? input.resolution : undefined;
   const audio = typeof input.audio === "boolean" ? input.audio : undefined;
 
   // Seed: only for a model that has one; always sent to it (the user's, a locked one, or a fresh random one) so a result can be re-run.
@@ -166,8 +169,11 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     inputVideoSec = clips.length === videoRefIds.length && clips.every((c) => c.durationSec != null) ? clips.reduce((a, c) => a + Math.ceil(c.durationSec as number), 0) : null;
   }
   const route: Route = motion ? "higgsfield" : await videoRouteNow(model.id, resolutionUsed ?? caps.defaultQuality, inputVideoSec);
+  // A model that exists only at BytePlus, and a draft, have no Higgsfield route: when the direct route cannot take the job right now it is refused, not moved.
+  const onlyDirect = live.directOnly === true || draft;
+  if (onlyDirect && route !== "direct") return { ok: false, status: 503, error: draft ? "Draft previews are not available right now. Please try again in a few minutes." : `${model.label} is not available right now. Please try again in a few minutes or choose another model.` };
   const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, route, inputVideoSec ?? undefined) : null;
-  const higgsfieldCost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, "higgsfield") : null;
+  const higgsfieldCost = cfg.creditsOn && !onlyDirect ? videoPrice(model, resolutionUsed, duration, audioUsed, "higgsfield") : null;
   if (cost != null) {
     const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });
     if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${fmtCredits(cfg.dailyCredits)} credits.` };
@@ -204,6 +210,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   }
   const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl, endUrl, refUrls, refVideoUrls, refAudioUrls, shots });
   if (!built.ok) return { ok: false, status: 400, error: built.error };
+  if (draft) built.body.draft = true;
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel starts cannot all pass the balance check.
   const idemKey = randomUUID();
@@ -212,12 +219,12 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     userId, projectId, kind: "video", prompt, status: "pending", statusUrl: null, requestId: null, provider: "higgsfield", model: model.id,
     aspectRatio: aspect, resolution: resolutionUsed ?? null, seed, seedLocked, durationSec: duration, hasAudio: motion ? (motion.kind === "kling" ? keepSound : null) : caps.audio ? audioUsed : null,
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
-    params: { conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, audioRefs: audioRefIds.length ? audioRefIds : undefined, shots, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
+    params: { draft: draft || undefined, inputVideoSec: draft && inputVideoSec != null ? inputVideoSec : undefined, conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, audioRefs: audioRefIds.length ? audioRefIds : undefined, shots, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
   });
   if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (cost as number))) };
 
   try {
-    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: built.workflow, endpoint: built.endpoint, body: built.body, idemKey, higgsfieldCost, confirm: input.confirm === true });
+    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: built.workflow, endpoint: built.endpoint, body: built.body, idemKey, higgsfieldCost, confirm: input.confirm === true, noFallback: onlyDirect });
     return { ok: true, item: await toItem(row), seedNote };
   } catch (err) {
     await db.generation.delete({ where: { id: made.row.id } }).catch(() => {}); // nothing was started, so nothing stays held
