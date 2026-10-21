@@ -12,8 +12,11 @@ import { routeFor, type Route } from "@/lib/routes";
 const maxDirect = () => (Number(process.env.ARK_VIDEO_MAX_CONCURRENT) > 0 ? Math.floor(Number(process.env.ARK_VIDEO_MAX_CONCURRENT)) : 3);
 
 /** The route a NEW video of this model should use right now (the price must be worked out for it before anything is held). 4K runs ONE at a time on an individual BytePlus account (Seedance 2.0 only), on top of the overall limit. */
-export async function videoRouteNow(modelId: string, resolution?: string): Promise<Route> {
+export async function videoRouteNow(modelId: string, resolution?: string, hasVideoInput = false): Promise<Route> {
   if (!hasArkVideo(modelId) || routeFor(modelId) !== "direct") return "higgsfield";
+  // BytePlus bills a job that takes a VIDEO as input by a higher, length-dependent token rate than the plain per-second list we price direct jobs with
+  // (docs/video-providers/byteplus-seedance-25.md), so those jobs (reference clips, Edit, Extend) stay on Higgsfield until that price is modelled.
+  if (hasVideoInput) return "higgsfield";
   const running = await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending" } });
   if (running >= maxDirect()) return "higgsfield";
   if (resolution?.toLowerCase() === "4k" && (await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending", resolution: { in: ["4k", "4K"] } } })) >= 1) return "higgsfield";

@@ -154,16 +154,15 @@ test("Seedance 2.0 4K runs one at a time on BytePlus; the next 4K goes to Higgsf
   delete process.env.ROUTE_SEEDANCE_2_0;
 });
 
-test("Edit on the direct route: reference video, task type edit, length -1; no key means Higgsfield", { skip }, async () => {
+test("jobs that take a VIDEO as input (Edit, Extend, reference clips) stay on Higgsfield: BytePlus bills them at a higher token rate", { skip }, async () => {
   await lib.db.generation.create({ data: { id: "bpv-src", userId: A, kind: "video", prompt: "x", status: "completed", imageUrl: "", storageKey: "u/a/clip.mp4", model: "seedance_2_5", durationSec: 6, aspectRatio: "16:9" } });
   process.env.ROUTE_SEEDANCE_2_5 = "direct";
   const r = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-src", mode: "edit", prompt: "remove the crowd", resolution: "480p", audio: false });
   assert.equal(r.ok, true, r.error);
-  const b = arkSent[0].body as { content: { role?: string }[]; duration: number; ratio: string; omni_reference_task_type: string };
-  assert.deepEqual(b.content.map((c) => c.role ?? "text"), ["text", "reference_video"]);
-  assert.equal(b.duration, -1); assert.equal(b.ratio, "adaptive"); assert.equal(b.omni_reference_task_type, "edit");
-  const key = process.env.ARK_API_KEY; delete process.env.ARK_API_KEY; arkSent.length = 0;
-  const r2x = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-src", mode: "extend", prompt: "and then", duration: 6 });
-  process.env.ARK_API_KEY = key;
-  assert.equal(r2x.ok, true, r2x.error); assert.equal(arkSent.length, 0); assert.match(hfSent[hfSent.length - 1].path, /video-extend$/);
+  assert.equal(arkSent.length, 0); assert.match(hfSent[hfSent.length - 1].path, /video-edit$/);
+  const c = await make({ videoRefs: [{ id: "bpv-src" }] });
+  assert.equal(c.ok, true, c.error);
+  assert.equal(arkSent.length, 0); assert.equal(hfSent.length, 2);
+  const plain = await make();
+  assert.equal(plain.ok, true, plain.error); assert.equal(arkSent.length, 1, "a plain job still goes direct");
 });
