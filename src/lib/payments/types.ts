@@ -52,5 +52,5 @@ export interface PaymentProvider {
   /** Opens the provider's hosted page where the person adds a card without paying; returns its address. */
   createCardSetup?(input: { userId: string; returnUrl: string }): Promise<{ url: string }>;
   /** Ends a subscription at once. Throws when the provider refuses. */
-  cancelMembership?(membershipId: string): Promise<void>;
+  cancelMembership?(membershipId: string, opts?: { atPeriodEnd?: boolean }): Promise<void>;
 }
