@@ -2,6 +2,7 @@
 // addresses Higgsfield returns, and asks again (see src/lib/video-jobs.ts). Same account, key and idempotency rule as the image provider (src/lib/higgsfield.ts).
 // Media inputs in the body must be public https addresses (never asset:// references).
 import { BASE_URL, HiggsfieldError, headers } from "./higgsfield";
+import { arkCancel, arkStatus, isArkUrl } from "./providers/byteplus-video";
 
 // Where video requests go. The default is the same address the image requests already use; the Higgsfield docs name https://api.higgsfield.ai, so set
 // HIGGSFIELD_VIDEO_BASE_URL to that if the default does not serve video. Status and cancel addresses come back from Higgsfield itself and may be on either host.
@@ -19,7 +20,7 @@ export type VideoSubmit = { requestId: string; statusUrl: string; cancelUrl: str
 export type VideoStatus =
   | { state: "queued"; raw?: string }
   | { state: "in_progress"; raw?: string }
-  | { state: "completed"; videoUrl: string }
+  | { state: "completed"; videoUrl: string; usage?: Record<string, unknown> }
   | { state: "failed"; detail?: string }
   | { state: "nsfw"; detail?: string }
   | { state: "canceled" };
@@ -48,6 +49,7 @@ export async function submitVideo(endpoint: string, body: Record<string, unknown
 
 // GET status_url once. Stop asking on completed, failed, nsfw or canceled.
 export async function videoStatus(statusUrl: string): Promise<VideoStatus> {
+  if (isArkUrl(statusUrl)) return arkStatus(statusUrl); // a job started on the direct BytePlus route
   const res = await fetch(checked(statusUrl), { headers: headers(), signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`Higgsfield status check failed (${res.status})`);
   const job = (await res.json()) as Job;
@@ -65,6 +67,7 @@ export async function videoStatus(statusUrl: string): Promise<VideoStatus> {
 
 // What cancel really does is NOT VERIFIED (the pages list the address but not its behavior): best effort. Returns whether Higgsfield accepted the call.
 export async function cancelVideo(cancelUrl: string): Promise<boolean> {
+  if (isArkUrl(cancelUrl)) return arkCancel(cancelUrl);
   try {
     const res = await fetch(checked(cancelUrl), { method: "POST", headers: headers(), signal: AbortSignal.timeout(20_000) });
     return res.ok;

@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getAdmin } from "@/lib/admin";
 import { HiggsfieldError } from "@/lib/higgsfield";
-import { submitVideo } from "@/lib/higgsfield-video";
+import { NeedsMoreCredits, submitRouted, videoRouteNow } from "@/lib/video-submit";
+import { ArkError } from "@/lib/providers/byteplus-video";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
 import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, resolveReferences, resolveVideoReferences } from "@/lib/references";
@@ -10,7 +11,6 @@ import { createGenerationHeld } from "@/lib/reservations";
 import { videoSettings } from "@/lib/start-video";
 import { claimUsage } from "@/lib/usage";
 import { refusal } from "@/lib/subscribe-alert";
-import { routeFor } from "@/lib/routes";
 import { findVideoModel, videoPrice } from "@/lib/video-models";
 
 import { fmtCredits } from "@/lib/credit-units";
@@ -54,7 +54,9 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   if (!model?.live) return { ok: false, status: 503, error: "Seedance 2.5 is not connected." };
   const srcSec = Math.max(1, Math.ceil(source.durationSec ?? 5));
   const billedSec = mode === "edit" ? srcSec : ext;
-  const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, routeFor(model.id)) : null;
+  const route = await videoRouteNow(model.id, resolution);
+  const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, route) : null;
+  const higgsfieldCost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, "higgsfield") : null;
   if (cost != null) {
     const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });
     if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${fmtCredits(cfg.dailyCredits)} credits.` };
@@ -85,15 +87,16 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   });
   if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, `This needs ${fmtCredits(cost ?? 0)} credits. You have ${fmtCredits(Math.max(0, made.have))}${made.held ? `, and ${fmtCredits(made.held)} are held by renders still running` : ""}.`)) };
   try {
-    const sub = await submitVideo(ENDPOINT[mode], body, idemKey);
-    const row = await db.generation.update({ where: { id: made.row.id }, data: { statusUrl: sub.statusUrl, requestId: sub.requestId || null, cancelUrl: sub.cancelUrl } });
+    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: mode, endpoint: ENDPOINT[mode], body, idemKey, higgsfieldCost });
     return { ok: true, item: await toItem(row) };
   } catch (err) {
     await db.generation.delete({ where: { id: made.row.id } }).catch(() => {});
     console.error("starting video edit failed", mode, err instanceof HiggsfieldError ? err.message : err);
     const rejected = err instanceof HiggsfieldError && err.status != null && err.status >= 400 && err.status < 500;
     // Eclipse's own words for people; the provider's reply goes to the logs, and to the owner here so a setting can be fixed fast.
-    const why = (await getAdmin().catch(() => null)) && err instanceof HiggsfieldError && err.detail ? ` (Owner only: ${err.detail})` : "";
+    if (err instanceof NeedsMoreCredits) return { ok: false, status: 402, error: err.message };
+    const detail = err instanceof HiggsfieldError || err instanceof ArkError ? err.detail : "";
+    const why = (await getAdmin().catch(() => null)) && detail ? ` (Owner only: ${detail})` : "";
     return { ok: false, status: 502, error: rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
   }
 }

@@ -79,6 +79,7 @@ export async function finalizeVideo(g: Generation): Promise<Generation> {
   if (claim.count === 0) return (await db.generation.findUnique({ where: { id: g.id } })) ?? g;
   if (!storageEnabled) return failVideo(g, "Video storage is not set up, so this video could not be saved. No credits were used.");
 
+  if (s.usage) await db.generation.updateMany({ where: { id: g.id }, data: { providerUsage: s.usage as object } }); // BytePlus reports the tokens it billed: kept to check the real cost
   return saveAndComplete(g, p, model?.label, s.videoUrl, "pending");
 }
 

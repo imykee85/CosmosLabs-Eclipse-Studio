@@ -1,11 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { SEEDANCE_DIRECTOR, seedanceKnowledge, wantsSeedance } from "../../src/lib/seedance-knowledge";
+import { SEEDANCE_DIRECTOR, SEEDANCE_GUIDE, seedanceKnowledge, wantsSeedance } from "../../src/lib/seedance-knowledge";
 
 test("the director in code matches its docs", () => {
   assert.equal(SEEDANCE_DIRECTOR, readFileSync("docs/prompt-engines/knowledge/seedance-director.md", "utf8").trim());
   assert.ok(readFileSync("docs/prompt-engines/knowledge/original/seedance-2-character-sheet-update.txt", "utf8").includes("CHARACTER SHEET IMAGE PROMPTS"));
+});
+
+test("the prompt guide in code matches its doc and both hosts carry it", () => {
+  assert.equal(SEEDANCE_GUIDE, readFileSync("docs/prompt-engines/knowledge/seedance-prompt-guide.md", "utf8").trim());
+  for (const host of ["prompts", "atlas"] as const) {
+    const k = seedanceKnowledge(host);
+    assert.ok(k.includes("SEEDANCE 2.5 PROMPT GUIDE") && k.includes("Use Images 1 to 7 in order as keyframes") && k.includes("normal human eyes"));
+    assert.ok(k.indexOf("SEEDANCE 2.5 PROMPT GUIDE") < k.indexOf("YOUR DELIVERY RULES ("), "the guide comes before the delivery rules");
+  }
 });
 
 test("each host gets its own delivery rules and not the other's", () => {
