@@ -12,7 +12,9 @@ const SHORT = 7;
 export default function PlanBenefits({ planId }: { planId: PlanId }) {
   const [open, setOpen] = useState(false);
   const id = useId();
-  const shown = open ? BENEFITS : BENEFITS.slice(0, SHORT);
+  // Automated workflows (not built yet) are listed on the Scale card only (owner 2026-10-21).
+  const list = BENEFITS.filter((b) => !b.soon || planId === "scale");
+  const shown = open ? list : list.slice(0, SHORT);
   return (
     <div className="pb">
       <ul className="pb-list" id={id}>
