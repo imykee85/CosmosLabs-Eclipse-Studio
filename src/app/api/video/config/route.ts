@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { DIRECT_KEY, routeFor } from "@/lib/routes";
 import { videoSettings } from "@/lib/start-video";
+import { arkRouteBlocked } from "@/lib/video-submit";
 
 export const dynamic = "force-dynamic"; // settings are read at request time
 
@@ -11,5 +12,5 @@ export async function GET() {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   if (!(await auth()).userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const s = videoSettings();
-  return NextResponse.json({ creditsOn: s.creditsOn, paused: s.paused, ready: Boolean(process.env.HIGGSFIELD_API_KEY), maxRunning: s.maxRunning, confirmAbove: s.confirmAbove, direct: Object.keys(DIRECT_KEY).filter((id) => routeFor(id) === "direct") });
+  return NextResponse.json({ creditsOn: s.creditsOn, paused: s.paused, ready: Boolean(process.env.HIGGSFIELD_API_KEY), maxRunning: s.maxRunning, confirmAbove: s.confirmAbove, direct: Object.keys(DIRECT_KEY).filter((id) => routeFor(id) === "direct" && !(arkRouteBlocked() && id.startsWith("seedance"))) });
 }
