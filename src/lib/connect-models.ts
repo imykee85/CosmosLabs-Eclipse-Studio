@@ -10,6 +10,8 @@ export const connectModels: ConnectModel[] = [
 ];
 
 export const MODEL_KEY = "eclipse-connect-model";
+/** Fired when something other than the chip changes the choice (Atlas), so the chip shows it. */
+export const MODEL_EVENT = "eclipse-connect-model-changed";
 
 /** The API model id for a picker choice; anything unknown falls back to Auto. */
 export const apiModelFor = (id: unknown): string => (connectModels.find((m) => m.id === id) ?? connectModels[0]).api;

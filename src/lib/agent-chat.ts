@@ -14,6 +14,9 @@ export type Frame = { id: string; label: string; sec: number; used?: string };
 export type Attach = { kind: "picture" | "video"; id: string; name: string };
 export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; error?: boolean; note?: boolean };
 
+// What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
+export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
+
 export type AgentHost = {
   page: "studio" | "canvas" | "treatment" | "video" | "core";
   // Everything on and in the prompt box, as the person sees it: the text, the other settings, the pictures and clips attached (ids only: the server
@@ -24,17 +27,24 @@ export type AgentHost = {
   generate: (opts: { prompt?: string; count?: number }) => Promise<string>;
   // Puts a captured frame (an upload) into the box as the start frame or as an ingredient. Resolves with "" when done, or a plain reason. Screens without it just keep the frame in Assets.
   useFrame?: (frame: { id: string; label: string }, as: "start" | "ingredient") => Promise<string> | string;
+  // The settings Atlas can change right now (plain lines it reads, with the values that are valid) and the way to apply a choice. Returns what was set, then what was refused.
+  controls?: { options: () => string[]; apply: (patch: ControlPatch) => { set: string[]; refused: string[] } };
 };
 let host: AgentHost | null = null;
 export function useAgentHost(h: AgentHost) {
   const ref = useRef(h);
   ref.current = h;
   const can = !!h.useFrame;
+  const ctl = !!h.controls;
   useEffect(() => {
-    const proxy: AgentHost = { page: h.page, context: () => ref.current.context(), setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o), useFrame: can ? (f, as) => ref.current.useFrame?.(f, as) ?? "" : undefined };
+    const proxy: AgentHost = {
+      page: h.page, context: () => ref.current.context(), setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o),
+      useFrame: can ? (f, as) => ref.current.useFrame?.(f, as) ?? "" : undefined,
+      controls: ctl ? { options: () => ref.current.controls?.options() ?? [], apply: (p) => ref.current.controls?.apply(p) ?? { set: [], refused: [] } } : undefined,
+    };
     host = proxy;
     return () => { if (host === proxy) host = null; };
-  }, [h.page, can]);
+  }, [h.page, can, ctl]);
 }
 
 const KEY = (agent: string) => `eclipse-agent-chat-${agent}`;
@@ -118,12 +128,18 @@ export function useAgentChat(agent: string | null) {
       // What was added in the chat goes first, then what is attached to the prompt box.
       const pictures = [...atts.filter((a) => a.kind === "picture").map((a) => ({ type: "upload" as const, id: a.id, role: "added in the chat" })), ...(base.pictures ?? [])];
       const videos = [...atts.filter((a) => a.kind === "video").map((a) => ({ id: a.id, label: a.name, role: "added in the chat" })), ...(base.videos ?? [])];
-      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, messages: history, context: { page: host?.page ?? "studio", ...base, pictures, videos } }) });
+      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, messages: history, context: { page: host?.page ?? "studio", ...base, pictures, videos, options: host?.controls?.options() } }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
       const actions: Act[] = Array.isArray(data.actions) ? data.actions.map((a: Omit<Act, "id">) => ({ ...a, id: uid() })) : [];
       const frames: Frame[] = Array.isArray(data.frames) ? data.frames.filter((f: Frame) => f && typeof f.id === "string").slice(0, 8).map((f: Frame) => ({ id: f.id, label: String(f.label ?? "Frame"), sec: Number(f.sec) || 0 })) : [];
       add({ role: "agent", text: String(data.text ?? ""), actions, ...(frames.length ? { frames } : {}) });
+      // Settings Atlas chose for the box are applied at once (free); what could not be set is said plainly.
+      if (host?.controls && data.controls && typeof data.controls === "object" && Object.keys(data.controls).length) {
+        const { set, refused } = host.controls.apply(data.controls as ControlPatch);
+        if (set.length) add({ role: "agent", text: `Set in your prompt box: ${set.join(" · ")}.`, note: true });
+        if (refused.length) add({ role: "agent", text: `I couldn't set: ${refused.join(" ")}`, note: true, error: true });
+      }
     } catch {
       add({ role: "agent", text: "I couldn't reach the server. Check your connection and try again.", error: true });
     } finally { setBusy(false); refreshCredits(); }

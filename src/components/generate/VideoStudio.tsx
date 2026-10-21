@@ -169,6 +169,45 @@ export default function VideoStudio() {
       clips: vrefs.map((v, i) => `${mc ? "motion clip" : `reference clip ${i + 1}`}: ${v.label}${v.sec ? ` (${Math.round(v.sec)} s)` : ""}`),
     }),
     setPrompt, generate: async () => "Your prompt is ready in the box. Press Generate when the settings look right.",
+    // Atlas can choose the model, aspect ratio, length, quality, sound and seed for the person (free; Generate stays their button).
+    controls: {
+      options: () => {
+        if (mc) return ["Motion transfer is on, so only the prompt text can be changed."];
+        const live = VIDEO_MODELS.filter((x) => !x.hidden && isLive(x));
+        return [
+          `Models (id = name): ${live.map((x) => `${x.id} = ${x.label}`).join("; ")}. Now: ${model.id}`,
+          `For ${model.label}: aspect ratios ${caps.ratios.length ? caps.ratios.join(", ") : "none (follows the start frame)"}; lengths ${caps.durations.length ? `${caps.durations[0]} to ${caps.durations[caps.durations.length - 1]} seconds` : "fixed"}; qualities ${caps.qualities.length ? caps.qualities.join(", ") : "one fixed quality"}; sound ${caps.audio ? "can be on or off" : "not available"}; fixed seed ${caps.seed ? "available" : "not available"}. Now: ${ratio}, ${duration} s, ${quality || "default quality"}, sound ${sound ? "on" : "off"}`,
+        ];
+      },
+      apply: (p) => {
+        const set: string[] = [], refused: string[] = [];
+        if (mc) { if (p.prompt) { setPrompt(p.prompt); set.push("Prompt"); } else refused.push("Motion transfer is on, so only the prompt can be changed."); return { set, refused }; }
+        let m = model;
+        if (p.model) {
+          const want = p.model.trim().toLowerCase();
+          const hit = VIDEO_MODELS.find((x) => !x.hidden && isLive(x) && (x.id.toLowerCase() === want || x.label.toLowerCase() === want));
+          if (hit) { pickModel(hit); m = hit; set.push(`Model ${hit.label}`); } else refused.push(`The model "${p.model}" isn't available.`);
+        }
+        // Everything else is checked against the model it will apply to (the one just chosen, if any), the way the box itself would.
+        const c = capsFor(m, workflowFor(m, !!start, refs.length > 0 || vrefs.length > 0 || arefs.length > 0));
+        if (p.ratio) {
+          const r = p.ratio.trim();
+          if (c.ratios.includes(r)) { setRatio(r); set.push(`Aspect ratio ${r}`); } else refused.push(`${r} isn't an aspect ratio ${m.label} makes${c.ratios.length ? ` (${c.ratios.join(", ")})` : ""}.`);
+        }
+        if (p.duration != null) {
+          if (shots) refused.push("Multi-shot is on, so the length is the sum of the shots.");
+          else if (c.durations.includes(p.duration)) { setDuration(p.duration); set.push(`${p.duration} s`); } else refused.push(`${p.duration} s isn't a length ${m.label} makes.`);
+        }
+        if (p.quality) {
+          const q = c.qualities.find((x) => x.toLowerCase() === p.quality!.trim().toLowerCase());
+          if (q) { setQuality(q); set.push(`Quality ${q}`); } else refused.push(`${p.quality} quality isn't available for ${m.label}.`);
+        }
+        if (p.sound != null) { if (c.audio) { setSound(p.sound); set.push(`Sound ${p.sound ? "on" : "off"}`); } else refused.push(`${m.label} has no sound control.`); }
+        if (p.fixed_seed != null) { if (c.seed) { setSeedLocked(p.fixed_seed); set.push(`Fixed seed ${p.fixed_seed ? "on" : "off"}`); } else refused.push(`${m.label} doesn't support a fixed seed.`); }
+        if (p.prompt) { setPrompt(p.prompt); set.push("Prompt"); }
+        return { set, refused };
+      },
+    },
     // A frame Atlas captured: the start frame, or an ingredient when the model takes pictures that way.
     useFrame: (f, as) => {
       const pic: RefPick = { type: "upload", id: f.id, label: f.label, url: `/api/uploads/${f.id}/file` };
