@@ -60,7 +60,9 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   const srcSec = Math.max(1, Math.ceil(source.durationSec ?? 5));
   const billedSec = mode === "edit" ? srcSec : ext;
   // The source clip goes in as the input video: BytePlus bills it by its length (Edit keeps the length, so the output is as long as the source).
-  const route = await videoRouteNow(model.id, resolution, source.durationSec == null ? null : srcSec);
+  const routeNow = await videoRouteNow(model.id, resolution, source.durationSec == null ? null : srcSec);
+  if (routeNow === "unavailable") return { ok: false, status: 503, error: `${model.label} is having trouble right now. Please try again in a few minutes. Nothing was charged.` };
+  const route = routeNow;
   if (v2 && route !== "direct") return { ok: false, status: 503, error: "Seedance 2.0 editing is not available right now. Please try again in a few minutes or use Seedance 2.5." };
   const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, route, route === "direct" ? srcSec : undefined) : null;
   const higgsfieldCost = cfg.creditsOn && !v2 ? videoPrice(model, resolution, billedSec, audio, "higgsfield") : null;
@@ -105,6 +107,6 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
     if (err instanceof NeedsMoreCredits) return { ok: false, status: 402, error: err.message };
     const detail = err instanceof HiggsfieldError || err instanceof ArkError ? err.detail : "";
     const why = (await getAdmin().catch(() => null)) && detail ? ` (Owner only: ${detail})` : "";
-    return { ok: false, status: 502, error: rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
+    return { ok: false, status: 502, error: err instanceof ArkError ? `${model.label} is having trouble right now. Please try again in a few minutes. Nothing was charged.${why}` : rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
   }
 }

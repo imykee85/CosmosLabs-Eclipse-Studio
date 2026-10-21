@@ -56,7 +56,7 @@ beforeEach(async () => {
   await clean();
   await lib.credits.grantCredits(A, 20000, { reason: "GRANT", note: "t" });
   hfSent.length = 0; arkSent.length = 0; arkMode.kind = "ok"; arkMode.status = "running";
-  process.env.ROUTE_SEEDANCE_2_5 = "higgsfield"; process.env.ROUTE_SEEDANCE_2_0 = "higgsfield"; delete process.env.ARK_VIDEO_MAX_CONCURRENT; (await import("../../src/lib/video-submit")).resetArkBlock();
+  process.env.ROUTE_SEEDANCE_2_5 = "higgsfield"; process.env.ROUTE_SEEDANCE_2_0 = "higgsfield"; delete process.env.ARK_VIDEO_MAX_CONCURRENT; (await import("../../src/lib/video-submit")).resetArkBlock(); delete process.env.SEEDANCE_HIGGSFIELD_FALLBACK;
 });
 const make = (extra: Record<string, unknown> = {}) => lib.start.startVideoRender({ userId: A, prompt: "a cat", model: "seedance_2_5", duration: 5, resolution: "720p", aspectRatio: "16:9", audio: true, ...extra });
 
@@ -98,6 +98,7 @@ test("Seedance is ON by default: with no setting at all the direct route is used
 });
 
 test("BytePlus not activated (404): the person is asked before paying the higher Higgsfield price, and the next video is priced there at once", { skip }, async () => {
+  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
   delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
   const first = await make();
   assert.equal(first.ok, false); assert.equal(first.status, 409); assert.equal(first.needsConfirm, true);
@@ -110,6 +111,7 @@ test("BytePlus not activated (404): the person is asked before paying the higher
 });
 
 test("confirming the higher price after a refusal goes through on Higgsfield", { skip }, async () => {
+  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
   delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
   const ok = await make({ confirm: true });
   assert.equal(ok.ok, true, ok.error);
@@ -127,6 +129,7 @@ test("direct costs less: the hold is the direct price, the backup price is the H
 });
 
 test("BytePlus refuses before starting: the same row carries on at Higgsfield at the Higgsfield price", { skip }, async () => {
+  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
   process.env.ROUTE_SEEDANCE_2_5 = "direct"; arkMode.kind = "refuse";
   const r = await make({ confirm: true });
   assert.equal(r.ok, true, r.error);
@@ -139,6 +142,7 @@ test("BytePlus refuses before starting: the same row carries on at Higgsfield at
 });
 
 test("a fallback the balance cannot cover fails cleanly and releases the hold", { skip }, async () => {
+  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
   const price = async (route: string) => {
     await clean(); await lib.credits.grantCredits(A, 20000, { reason: "GRANT", note: "t" });
     process.env.ROUTE_SEEDANCE_2_5 = route;
@@ -164,6 +168,7 @@ test("an unclear outcome (the connection drops) is NOT retried elsewhere, so nob
 });
 
 test("BytePlus runs 3 at a time: the next video goes to Higgsfield from the start", { skip }, async () => {
+  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
   process.env.ROUTE_SEEDANCE_2_5 = "direct"; process.env.ARK_VIDEO_MAX_CONCURRENT = "2";
   const ids: string[] = [];
   for (let i = 0; i < 3; i++) { const r = await make(); assert.equal(r.ok, true, r.error); ids.push(r.item.id); }
@@ -172,6 +177,7 @@ test("BytePlus runs 3 at a time: the next video goes to Higgsfield from the star
 });
 
 test("Seedance 2.0 4K runs one at a time on BytePlus; the next 4K goes to Higgsfield, other sizes still go direct", { skip }, async () => {
+  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
   process.env.ROUTE_SEEDANCE_2_0 = "direct";
   const four = (extra: Record<string, unknown> = {}) => lib.start.startVideoRender({ userId: A, prompt: "a cat", model: "seedance_2_0", duration: 5, resolution: "4k", aspectRatio: "16:9", audio: true, ...extra });
   const a = await four(), b = await four(), c = await four({ resolution: "720p" });
@@ -202,6 +208,7 @@ test("jobs with a video input go direct at BytePlus' token price when the clip's
 });
 
 test("a video whose length was never recorded cannot be priced at BytePlus and stays on Higgsfield", { skip }, async () => {
+  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
   await lib.db.generation.create({ data: { id: "bpv-nolen", userId: A, kind: "video", prompt: "x", status: "completed", imageUrl: "", storageKey: "u/a/clip2.mp4", model: "seedance_2_5", aspectRatio: "16:9" } });
   process.env.ROUTE_SEEDANCE_2_5 = "direct";
   const c = await make({ videoRefs: [{ id: "bpv-nolen" }] });
@@ -271,4 +278,25 @@ test("draft mode: a 480p draft task, then the final 1080p from the draft id; no 
   assert.equal(again.ok, false); assert.equal(again.status, 409);
   const other = await make({ draft: true, model: "seedance_2_0" });
   assert.equal(other.ok, false, "drafts are Seedance 2.5 only");
+});
+
+test("fallback OFF (the default): a refusal by BytePlus stops the video, nothing is held and Higgsfield is never asked", { skip }, async () => {
+  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
+  const a = await make({ confirm: true });
+  assert.equal(a.ok, false); assert.equal(hfSent.length, 0); assert.equal(await lib.db.generation.count({ where: { userId: A } }), 0, "nothing held or kept");
+  const b = await make({ confirm: true });   // no 10-minute block: BytePlus is asked again, so a fix there shows at once
+  assert.equal(b.ok, false); assert.equal(arkSent.length, 2); assert.equal(hfSent.length, 0);
+});
+
+test("fallback OFF: three BytePlus jobs running means the fourth is refused, not sent to Higgsfield", { skip }, async () => {
+  delete process.env.ROUTE_SEEDANCE_2_5;
+  for (let i = 0; i < 3; i++) assert.equal((await make()).ok, true);
+  const fourth = await make();
+  assert.equal(fourth.ok, false); assert.equal(fourth.status, 503); assert.equal(hfSent.length, 0);
+});
+
+test("the owner's own switch still sends Seedance to Higgsfield (ROUTE_SEEDANCE_2_5=higgsfield)", { skip }, async () => {
+  process.env.ROUTE_SEEDANCE_2_5 = "higgsfield";
+  const r = await make();
+  assert.equal(r.ok, true, r.error); assert.equal(hfSent.length, 1); assert.equal(arkSent.length, 0);
 });

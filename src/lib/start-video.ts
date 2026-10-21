@@ -168,7 +168,10 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     const clips = await db.generation.findMany({ where: { id: { in: videoRefIds }, userId, kind: "video" }, select: { durationSec: true } });
     inputVideoSec = clips.length === videoRefIds.length && clips.every((c) => c.durationSec != null) ? clips.reduce((a, c) => a + Math.ceil(c.durationSec as number), 0) : null;
   }
-  const route: Route = motion ? "higgsfield" : await videoRouteNow(model.id, resolutionUsed ?? caps.defaultQuality, inputVideoSec);
+  const routeNow = motion ? "higgsfield" : await videoRouteNow(model.id, resolutionUsed ?? caps.defaultQuality, inputVideoSec);
+  // Seedance never moves to Higgsfield by itself (owner 2026-10-21): when BytePlus cannot take the video the person is told, nothing is held, and the owner decides.
+  if (routeNow === "unavailable") return { ok: false, status: 503, error: `${model.label} is having trouble right now. Please try again in a few minutes. Nothing was charged.` };
+  const route: Route = routeNow;
   // A model that exists only at BytePlus, and a draft, have no Higgsfield route: when the direct route cannot take the job right now it is refused, not moved.
   const onlyDirect = live.directOnly === true || draft;
   if (onlyDirect && route !== "direct") return { ok: false, status: 503, error: draft ? "Draft previews are not available right now. Please try again in a few minutes." : `${model.label} is not available right now. Please try again in a few minutes or choose another model.` };
@@ -236,6 +239,6 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     if (err instanceof NeedsMoreCredits) return { ok: false, status: 402, error: err.message };
     const detail = err instanceof HiggsfieldError || err instanceof ArkError ? err.detail : "";
     const why = (await getAdmin().catch(() => null)) && detail ? ` (Owner only: ${detail})` : "";
-    return { ok: false, status: 502, error: rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
+    return { ok: false, status: 502, error: err instanceof ArkError ? `${model.label} is having trouble right now. Please try again in a few minutes. Nothing was charged.${why}` : rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
   }
 }

@@ -7,14 +7,15 @@ import { db } from "@/lib/db";
 import { freeCredits } from "@/lib/reservations";
 import { submitVideo } from "@/lib/higgsfield-video";
 import { arkVideoBody, ArkError, hasArkVideo, submitArk, type ArkWorkflow } from "@/lib/providers/byteplus-video";
-import { routeFor, type Route } from "@/lib/routes";
+import { routeFor, routeSetting, seedanceFallbackOn, type Route } from "@/lib/routes";
 import { findVideoModel, hasDirectVideoPrice } from "@/lib/video-models";
 
 // When BytePlus refuses because the account or model is not open (not activated, no balance, bad key: HTTP 400/401/403/404), asking it again at once only fails
 // again, so for a few minutes new videos are priced and sent to Higgsfield from the start. Kept per server instance; another instance learns the same way.
 let arkBlockedUntil = 0;
 const BLOCK_MS = 10 * 60_000;
-export const arkRouteBlocked = () => Date.now() < arkBlockedUntil;
+// The short block only exists while the automatic Higgsfield fallback is on; with it off every video tries BytePlus, so a fix there shows at once.
+export const arkRouteBlocked = () => seedanceFallbackOn() && Date.now() < arkBlockedUntil;
 export const resetArkBlock = () => { arkBlockedUntil = 0; };
 
 const maxDirect = () => (Number(process.env.ARK_VIDEO_MAX_CONCURRENT) > 0 ? Math.floor(Number(process.env.ARK_VIDEO_MAX_CONCURRENT)) : 3);
@@ -25,15 +26,20 @@ const maxDirect = () => (Number(process.env.ARK_VIDEO_MAX_CONCURRENT) > 0 ? Math
  * its input videos in seconds (BytePlus bills those by tokens, see videoCreditsWithVideo); null = it takes a video of unknown length, which stays on Higgsfield
  * because it cannot be priced.
  */
-export async function videoRouteNow(modelId: string, resolution?: string, inputVideoSec?: number | null): Promise<Route> {
-  if (!hasArkVideo(modelId) || routeFor(modelId) !== "direct" || arkRouteBlocked()) return "higgsfield";
+export type VideoRoute = Route | "unavailable";
+export async function videoRouteNow(modelId: string, resolution?: string, inputVideoSec?: number | null): Promise<VideoRoute> {
+  if (!hasArkVideo(modelId)) return "higgsfield";
+  if (routeSetting(modelId) !== "direct") return "higgsfield"; // the owner's own switch to Higgsfield (ROUTE_<MODEL>=higgsfield)
+  // From here the owner wants BytePlus. If it cannot take this video, say so instead of moving it to Higgsfield, unless the automatic fallback is switched on.
+  const no: VideoRoute = seedanceFallbackOn() ? "higgsfield" : "unavailable";
+  if (routeFor(modelId) !== "direct" || arkRouteBlocked()) return no;
   if (inputVideoSec !== undefined) {
     const m = findVideoModel(modelId);
-    if (inputVideoSec === null || !m || !hasDirectVideoPrice(m, resolution ?? m.live?.resolution?.default)) return "higgsfield";
+    if (inputVideoSec === null || !m || !hasDirectVideoPrice(m, resolution ?? m.live?.resolution?.default)) return no;
   }
   const running = await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending" } });
-  if (running >= maxDirect()) return "higgsfield";
-  if (resolution?.toLowerCase() === "4k" && (await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending", resolution: { in: ["4k", "4K"] } } })) >= 1) return "higgsfield";
+  if (running >= maxDirect()) return no;
+  if (resolution?.toLowerCase() === "4k" && (await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending", resolution: { in: ["4k", "4K"] } } })) >= 1) return no;
   return "direct";
 }
 
@@ -53,9 +59,9 @@ export async function submitRouted(a: RoutedStart) {
     } catch (err) {
       if (!(err instanceof ArkError) || err.ambiguous) throw err;
       console.error("direct video route refused before starting, falling back to Higgsfield", a.modelId, err.detail);
-      if (err.status != null && [400, 401, 403, 404].includes(err.status)) arkBlockedUntil = Date.now() + BLOCK_MS;
+      if (seedanceFallbackOn() && err.status != null && [400, 401, 403, 404].includes(err.status)) arkBlockedUntil = Date.now() + BLOCK_MS;
       // A job that exists only at BytePlus (Seedance 2.0 Fast/Mini, a draft's final) has nowhere else to run: the start simply fails and the hold is released.
-      if (a.noFallback) throw err;
+      if (a.noFallback || !seedanceFallbackOn()) throw err;
       const held = a.row.creditsHeld ?? 0;
       if (a.higgsfieldCost != null && a.higgsfieldCost > held && !a.confirm) throw new PriceChanged(a.higgsfieldCost);
       if (a.higgsfieldCost != null && a.higgsfieldCost > held) {
