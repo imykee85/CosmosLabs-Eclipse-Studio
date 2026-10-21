@@ -551,12 +551,13 @@ test("paid plan cards list every benefit, the missing ones locked, with See more
   await expect(starter.locator(".pb-list li")).toHaveCount(7);
   await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(0);
   await starter.getByRole("button", { name: /See more/ }).click();
-  await expect(starter.locator(".pb-list li")).toHaveCount(14);
-  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(6); // Atlas, Canvas, own agents, Core, no Core limit, builds (workflows shows as Soon)
-  await expect(starter.locator(".pb-list li.is-soon")).toHaveCount(1);
+  await expect(starter.locator(".pb-list li")).toHaveCount(13);
+  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(6); // Atlas, Canvas, own agents, Core, no Core limit, builds
+  await expect(starter.locator(".pb-list li.is-soon")).toHaveCount(0); // automated workflows is listed on the Scale card only
   const scale = page.locator(".plan-card").nth(3);
   await scale.getByRole("button", { name: /See more/ }).click();
   await expect(scale.locator(".pb-list li.is-locked")).toHaveCount(0);
+  await expect(scale.locator(".pb-list li.is-soon")).toHaveCount(1);
   await expect(page.locator(".plan-card").first().locator(".pb-list")).toHaveCount(0); // the free card is left as it is
   await starter.getByRole("button", { name: /See less/ }).click();
   await expect(starter.locator(".pb-list li")).toHaveCount(7);
