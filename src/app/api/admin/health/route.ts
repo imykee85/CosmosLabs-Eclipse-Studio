@@ -167,6 +167,14 @@ export async function POST() {
     add(null, "Page security policy: could not be read");
   }
 
+  // Plan access: when PLAN_GATING=off every plan lock is lifted (testing only), and hand-given plans are listed so a forgotten one is seen.
+  try {
+    const given = await db.billingSettings.count({ where: { planOverride: { not: null } } });
+    add(process.env.PLAN_GATING !== "off", `Plan locks: ${process.env.PLAN_GATING === "off" ? "OFF (PLAN_GATING=off: every feature is open to everyone; remove it before launch)" : "on"}; ${given} account${given === 1 ? "" : "s"} with a hand-given plan`);
+  } catch {
+    add(null, "Plan locks: could not be read");
+  }
+
   // Free trial farm check (master brief section 13, batch 8): how many accounts took the 2 free images in the last 7 days against how many paid, and what that
   // costs at the dearest default-resolution image price. A high ratio of free-only accounts is the sign of one person making many accounts.
   try {
