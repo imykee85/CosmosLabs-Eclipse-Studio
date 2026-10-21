@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { OrganizationProfile, OrganizationSwitcher, useOrganization } from "@clerk/nextjs";
+import { OrganizationProfile, OrganizationSwitcher, useOrganization, useOrganizationList } from "@clerk/nextjs";
 import { Users } from "lucide-react";
 import { clerkEnabled } from "@/lib/clerk-enabled";
+import { askUpgrade, useAccess } from "@/lib/use-access";
 
 // A team is a shared workspace: everyone in it uses the same credits, projects, Library and files. Teams are Clerk organizations; the person
 // switches between their personal workspace and a team here. The members list and invitations are Clerk's own screens.
@@ -20,6 +21,24 @@ function ClerkTeam() {
     elements: { rootBox: { width: "100%" }, cardBox: { width: "100%", boxShadow: "none", border: "1px solid var(--a-line2)" } },
   };
   const isAdmin = membership?.role === "org:admin";
+  // Teams are part of every paid plan. A person on Free who is not in any team sees the section but cannot start one: the button opens the upgrade pop-up.
+  const { can, known } = useAccess();
+  const { userMemberships } = useOrganizationList({ userMemberships: { infinite: false } });
+  const inATeam = (userMemberships?.count ?? 0) > 0 || !!organization;
+  if (known && !can("teams") && userMemberships && !userMemberships.isLoading && !inATeam) {
+    return (
+      <section className="st-section" aria-labelledby="st-team">
+        <h2 id="st-team">Team</h2>
+        <p className="st-sub">Work together in a shared workspace. Everyone in a team uses the same credits, projects and Library.</p>
+        <div className="st-empty st-gate">
+          <Users size={46} strokeWidth={1.4} />
+          <p className="st-empty-title">Teams are part of every paid plan</p>
+          <p className="st-meta">Subscribe to create a team and share credits, projects and the Library.</p>
+          <button type="button" className="st-save" onClick={() => askUpgrade("teams")}>Create a team</button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>

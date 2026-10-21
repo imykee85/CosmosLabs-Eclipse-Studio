@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AGENT_KEY, AGENTS, DEFAULT_AGENT } from "@/components/workspace/AgentPicker";
 import { readCustomAgents } from "@/lib/custom-agents";
+import { allowedNow, askUpgrade, useAccess } from "@/lib/use-access";
 
 export const AGENT_ON_KEY = "eclipse-agent-on";
 const EVENT = "eclipse-agent-change";
@@ -19,6 +20,7 @@ const sendCue = (c: AgentCue) => { pendingCue = c; window.dispatchEvent(new Even
 export function useAgent() {
   const [agent, setAgentState] = useState<string | null>(DEFAULT_AGENT); // Atlas is the default agent: the chips always show it
   const [on, setOnState] = useState(false);
+  const { can } = useAccess(); // Atlas is part of Growth and Scale: on a plan without him the switch shows a pop-up instead of turning on
   useEffect(() => {
     const read = () => {
       try {
@@ -41,10 +43,12 @@ export function useAgent() {
     if (name && isOn && name !== was) sendCue({ kind: "switch", agent: name });
   }, []);
   const setOn = useCallback((v: boolean) => {
+    if (v && !allowedNow("atlas")) { askUpgrade("atlas"); return; }
     let a: string | null = null;
     try { localStorage.setItem(AGENT_ON_KEY, v ? "1" : "0"); a = localStorage.getItem(AGENT_KEY); } catch {}
     if (v && a) sendCue({ kind: "on", agent: a });
     window.dispatchEvent(new Event(EVENT));
   }, []);
-  return { agent, on, active: on && !!agent, setAgent, setOn };
+  const allowed = can("atlas"); // an old "on" saved before the plan rules does not bring him back on a plan without him
+  return { agent, on: on && allowed, active: on && allowed && !!agent, setAgent, setOn };
 }

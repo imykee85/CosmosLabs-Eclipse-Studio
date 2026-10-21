@@ -10,6 +10,7 @@ import { claimUsage } from "@/lib/usage";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 import { workspaceSession } from "@/lib/workspace";
+import { gateFeature } from "@/lib/access";
 
 export const maxDuration = 120;
 
@@ -17,6 +18,8 @@ export const maxDuration = 120;
 // with their latest message so the model can see them. The chat itself is kept in the browser. Nothing is rendered here: this only writes prompts.
 const MAX_TURNS = 24;
 export async function POST(req: Request) {
+  const gated = await gateFeature("plan_tools");
+  if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the prompt engine can't answer." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

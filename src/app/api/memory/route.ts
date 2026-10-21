@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { db } from "@/lib/db";
 import { MEMORY_LIMIT, MEMORY_TEXT_MAX, isTopic, type MemoryItem, type MemoryTopic } from "@/lib/memory";
+import { gateFeature } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const gated = await gateFeature("core");
+  if (gated) return gated;
   const u = await requireUser(); if ("fail" in u) return u.fail;
   const body = await req.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text.trim() : "";

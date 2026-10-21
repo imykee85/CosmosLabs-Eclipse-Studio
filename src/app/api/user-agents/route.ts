@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { db } from "@/lib/db";
 import { MAX_AGENTS, parseAgentInput } from "@/lib/user-agents";
+import { gateFeature } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const gated = await gateFeature("agents");
+  if (gated) return gated;
   const u = await requireUser(); if ("fail" in u) return u.fail;
   const parsed = parseAgentInput(await req.json().catch(() => null));
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: parsed.error.startsWith("Eclipse can't") ? 422 : 400 });

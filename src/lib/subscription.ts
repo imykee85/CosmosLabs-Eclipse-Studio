@@ -14,17 +14,23 @@ type Client = Prisma.TransactionClient | typeof db;
 export const subscriptionRuleOn = () => process.env.TOPUP_REQUIRES_SUBSCRIPTION !== "off";
 export const subscriptionDays = () => { const n = Number(process.env.SUBSCRIPTION_DAYS); return Number.isFinite(n) && n >= 1 ? n : 33; };
 
-/** True while a plan payment has been received within the subscription window. */
-export async function hasSubscription(userId: string, client: Client = db): Promise<boolean> {
+/** The name of the plan (as written on the ledger: "Starter", "Growth", "Scale") while a plan payment is recent and the provider has not ended it, else null. */
+export async function currentPlanName(userId: string, client: Client = db): Promise<string | null> {
   const row = await client.creditLedger.findFirst({
     where: { userId, reason: "PURCHASE", note: { startsWith: "Plan:" }, createdAt: { gte: new Date(Date.now() - subscriptionDays() * DAY) } },
     orderBy: { createdAt: "desc" },
-    select: { createdAt: true },
+    select: { createdAt: true, note: true },
   });
-  if (!row) return false;
+  if (!row) return null;
   // The provider told us the subscription ended after its latest payment (cancelled and run out, or payment failed for good).
   const s = await client.billingSettings.findUnique({ where: { userId }, select: { subscriptionEndedAt: true } });
-  return !(s?.subscriptionEndedAt && s.subscriptionEndedAt > row.createdAt);
+  if (s?.subscriptionEndedAt && s.subscriptionEndedAt > row.createdAt) return null;
+  return (row.note ?? "").replace(/^Plan:\s*/, "").trim() || null;
+}
+
+/** True while a plan payment has been received within the subscription window. */
+export async function hasSubscription(userId: string, client: Client = db): Promise<boolean> {
+  return (await currentPlanName(userId, client)) !== null;
 }
 
 /**

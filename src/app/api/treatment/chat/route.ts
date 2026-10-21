@@ -11,6 +11,7 @@ import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { fetchPageText } from "@/lib/fetch-page";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 import { workspaceSession } from "@/lib/workspace";
+import { gateFeature } from "@/lib/access";
 
 export const maxDuration = 60;
 
@@ -43,6 +44,8 @@ const TOOL: Anthropic.Tool = {
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 
 export async function POST(req: Request) {
+  const gated = await gateFeature("plan_tools");
+  if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the planner can't answer." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

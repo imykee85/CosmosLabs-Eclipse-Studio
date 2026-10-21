@@ -7,10 +7,14 @@ import "./subscribe-alert.css";
 // The SUBSCRIPTION ALERT (pricing master brief, section 2). When the server refuses a job for lack of credits on an account that is not subscribed it answers
 // 402 with code "SUBSCRIBE" and the sentence to show. One place sees every such answer (fetch is wrapped once, the answer is only read from a clone), so
 // Image, Video and Audio Studio, Core, Atlas, Treatment and Prompts all show the same dialog with a Subscribe button, whatever each screen does with the error.
+export const UPGRADE_EVENT = "eclipse-upgrade";
+const upgradeTitle = (need?: string) => (need === "starter" ? "Subscribe to unlock this" : need === "scale" ? "Upgrade to Scale" : "Upgrade to Growth");
 declare global { interface Window { __eclipseSubscribeFetch?: boolean } }
 
 export default function SubscribeAlert() {
   const [message, setMessage] = useState("");
+  const [title, setTitle] = useState("Subscribe to keep creating");
+  const [cta, setCta] = useState("Subscribe");
 
   useEffect(() => {
     if (window.__eclipseSubscribeFetch) return;
@@ -19,10 +23,26 @@ export default function SubscribeAlert() {
     window.fetch = async (...args: Parameters<typeof fetch>) => {
       const res = await original(...args);
       if (res.status === 402) {
-        res.clone().json().then((d) => { if (d && d.code === "SUBSCRIBE" && typeof d.error === "string") setMessage(d.error); }).catch(() => {});
+        res.clone().json().then((d) => {
+          if (!d || typeof d.error !== "string") return;
+          if (d.code === "SUBSCRIBE") { setTitle("Subscribe to keep creating"); setCta("Subscribe"); setMessage(d.error); }
+          // A feature the plan does not include (src/lib/access.ts): the same pop-up, naming what unlocks it.
+          else if (d.code === "UPGRADE") { setTitle(upgradeTitle(d.need)); setCta("See plans"); setMessage(d.error); }
+        }).catch(() => {});
       }
       return res;
     };
+  }, []);
+
+  // The app can open the pop-up itself, with no request (Atlas's switch, the Team tab for a free account).
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ message: string; need?: string }>).detail;
+      if (!d?.message) return;
+      setTitle(upgradeTitle(d.need)); setCta("See plans"); setMessage(d.message);
+    };
+    window.addEventListener(UPGRADE_EVENT, on);
+    return () => window.removeEventListener(UPGRADE_EVENT, on);
   }, []);
 
   useEffect(() => {
@@ -37,9 +57,9 @@ export default function SubscribeAlert() {
     <div className="sa-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setMessage(""); }}>
       <div className="sa-card" role="alertdialog" aria-modal="true" aria-labelledby="sa-title">
         <button type="button" className="sa-x" aria-label="Close" onClick={() => setMessage("")}><X size={16} /></button>
-        <h2 id="sa-title">Subscribe to keep creating</h2>
+        <h2 id="sa-title">{title}</h2>
         <p>{message}</p>
-        <a className="sa-go" href="/settings?tab=billing">Subscribe</a>
+        <a className="sa-go" href="/settings?tab=billing">{cta}</a>
       </div>
     </div>
   );

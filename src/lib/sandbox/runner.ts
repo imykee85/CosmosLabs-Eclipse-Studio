@@ -3,6 +3,8 @@ import type { Prisma, SandboxJob } from "@prisma/client";
 import { db } from "@/lib/db";
 import { spendCredits } from "@/lib/credits";
 import { claimUsage } from "@/lib/usage";
+import { gateFeatureFor } from "@/lib/access";
+import { plansFor, type Feature } from "@/lib/access-table";
 import { createSandboxJobHeld, SANDBOX_OPEN } from "@/lib/reservations";
 import { baseSnapshotId, sandboxProvider } from "./index";
 import { SandboxError, tail, type SandboxProvider } from "./provider";
@@ -38,10 +40,14 @@ const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
 export type EnqueueResult = { ok: true; job: SandboxJob } | { ok: false; status: number; error: string };
 
-/** A person counts as paid after any purchase. Config `SANDBOX_REQUIRE_PAID=off` lifts the check (for the owner's own tests). */
-export async function isPaid(userId: string) {
-  if (process.env.SANDBOX_REQUIRE_PAID === "off") return true;
-  return (await db.creditLedger.count({ where: { userId, reason: "PURCHASE" } })) > 0;
+/** Which plan feature each kind of job needs (owner 2026-10-21): the video-with-sound download is part of every paid plan, saved tools run on Growth and up, a build session (the cloud computer) is Scale. Config `SANDBOX_REQUIRE_PAID=off` lifts the check (for the owner's own tests). */
+export const KIND_FEATURE: Record<string, Feature> = { "media.mux": "plan_tools", "core.tool.run": "core", "core.exec": "builds" };
+const KIND_LABEL: Record<string, string> = { "media.mux": "Downloading a video with sound", "core.tool.run": "Running your own tools", "core.exec": "Building tools with Core" };
+export async function allowedFor(kind: string, userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (process.env.SANDBOX_REQUIRE_PAID === "off") return { ok: true };
+  const feature = KIND_FEATURE[kind] ?? "builds";
+  const g = await gateFeatureFor(userId, feature);
+  return g.ok ? { ok: true } : { ok: false, error: `${KIND_LABEL[kind] ?? "This"} is included in ${plansFor(feature)}. Upgrade to use it.` };
 }
 
 export const BUSY_TEXT = "Building and editing tools are busy right now, try again later.";
@@ -57,7 +63,8 @@ export async function enqueue(kind: string, userId: string, input: unknown, opts
   const parsed = def.schema.safeParse(input);
   if (!parsed.success) return { ok: false, status: 400, error: "That request is not valid." };
   if (!opts.admin) {
-    if (!(await isPaid(userId))) return { ok: false, status: 402, error: "This runs on a cloud computer, so it is part of the paid plans. Upgrade to use it." };
+    const plan = await allowedFor(kind, userId);
+    if (!plan.ok) return { ok: false, status: 402, error: plan.error };
     if ((await usageNow()).share >= BLOCK_AT) return { ok: false, status: 503, error: BUSY_TEXT };
     if (!(await claimUsage(userId, "sandbox", limits().perUserDay, 24 * 3600_000))) return { ok: false, status: 429, error: "You have reached today's limit for these jobs. Try again tomorrow." };
   }

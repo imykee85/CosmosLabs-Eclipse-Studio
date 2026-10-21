@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { gateFeature } from "@/lib/access";
 import { requireUser } from "@/lib/api-user";
 import { db } from "@/lib/db";
 import { cleanDraft, slugify, validSlug, type PortfolioDraft } from "@/lib/portfolio";
@@ -72,6 +73,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ published: r.published, publishedAt: r.publishedAt });
   }
   if (body?.action !== "publish") return NextResponse.json({ error: "Unknown action." }, { status: 400 });
+  const gated = await gateFeature("portfolio"); // taking a page down is always allowed; putting one live is part of the paid plans
+  if (gated) return gated;
   const draft = cleanDraft(p.data);
   const bad = p.slug ? validSlug(p.slug) : "Choose an address for your page first.";
   if (bad) return NextResponse.json({ error: bad }, { status: 400 });

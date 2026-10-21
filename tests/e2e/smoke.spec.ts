@@ -543,3 +543,64 @@ test.describe("Audio Studio", () => {
     expect(posted).toBe(0);
   });
 });
+
+
+test("paid plan cards list every benefit, the missing ones locked, with See more", async ({ page }) => {
+  await page.goto("/");
+  const starter = page.locator(".plan-card").nth(1);
+  await expect(starter.locator(".pb-list li")).toHaveCount(7);
+  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(0);
+  await starter.getByRole("button", { name: /See more/ }).click();
+  await expect(starter.locator(".pb-list li")).toHaveCount(14);
+  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(6); // Atlas, Canvas, own agents, Core, no Core limit, builds (workflows shows as Soon)
+  await expect(starter.locator(".pb-list li.is-soon")).toHaveCount(1);
+  const scale = page.locator(".plan-card").nth(3);
+  await scale.getByRole("button", { name: /See more/ }).click();
+  await expect(scale.locator(".pb-list li.is-locked")).toHaveCount(0);
+  await expect(page.locator(".plan-card").first().locator(".pb-list")).toHaveCount(0); // the free card is left as it is
+  await starter.getByRole("button", { name: /See less/ }).click();
+  await expect(starter.locator(".pb-list li")).toHaveCount(7);
+});
+
+test.describe("plan locks", () => {
+  const seed = async (page: import("@playwright/test").Page, plan: string, features: string[]) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], entries: [], balance: 0, models: [] } }));
+    await page.route("**/api/access", (r) => r.fulfill({ json: { plan, features, admin: false, gating: true } }));
+  };
+
+  test("on Starter, switching Atlas on opens the upgrade pop-up at once and the switch stays off", async ({ page }) => {
+    await seed(page, "starter", ["plan_tools", "certificates", "portfolio", "api", "teams"]);
+    await page.goto("/create");
+    const toggle = page.locator('button[role="switch"][aria-label="Let the agent help with this prompt"]').first();
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    const dlg = page.getByRole("alertdialog");
+    await expect(dlg).toContainText("Atlas is included in the Growth and Scale plans.");
+    await expect(dlg.getByRole("link", { name: "See plans" })).toHaveAttribute("href", "/settings?tab=billing");
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("on Growth, the same switch just turns Atlas on", async ({ page }) => {
+    await seed(page, "growth", ["plan_tools", "certificates", "portfolio", "api", "teams", "atlas", "canvas", "agents", "core"]);
+    await page.goto("/create");
+    const toggle = page.locator('button[role="switch"][aria-label="Let the agent help with this prompt"]').first();
+    await toggle.click();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("a 402 UPGRADE answer from any request opens the same pop-up", async ({ page }) => {
+    await seed(page, "starter", []);
+    await page.goto("/create");
+    await page.waitForFunction(() => (window as unknown as { __eclipseSubscribeFetch?: boolean }).__eclipseSubscribeFetch === true); // the pop-up listens once the page has loaded
+    await page.route("**/api/connect/chat", (r) => r.fulfill({ status: 402, json: { error: "Core is included in the Growth and Scale plans. Upgrade to use it.", code: "UPGRADE", need: "growth" } }));
+    await page.evaluate(() => fetch("/api/connect/chat", { method: "POST", body: "{}" }));
+    const dlg = page.getByRole("alertdialog");
+    await expect(dlg).toContainText("Core is included in the Growth and Scale plans.");
+    await expect(dlg.getByRole("heading")).toHaveText("Upgrade to Growth");
+  });
+});

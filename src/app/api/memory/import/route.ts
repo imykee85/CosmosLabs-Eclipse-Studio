@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { db } from "@/lib/db";
 import { MEMORY_LIMIT, isTopic, parseImportLine, type MemoryTopic } from "@/lib/memory";
+import { gateFeature } from "@/lib/access";
 
 // Pasted notes become memories: one per non-empty line (see parseImportLine for the optional "Style: ..." labels).
 export async function POST(req: Request) {
+  const gated = await gateFeature("core");
+  if (gated) return gated;
   const u = await requireUser(); if ("fail" in u) return u.fail;
   const body = await req.json().catch(() => null);
   if (!isTopic(body?.topic)) return NextResponse.json({ error: "Choose a topic." }, { status: 400 });
