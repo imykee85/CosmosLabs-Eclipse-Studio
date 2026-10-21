@@ -164,9 +164,7 @@ test("a direct route is used only with the setting, the key AND an adapter; othe
   process.env.ROUTE_SEEDANCE_2_5 = "direct";
   assert.equal(routeFor("seedance_2_5"), "higgsfield", "no key, no adapter");
   process.env.ARK_API_KEY = "x";
-  assert.equal(routeFor("seedance_2_5"), "higgsfield", "no adapter yet");
-  registerDirectRoute("seedance_2_5");
-  assert.equal(routeFor("seedance_2_5"), "direct");
+  assert.equal(routeFor("seedance_2_5"), "direct", "setting + key + the BytePlus video adapter");
   delete process.env.ARK_API_KEY;
   assert.equal(routeFor("seedance_2_5"), "higgsfield", "key missing again");
   // the image prices follow the route too

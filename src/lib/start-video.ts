@@ -1,4 +1,3 @@
-import { routeFor } from "@/lib/routes";
 import { outOfCredits } from "@/lib/credit-message";
 import { refusal } from "@/lib/subscribe-alert";
 import { AUTO_RATIO, autoTarget, resolveAutoRatio } from "@/lib/auto-ratio";
@@ -7,7 +6,9 @@ import { randomInt, randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getAdmin } from "@/lib/admin";
 import { HiggsfieldError } from "@/lib/higgsfield";
-import { submitVideo } from "@/lib/higgsfield-video";
+import { ArkError } from "@/lib/providers/byteplus-video";
+import { NeedsMoreCredits, submitRouted, videoRouteNow } from "@/lib/video-submit";
+import type { Route } from "@/lib/routes";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
 import { checkPrompt } from "@/lib/moderation";
 import { deliverReferences, parseReferenceRefs, parseVideoRefIds, resolveAudioReferences, resolveReferences, resolveVideoReferences, type ReferenceRef } from "@/lib/references";
@@ -158,7 +159,9 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const audioCfg = caps.audio ? (audio ?? caps.audioDefault) : false;
   const audioUsed = motion ? motion.kind === "kling" && keepSound : audioCfg;
   // The price follows the route the render really uses (routes.ts: the direct routes have no adapter yet, so this is the Higgsfield price today).
-  const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, routeFor(model.id)) : null;
+  const route: Route = motion ? "higgsfield" : await videoRouteNow(model.id);
+  const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, route) : null;
+  const higgsfieldCost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, "higgsfield") : null;
   if (cost != null) {
     const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });
     if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${fmtCredits(cfg.dailyCredits)} credits.` };
@@ -208,8 +211,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (cost as number))) };
 
   try {
-    const sub = await submitVideo(built.endpoint, built.body, idemKey);
-    const row = await db.generation.update({ where: { id: made.row.id }, data: { statusUrl: sub.statusUrl, requestId: sub.requestId || null, cancelUrl: sub.cancelUrl } });
+    const row = await submitRouted({ row: made.row, route, modelId: model.id, workflow: built.workflow, endpoint: built.endpoint, body: built.body, idemKey, higgsfieldCost });
     return { ok: true, item: await toItem(row), seedNote };
   } catch (err) {
     await db.generation.delete({ where: { id: made.row.id } }).catch(() => {}); // nothing was started, so nothing stays held
@@ -217,7 +219,9 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     // A 4xx is Higgsfield's own rejection (it never succeeds on retry): shown cleaned, so it can be fixed fast. Anything else is on a network hiccup.
     const rejected = err instanceof HiggsfieldError && err.status != null && err.status >= 400 && err.status < 500;
     // Eclipse's own words for people; the provider's reply goes to the logs, and to the owner here so a setting can be fixed fast.
-    const why = (await getAdmin().catch(() => null)) && err instanceof HiggsfieldError && err.detail ? ` (Owner only: ${err.detail})` : "";
+    if (err instanceof NeedsMoreCredits) return { ok: false, status: 402, error: err.message };
+    const detail = err instanceof HiggsfieldError || err instanceof ArkError ? err.detail : "";
+    const why = (await getAdmin().catch(() => null)) && detail ? ` (Owner only: ${detail})` : "";
     return { ok: false, status: 502, error: rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
   }
 }

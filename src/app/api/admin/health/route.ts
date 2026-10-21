@@ -27,7 +27,7 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "ANTHROPIC_API_KEY", kind: "Secret", needed: "Core, Atlas, Prompts, upload scan" },
   { name: "GEMINI_API_KEY", kind: "Secret", needed: "Google models" },
   { name: "OPENAI_API_KEY", kind: "Secret", needed: "GPT models" },
-  { name: "ARK_API_KEY", kind: "Secret", needed: "Seedream models" },
+  { name: "ARK_API_KEY", kind: "Secret", needed: "Seedream models and the direct Seedance video route (ROUTE_SEEDANCE_2_5=direct)" },
   { name: "ELEVENLABS_API_KEY", kind: "Secret", needed: "Audio Studio: ElevenLabs voices" },
   { name: "FISH_API_KEY", kind: "Secret", needed: "Audio Studio: Fish Audio voices" },
   { name: "MINIMAX_API_KEY", kind: "Secret", needed: "Audio Studio: MiniMax voices" },
