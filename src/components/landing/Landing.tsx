@@ -96,6 +96,7 @@ export default function Landing() {
             from a single prompt to finished work, all in one place.
           </p>
           <Cta glint />
+          <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
         </div>
         <IndustryStrip />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
@@ -189,7 +190,6 @@ export default function Landing() {
             <ul>
               <li><Check size={15} /> Free trial credits</li>
               <li><Check size={15} /> Any image model</li>
-              <li><Check size={15} /> Private gallery for every project</li>
               <li><Check size={15} /> Access to free tutorials</li>
             </ul>
             <SignedOut><Link className="pill-btn" href="/sign-up">Start free</Link></SignedOut>
@@ -205,8 +205,7 @@ export default function Landing() {
               <ul>
                 <li><Check size={15} /> {fmtCredits(p.credits)} credits every month</li>
                 <li><Check size={15} /> {p.seats} seat{p.seats === 1 ? "" : "s"}</li>
-                <li><Check size={15} /> Private gallery for every project</li>
-              </ul>
+                </ul>
               <PlanBenefits planId={p.id as "starter" | "growth" | "scale"} />
               <SignedOut><Link className="pill-btn" href="/sign-up">Get started</Link></SignedOut>
               <SignedIn><Link className="pill-btn" href="/settings">Choose plan</Link></SignedIn>
