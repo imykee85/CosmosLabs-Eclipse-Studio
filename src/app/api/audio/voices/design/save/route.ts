@@ -1,3 +1,4 @@
+import { gateFeature } from "@/lib/access";
 import { NextResponse } from "next/server";
 import { audioUser } from "@/lib/audio/route-helpers";
 import { saveDesignedVoice } from "@/lib/audio/voices";
@@ -7,6 +8,8 @@ export const maxDuration = 60;
 
 // Keep one previewed design as the person's voice (the token and its signature come from /design and only work for the person it was made for).
 export async function POST(req: Request) {
+  const gated = await gateFeature("studios"); // Audio Studio and Soul ID are part of the paid plans
+  if (gated) return gated;
   const u = await audioUser();
   if ("res" in u) return u.res;
   const b = (await req.json().catch(() => null)) as { provider?: unknown; token?: unknown; sig?: unknown; name?: unknown; description?: unknown } | null;

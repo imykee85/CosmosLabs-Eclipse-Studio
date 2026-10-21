@@ -1,3 +1,4 @@
+import { gateFeature } from "@/lib/access";
 import { NextResponse } from "next/server";
 import { audioUser } from "@/lib/audio/route-helpers";
 import { MAX_SAMPLE_BYTES, cloneOwnVoice } from "@/lib/audio/voices";
@@ -7,6 +8,8 @@ export const maxDuration = 120;
 
 // Clone a voice from one short sample (multipart: provider, name, description?, consent=1, file). The sample is checked by its bytes, sent to the provider and not kept.
 export async function POST(req: Request) {
+  const gated = await gateFeature("studios"); // Audio Studio and Soul ID are part of the paid plans
+  if (gated) return gated;
   const u = await audioUser();
   if ("res" in u) return u.res;
   let form: FormData;

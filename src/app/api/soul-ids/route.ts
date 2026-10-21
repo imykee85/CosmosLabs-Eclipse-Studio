@@ -1,3 +1,4 @@
+import { gateFeature } from "@/lib/access";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { db } from "@/lib/db";
@@ -16,6 +17,8 @@ export async function GET() {
 
 // Train a new Soul ID from 5 to 30 of the person's own pictures (ids only).
 export async function POST(req: Request) {
+  const gated = await gateFeature("studios"); // Audio Studio and Soul ID are part of the paid plans
+  if (gated) return gated;
   const u = await requireUser(); if ("fail" in u) return u.fail;
   const b = await req.json().catch(() => null);
   const r = await startSoulId(u.userId, { name: b?.name, version: b?.version, pictures: b?.pictures });

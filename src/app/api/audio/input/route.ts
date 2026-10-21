@@ -1,3 +1,4 @@
+import { gateFeature } from "@/lib/access";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { audioUser } from "@/lib/audio/route-helpers";
@@ -15,6 +16,8 @@ const TYPES: Record<string, string> = {
 const maxInputMb = () => (Number(process.env.AUDIO_STT_MAX_MB) > 0 ? Number(process.env.AUDIO_STT_MAX_MB) : 200);
 
 export async function POST(req: Request) {
+  const gated = await gateFeature("studios"); // Audio Studio and Soul ID are part of the paid plans
+  if (gated) return gated;
   const u = await audioUser();
   if ("res" in u) return u.res;
   if (!storageEnabled) return NextResponse.json({ error: "Audio storage is not set up yet." }, { status: 503 });
