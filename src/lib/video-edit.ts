@@ -54,8 +54,9 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   if (!model?.live) return { ok: false, status: 503, error: "Seedance 2.5 is not connected." };
   const srcSec = Math.max(1, Math.ceil(source.durationSec ?? 5));
   const billedSec = mode === "edit" ? srcSec : ext;
-  const route = await videoRouteNow(model.id, resolution, true); // a video goes in, see videoRouteNow
-  const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, route) : null;
+  // The source clip goes in as the input video: BytePlus bills it by its length (Edit keeps the length, so the output is as long as the source).
+  const route = await videoRouteNow(model.id, resolution, source.durationSec == null ? null : srcSec);
+  const cost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, route, route === "direct" ? srcSec : undefined) : null;
   const higgsfieldCost = cfg.creditsOn ? videoPrice(model, resolution, billedSec, audio, "higgsfield") : null;
   if (cost != null) {
     const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });

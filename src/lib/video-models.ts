@@ -16,6 +16,13 @@ type AudioSpec = { field: "generate_audio" | "sound"; kind: "bool" | "onoff"; de
 // What one workflow does differently from the model's base settings (null = the field does not exist in that workflow).
 type WfOverride = { resolution?: ResSpec | null; aspect?: AspectSpec | null; seed?: { min: number; max: number } | null; negativePrompt?: { max: number } | null; audio?: AudioSpec | null };
 
+// BytePlus bills a job that takes a VIDEO as input by tokens (docs/video-providers/byteplus-seedance-25.md, their pricing page 2026-10-21): tokens = (input video
+// seconds + output seconds) x width x height x 24 fps / 1024, at a per-million-token rate that is lower than the no-video rate; when the estimate is smaller than a
+// minimum the minimum is billed (9 seconds' worth for a 5 s output, checked against their table for 480p/720p/1080p; for other output lengths the minimum is ASSUMED
+// to be the output + 4 s, NOT confirmed). `px` is the output's pixel count per frame (16:9 sizes from their size table; every ratio is within 1% of it).
+export type DirectWithVideo = { perMillion: Record<string, number>; px: Record<string, number>; minExtraSec: number };
+export const BYTEPLUS_FPS = 24;
+
 export type VideoLive = {
   endpoints: Partial<Record<Workflow, string>>;     // path after the API base address
   refs?: { max: number; videos?: { max: number }; audio?: { max: number; alone?: boolean }; total?: number }; // reference pictures, clips (the user's own finished videos), sounds (their Audio Studio takes; `alone`: a sound with no picture or clip is allowed), and the most in all
@@ -41,7 +48,7 @@ export type VideoLive = {
   // PRICE (owner decision 2026-10-20, docs/video-pricing.md): the provider's LIST cost in USD per second of the clip by resolution ("default" when there is no
   // resolution field), `usdAudio` where sound on costs more, `directUsd` for the cheaper direct route (routes.ts). A clip costs ceil(seconds x cost / $0.04) whole
   // credits, rounded ONCE for the whole clip. `estimate` lists the rows that are estimates in the owner's workbook ("audio" = the sound-on row, "direct" = the direct route).
-  price: { usd: Record<string, number>; usdAudio?: Record<string, number>; directUsd?: Record<string, number>; estimate?: string[] };
+  price: { usd: Record<string, number>; usdAudio?: Record<string, number>; directUsd?: Record<string, number>; directWithVideo?: DirectWithVideo; estimate?: string[] };
   timeoutMinutes: number;                           // give up and release the held price after this long without a result
   note?: string;
 };
@@ -135,7 +142,7 @@ const seedance2: VideoLive = {
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.07, "720p": 0.15, "1080p": 0.37, "4k": 0.78 } },
+  price: { usd: { "480p": 0.1407, "720p": 0.3024, "1080p": 0.6804, "4k": 1.5552 }, directUsd: { "480p": 0.07, "720p": 0.15, "1080p": 0.37, "4k": 0.78 }, directWithVideo: { perMillion: { "480p": 4.3, "720p": 4.3, "1080p": 4.7, "4k": 2.4 }, px: { "480p": 864 * 496, "720p": 1280 * 720, "1080p": 1920 * 1080, "4k": 3840 * 2160 }, minExtraSec: 4 } },
   timeoutMinutes: SLOW,
   note: "4k can take twice as long.",
 };
@@ -153,7 +160,7 @@ const seedance25: VideoLive = {
   aspect: { values: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], default: "16:9" },
   audio: { field: "generate_audio", kind: "bool", default: true },
   endFrameField: "end_image_url",
-  price: { usd: { "480p": 0.2056, "720p": 0.4622, "1080p": 1.1372 }, directUsd: { "480p": 0.1075, "720p": 0.2311, "1080p": 0.5686 }, estimate: ["direct"] },
+  price: { usd: { "480p": 0.2056, "720p": 0.4622, "1080p": 1.1372 }, directUsd: { "480p": 0.1075, "720p": 0.2311, "1080p": 0.5686 }, directWithVideo: { perMillion: { "480p": 6.4, "720p": 6.4, "1080p": 7.0 }, px: { "480p": 854 * 480, "720p": 1280 * 720, "1080p": 1920 * 1080 }, minExtraSec: 4 }, estimate: ["direct"] },
   timeoutMinutes: SLOW,
   note: "Clips over 20 seconds can take twice as long.",
 };
@@ -508,9 +515,25 @@ export function videoCredits(m: VideoModel, resolution: string | undefined, dura
   // video markup 1.8x (master brief section 1); the ceil happens once, on the whole clip
   return videoCreditsForUsd(duration * perSecond);
 }
-export function videoPrice(m: VideoModel, resolution: string | undefined, duration: number, audio: boolean, route: Route = "higgsfield"): number | null {
-  const c = videoCredits(m, resolution, duration, audio, route);
+export function videoPrice(m: VideoModel, resolution: string | undefined, duration: number, audio: boolean, route: Route = "higgsfield", inputVideoSec?: number): number | null {
+  const c = inputVideoSec != null && route === "direct" ? videoCreditsWithVideo(m, resolution, duration, inputVideoSec) ?? videoCredits(m, resolution, duration, audio, route) : videoCredits(m, resolution, duration, audio, route);
   return c == null ? null : toLedger(c);
+}
+
+/** True when this model can be priced on the direct route for a job that takes video input at this resolution. */
+export function hasDirectVideoPrice(m: VideoModel, resolution: string | undefined): boolean {
+  const d = m.live?.price.directWithVideo;
+  return !!d && d.perMillion[resolution ?? ""] != null;
+}
+
+/** Credits for a direct-route job with `inputSec` seconds of input video: BytePlus' token formula (see DirectWithVideo), or null when the model has no such price. */
+export function videoCreditsWithVideo(m: VideoModel, resolution: string | undefined, outputSec: number, inputSec: number): number | null {
+  const d = m.live?.price.directWithVideo;
+  const res = resolution ?? "";
+  if (!d || d.perMillion[res] == null || !(outputSec > 0) || !(inputSec >= 0)) return null;
+  const billedSec = Math.max(inputSec + outputSec, outputSec + d.minExtraSec);
+  const tokens = (billedSec * d.px[res] * BYTEPLUS_FPS) / 1024;
+  return videoCreditsForUsd((tokens * d.perMillion[res]) / 1e6);
 }
 
 // How long a render may run before it is given up (the held price is released): longer for 4K and long clips.

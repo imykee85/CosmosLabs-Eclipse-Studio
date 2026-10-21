@@ -8,15 +8,22 @@ import { freeCredits } from "@/lib/reservations";
 import { submitVideo } from "@/lib/higgsfield-video";
 import { arkVideoBody, ArkError, hasArkVideo, submitArk, type ArkWorkflow } from "@/lib/providers/byteplus-video";
 import { routeFor, type Route } from "@/lib/routes";
+import { findVideoModel, hasDirectVideoPrice } from "@/lib/video-models";
 
 const maxDirect = () => (Number(process.env.ARK_VIDEO_MAX_CONCURRENT) > 0 ? Math.floor(Number(process.env.ARK_VIDEO_MAX_CONCURRENT)) : 3);
 
-/** The route a NEW video of this model should use right now (the price must be worked out for it before anything is held). 4K runs ONE at a time on an individual BytePlus account (Seedance 2.0 only), on top of the overall limit. */
-export async function videoRouteNow(modelId: string, resolution?: string, hasVideoInput = false): Promise<Route> {
+/**
+ * The route a NEW video of this model should use right now (the price must be worked out for it before anything is held). 4K runs ONE at a time on an
+ * individual BytePlus account (Seedance 2.0 only), on top of the overall limit. `inputVideoSec`: undefined = the job takes no video; a number = the total length of
+ * its input videos in seconds (BytePlus bills those by tokens, see videoCreditsWithVideo); null = it takes a video of unknown length, which stays on Higgsfield
+ * because it cannot be priced.
+ */
+export async function videoRouteNow(modelId: string, resolution?: string, inputVideoSec?: number | null): Promise<Route> {
   if (!hasArkVideo(modelId) || routeFor(modelId) !== "direct") return "higgsfield";
-  // BytePlus bills a job that takes a VIDEO as input by a higher, length-dependent token rate than the plain per-second list we price direct jobs with
-  // (docs/video-providers/byteplus-seedance-25.md), so those jobs (reference clips, Edit, Extend) stay on Higgsfield until that price is modelled.
-  if (hasVideoInput) return "higgsfield";
+  if (inputVideoSec !== undefined) {
+    const m = findVideoModel(modelId);
+    if (inputVideoSec === null || !m || !hasDirectVideoPrice(m, resolution ?? m.live?.resolution?.default)) return "higgsfield";
+  }
   const running = await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending" } });
   if (running >= maxDirect()) return "higgsfield";
   if (resolution?.toLowerCase() === "4k" && (await db.generation.count({ where: { kind: "video", provider: "byteplus", status: "pending", resolution: { in: ["4k", "4K"] } } })) >= 1) return "higgsfield";

@@ -154,15 +154,32 @@ test("Seedance 2.0 4K runs one at a time on BytePlus; the next 4K goes to Higgsf
   delete process.env.ROUTE_SEEDANCE_2_0;
 });
 
-test("jobs that take a VIDEO as input (Edit, Extend, reference clips) stay on Higgsfield: BytePlus bills them at a higher token rate", { skip }, async () => {
+test("jobs with a video input go direct at BytePlus' token price when the clip's length is known", { skip }, async () => {
   await lib.db.generation.create({ data: { id: "bpv-src", userId: A, kind: "video", prompt: "x", status: "completed", imageUrl: "", storageKey: "u/a/clip.mp4", model: "seedance_2_5", durationSec: 6, aspectRatio: "16:9" } });
   process.env.ROUTE_SEEDANCE_2_5 = "direct";
   const r = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-src", mode: "edit", prompt: "remove the crowd", resolution: "480p", audio: false });
   assert.equal(r.ok, true, r.error);
-  assert.equal(arkSent.length, 0); assert.match(hfSent[hfSent.length - 1].path, /video-edit$/);
+  assert.equal(hfSent.length, 0);
+  const b = arkSent[0].body as { content: { role?: string }[]; duration: number; ratio: string; omni_reference_task_type: string };
+  assert.deepEqual(b.content.map((c) => c.role ?? "text"), ["text", "reference_video"]);
+  assert.equal(b.duration, -1); assert.equal(b.ratio, "adaptive"); assert.equal(b.omni_reference_task_type, "edit");
+  const editRow = await lib.db.generation.findUnique({ where: { id: r.item.id } });
+  assert.equal(editRow.provider, "byteplus");
+  // 6 s in + 6 s out at 480p: (12 s x 854x480x24/1024 tokens) x 6.4 per million
+  const usd = (12 * 854 * 480 * 24 / 1024) * 6.4 / 1e6;
+  assert.equal(editRow.creditsHeld, (await import("../../src/lib/price-constants")).videoCreditsForUsd(usd) * 10);
   const c = await make({ videoRefs: [{ id: "bpv-src" }] });
   assert.equal(c.ok, true, c.error);
-  assert.equal(arkSent.length, 0); assert.equal(hfSent.length, 2);
-  const plain = await make();
-  assert.equal(plain.ok, true, plain.error); assert.equal(arkSent.length, 1, "a plain job still goes direct");
+  assert.equal(arkSent.length, 2); assert.deepEqual((arkSent[1].body as { content: { role?: string }[] }).content.map((x) => x.role ?? "text"), ["text", "reference_video"]);
+});
+
+test("a video whose length was never recorded cannot be priced at BytePlus and stays on Higgsfield", { skip }, async () => {
+  await lib.db.generation.create({ data: { id: "bpv-nolen", userId: A, kind: "video", prompt: "x", status: "completed", imageUrl: "", storageKey: "u/a/clip2.mp4", model: "seedance_2_5", aspectRatio: "16:9" } });
+  process.env.ROUTE_SEEDANCE_2_5 = "direct";
+  const c = await make({ videoRefs: [{ id: "bpv-nolen" }] });
+  assert.equal(c.ok, true, c.error);
+  assert.equal(arkSent.length, 0); assert.equal(hfSent.length, 1);
+  const e = await lib.edit.startVideoEdit({ userId: A, sourceId: "bpv-nolen", mode: "extend", prompt: "and then", duration: 6 });
+  assert.equal(e.ok, true, e.error);
+  assert.equal(arkSent.length, 0);
 });
