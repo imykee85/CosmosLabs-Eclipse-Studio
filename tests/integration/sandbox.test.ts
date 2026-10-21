@@ -39,6 +39,7 @@ async function clean() {
   for (const m of ["sandboxJob", "sandboxAudit", "creditLedger", "usageEvent", "generation", "audioJob", "coreTool"]) await L.db[m].deleteMany({ where: { userId: { in: USERS } } });
   await L.db.sandboxUsageMonth.deleteMany({});
   await L.db.sandboxSetting.deleteMany({});
+  await L.db.billingSettings.deleteMany({ where: { userId: { in: [U1, U2] } } });
 }
 after(async () => { if (skip) return; await clean(); await L.db.$disconnect(); r2.close(); });
 
@@ -50,7 +51,11 @@ async function reset(opts: { paid?: boolean; credits?: number } = {}) {
   fake = new L.fake.FakeSandboxProvider();
   L.sb.setSandboxProvider(fake);
   await L.sb.setSetting(L.sb.SETTING.snapshot, "snap_base_1");
-  if (opts.paid !== false) await L.credits.grantCredits(U1, opts.credits ?? 100, { reason: "PURCHASE", provider: "test", externalId: `p_${Math.random()}` });
+  if (opts.paid !== false) {
+    await L.credits.grantCredits(U1, opts.credits ?? 100, { reason: "PURCHASE", provider: "test", externalId: `p_${Math.random()}` });
+    // The plan decides what a person may run (src/lib/access.ts): these two are on Scale, so media, tools and build sessions are all open.
+    for (const u of [U1, U2]) await L.db.billingSettings.upsert({ where: { userId: u }, create: { userId: u, planOverride: "scale" }, update: { planOverride: "scale" } });
+  }
   delete process.env.SANDBOX_MAX_CONCURRENT;
   delete process.env.SANDBOX_KILL_SWITCH;
 }
@@ -144,7 +149,7 @@ test("guards: unpaid plans, one open job per person, the kill switch, 95 percent
   await reset({ paid: false });
   await L.credits.grantCredits(U1, 50, { reason: "GRANT" });
   let r = await startMux();
-  assert.equal(r.ok, false); assert.equal(r.status, 402); assert.match(r.error, /paid plans/);
+  assert.equal(r.ok, false); assert.equal(r.status, 402); assert.match(r.error, /every paid plan/);
   await reset();
   muxAnswers({ delayMs: 60_000 });
   const first = await startMux();

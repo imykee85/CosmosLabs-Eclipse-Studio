@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { workspaceSession } from "@/lib/workspace";
+import { gateFeature } from "@/lib/access";
 
 const MAX_BYTES = 600_000;
 const MAX_CANVASES = 100; // per project, not counting the ones in "Recently deleted"
@@ -52,6 +53,8 @@ export async function GET(req: Request) {
 
 // A new canvas, blank or with a graph (used for "Duplicate" and for turning an Image Studio prompt into a canvas).
 export async function POST(req: Request) {
+  const gated = await gateFeature("canvas");
+  if (gated) return gated;
   const u = await userOr401();
   if (!u.userId) return u.res;
   const text = await req.text();

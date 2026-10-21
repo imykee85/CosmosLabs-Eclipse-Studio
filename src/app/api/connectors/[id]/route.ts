@@ -5,12 +5,15 @@ import { directConnectors } from "@/lib/connectors";
 import { db } from "@/lib/db";
 import { claimUsage } from "@/lib/usage";
 import { seal } from "@/lib/secret-box";
+import { gateFeature } from "@/lib/access";
 
 export const maxDuration = 30;
 
 // Connect an app: the credential is checked, a test message is sent to prove it works (task and issue apps are checked with a read instead, so
 // connecting never creates a stray task), and only then is it stored (encrypted).
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const gated = await gateFeature("core");
+  if (gated) return gated;
   const params = await props.params;
   const u = await requireUser();if ("fail" in u) return u.fail;
   const id = params.id;

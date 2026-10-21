@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { workspaceSession } from "@/lib/workspace";
+import { gateFeature } from "@/lib/access";
 
 type Ctx = { params: Promise<{ id: string }> };
 const MAX_BYTES = 600_000;
@@ -30,6 +31,8 @@ export async function GET(_req: Request, props: Ctx) {
 
 // Save the graph (the whole thing, replacing the old one).
 export async function PUT(req: Request, props: Ctx) {
+  const gated = await gateFeature("canvas");
+  if (gated) return gated;
   const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
@@ -54,6 +57,8 @@ export async function PUT(req: Request, props: Ctx) {
 
 // rename, trash (move to Recently deleted) and restore.
 export async function PATCH(req: Request, props: Ctx) {
+  const gated = await gateFeature("canvas");
+  if (gated) return gated;
   const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;
@@ -81,6 +86,8 @@ export async function PATCH(req: Request, props: Ctx) {
 
 // Delete for good. Only a canvas that is already in "Recently deleted" can be removed this way.
 export async function DELETE(_req: Request, props: Ctx) {
+  const gated = await gateFeature("canvas");
+  if (gated) return gated;
   const params = await props.params;
   const u = await userOr401();
   if (!u.userId) return u.res;

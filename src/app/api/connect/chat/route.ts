@@ -6,11 +6,15 @@ import { agentEnabled, dailyLimit, runTurn, type AgentEvent } from "@/lib/connec
 import { apiModelFor } from "@/lib/connect-models";
 import { claimUsage } from "@/lib/usage";
 import { chatRefusal } from "@/lib/chat-credits";
+import { accessFor, coreDailyLimit, gateFeature } from "@/lib/access";
+import { workspaceSession } from "@/lib/workspace";
 
 export const maxDuration = 120; // a build-machine step can wait 20 s on a command after the 48 s turn budget
 
 // Sends one message to the assistant and streams back what it does: lines of JSON, one event each (text, tool, render, error, done).
 export async function POST(req: Request) {
+  const gated = await gateFeature("core");
+  if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,8 +30,10 @@ export async function POST(req: Request) {
 
   const broke = await chatRefusal(userId);
   if (broke) return NextResponse.json(broke, { status: 402 });
-  // The daily limit is claimed under a lock, so parallel messages cannot all slip under it.
-  if (!(await claimUsage(userId, "connect", dailyLimit(), 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${dailyLimit()} messages. It resets on a rolling 24 hours.` }, { status: 429 });
+  // The daily limit depends on the plan (owner 2026-10-21): Growth gets a large number, Scale and the owner none. It is claimed under a lock, so parallel messages cannot all slip under it.
+  const w = await workspaceSession();
+  const limit = w.workspaceId ? coreDailyLimit(await accessFor(w.workspaceId, w.personId)) : dailyLimit();
+  if (limit !== null && !(await claimUsage(userId, "connect", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} Core messages. It resets on a rolling 24 hours. Scale has no daily limit.` }, { status: 429 });
 
   const enc = new TextEncoder();
   const stream = new ReadableStream({

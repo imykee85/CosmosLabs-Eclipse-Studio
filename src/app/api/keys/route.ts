@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/api-user";
 import { createKey } from "@/lib/api-keys";
 import { db } from "@/lib/db";
 import { claimUsage } from "@/lib/usage";
+import { gateFeature } from "@/lib/access";
 
 // The signed-in person's API keys (never the keys themselves: only the name, the first characters and when they were used).
 export async function GET() {
@@ -13,6 +14,8 @@ export async function GET() {
 
 // A new key. Its full value is in this answer only, once.
 export async function POST(req: Request) {
+  const gated = await gateFeature("api");
+  if (gated) return gated;
   const u = await requireUser(); if ("fail" in u) return u.fail;
   if (!(await claimUsage(u.userId, "api-key", 10, 3600_000))) return NextResponse.json({ error: "Too many new keys. Try again in an hour." }, { status: 429 });
   const b = await req.json().catch(() => null);

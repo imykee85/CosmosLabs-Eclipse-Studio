@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { startVideoEdit } from "@/lib/video-edit";
 import { workspaceSession } from "@/lib/workspace";
+import { gateFeature } from "@/lib/access";
 
 export const maxDuration = 60;
 
 // Edit or extend one of the person's own finished videos with Seedance 2.5 (src/lib/video-edit.ts). Returns a pending video at once, followed like any other.
 export async function POST(req: Request) {
+  const gated = await gateFeature("studios");
+  if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

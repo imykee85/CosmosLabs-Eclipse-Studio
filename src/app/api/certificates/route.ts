@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { db } from "@/lib/db";
 import { issueCertificate, ownerItem } from "@/lib/certificates";
+import { gateFeature } from "@/lib/access";
 
 export const maxDuration = 300; // fingerprinting a large video reads the whole file
 
@@ -15,6 +16,8 @@ export async function GET() {
 
 // Issues the certificate for one finished creation of the person's own (or returns the one already issued).
 export async function POST(req: Request) {
+  const gated = await gateFeature("certificates");
+  if (gated) return gated;
   const u = await requireUser();
   if ("fail" in u) return u.fail;
   const body = (await req.json().catch(() => null)) as { source?: unknown; id?: unknown } | null;

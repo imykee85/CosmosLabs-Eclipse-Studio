@@ -10,6 +10,7 @@ import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Plus, Lightbulb
 import { audience, faqs, results } from "./data";
 import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
+import PlanBenefits from "@/components/PlanBenefits";
 import LanguageMenu from "@/components/i18n/LanguageMenu";
 import HeroImage from "./HeroImage";
 import NavFit from "./NavFit";
@@ -206,6 +207,7 @@ export default function Landing() {
                 <li><Check size={15} /> {p.seats} seat{p.seats === 1 ? "" : "s"}</li>
                 <li><Check size={15} /> Private gallery for every project</li>
               </ul>
+              <PlanBenefits planId={p.id as "starter" | "growth" | "scale"} />
               <SignedOut><Link className="pill-btn" href="/sign-up">Get started</Link></SignedOut>
               <SignedIn><Link className="pill-btn" href="/settings">Choose plan</Link></SignedIn>
             </article>

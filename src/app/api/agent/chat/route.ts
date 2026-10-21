@@ -14,6 +14,7 @@ import { attachPictures, parsePictures } from "@/lib/agent-pictures";
 import { buildReply, type Action } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { workspaceSession } from "@/lib/workspace";
+import { gateFeature } from "@/lib/access";
 
 // 120 s: Atlas can watch a video (the file is copied and frames are read from it) before it answers.
 export const maxDuration = 120;
@@ -31,6 +32,8 @@ const TOOLS: Anthropic.Tool[] = [
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 
 export async function POST(req: Request) {
+  const gated = await gateFeature("atlas");
+  if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet, so the agent can't answer." }, { status: 503 });
   const { workspaceId: userId, personId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

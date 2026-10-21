@@ -553,6 +553,7 @@ model BillingSettings {
   autoPendingPaymentId  String?   @map("auto_pending_payment_id") // an automatic charge started but not yet confirmed by the webhook
   autoPendingAt         DateTime? @map("auto_pending_at")
   autoActionUrl         String?   @map("auto_action_url") // the provider's page to confirm a held automatic charge with the bank (3D Secure)
+  planOverride          String?   @map("plan_override") // a plan the OWNER gave this account by hand (free, starter, growth, scale): testers and comped accounts
   providerMemberId      String?   @map("provider_member_id")
   providerPaymentMethod String?   @map("provider_payment_method")
   providerMembershipId  String?   @map("provider_membership_id") // the SUBSCRIPTION's membership (top-up purchases never overwrite it)

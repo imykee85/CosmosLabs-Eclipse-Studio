@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
+import { gateFeatureFor } from "@/lib/access";
 import { claimUsage } from "@/lib/usage";
 
 // Personal API keys for the public API (/api/v1) and the MCP endpoint (/api/mcp). A key is `ecl_` plus 40 random characters; it is shown
@@ -32,6 +33,9 @@ export async function authenticateKey(req: Request): Promise<KeyAuth> {
   if (!m) return { ok: false, status: 401, error: "Send your API key as: Authorization: Bearer ecl_..." };
   const row = await db.apiKey.findUnique({ where: { hash: hashKey(m[1]) } });
   if (!row || row.revokedAt) return { ok: false, status: 401, error: "That API key is not valid or was revoked." };
+  // The API is part of every paid plan: a key stops working when its owner's plan lapses (the keys stay, they work again after subscribing).
+  const allowed = await gateFeatureFor(row.userId, "api");
+  if (!allowed.ok) return { ok: false, status: 402, error: allowed.body.error };
   const rpm = Number(process.env.API_RPM) > 0 ? Math.floor(Number(process.env.API_RPM)) : 60;
   if (!(await claimUsage(row.userId, `api:${row.id}`, rpm, 60_000))) return { ok: false, status: 429, error: `Too many requests: up to ${rpm} a minute per key.` };
   // Last-used is kept roughly (at most once a minute) so every call is not a write.

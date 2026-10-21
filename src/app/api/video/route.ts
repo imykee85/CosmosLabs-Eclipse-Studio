@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { startVideoRender } from "@/lib/start-video";
 import { workspaceSession } from "@/lib/workspace";
+import { gateFeature } from "@/lib/access";
 
 // 60 s: handing the start and end frames to the provider can take a moment. The video itself runs at Higgsfield for minutes; this only starts it.
 export const maxDuration = 60;
 
 // Starts a video and returns at once with a "pending" job. The browser then asks GET /api/generations/<id>/status every few seconds.
 export async function POST(req: Request) {
+  const gated = await gateFeature("studios");
+  if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

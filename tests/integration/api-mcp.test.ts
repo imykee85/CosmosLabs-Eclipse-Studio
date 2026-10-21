@@ -12,12 +12,13 @@ before(async () => {
   if (skip) return;
   lib = { keys: await import("../../src/lib/api-keys"), db: (await import("../../src/lib/db")).db, mcp: await import("../../src/app/api/mcp/route"), renders: await import("../../src/app/api/v1/renders/[id]/route"), credits: await import("../../src/app/api/v1/credits/route"), models: await import("../../src/app/api/v1/models/route") };
   await clean();
+  await lib.db.billingSettings.upsert({ where: { userId: A }, create: { userId: A, planOverride: "starter" }, update: { planOverride: "starter" } }); // the API is part of every paid plan
   const k = await lib.keys.createKey(A, "Test");
   key = k.key;
   await lib.db.generation.create({ data: { id: "gapi1", userId: A, kind: "image", prompt: "a cat", status: "completed", imageUrl: "https://example.com/cat.png", model: "soul_v2" } });
 });
 after(async () => { if (skip) return; await clean(); await lib.db.$disconnect(); });
-const clean = async () => { await lib.db.apiKey.deleteMany({ where: { userId: A } }); await lib.db.generation.deleteMany({ where: { userId: A } }); await lib.db.usageEvent.deleteMany({ where: { userId: A } }); };
+const clean = async () => { await lib.db.billingSettings.deleteMany({ where: { userId: A } }); await lib.db.apiKey.deleteMany({ where: { userId: A } }); await lib.db.generation.deleteMany({ where: { userId: A } }); await lib.db.usageEvent.deleteMany({ where: { userId: A } }); };
 const req = (url: string, body?: unknown, k = key) => new Request(`http://x${url}`, { method: body === undefined ? "GET" : "POST", headers: { Authorization: `Bearer ${k}`, "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
 
 test("only the hash is stored; a key starts with ecl_", { skip }, async () => {
