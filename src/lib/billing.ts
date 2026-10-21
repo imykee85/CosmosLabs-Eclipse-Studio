@@ -1,3 +1,4 @@
+import { syncTeamSeats } from "./team-seats";
 import { randomUUID } from "node:crypto";
 import type { BillingSettings } from "@prisma/client";
 import { waitUntil } from "@vercel/functions";
@@ -124,6 +125,7 @@ export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Pr
   const added = await grantCredits(userId, product.credits, { reason: "PURCHASE", provider: event.provider, externalId: event.externalId, note });
   if (event.auto) await db.billingSettings.updateMany({ where: { userId }, data: { autoPendingPaymentId: null, autoPendingAt: null, autoActionUrl: null, autoLastError: null } }); // confirmed
   if (product.kind === "plan") await db.billingSettings.updateMany({ where: { userId }, data: { subscriptionEndedAt: null } }); // paid again: active
+  if (product.kind === "plan") await syncTeamSeats(userId, product.id); // a team's member limit follows its plan (no-op for a person)
   await rememberRefs(userId, event.refs, product.kind === "plan").catch((e) => console.error("could not save payment references", e));
   return { ok: true, duplicate: !added };
 }
