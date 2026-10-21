@@ -15,9 +15,26 @@ function promptText(v: unknown): string {
   return "";
 }
 
-export function buildReply(content: Anthropic.ContentBlock[], stopReason: string | null | undefined): { text: string; actions: Action[] } {
+// Settings Atlas chose for the prompt box (owner 2026-10-21). Only known keys with the right kind of value get through; the screen checks the values against what its box really offers.
+export type Controls = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
+export function cleanControls(i: Record<string, unknown>): Controls {
+  const c: Controls = {};
+  const str = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : undefined);
+  const model = str(i.model, 80); if (model) c.model = model;
+  const ratio = str(i.aspect_ratio, 12); if (ratio) c.ratio = ratio;
+  const quality = str(i.quality, 12); if (quality) c.quality = quality;
+  if (Number.isInteger(i.count) && (i.count as number) >= 1 && (i.count as number) <= 4) c.count = i.count as number;
+  if (Number.isInteger(i.duration_seconds) && (i.duration_seconds as number) >= 1 && (i.duration_seconds as number) <= 60) c.duration = i.duration_seconds as number;
+  if (typeof i.sound === "boolean") c.sound = i.sound;
+  if (typeof i.fixed_seed === "boolean") c.fixed_seed = i.fixed_seed;
+  const prompt = promptText(i.prompt); if (prompt) c.prompt = prompt;
+  return c;
+}
+
+export function buildReply(content: Anthropic.ContentBlock[], stopReason: string | null | undefined): { text: string; actions: Action[]; controls: Controls } {
   let text = "";
   const actions: Action[] = [];
+  let controls: Controls = {};
   for (const b of content) {
     if (b.type === "text") text += b.text;
     else if (b.type === "tool_use") {
@@ -27,12 +44,13 @@ export function buildReply(content: Anthropic.ContentBlock[], stopReason: string
         const n = Number.isInteger(i.count) ? Math.min(4, Math.max(1, i.count as number)) : undefined;
         actions.push({ kind: "generate", label: n && n > 1 ? `Generate ${n}` : "Generate", prompt, count: n });
       } else if (b.name === "suggest_prompt" && prompt) actions.push({ kind: "use_prompt", label: "Use this prompt", prompt });
+      else if (b.name === "set_prompt_box") controls = { ...controls, ...cleanControls(i) };
       else if (b.name === "ask_approval" && Array.isArray(i.options)) for (const o of i.options.slice(0, 4)) { const l = clip(o, 40); if (l) actions.push({ kind: "reply", label: l }); }
     }
   }
   text = text.trim();
   // An answer that ran out of room can lose its buttons: never leave the person looking for something that is not there.
   if (stopReason === "max_tokens" && !actions.length) text += `${text ? "\n\n" : ""}My answer was cut off before I could attach the buttons. Ask me to send it again, shorter.`;
-  if (!text && !actions.length) text = "I don't have anything to add yet. Tell me a bit more.";
-  return { text, actions };
+  if (!text && !actions.length) text = Object.keys(controls).length ? "Done." : "I don't have anything to add yet. Tell me a bit more.";
+  return { text, actions, controls };
 }

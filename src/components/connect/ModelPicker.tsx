@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Gauge } from "lucide-react";
-import { MODEL_KEY, connectModels, type ConnectModel } from "@/lib/connect-models";
+import { MODEL_EVENT, MODEL_KEY, connectModels, type ConnectModel } from "@/lib/connect-models";
 
 // Neutral tile: the vendor's first letter (no logos), a gauge for Auto.
 const tile = (m: ConnectModel) => (m.id === "auto" ? <Gauge size={20} /> : <span className="cn-mono">{m.vendor.slice(0, 1).toUpperCase()}</span>);
@@ -25,7 +25,10 @@ export default function ModelPicker() {
   const current = connectModels.find((m) => m.id === id) ?? connectModels[0];
 
   useEffect(() => {
-    try { const s = localStorage.getItem(MODEL_KEY); if (s && connectModels.some((m) => m.id === s)) setId(s); } catch {}
+    const read = () => { try { const s = localStorage.getItem(MODEL_KEY); if (s && connectModels.some((m) => m.id === s)) setId(s); } catch {} };
+    read();
+    window.addEventListener(MODEL_EVENT, read);
+    return () => window.removeEventListener(MODEL_EVENT, read);
   }, []);
 
   useEffect(() => {

@@ -231,6 +231,45 @@ export default function CreateStudio() {
     }),
     setPrompt,
     generate: (o) => generate(o),
+    // Atlas can choose the model, aspect ratio, count, quality and seed for the person (free; Generate stays their button).
+    controls: {
+      options: () => {
+        const list = (models ?? []).map((m) => `${m.id} = ${m.label}${m.requiresReference ? " (needs a picture)" : ""}`).join("; ");
+        return [
+          `Models (id = name): auto = Auto (Eclipse picks); ${list}`,
+          `Aspect ratios for the chosen model: ${(model?.ratios ?? [ratio]).join(", ")}${model ? ", auto" : ""}. Now: ${ratio}`,
+          `Images per run: 1 to 4. Now: ${qty}`,
+          `Quality: ${model?.resolutions.length ? TIERS.filter((t) => tierResolution(model.resolutions, t.id)).map((t) => t.id).join(", ") : "this model has one fixed quality"}. Now: ${tier}`,
+          `Fixed seed: ${seedSupported ? "can be on or off" : "not available for this model"}. Now: ${seedOn ? "on" : "off"}`,
+        ];
+      },
+      apply: (p) => {
+        const set: string[] = [], refused: string[] = [];
+        let m = model;
+        if (p.model) {
+          const want = p.model.trim().toLowerCase();
+          if (want === "auto") { pickModel(AUTO); m = autoModel; set.push("Model Auto"); }
+          else {
+            const hit = models?.find((x) => x.id.toLowerCase() === want || x.label.toLowerCase() === want);
+            if (hit) { pickModel(hit.id); m = hit; set.push(`Model ${hit.label}`); } else refused.push(`The model "${p.model}" isn't in the list.`);
+          }
+        }
+        if (p.ratio) {
+          const r = p.ratio.trim();
+          if (r === "auto" || (m?.ratios ?? [r]).includes(r)) { setRatio(r); set.push(r === "auto" ? "Aspect ratio Auto" : `Aspect ratio ${r}`); } else refused.push(`${r} isn't an aspect ratio this model makes.`);
+        }
+        if (p.count != null) { const n = Math.min(4, Math.max(1, Math.round(p.count))); setQty(n); set.push(`${n} image${n > 1 ? "s" : ""}`); }
+        if (p.quality) {
+          const t = p.quality.trim().toLowerCase();
+          if (TIERS.some((x) => x.id === t) && (!m?.resolutions.length || tierResolution(m.resolutions, t))) { setTier(t); set.push(`Quality ${t.toUpperCase()}`); } else refused.push(`${p.quality} quality isn't available for this model.`);
+        }
+        if (p.fixed_seed != null) {
+          if (m?.seed?.supported) { flip("eclipse-fixed-seed", p.fixed_seed, setSeedOn); set.push(`Fixed seed ${p.fixed_seed ? "on" : "off"}`); } else refused.push("This model doesn't support a fixed seed.");
+        }
+        if (p.prompt) { setPrompt(p.prompt); set.push("Prompt"); }
+        return { set, refused };
+      },
+    },
     // A frame Atlas captured from a video becomes an ingredient (Image Studio has no start frame).
     useFrame: (f) => {
       const max = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);

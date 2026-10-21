@@ -12,6 +12,26 @@ import { CUE_EVENT, takeCue } from "@/lib/use-agent";
 
 const SIZE = 64;
 
+// Where Atlas may stand (owner 2026-10-21): never up in the header, never below a prompt box, and beside the open sidebar (it moves with it).
+const BOXES = ".cr-dock, .cr-box, .vc-console-wrap, .cn-dock, .cn-box, .pm-box, .tr-composer";
+const seen = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? r : null; };
+const headerBottom = () => { for (const el of Array.from(document.querySelectorAll(".mb-top, .ws-topbar"))) { const r = seen(el); if (r) return Math.max(0, r.bottom); } return 0; };
+// The sidebar (desktop) or the menu drawer (phone), when open: Atlas stands just right of its edge.
+const sidebarEdge = () => {
+  let edge = 0;
+  for (const el of Array.from(document.querySelectorAll(".ws-sidebar, .mb-panel"))) {
+    const r = seen(el);
+    if (r && r.right > 0 && r.left <= 1) edge = Math.max(edge, r.right);
+  }
+  return Math.min(edge, Math.max(0, window.innerWidth - SIZE));
+};
+const boxTop = (above: number) => {
+  let top = window.innerHeight;
+  for (const el of Array.from(document.querySelectorAll(BOXES))) { const r = seen(el); if (r && r.top > above + SIZE && r.top < top) top = r.top; }
+  return top;
+};
+const limits = () => { const minY = headerBottom(); return { minY, maxY: Math.max(minY, Math.min(window.innerHeight, boxTop(minY)) - SIZE - 6) }; };
+
 // A picture or clip added in the chat, shown as what it is (not an icon): the picture's small copy, or the clip's first frame.
 function Thumb({ kind, id, name, big = false }: { kind: "picture" | "video"; id: string; name: string; big?: boolean }) {
   const cls = big ? "aw-thumb is-big" : "aw-thumb";
@@ -64,16 +84,39 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const btn = useRef<HTMLButtonElement>(null);
   const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
 
-  const clamp = (x: number, y: number) => ({ x: Math.min(Math.max(0, x), window.innerWidth - SIZE), y: Math.min(Math.max(0, y), window.innerHeight - SIZE) });
+  const baseX = useRef(0); // the sidebar's edge the position was last measured against
+  const clamp = (x: number, y: number) => { const { minY, maxY } = limits(); return { x: Math.min(Math.max(0, x), Math.max(0, window.innerWidth - SIZE)), y: Math.min(Math.max(minY, y), maxY) }; };
 
   useEffect(() => {
-    // Every time the agent is switched on it stands in the same default spot (user 2026-10-19): the left edge, about a quarter of the way down.
-    // Dragging moves it for this visit only; nothing is remembered.
-    setPos(clamp(0, Math.round(window.innerHeight * 0.235)));
-    const onResize = () => setPos((q) => (q ? clamp(q.x, q.y) : q));
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+    // Every time the agent is switched on it stands in the same default spot (owner 2026-10-21): right under the menu icon at the top left, and beside the sidebar
+    // when that is open. When the sidebar opens or closes Atlas moves with it. Dragging moves it for this visit only; nothing is remembered.
+    baseX.current = sidebarEdge();
+    setPos(clamp(baseX.current, headerBottom()));
+    const sync = () => setPos((q) => {
+      if (!q) return q;
+      const edge = sidebarEdge();
+      const dx = edge - baseX.current;
+      baseX.current = edge;
+      const n = clamp(q.x + dx, q.y);
+      return n.x === q.x && n.y === q.y ? q : n;
+    });
+    let frames = 0;
+    const burst = () => { frames = Math.max(frames, 40); if (frames === 40) tick(); };
+    const tick = () => { sync(); if (--frames > 0) requestAnimationFrame(tick); };
+    const slow = window.setInterval(sync, 700);
+    const root = document.querySelector(".ws-root");
+    const watch = root ? new MutationObserver(burst) : null;
+    watch?.observe(root!, { attributes: true, attributeFilter: ["class"], subtree: true });
+    window.addEventListener("resize", burst);
+    window.visualViewport?.addEventListener("resize", burst);
+    document.addEventListener("transitionrun", burst, true);
+    document.addEventListener("click", burst, true);
+    return () => {
+      window.clearInterval(slow); watch?.disconnect();
+      window.removeEventListener("resize", burst); window.visualViewport?.removeEventListener("resize", burst);
+      document.removeEventListener("transitionrun", burst, true); document.removeEventListener("click", burst, true);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The eyes look toward the pointer (or the last touch) wherever it is on the screen.
   const watching = useRef<string | null>(null);
@@ -270,7 +313,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           <form className="aw-input" onSubmit={submit}>
             <input ref={fileIn} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,.mov,.mp4,.webm,.m4v" onChange={(e) => void addFiles(e.target.files)} />
             <button type="button" className="aw-clip" aria-label="Add a picture or video" title="Add a picture or video" disabled={uploading !== null || chat.busy || atts.length >= 4} onClick={() => fileIn.current?.click()}><Paperclip size={15} /></button>
-            <GrowArea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
+            <GrowArea noExpand value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
             <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy || uploading !== null}><ArrowUp size={16} /></button>
           </form>
         </div>

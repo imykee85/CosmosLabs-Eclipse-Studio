@@ -11,7 +11,7 @@ import { claimUsage } from "@/lib/usage";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
-import { buildReply, type Action } from "@/lib/agent-reply";
+import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { workspaceSession } from "@/lib/workspace";
 import { gateFeature } from "@/lib/access";
@@ -28,6 +28,9 @@ const TOOLS: Anthropic.Tool[] = [
   { name: "suggest_prompt", description: "Offer a better prompt without rendering. Shows a Use this prompt button that puts it in the prompt box.", input_schema: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] } },
   { name: "ask_approval", description: "Ask the user to choose before you go on. Each option becomes a button; pressing it sends that label back to you.", input_schema: { type: "object", properties: { options: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 4 } }, required: ["options"] } },
 ];
+
+// Offered only where the screen can apply it (Image Studio, Video Studio, Core): Atlas sets the prompt box for the person. Free and instant; Generate stays their button.
+const SET_BOX: Anthropic.Tool = { name: "set_prompt_box", description: "Set the prompt box's controls for the user: model, aspect ratio, number of results, quality, clip length, sound, fixed seed and the prompt text. It takes effect at once and costs nothing; the user still presses Generate. Use ONLY values listed under 'Controls you can set'. Include only what the user asked for or what clearly helps their idea. When the user is unsure what to pick, choose sensible values and say in one short line why.", input_schema: { type: "object", properties: { model: { type: "string", description: "A model id from the list (or auto)." }, aspect_ratio: { type: "string" }, count: { type: "integer", minimum: 1, maximum: 4, description: "How many images per run." }, quality: { type: "string", description: "A quality from the list." }, duration_seconds: { type: "integer", description: "Clip length in seconds." }, sound: { type: "boolean" }, fixed_seed: { type: "boolean" }, prompt: { type: "string", description: "Fill the prompt box with this text." } } } };
 
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 
@@ -73,7 +76,9 @@ export async function POST(req: Request) {
     Array.isArray(c.clips) && c.clips.length ? `Video clips attached: ${(c.clips as unknown[]).slice(0, 10).map((l) => clip(l, 60)).filter(Boolean).join("; ")}` : "",
     ...(isAtlas && Array.isArray(c.videos) ? (c.videos as { id?: unknown; label?: unknown; role?: unknown }[]).slice(0, 10).filter((v) => typeof v?.id === "string" && (v.id as string).length <= 64).map((v) => `Video you can watch (clip_id ${v.id}): ${clip(v.label, 60)}${clip(v.role, 30) ? ` (${clip(v.role, 30)})` : ""}`) : []),
     clip(c.message, 400) ? `Message showing on the top edge of the box right now: ${clip(c.message, 400)}` : "",
+    ...(Array.isArray(c.options) && c.options.length ? ["Controls you can set with set_prompt_box (use only these values):", ...(c.options as unknown[]).slice(0, 12).map((l) => clip(l, 1800)).filter(Boolean)] : []),
   ].filter(Boolean).join("\n");
+  const canSet = Array.isArray(c.options) && c.options.length > 0;
 
   // The pictures attached to the box are shown to the agent (up to 4, ids only, owner-checked, read from our own storage).
   const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
@@ -93,10 +98,12 @@ export async function POST(req: Request) {
     const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
     // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
     const system = cachedSystem(`${persona.system}${director}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
-    const tools = isAtlas ? [...TOOLS, ...VIDEO_TOOLS] : TOOLS;
+    const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
+    const tools = isAtlas ? [...base, ...VIDEO_TOOLS] : base;
     // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
     const convo: Anthropic.MessageParam[] = messages;
     const earlier: Action[] = [];
+    let controls: Controls = {};
     const frames: Frame[] = [];
     const state = { captures: 0 };
     let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
@@ -111,7 +118,9 @@ export async function POST(req: Request) {
           results.push({ type: "tool_result", tool_use_id: b.id, content: r.content, is_error: r.isError });
         } else results.push({ type: "tool_result", tool_use_id: b.id, content: "Shown to the user as a button." });
       }
-      earlier.push(...buildReply(res.content, res.stop_reason).actions);
+      const so = buildReply(res.content, res.stop_reason);
+      earlier.push(...so.actions);
+      controls = { ...controls, ...so.controls };
       convo.push({ role: "assistant", content: res.content }, { role: "user", content: results });
       res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
       meter.add(res.model, res.usage);
@@ -119,7 +128,8 @@ export async function POST(req: Request) {
     const final = buildReply(res.content, res.stop_reason);
     const actions: Action[] = [...earlier, ...final.actions];
     const text = final.text;
-    return NextResponse.json({ text, actions, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) });
+    controls = { ...controls, ...final.controls };
+    return NextResponse.json({ text, actions, controls, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) });
   } catch (err) {
     console.error("agent chat failed", err);
     const msg = err instanceof Error ? err.message : "";

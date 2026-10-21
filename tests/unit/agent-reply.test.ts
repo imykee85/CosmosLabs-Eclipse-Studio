@@ -32,3 +32,10 @@ test("an answer cut off before its buttons says so instead of promising them", (
 test("an empty answer gets a plain fallback", () => {
   assert.match(buildReply([], "end_turn").text, /Tell me a bit more/);
 });
+
+test("Atlas's prompt box settings keep only known keys with the right kind of value", () => {
+  const out = buildReply([{ type: "tool_use", id: "t", name: "set_prompt_box", input: { model: " seedream_5_pro ", aspect_ratio: "16:9", count: 9, quality: "2k", duration_seconds: 8, sound: true, fixed_seed: "yes", evil: "x", prompt: "A red car" } }] as never, "tool_use");
+  assert.deepEqual(out.controls, { model: "seedream_5_pro", ratio: "16:9", quality: "2k", duration: 8, sound: true, prompt: "A red car" });
+  assert.equal(out.text, "Done.");
+  assert.deepEqual(buildReply([{ type: "text", text: "Hi" }] as never, "end_turn").controls, {});
+});

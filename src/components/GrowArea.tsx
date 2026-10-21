@@ -10,9 +10,9 @@ import "./grow-area.css";
 // `maxLines` (3), and once the text needs more than that an expand icon appears at its top right and opens a full-screen editor,
 // so text never runs on in one endless hidden line. Enter always makes a new line; sending is the button (or Ctrl/Cmd + Enter,
 // where a screen offers it). Drop-in replacement for <textarea>.
-type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows"> & { rows?: number; maxLines?: number; wrapClassName?: string; editorLabel?: string };
+type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows"> & { rows?: number; maxLines?: number; wrapClassName?: string; editorLabel?: string; noExpand?: boolean };
 
-const GrowArea = forwardRef<HTMLTextAreaElement, Props>(function GrowArea({ rows = 1, maxLines = 3, wrapClassName = "", editorLabel = "Write your text", onChange, ...rest }, fwd) {
+const GrowArea = forwardRef<HTMLTextAreaElement, Props>(function GrowArea({ rows = 1, maxLines = 3, wrapClassName = "", editorLabel = "Write your text", noExpand = false, onChange, ...rest }, fwd) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useImperativeHandle(fwd, () => ref.current as HTMLTextAreaElement);
   const [over, setOver] = useState(false);
@@ -54,7 +54,7 @@ const GrowArea = forwardRef<HTMLTextAreaElement, Props>(function GrowArea({ rows
   return (
     <div className={`pe-wrap ${wrapClassName}`}>
       <textarea {...rest} ref={ref} rows={rows} onChange={onChange} />
-      {over && !open && (
+      {over && !open && !noExpand && (
         <button type="button" className="pe-expand" aria-label="Expand the text box" title="Expand" onClick={() => setOpen(true)}><Maximize2 size={15} /></button>
       )}
       {open && <Editor label={editorLabel} value={value} maxLength={rest.maxLength} placeholder={rest.placeholder} onChange={onChange} onClose={() => { setOpen(false); window.setTimeout(() => ref.current?.focus(), 0); }} />}

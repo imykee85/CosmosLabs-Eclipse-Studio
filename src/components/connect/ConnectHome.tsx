@@ -9,7 +9,7 @@ import { ArrowUp, Brain, Clock, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, W
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import AgentWidget from "../create/AgentWidget";
-import { MODEL_KEY } from "@/lib/connect-models";
+import { MODEL_EVENT, MODEL_KEY, connectModels } from "@/lib/connect-models";
 import { useDraftText } from "@/lib/use-draft-text";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
@@ -130,7 +130,22 @@ function ConnectChat() {
   }, [params, open, router, send]);
 
   // Atlas can fill the message box ("Use this prompt") and, when you press Generate on its card, send that message to the Core chat.
-  useAgentHost({ page: "core", context: () => ({ prompt: text, message: notice || undefined, pictures: picked.map((p) => ({ type: p.type, id: p.id, role: p.type === "upload" ? "added from the device" : "attached from the Library" })) }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; } });
+  useAgentHost({ page: "core", context: () => ({ prompt: text, message: notice || undefined, pictures: picked.map((p) => ({ type: p.type, id: p.id, role: p.type === "upload" ? "added from the device" : "attached from the Library" })) }), setPrompt: setText, generate: async (o) => { const t = (o.prompt ?? text).trim(); if (!t) return "Write or ask for something first."; void send(t, []); return ""; },
+    // Atlas can choose Core's model and fill the message box (free; sending stays the person's button).
+    controls: {
+      options: () => [`Core models (id = name): ${connectModels.map((m) => `${m.id} = ${m.name}`).join("; ")}`],
+      apply: (p) => {
+        const set: string[] = [], refused: string[] = [];
+        if (p.model) {
+          const want = p.model.trim().toLowerCase();
+          const hit = connectModels.find((m) => m.id.toLowerCase() === want || m.name.toLowerCase() === want);
+          if (hit) { try { localStorage.setItem(MODEL_KEY, hit.id); } catch {} window.dispatchEvent(new Event(MODEL_EVENT)); set.push(`Model ${hit.name}`); } else refused.push(`The model "${p.model}" isn't in the list.`);
+        }
+        if (p.prompt) { setText(p.prompt); set.push("Message"); }
+        if (p.ratio || p.count != null || p.quality || p.duration != null || p.sound != null || p.fixed_seed != null) refused.push("Core has no such settings; only its model and message can be set.");
+        return { set, refused };
+      },
+    } });
   const scrollEnd = useCallback(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, []);
   useEffect(() => { scrollEnd(); }, [lines, scrollEnd]);
 

@@ -231,7 +231,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-input:focus-within { border-color: var(--a-fg2); }
 .aw-input input, .aw-input textarea { flex: 1; min-width: 0; padding: 7px 0; border: 0; outline: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; line-height: 1.4; resize: none; }
 .aw-input .pe-expand { top: 2px; right: 0; }
-.aw-input button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }
+.aw-input button { flex: none; aspect-ratio: 1 / 1; min-width: 32px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }
 .aw-input button:disabled { opacity: .4; cursor: default; }
 .aw-input { padding-left: 4px; }
 .aw-input button.aw-clip { background: transparent; color: var(--a-muted); }
