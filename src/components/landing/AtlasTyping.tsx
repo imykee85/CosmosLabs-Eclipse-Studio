@@ -11,21 +11,25 @@ export default function AtlasTyping({ lines }: { lines: string[] }) {
   const [shown, setShown] = useState(lines);
   const [text, setText] = useState("");
   const [still, setStill] = useState(false);
+  const linesRef = useRef(shown);
+  linesRef.current = shown;
 
   // The text changes letter by letter, which the page translator cannot match, so each whole line is translated here.
   useEffect(() => {
-    const update = () => setShown(lines.map((l) => translateText(l)));
+    // Only replace the lines when their text really changed, so the typing is not restarted by an event that brings nothing new.
+    const update = () => setShown((old) => { const next = lines.map((l) => translateText(l)); return next.length === old.length && next.every((l, i) => l === old[i]) ? old : next; });
     update();
     window.addEventListener(I18N_EVENT, update);
     return () => window.removeEventListener(I18N_EVENT, update);
   }, [lines]);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setStill(true); setText(shown[0]); return; }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setStill(true); setText(linesRef.current[0]); return; }
     let timer = 0, visible = false, line = 0, n = 0, deleting = false;
     const tick = () => {
       if (!visible) return;
-      const full = shown[line];
+      const lines = linesRef.current;
+      const full = lines[line % lines.length];
       if (!deleting) {
         n++;
         setText(full.slice(0, n));
@@ -34,7 +38,7 @@ export default function AtlasTyping({ lines }: { lines: string[] }) {
       } else {
         n--;
         setText(full.slice(0, n));
-        if (n <= 0) { deleting = false; line = (line + 1) % shown.length; timer = window.setTimeout(tick, GAP_MS); return; }
+        if (n <= 0) { deleting = false; line = (line + 1) % lines.length; timer = window.setTimeout(tick, GAP_MS); return; }
         timer = window.setTimeout(tick, DELETE_MS);
       }
     };
@@ -46,7 +50,10 @@ export default function AtlasTyping({ lines }: { lines: string[] }) {
     }, { threshold: 0.3 });
     if (ref.current) io.observe(ref.current);
     return () => { io.disconnect(); window.clearTimeout(timer); };
-  }, [shown]);
+  }, []);
+
+  // Under reduced motion the still line follows a new translation.
+  useEffect(() => { if (still) setText(shown[0]); }, [still, shown]);
 
   return (
     <p className="atl-type" ref={ref} translate="no" aria-label={shown.join(" ")}>
