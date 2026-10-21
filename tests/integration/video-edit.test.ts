@@ -22,7 +22,7 @@ before(async () => {
   r2 = createServer((_req, res) => { res.end("x"); });
   const hp = await new Promise<number>((r) => hf.listen(0, "127.0.0.1", () => r((hf.address() as { port: number }).port)));
   const rp = await new Promise<number>((r) => r2.listen(0, "127.0.0.1", () => r((r2.address() as { port: number }).port)));
-  Object.assign(process.env, { HIGGSFIELD_API_KEY: "id:secret", HIGGSFIELD_BASE_URL: `http://127.0.0.1:${hp}`, HIGGSFIELD_VIDEO_BASE_URL: `http://127.0.0.1:${hp}`, R2_ENDPOINT: `http://127.0.0.1:${rp}`, R2_ACCOUNT_ID: "a", R2_ACCESS_KEY_ID: "k", R2_SECRET_ACCESS_KEY: "s", R2_BUCKET: "bkt", CREDITS_ENABLED: "" });
+  Object.assign(process.env, { HIGGSFIELD_API_KEY: "id:secret", HIGGSFIELD_BASE_URL: `http://127.0.0.1:${hp}`, HIGGSFIELD_VIDEO_BASE_URL: `http://127.0.0.1:${hp}`, R2_ENDPOINT: `http://127.0.0.1:${rp}`, R2_ACCOUNT_ID: "a", R2_ACCESS_KEY_ID: "k", R2_SECRET_ACCESS_KEY: "s", R2_BUCKET: "bkt", CREDITS_ENABLED: "", ROUTE_SEEDANCE_2_5: "higgsfield" }); // these tests are about the Higgsfield endpoints: the owner's manual switch
   lib = { edit: await import("../../src/lib/video-edit"), refs: await import("../../src/lib/references"), db: (await import("../../src/lib/db")).db };
   await clean();
   await lib.db.generation.create({ data: { id: "vsrc1", userId: A, kind: "video", prompt: "a cat", status: "completed", imageUrl: "", storageKey: "u/a/clip.mp4", model: "seedance_2_5", durationSec: 6, aspectRatio: "16:9" } });
