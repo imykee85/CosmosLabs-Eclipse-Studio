@@ -518,7 +518,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .atl-section h2 { white-space: nowrap; }
 .site-shell .atl-section h2 em { text-transform: none; } /* Atlas is a name: keeps its capital despite the lowercase section-title rule */
 .atl-sub { margin: 18px 0 0; font-size: clamp(20px,2.2vw,28px); line-height: 1.2; letter-spacing: -.02em; font-weight: 500; color: #6b665f; }
-.atl-bot { --u: 2.4px; position: relative; width: calc(64 * var(--u)); height: calc(64 * var(--u)); margin: 64px 0 50px 6px; perspective: calc(360 * var(--u)); }
+.atl-bot { --u: 2.4px; position: relative; width: calc(64 * var(--u)); height: calc(64 * var(--u)); margin: 64px 0 50px 6px; }
+.atl-stage { position: absolute; inset: 0; perspective: calc(360 * var(--u)); }
 .atl-glow { position: absolute; inset: -40%; border-radius: 50%; background: radial-gradient(circle, rgba(192,7,7,.16) 0%, rgba(192,7,7,.06) 38%, rgba(192,7,7,0) 68%); pointer-events: none; }
 .atl-hop, .atl-float, .atl-spin, .atl-sphere { position: absolute; inset: 0; transform-style: preserve-3d; }
 .atl-float { animation: atl-float 3.4s ease-in-out infinite; }
@@ -772,3 +773,5 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .hero-why { font-size: 20px; line-height: 28px; }
 .strip-label, .hero .strip-label { font-size: 20px; line-height: 1.3; }
 @media (min-width: 801px) { .hero-why { font-size: 24px; line-height: 32px; } .strip-label, .hero .strip-label { font-size: 24px; } }
+/* Atlas's glow lives outside the 3D stage so the turning ball cannot make it flicker (owner 2026-10-21). */
+.atl-glow { transform: translateZ(0); will-change: transform; }
