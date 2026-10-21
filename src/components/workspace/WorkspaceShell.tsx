@@ -14,6 +14,7 @@ import AgentIcon from "@/components/AgentIcon";
 import ConnectMark from "@/components/ConnectMark";
 import ImageStudioIcon from "@/components/ImageStudioIcon";
 import SoonTag from "@/components/SoonTag";
+import BetaTag from "@/components/BetaTag";
 import Avatar from "@/components/Avatar";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -23,12 +24,12 @@ import { LIBRARY_KINDS } from "@/lib/library";
 import { listProjects, readCurrentProject, readCurrentProjectName, setCurrentProject, timeAgo, type Project } from "@/lib/projects";
 import "./workspace.css";
 
-type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; soon?: boolean };
+type Item = { label: string; hint: string; href?: string; icon?: React.ReactNode; soon?: boolean; beta?: boolean };
 
 // The sidebar follows the order of the work (user 2026-10-15): PLAN what you will make, CREATE it, keep it in FILES, and UTILITIES that make the whole process easier.
 const connectItem: Item = { label: "Core", hint: "Your creative computer", href: "/connect", icon: <ConnectMark size={20} /> };
-const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} /> };
-const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} /> };
+const agentsItem: Item = { label: "Agents", hint: "Choose your agent", href: "/agents", icon: <AgentIcon size={17} />, beta: true };
+const canvasItem: Item = { label: "Canvas", hint: "Build with nodes", href: "/canvas", icon: <Workflow size={17} />, beta: true };
 const treatmentItem: Item = { label: "Treatment", hint: "Shape the concept", href: "/treatment", icon: <Lightbulb size={17} /> };
 const promptsItem: Item = { label: "Prompts", hint: "Scene by scene", href: "/prompts", icon: <MessageSquareText size={17} /> };
 const imageStudio: Item = { label: "Image Studio", hint: "Write a prompt", href: "/create", icon: <ImageStudioIcon size={22} /> };
@@ -54,6 +55,7 @@ function NavItem({ item, pathname, onPick }: { item: Item; pathname: string; onP
         <small>{item.hint}</small>
       </span>
       {item.soon && <SoonTag />}
+      {item.beta && <BetaTag />}
     </>
   );
   // Rows with no page yet still respond to a tap; they just do not go anywhere.
