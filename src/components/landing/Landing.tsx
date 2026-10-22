@@ -48,6 +48,9 @@ function Wordmark() {
   return <Logo className="wordmark" size={60} />;
 }
 
+// Tiles (column-row) shown as landscape 16:9 cards instead of vertical ones.
+const landscape = new Set(["1-1", "2-2", "0-3"]);
+
 export default function Landing() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -151,13 +154,13 @@ export default function Landing() {
             <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
           </div>
         </div>
-        {/* Four columns of tiles in different heights; the last row fades into the page under one button (after the owner's reference). */}
+        {/* Four columns of tiles in different heights; the last row fades into the page under one button (after the owner's reference). Some tiles are landscape. */}
         <div className="results-wall">
           <div className="results-cols">
             {[0, 1, 2, 3].map((c) => (
               <div className="results-col" key={c}>
                 {results.filter((_, i) => i % 4 === c).map((name, j) => (
-                  <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
+                  <article key={name} className={`rt-${c}-${j}${landscape.has(`${c}-${j}`) ? " rt-wide" : ""}`} aria-label={name}>
                     <div className={`tile tone-${(c + j * 4) % 10}`} />
                   </article>
                 ))}

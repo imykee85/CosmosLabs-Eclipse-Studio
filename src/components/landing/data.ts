@@ -21,7 +21,7 @@ export const audience = [
   ["GPT IMAGE 2.5", "OpenAI's newest image model.", "OpenAI", "Image", "OpenAI's newest image model, with picture edits.", "GPT Image 2.5"],
 ] as const;
 
-export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports"];
+export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports", "Cinematic", "Billboards", "Trailers"];
 
 // The black "Start creating with Eclipse." card: three white striped bars, each with a number under it that runs up as the bar rises.
 // Categories are the owner's (2026-10-17). The numbers are the owner's (2026-10-17). [value, suffix, caption, bar height in stripes]
