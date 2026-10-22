@@ -2,6 +2,7 @@
   "name": "eclipse",
   "version": "0.1.0",
   "private": true,
+  "engines": { "node": "22.x" },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && node scripts/db-push.mjs && npm run i18n:extract && node --import tsx scripts/i18n-warm.mjs && next build",
