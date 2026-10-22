@@ -116,7 +116,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <Head title="Tools to skyrocket your creative freedom" button="Discover all tools" soon={false} onButton={() => onGo("/tools")} />
         <ul className="hf-row hf-row-2">
           <li className="hf-tool">
-            <Empty className="hf-fill" />
+            <img className="hf-fill hf-tool-pic" src="/dashboard/tools-image.jpg" alt="" loading="lazy" draggable={false} />
             <span className="hf-tool-title">Generate an image</span>
             <button type="button" className="hf-try" onClick={() => onGo("/create")}>Try it <ArrowRight size={15} /></button>
           </li>
