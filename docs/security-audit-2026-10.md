@@ -44,3 +44,7 @@ Type check, lint (0 errors), 211 unit tests, production build and the 27 browser
 ## Follow-ups
 - `mammoth` advisory (moderate) when a non-breaking fix exists.
 - Verdict: **Not affected by the Next.js issues; Node Brotli issue needs the patched runtime from Vercel (check the Node setting). Patched, ready for your approval to merge.**
+
+## Vercel settings checked by the owner (2026-10-22)
+- Firewall: Bot Protection on (Challenge); AI bot protection on (Deny).
+- Node.js Version: Production Overrides 22.x; Project Settings still 24.x (both supported).
