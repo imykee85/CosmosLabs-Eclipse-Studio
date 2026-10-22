@@ -666,15 +666,13 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .results-head p { margin: 12px 0 0; color: #6b665f; font-size: 20px; line-height: 1.35; font-weight: 500; letter-spacing: -.01em; max-width: 560px; }
 @media (min-width: 801px) { .results-head p { font-size: 24px; } }
 .results-head > a, .results-head > .pill-btn { flex: none; }
-.results-wall { position: relative; max-width: 1165px; margin: 0 auto; aspect-ratio: 1165 / 1310; overflow: hidden; }
-.results-cols { display: flex; gap: 8px; align-items: flex-start; }
-.results-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.results-col article { position: relative; overflow: hidden; border-radius: 8px; background: #ccc; aspect-ratio: 9 / 16; }
-.results-col article .tile { position: absolute; inset: 0; height: 100%; border-radius: 0; transition: transform .5s var(--ease); }
-.results-col article:hover .tile { transform: scale(1.05); }
-.rt-1-0 { aspect-ratio: 3 / 4 !important; }
-.rt-2-1 { aspect-ratio: 1 / 1 !important; }
-.rt-wide { aspect-ratio: 16 / 9 !important; }
+.results-wall { position: relative; max-width: 1165px; margin: 0 auto; aspect-ratio: 1165 / 1750; overflow: hidden; container-type: inline-size; }
+/* Tiles are placed on a 4-column grid whose rows are 1% of the wall wide. A vertical tile spans 44 rows; a landscape tile spans three columns and the same 44 rows. */
+.results-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1cqw; grid-auto-flow: dense; column-gap: 8px; }
+.results-tile { position: relative; overflow: hidden; border-radius: 8px; background: #ccc; grid-row: span 44; margin-bottom: 8px; }
+.results-tile.is-wide { grid-column: span 3; }
+.results-tile .tile { position: absolute; inset: 0; height: 100%; border-radius: 0; transition: transform .5s var(--ease); }
+.results-tile:hover .tile { transform: scale(1.05); }
 .results-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; background: linear-gradient(180deg, rgba(240,237,232,0) 0%, var(--paper) 88%); pointer-events: none; }
 .results-more { position: absolute; left: 0; right: 0; bottom: 9%; display: flex; justify-content: center; }
 /* Atlas closing line: four lines, right aligned. */
