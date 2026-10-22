@@ -674,6 +674,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .results-col article:hover .tile { transform: scale(1.05); }
 .rt-1-0 { aspect-ratio: 3 / 4 !important; }
 .rt-2-1 { aspect-ratio: 1 / 1 !important; }
+.rt-wide { aspect-ratio: 16 / 9 !important; }
 .results-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; background: linear-gradient(180deg, rgba(240,237,232,0) 0%, var(--paper) 88%); pointer-events: none; }
 .results-more { position: absolute; left: 0; right: 0; bottom: 9%; display: flex; justify-content: center; }
 /* Atlas closing line: four lines, right aligned. */
