@@ -45,7 +45,10 @@
 /* tools: tall empty card, title at the top, Try it at the bottom */
 .hf-tool { position: relative; flex: 0 0 min(420px, 84%); aspect-ratio: 1 / 1.1; }
 .hf-tool-pic { width: 100%; height: 100%; object-fit: cover; }
-.hf-tool-title { position: absolute; top: 22px; left: 22px; right: 22px; display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 500; }
+.hf-tool-title { position: absolute; top: 22px; left: 22px; right: 22px; display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 500; color: #fff; }
+/* The tools cards keep the dark-mode look in both themes: white text, white button with black text. */
+.hf-tool .hf-try { background: #fff; color: #000; }
+.hf-tool .hf-empty { background: #1a1a1a; border-color: transparent; }
 .hf-try { position: absolute; left: 22px; bottom: 22px; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--a-fg); color: var(--a-bg); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 
 .hf-faq ul { margin: 14px 0 0; padding: 0; list-style: none; }
