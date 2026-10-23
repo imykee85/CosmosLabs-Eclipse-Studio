@@ -12,6 +12,7 @@ import { claimUsage } from "@/lib/usage";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
+import { buildMessages, historyPictures, loadHistoryImages, parseTurns } from "@/lib/agent-history";
 import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { workspaceSession } from "@/lib/workspace";
@@ -57,18 +58,9 @@ export async function POST(req: Request) {
     if (mine) persona = customPersona(mine);
   }
   if (!persona) return NextResponse.json({ error: "Choose an agent first." }, { status: 400 });
-  const raw: unknown[] = Array.isArray(body?.messages) ? body.messages.slice(-20) : [];
-  const messages: Anthropic.MessageParam[] = [];
-  for (const m of raw as { role?: string; text?: string }[]) {
-    const text = clip(m?.text, 4000);
-    if (!text || (m.role !== "user" && m.role !== "agent")) continue;
-    const role = m.role === "user" ? "user" : "assistant";
-    const last = messages[messages.length - 1];
-    if (last && last.role === role) last.content = `${last.content as string}\n\n${text}`; // the API wants alternating turns
-    else messages.push({ role, content: text });
-  }
-  while (messages.length && messages[0].role !== "user") messages.shift();
-  if (!messages.length || messages[messages.length - 1].role !== "user") return NextResponse.json({ error: "Write a message first." }, { status: 400 });
+  // The chat as Atlas remembers it (see agent-history.ts): every message with the pictures and videos it was shown with.
+  const turns = parseTurns(body?.messages);
+  if (!turns.length || turns[turns.length - 1].role !== "user") return NextResponse.json({ error: "Write a message first." }, { status: 400 });
 
   const c = body?.context ?? {};
   const ctx = [
@@ -87,6 +79,8 @@ export async function POST(req: Request) {
   const canSet = Array.isArray(c.options) && c.options.length > 0;
 
   const work = async (): Promise<Out> => {
+    // The newest pictures of earlier messages are read again from our storage, so the agent can compare them with what it is shown now.
+    const messages = buildMessages(turns, await loadHistoryImages(userId, historyPictures(turns), loadPromptImages));
     // The pictures attached to the box are shown to the agent (up to 4, ids only, owner-checked, read from our own storage).
     const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
 

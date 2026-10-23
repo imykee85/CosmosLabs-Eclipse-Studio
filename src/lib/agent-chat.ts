@@ -12,7 +12,7 @@ export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label
 export type Frame = { id: string; label: string; sec: number; used?: string };
 // A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
 export type Attach = { kind: "picture" | "video"; id: string; name: string };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; error?: boolean; note?: boolean };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
 
 // What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
 export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
@@ -187,11 +187,15 @@ export function useAgentChat(agent: string | null) {
     if (!agent) return;
     setBusy(true);
     try {
-      const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text }));
       const base = host?.context() ?? { prompt: "" };
       // What was added in the chat goes first, then what is attached to the prompt box.
       const pictures = [...atts.filter((a) => a.kind === "picture").map((a) => ({ type: "upload" as const, id: a.id, role: "added in the chat" })), ...(base.pictures ?? [])];
       const videos = [...atts.filter((a) => a.kind === "video").map((a) => ({ id: a.id, label: a.name, role: "added in the chat" })), ...(base.videos ?? [])];
+      // The newest message remembers what it was shown with, so the agent still has it in later turns.
+      const list = read(agent);
+      const lastUser = list.map((m) => m.role).lastIndexOf("user");
+      if (lastUser >= 0) write(agent, list.map((m, i) => (i === lastUser ? { ...m, seen: { pictures: pictures.map((p) => ({ type: p.type, id: p.id, role: p.role ?? "" })), videos: videos.map((v) => ({ id: v.id, label: v.label, role: v.role ?? "" })) } } : m)));
+      const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text, ...(m.seen ? { seen: m.seen } : {}) }));
       const page = host?.page ?? "studio";
       const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, context: { page, ...base, pictures, videos, options: host?.controls?.options() } }) });
       const data = await res.json().catch(() => ({}));
