@@ -205,7 +205,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 
 /* The agent's chat card: messages, the buttons it offers, an input row, and an expanded view for long replies. */
 .aw-card.is-big { left: 50%; top: 50%; width: min(640px, calc(100vw - 24px)); height: min(76dvh, 680px); transform: translate(-50%, -50%); z-index: 252; }
-.aw-msgs { display: grid; align-content: start; gap: 8px; margin: 10px 0; max-height: 280px; min-height: 60px; overflow-y: auto; overscroll-behavior: contain; }
+.aw-msgs { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; margin: 10px 0; max-height: 280px; min-height: 60px; overflow-y: auto; overscroll-behavior: contain; }
 .aw-card.is-big .aw-msgs { flex: 1; max-height: none; }
 .aw-empty { margin: 0; color: var(--a-muted); font-size: 13px; }
 .aw-msg { max-width: 92%; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; background: var(--a-hover); color: var(--a-fg); }

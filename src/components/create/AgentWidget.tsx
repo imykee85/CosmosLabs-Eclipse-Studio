@@ -226,7 +226,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     drag.current = null;
     setDragging(false);
     if (!d) return;
-    else { setOpen(true); setHop(true); window.setTimeout(() => setHop(false), 1000); }
+    else setOpen(true); // tapping opens the card; the spin is for switching the agent on (see the cue effect)
   }
 
   // The card always opens below the agent.
