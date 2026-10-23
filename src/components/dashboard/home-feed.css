@@ -45,7 +45,7 @@
 /* tools: tall empty card, title at the top, Try it at the bottom */
 .hf-tool { position: relative; flex: 0 0 min(420px, 84%); aspect-ratio: 1 / 1.1; }
 .hf-tool-pic { width: 100%; height: 100%; object-fit: cover; }
-.hf-tool-title { position: absolute; top: 22px; left: 22px; right: 22px; display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 500; color: #fff; }
+.hf-tool-title { position: absolute; top: 22px; left: 22px; right: 22px; display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 500; color: #fff; text-shadow: 0 1px 10px rgba(0,0,0,.45); }
 /* The tools cards keep the dark-mode look in both themes: white text, white button with black text. */
 .hf-tool .hf-try { background: #fff; color: #000; }
 .hf-tool .hf-empty { background: #1a1a1a; border-color: transparent; }

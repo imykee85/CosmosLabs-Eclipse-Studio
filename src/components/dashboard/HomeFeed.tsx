@@ -126,7 +126,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
             <button type="button" className="hf-try" onClick={() => onGo("/generate")}>Try it <ArrowRight size={15} /></button>
           </li>
           <li className="hf-tool">
-            <Empty className="hf-fill" />
+            <img className="hf-fill hf-tool-pic" src="/dashboard/agentic-image.jpg" alt="" loading="lazy" draggable={false} />
             <span className="hf-tool-title">Agentic Assistance</span>
             <button type="button" className="hf-try" onClick={() => onGo("/connect")}>Try it <ArrowRight size={15} /></button>
           </li>
