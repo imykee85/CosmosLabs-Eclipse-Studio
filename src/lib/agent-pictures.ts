@@ -29,7 +29,8 @@ export async function attachPictures(userId: string, picks: PicturePick[], last:
     blocks.push({ type: "text", text: `Picture ${i + 1}${picks[i].role ? ` (${picks[i].role})` : ""}: ${clip(img.label, 60)}` });
     blocks.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.data } });
   });
-  blocks.push({ type: "text", text: typeof last.content === "string" ? last.content : "" });
-  last.content = blocks;
+  // The message's own text stays after its pictures (it may already hold earlier turns' blocks, which stay in front).
+  const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
+  last.content = [...own.slice(0, -1), ...blocks, own[own.length - 1]];
   return `\nYou can see the ${picks.length} picture${picks.length > 1 ? "s" : ""} attached to the box, shown with the user's latest message.`;
 }
