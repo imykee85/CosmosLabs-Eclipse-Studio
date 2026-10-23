@@ -89,6 +89,69 @@ function archive(agent: string) {
 
 let busyAgents = new Set<string>();
 
+// Replies being written on the server. Kept in this browser so that a reply started on one page is collected on the next, even after the browser was closed.
+const RUNS = "eclipse-agent-runs";
+type PendingRun = { agent: string; runId: string; page: string };
+function readRuns(): PendingRun[] {
+  try { const raw = JSON.parse(localStorage.getItem(RUNS) ?? "[]"); return Array.isArray(raw) ? raw.filter((r) => r && typeof r.runId === "string" && typeof r.agent === "string") : []; } catch { return []; }
+}
+function writeRuns(list: PendingRun[]) {
+  try { localStorage.setItem(RUNS, JSON.stringify(list)); } catch {}
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: "" }));
+}
+export function hasPendingRun(agent: string): boolean {
+  return readRuns().some((r) => r.agent === agent);
+}
+const following = new Set<string>();
+function addTo(agent: string, m: Omit<Msg, "id">) { write(agent, [...read(agent), { ...m, id: uid() } as Msg]); }
+
+// Shows a finished reply in the chat it belongs to, and applies the box settings it chose when the same screen is still open.
+function showReply(agent: string, page: string, status: number, body: Record<string, unknown>) {
+  if (status !== 200) { addTo(agent, { role: "agent", text: typeof body.error === "string" ? body.error : "The agent couldn't answer. Please try again.", error: true }); return; }
+  const data = body as { text?: string; actions?: Omit<Act, "id">[]; frames?: Frame[]; controls?: ControlPatch };
+  const actions: Act[] = Array.isArray(data.actions) ? data.actions.map((a) => ({ ...a, id: uid() })) : [];
+  const frames: Frame[] = Array.isArray(data.frames) ? data.frames.filter((f) => f && typeof f.id === "string").slice(0, 8).map((f) => ({ id: f.id, label: String(f.label ?? "Frame"), sec: Number(f.sec) || 0 })) : [];
+  addTo(agent, { role: "agent", text: String(data.text ?? ""), actions, ...(frames.length ? { frames } : {}) });
+  // Settings Atlas chose for the box are applied at once (free) when that screen is still open; otherwise they are said plainly.
+  if (data.controls && typeof data.controls === "object" && Object.keys(data.controls).length) {
+    if (host?.controls && host.page === page) {
+      const { set, refused } = host.controls.apply(data.controls);
+      if (set.length) addTo(agent, { role: "agent", text: `Set in your prompt box: ${set.join(" · ")}.`, note: true });
+      if (refused.length) addTo(agent, { role: "agent", text: `I couldn't set: ${refused.join(" ")}`, note: true, error: true });
+    } else addTo(agent, { role: "agent", text: "Open that studio to have me set its controls.", note: true });
+  }
+}
+
+// Waits for a reply started on the server and shows it when it is ready. Safe to call again for a reply already being followed.
+async function followRun(agent: string, runId: string, page: string) {
+  if (following.has(runId)) return;
+  following.add(runId);
+  if (!readRuns().some((r) => r.runId === runId)) writeRuns([...readRuns(), { agent, runId, page }]);
+  try {
+    for (let i = 0; i < 400; i++) {
+      await new Promise((r) => setTimeout(r, i < 10 ? 1500 : 3000));
+      let d: { status?: string; result?: { status: number; body: Record<string, unknown> } };
+      try {
+        const res = await fetch(`/api/agent/runs/${runId}`);
+        if (res.status === 404) break; // gone (or not yours): nothing more to wait for
+        d = await res.json();
+      } catch { continue; }
+      if (d.status === "pending" || !d.result) continue;
+      showReply(agent, page, d.result.status, d.result.body);
+      await fetch(`/api/agent/runs/${runId}`, { method: "DELETE" }).catch(() => {});
+      break;
+    }
+  } finally {
+    following.delete(runId);
+    writeRuns(readRuns().filter((r) => r.runId !== runId));
+    refreshCredits();
+  }
+}
+// Replies still being written when the app opens again are picked up here.
+if (typeof window !== "undefined") {
+  for (const r of readRuns()) void followRun(r.agent, r.runId, r.page);
+}
+
 export function useAgentChat(agent: string | null) {
   const [, tick] = useState(0);
   useEffect(() => {
@@ -97,7 +160,7 @@ export function useAgentChat(agent: string | null) {
     return () => window.removeEventListener(EVENT, on);
   }, []);
   const messages = agent ? read(agent) : [];
-  const busy = !!agent && busyAgents.has(agent);
+  const busy = !!agent && (busyAgents.has(agent) || hasPendingRun(agent));
   const setBusy = (v: boolean) => { if (!agent) return; v ? busyAgents.add(agent) : busyAgents.delete(agent); window.dispatchEvent(new CustomEvent(EVENT, { detail: agent })); };
 
   const add = useCallback((m: Omit<Msg, "id">) => { if (agent) write(agent, [...read(agent), { ...m, id: uid() }]); }, [agent]);
@@ -118,7 +181,8 @@ export function useAgentChat(agent: string | null) {
     await ask(atts);
   }, [agent, add]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Asks the agent about the chat as it stands now (its last message is the person's).
+  // Asks the agent about the chat as it stands now (its last message is the person's). The reply is written on the server, so it
+  // keeps going if the person leaves the page; the browser collects it (followRun) and shows it when it is ready.
   const ask = useCallback(async (atts: Attach[]) => {
     if (!agent) return;
     setBusy(true);
@@ -128,18 +192,11 @@ export function useAgentChat(agent: string | null) {
       // What was added in the chat goes first, then what is attached to the prompt box.
       const pictures = [...atts.filter((a) => a.kind === "picture").map((a) => ({ type: "upload" as const, id: a.id, role: "added in the chat" })), ...(base.pictures ?? [])];
       const videos = [...atts.filter((a) => a.kind === "video").map((a) => ({ id: a.id, label: a.name, role: "added in the chat" })), ...(base.videos ?? [])];
-      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, messages: history, context: { page: host?.page ?? "studio", ...base, pictures, videos, options: host?.controls?.options() } }) });
+      const page = host?.page ?? "studio";
+      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, context: { page, ...base, pictures, videos, options: host?.controls?.options() } }) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
-      const actions: Act[] = Array.isArray(data.actions) ? data.actions.map((a: Omit<Act, "id">) => ({ ...a, id: uid() })) : [];
-      const frames: Frame[] = Array.isArray(data.frames) ? data.frames.filter((f: Frame) => f && typeof f.id === "string").slice(0, 8).map((f: Frame) => ({ id: f.id, label: String(f.label ?? "Frame"), sec: Number(f.sec) || 0 })) : [];
-      add({ role: "agent", text: String(data.text ?? ""), actions, ...(frames.length ? { frames } : {}) });
-      // Settings Atlas chose for the box are applied at once (free); what could not be set is said plainly.
-      if (host?.controls && data.controls && typeof data.controls === "object" && Object.keys(data.controls).length) {
-        const { set, refused } = host.controls.apply(data.controls as ControlPatch);
-        if (set.length) add({ role: "agent", text: `Set in your prompt box: ${set.join(" · ")}.`, note: true });
-        if (refused.length) add({ role: "agent", text: `I couldn't set: ${refused.join(" ")}`, note: true, error: true });
-      }
+      if (!res.ok || typeof data.runId !== "string") { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
+      await followRun(agent, data.runId, page);
     } catch {
       add({ role: "agent", text: "I couldn't reach the server. Check your connection and try again.", error: true });
     } finally { setBusy(false); refreshCredits(); }
