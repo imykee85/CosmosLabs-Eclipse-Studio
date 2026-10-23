@@ -1,7 +1,7 @@
 // What the browser keeps for the person who was signed in (chats, drafts, saved templates, last balance) is cleared at sign-out, so the next person
 // to sign in on the same browser does not see it. Interface choices (theme, views) and canvases (they sync to the account) are left alone.
 const PREFIXES = ["eclipse-agent-chat-", "eclipse-agent-history-", "eclipse-prompts-", "eclipse-draft-", "eclipse-treatment-"];
-const KEYS = ["eclipse-portfolio", "eclipse-canvas-templates", "eclipse-credits", "eclipse-custom-agents", "eclipse-agent", "eclipse-workspace"];
+const KEYS = ["eclipse-portfolio", "eclipse-canvas-templates", "eclipse-credits", "eclipse-custom-agents", "eclipse-agent", "eclipse-agent-runs", "eclipse-workspace"];
 
 export function clearAccountData(): void {
   try {

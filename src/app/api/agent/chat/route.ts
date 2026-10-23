@@ -2,6 +2,7 @@ import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE } from "@/lib/brand";
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
@@ -15,9 +16,14 @@ import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { workspaceSession } from "@/lib/workspace";
 import { gateFeature } from "@/lib/access";
+import type { Prisma } from "@prisma/client";
 
 // 120 s: Atlas can watch a video (the file is copied and frames are read from it) before it answers.
 export const maxDuration = 120;
+
+// The answer is produced by a job on the server: the browser starts it (`background`) and collects the result from /api/agent/runs, so leaving the page
+// or closing the browser does not stop it. A plain request still gets its answer in the same response.
+type Out = { status: number; json: unknown };
 const MAX_ROUNDS = 5;
 
 // One turn of the conversation with a studio agent. The agent answers in words and may PROPOSE actions (generate, use a prompt, ask for approval); the browser shows them as
@@ -80,65 +86,78 @@ export async function POST(req: Request) {
   ].filter(Boolean).join("\n");
   const canSet = Array.isArray(c.options) && c.options.length > 0;
 
-  // The pictures attached to the box are shown to the agent (up to 4, ids only, owner-checked, read from our own storage).
-  const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
+  const work = async (): Promise<Out> => {
+    // The pictures attached to the box are shown to the agent (up to 4, ids only, owner-checked, read from our own storage).
+    const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
 
-  const broke = await chatRefusal(userId);
-  if (broke) return NextResponse.json(broke, { status: 402 });
-  // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
-  const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
-  if (!(await claimUsage(personId ?? userId, "agent", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` }, { status: 429 });
+    const broke = await chatRefusal(userId);
+    if (broke) return { status: 402, json: broke };
+    // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
+    const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
+    if (!(await claimUsage(personId ?? userId, "agent", limit, 24 * 3600 * 1000))) return { status: 429, json: { error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` } };
 
-  // Paid in Eclipse credits from what the reply really used (every model call, video frames included), charged once when it ends.
-  const meter = new ChatMeter();
-  try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
-    const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
-    const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
-    // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
-    const system = cachedSystem(`${persona.system}${director}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
-    const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
-    const tools = isAtlas ? [...base, ...VIDEO_TOOLS] : base;
-    // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
-    const convo: Anthropic.MessageParam[] = messages;
-    const earlier: Action[] = [];
-    let controls: Controls = {};
-    const frames: Frame[] = [];
-    const state = { captures: 0 };
-    let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
-    meter.add(res.model, res.usage);
-    for (let round = 1; round < MAX_ROUNDS && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
-      const results: Anthropic.ToolResultBlockParam[] = [];
-      for (const b of res.content) {
-        if (b.type !== "tool_use") continue;
-        if (isServerTool(b.name)) {
-          const r = await runVideoTool(userId, b.name, (b.input ?? {}) as Record<string, unknown>, state);
-          if (r.frames) frames.push(...r.frames);
-          results.push({ type: "tool_result", tool_use_id: b.id, content: r.content, is_error: r.isError });
-        } else results.push({ type: "tool_result", tool_use_id: b.id, content: "Shown to the user as a button." });
-      }
-      const so = buildReply(res.content, res.stop_reason);
-      earlier.push(...so.actions);
-      controls = { ...controls, ...so.controls };
-      convo.push({ role: "assistant", content: res.content }, { role: "user", content: results });
-      res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
+    // Paid in Eclipse credits from what the reply really used (every model call, video frames included), charged once when it ends.
+    const meter = new ChatMeter();
+    try {
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
+      const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
+      // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
+      const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
+      // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
+      const system = cachedSystem(`${persona.system}${director}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
+      const tools = isAtlas ? [...base, ...VIDEO_TOOLS] : base;
+      // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
+      const convo: Anthropic.MessageParam[] = messages;
+      const earlier: Action[] = [];
+      let controls: Controls = {};
+      const frames: Frame[] = [];
+      const state = { captures: 0 };
+      let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
       meter.add(res.model, res.usage);
+      for (let round = 1; round < MAX_ROUNDS && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
+        const results: Anthropic.ToolResultBlockParam[] = [];
+        for (const b of res.content) {
+          if (b.type !== "tool_use") continue;
+          if (isServerTool(b.name)) {
+            const r = await runVideoTool(userId, b.name, (b.input ?? {}) as Record<string, unknown>, state);
+            if (r.frames) frames.push(...r.frames);
+            results.push({ type: "tool_result", tool_use_id: b.id, content: r.content, is_error: r.isError });
+          } else results.push({ type: "tool_result", tool_use_id: b.id, content: "Shown to the user as a button." });
+        }
+        const so = buildReply(res.content, res.stop_reason);
+        earlier.push(...so.actions);
+        controls = { ...controls, ...so.controls };
+        convo.push({ role: "assistant", content: res.content }, { role: "user", content: results });
+        res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
+        meter.add(res.model, res.usage);
+      }
+      const final = buildReply(res.content, res.stop_reason);
+      const actions: Action[] = [...earlier, ...final.actions];
+      const text = final.text;
+      controls = { ...controls, ...final.controls };
+      return { status: 200, json: { text, actions, controls, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
+    } catch (err) {
+      console.error("agent chat failed", err);
+      const msg = err instanceof Error ? err.message : "";
+      const why = /credit balance/i.test(msg) ? "The agent is unavailable right now. Please try again later."
+        : err instanceof Anthropic.RateLimitError ? "The agent is busy right now. Try again in a minute."
+        : err instanceof Anthropic.AuthenticationError ? "The agent is unavailable right now. Please try again later."
+        : "The agent couldn't answer. Please try again.";
+      return { status: 502, json: { error: why } };
+    } finally {
+      await chargeChat(userId, meter, isAtlas ? "Atlas message" : "Agent message");
     }
-    const final = buildReply(res.content, res.stop_reason);
-    const actions: Action[] = [...earlier, ...final.actions];
-    const text = final.text;
-    controls = { ...controls, ...final.controls };
-    return NextResponse.json({ text, actions, controls, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) });
-  } catch (err) {
-    console.error("agent chat failed", err);
-    const msg = err instanceof Error ? err.message : "";
-    const why = /credit balance/i.test(msg) ? "The agent is unavailable right now. Please try again later."
-      : err instanceof Anthropic.RateLimitError ? "The agent is busy right now. Try again in a minute."
-      : err instanceof Anthropic.AuthenticationError ? "The agent is unavailable right now. Please try again later."
-      : "The agent couldn't answer. Please try again.";
-    return NextResponse.json({ error: why }, { status: 502 });
-  } finally {
-    await chargeChat(userId, meter, isAtlas ? "Atlas message" : "Agent message");
+  };
+
+  if (body?.background === true) {
+    const run = await db.agentRun.create({ data: { userId, status: "pending" }, select: { id: true } });
+    waitUntil(work().then(
+      (out) => db.agentRun.update({ where: { id: run.id }, data: { status: out.status === 200 ? "done" : "failed", result: { status: out.status, body: out.json } as Prisma.InputJsonValue } }),
+      () => db.agentRun.update({ where: { id: run.id }, data: { status: "failed", result: { status: 502, body: { error: "The agent couldn't answer. Please try again." } } as Prisma.InputJsonValue } }),
+    ).catch((err) => console.error("agent run could not be saved", run.id, err)));
+    return NextResponse.json({ runId: run.id }, { status: 202 });
   }
+  const out = await work();
+  return NextResponse.json(out.json, { status: out.status });
 }
