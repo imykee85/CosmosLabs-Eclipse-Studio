@@ -227,7 +227,11 @@ export default function CreateStudio() {
         `Agent: ${agent ?? "none"}${agent ? (agentOn ? " (on)" : " (off)") : ""}`,
       ].filter(Boolean),
       message: edge?.text,
-      pictures: refs.map((r, i) => ({ type: r.type, id: r.id, role: `ingredient ${i + 1}` })),
+      // The picture shown in the preview is seen too, after the ingredients (the box takes four pictures at most).
+      pictures: [
+        ...refs.map((r, i) => ({ type: r.type, id: r.id, role: `ingredient ${i + 1}` })),
+        ...(latestDone ? [{ type: "render" as const, id: latestDone.id, role: "shown in the preview" }] : []),
+      ],
     }),
     setPrompt,
     generate: (o) => generate(o),
