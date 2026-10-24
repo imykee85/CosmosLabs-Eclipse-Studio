@@ -239,7 +239,6 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           <div className="aw-head"><AgentIcon size={16} /><b>{name}</b>
             <button type="button" aria-label="Chat history" title="Chat history" className={showPast ? "is-on" : ""} onClick={() => setShowPast((v) => !v)}><History size={15} /></button>
             <button type="button" aria-label="New chat" title="New chat" disabled={chat.busy} onClick={() => { chat.newChat(); setShowPast(false); }}><SquarePen size={14} /></button>
-            {chat.messages.length > 0 && <button type="button" aria-label="Clear the chat" title="Clear the chat" onClick={chat.clear}><Trash2 size={14} /></button>}
             <button type="button" aria-label={big ? "Make smaller" : "Expand"} title={big ? "Make smaller" : "Expand"} onClick={() => setBig((b) => !b)}>{big ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
             <button type="button" aria-label="Close" onClick={() => setOpen(false)}><X size={15} /></button></div>
           {showPast ? (

@@ -316,3 +316,9 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 
 /* The short price on a model row ("from 4 credits"). */
 .mp-price { flex: none; color: var(--a-muted); font-size: 12px; white-space: nowrap; }
+
+/* The Atlas text box fills the field, like any text box (the growing wrapper is part of the field). */
+.aw-input .pe-wrap { flex: 1; min-width: 0; display: flex; }
+.aw-input .pe-wrap textarea { width: 100%; }
+/* Send buttons match the Treatment send button (44 px, red, round). */
+.aw-input button:not(.aw-clip) { width: 44px; height: 44px; min-width: 44px; }

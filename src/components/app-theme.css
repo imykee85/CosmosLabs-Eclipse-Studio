@@ -58,3 +58,6 @@ html[data-app-theme="light"] .cr-box, html[data-app-theme="light"] .cn-box, html
 .ws-team { max-width: 150px; min-width: 0; }
 .ws-team .ws-team-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ws-team { max-width: 104px; } }
+
+/* One credit pill look on every page (the dashboard's). */
+.credit-pill { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 14px; font-weight: 500; white-space: nowrap; }
