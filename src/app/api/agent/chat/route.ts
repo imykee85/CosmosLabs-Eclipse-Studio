@@ -81,7 +81,7 @@ export async function POST(req: Request) {
   const work = async (): Promise<Out> => {
     // The newest pictures of earlier messages are read again from our storage, so the agent can compare them with what it is shown now.
     const messages = buildMessages(turns, await loadHistoryImages(userId, historyPictures(turns), loadPromptImages));
-    // The pictures attached to the box are shown to the agent (up to 4, ids only, owner-checked, read from our own storage).
+    // The pictures attached to the box are shown to the agent (up to 8, ids only, owner-checked, read from our own storage).
     const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
 
     const broke = await chatRefusal(userId);
@@ -126,9 +126,17 @@ export async function POST(req: Request) {
         res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
         meter.add(res.model, res.usage);
       }
+      // A long answer that ran into the length limit is finished in more parts (up to four more), so it is never cut off.
+      const pieces: string[] = [];
+      for (let part = 0; part < 4 && res.stop_reason === "max_tokens"; part++) {
+        pieces.push(res.content.map((b) => (b.type === "text" ? b.text : "")).join(""));
+        convo.push({ role: "assistant", content: res.content }, { role: "user", content: "Continue exactly where you stopped." });
+        res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
+        meter.add(res.model, res.usage);
+      }
       const final = buildReply(res.content, res.stop_reason);
       const actions: Action[] = [...earlier, ...final.actions];
-      const text = final.text;
+      const text = pieces.join("") + final.text;
       controls = { ...controls, ...final.controls };
       return { status: 200, json: { text, actions, controls, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
     } catch (err) {

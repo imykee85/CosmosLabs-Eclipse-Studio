@@ -7,7 +7,7 @@ import { getObjectBytes, openImage, storageEnabled } from "@/lib/storage";
 // model as images. At most 4 pictures of 3 MB each, PNG, JPEG or WebP.
 export type ImageRef = { type: "upload" | "render"; id: string };
 export type PromptImage = { mediaType: "image/png" | "image/jpeg" | "image/webp"; data: string; label: string };
-const MAX_PICTURES = 4;
+const MAX_PICTURES = 8;
 const MAX_BYTES = 3_000_000;
 
 export function parseImageRefs(input: unknown): ImageRef[] | null {

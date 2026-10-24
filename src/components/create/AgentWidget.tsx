@@ -188,7 +188,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   }
 
   async function addFiles(files: FileList | null) {
-    const list = Array.from(files ?? []).slice(0, 4);
+    const list = Array.from(files ?? []).slice(0, 8);
     if (fileIn.current) fileIn.current.value = "";
     if (!list.length) return;
     setAttErr("");
@@ -320,7 +320,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           )}
           <form className="aw-input" onSubmit={submit}>
             <input ref={fileIn} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,.mov,.mp4,.webm,.m4v" onChange={(e) => void addFiles(e.target.files)} />
-            <button type="button" className="aw-clip" aria-label="Add a picture or video" title="Add a picture or video" disabled={uploading !== null || chat.busy || atts.length >= 4} onClick={() => fileIn.current?.click()}><Paperclip size={15} /></button>
+            <button type="button" className="aw-clip" aria-label="Add a picture or video" title="Add a picture or video" disabled={uploading !== null || chat.busy || atts.length >= 8} onClick={() => fileIn.current?.click()}><Paperclip size={15} /></button>
             <GrowArea noExpand value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
             <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy || uploading !== null}><ArrowUp size={16} /></button>
           </form>
