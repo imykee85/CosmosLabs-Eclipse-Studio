@@ -3,15 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, MoreVertical, Plus } from "lucide-react";
-import SoonTag from "@/components/SoonTag";
 import "./home-feed.css";
 
 // The lower half of the dashboard, laid out as a long home page: collections, video, looks, tools, questions.
-// Cards with no real content behind them stay EMPTY placeholders on purpose (no pictures, no invented counts) and their
-// sections carry a Soon tag. Working: "Discover all videos" (/motion), "Discover all tools" (/tools), Generate an image and Generate
+// Cards with no real content behind them stay EMPTY placeholders on purpose (no pictures, no invented counts). Working: "Discover all videos" (/motion), "Discover all tools" (/tools), Generate an image and Generate
 // a video (Image or Video Studio inside the latest project through `onGo`, or the New Project popup first).
 const FAQ: [string, string][] = [
-  ["What can I create?", "Images, videos, voices, sound effects and music. Anything tagged Soon is not ready yet."],
+  ["What can I create?", "Images, videos, voices, sound effects and music."],
   ["Where do my creations go?", "Everything you make is saved to your private Library; images and videos also go to the Gallery of the project you made them in."],
   ["What is Core?", "Your creative computer: a chat that can make images, follow skills, remember your style and send finished work to apps such as Telegram, Slack, Discord, email, Notion or Linear."],
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
@@ -50,12 +48,12 @@ function LoopVideo({ src, webm, poster, className = "" }: { src: string; webm: s
 
 const Empty = ({ className = "" }: { className?: string }) => <span className={`hf-empty ${className}`} />;
 
-function Head({ title, sub, button, soon = true, onButton }: { title: string; sub?: string; button?: string; soon?: boolean; onButton?: () => void }) {
+function Head({ title, sub, button, onButton }: { title: string; sub?: string; button?: string; onButton?: () => void }) {
   return (
     <>
-      <h2>{title}{soon && !button && <SoonTag />}</h2>
+      <h2>{title}</h2>
       {sub && <p className="hf-sub">{sub}</p>}
-      {button && <button type="button" className="hf-pill" onClick={onButton}>{button}{soon && <SoonTag />}</button>}
+      {button && <button type="button" className="hf-pill" onClick={onButton}>{button}</button>}
     </>
   );
 }
@@ -65,7 +63,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
   return (
     <section className="hf" aria-label="Home">
       <div className="hf-sec">
-        <button type="button" className="hf-pill">Explore collections <SoonTag /></button>
+        <button type="button" className="hf-pill">Explore collections</button>
         <ul className="hf-row">
           {["Art Direction", "Portraits", "Interiors", "Product shots", "Beauty shots"].map((n) => (
             <li key={n} className="hf-col">
@@ -84,7 +82,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       </div>
 
       <div className="hf-sec">
-        <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" soon={false} onButton={() => onGo("/motion")} />
+        <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" onButton={() => onGo("/motion")} />
         <ul className="hf-row hf-row-2">
           <li className="hf-wide">
             <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
@@ -113,7 +111,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
       </div>
 
       <div className="hf-sec">
-        <Head title="Tools to skyrocket your creative freedom" button="Discover all tools" soon={false} onButton={() => onGo("/tools")} />
+        <Head title="Tools to skyrocket your creative freedom" button="Discover all tools" onButton={() => onGo("/tools")} />
         <ul className="hf-row hf-row-2">
           <li className="hf-tool">
             <img className="hf-fill hf-tool-pic" src="/dashboard/tools-image.jpg" alt="" loading="lazy" draggable={false} />
