@@ -1,3 +1,4 @@
+import { documentBlocks, documentText, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE } from "@/lib/brand";
@@ -75,8 +76,8 @@ export async function POST(req: Request) {
   if (!refs) return NextResponse.json({ error: "Those pictures could not be read." }, { status: 400 });
   const roles = rawPics.map((p: { role?: unknown }) => (typeof p?.role === "string" ? p.role.slice(0, 20) : "Reference"));
   const links = (Array.isArray(body?.links) ? body.links : []).filter((l: unknown): l is string => typeof l === "string" && l.length < 2000).slice(0, 2);
-  const pdf = body?.pdf && typeof body.pdf.data === "string" && typeof body.pdf.name === "string" ? { name: String(body.pdf.name).slice(0, 120), data: String(body.pdf.data) } : null;
-  if (pdf && (pdf.data.length > 4_000_000 || !/^[A-Za-z0-9+/=]+$/.test(pdf.data) || !Buffer.from(pdf.data.slice(0, 8), "base64").toString("latin1").startsWith("%PDF"))) return NextResponse.json({ error: "That PDF could not be read (PDFs up to 3 MB)." }, { status: 400 });
+  const docs = parseDocuments(body?.documents);
+  for (const d of docs) if (d.pdf !== undefined && (!/^[A-Za-z0-9+/=]+$/.test(d.pdf) || !Buffer.from(d.pdf.slice(0, 8), "base64").toString("latin1").startsWith("%PDF"))) return NextResponse.json({ error: "That PDF could not be read (PDFs up to 3 MB)." }, { status: 400 });
 
   const broke = await chatRefusal(userId);
   if (broke) return NextResponse.json(broke, { status: 402 });
@@ -91,12 +92,12 @@ export async function POST(req: Request) {
   }
   const pictures = refs.length ? await loadPromptImages(userId, refs) : { ok: true as const, images: [] };
   if (!pictures.ok) return NextResponse.json({ error: pictures.error }, { status: 400 });
-  if (linkText || pictures.images.length || pdf) {
+  if (linkText || pictures.images.length || docs.length) {
     const last = messages[messages.length - 1];
     const blocks: Anthropic.ContentBlockParam[] = [];
-    if (pdf) blocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf.data }, title: pdf.name });
+    blocks.push(...documentBlocks(docs));
     pictures.images.forEach((img, i) => { blocks.push({ type: "text", text: `Picture ${i + 1} (${roles[i] ?? "Reference"}): ${img.label}` }); blocks.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.data } }); });
-    blocks.push({ type: "text", text: `${last.content as string}${linkText}` });
+    blocks.push({ type: "text", text: `${last.content as string}${documentText(docs)}${linkText}` });
     last.content = blocks;
   }
   const meter = new ChatMeter();

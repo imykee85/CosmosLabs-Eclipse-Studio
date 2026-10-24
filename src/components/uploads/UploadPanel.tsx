@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { attachKind } from "@/lib/attach-file";
 import { Plus, Trash2, X } from "lucide-react";
 import { readCurrentProject } from "@/lib/projects";
 import { deleteUpload, uploadPicture, useUploads, type UploadRow } from "@/lib/use-uploads";
@@ -94,7 +95,7 @@ export function AddDialog({ kinds, initial, onClose, onDone }: { kinds: UploadKi
   async function pick(f: File | undefined) {
     setErr(null);
     if (!f) return;
-    if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setErr("Only PNG, JPEG and WebP pictures can be uploaded."); return; }
+    if (attachKind(f) !== "picture") { setErr("Pictures are added here. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setErr("That picture is larger than 50 MB. Please use a smaller one."); return; }
     const fitted = await shrinkToFit(f); // large pictures are sent straight to storage by uploadPicture
     if (!fitted) { setErr("Could not make that picture small enough. Please try another."); return; }
@@ -126,7 +127,7 @@ export function AddDialog({ kinds, initial, onClose, onDone }: { kinds: UploadKi
             <img src={preview} alt="Chosen picture" />
           ) : <span>Choose a picture<small>PNG, JPEG or WebP. Large photos are made smaller automatically.</small></span>}
         </button>
-        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
+        <input ref={input} type="file" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
         <label className="up-field">
           <span>Name</span>
           <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder={`e.g. ${kind === "product" ? "Blue bottle" : kind === "character" ? "Maya" : kind === "scene" ? "Rooftop at dusk" : "Front view"}`} />

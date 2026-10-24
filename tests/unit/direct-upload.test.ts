@@ -8,8 +8,9 @@ test("upload plans follow the limits: pictures 50 MB, videos 500 MB", () => {
   assert.ok(!planUpload({ fileKind: "image", contentType: "image/jpeg", size: 50 * MB + 1 }).ok);
   assert.ok(planUpload({ fileKind: "video", contentType: "video/quicktime", size: 500 * MB }).ok);
   assert.ok(!planUpload({ fileKind: "video", contentType: "video/mp4", size: 500 * MB + 1 }).ok);
-  assert.ok(!planUpload({ fileKind: "video", contentType: "video/x-matroska", size: MB }).ok);
-  assert.ok(!planUpload({ fileKind: "image", contentType: "image/gif", size: MB }).ok);
+  assert.ok(planUpload({ fileKind: "video", contentType: "video/x-matroska", size: MB }).ok);
+  assert.ok(planUpload({ fileKind: "image", contentType: "image/gif", size: MB }).ok); // any picture format is accepted and converted when finished
+  assert.ok(!planUpload({ fileKind: "document" as "image", contentType: "application/pdf", size: MB }).ok);
   assert.ok(!planUpload({ fileKind: "image", contentType: "image/png", size: 0 }).ok);
 });
 

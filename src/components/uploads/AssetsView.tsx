@@ -5,6 +5,7 @@ import { Music, Plus, Trash2, X } from "lucide-react";
 import { readCurrentProject } from "@/lib/projects";
 import { deleteUpload, uploadPicture, uploadVideo, useUploads, type UploadRow } from "@/lib/use-uploads";
 import { uploadAudio, AUDIO_LIMIT_MB, VIDEO_LIMIT_MB } from "@/lib/direct-upload-client";
+import { attachKind } from "@/lib/attach-file";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import type { Render } from "@/lib/use-renders";
@@ -22,7 +23,6 @@ const secs = (s: number | null | undefined) => (s == null ? null : s >= 60 ? `${
 const PICTURE = ["image/png", "image/jpeg", "image/webp"];
 const VIDEO = ["video/mp4", "video/quicktime", "video/webm"];
 const isAudio = (f: File) => f.type.startsWith("audio/") || /\.(mp3|wav|m4a|aac|ogg)$/i.test(f.name);
-const ACCEPT = [...PICTURE, ...VIDEO, "audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/ogg", ".mp3", ".wav", ".m4a", ".ogg"].join(",");
 
 export default function AssetsView() {
   const [filter, setFilter] = useState<Filter>("all");
@@ -146,18 +146,18 @@ function AddMediaDialog({ onClose, onDone }: { onClose: () => void; onDone: (k: 
     setErr(null);
     if (!f) return;
     let k: MediaKind | null = null;
-    if (PICTURE.includes(f.type)) {
+    if (attachKind(f) === "picture") {
       if (f.size > PICK_LIMIT_BYTES) { setErr("That picture is larger than 50 MB. Please use a smaller one."); return; }
       const fitted = await shrinkToFit(f);
       if (!fitted) { setErr("Could not make that picture small enough. Please try another."); return; }
       f = fitted; k = "picture";
-    } else if (VIDEO.includes(f.type)) {
+    } else if (attachKind(f) === "video") {
       if (f.size > VIDEO_LIMIT_MB * 1048576) { setErr(`That video is larger than ${VIDEO_LIMIT_MB} MB.`); return; }
       k = "video";
     } else if (isAudio(f)) {
       if (f.size > AUDIO_LIMIT_MB * 1048576) { setErr(`That sound file is larger than ${AUDIO_LIMIT_MB} MB.`); return; }
       k = "audio";
-    } else { setErr("Use a picture (PNG, JPEG, WebP), a video (MP4, MOV, WebM) or a sound (MP3, WAV, M4A, OGG)."); return; }
+    } else { setErr("Assets holds pictures, videos and sounds. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
     setFile(f); setKind(k);
     if (!name.trim()) setName(f.name.replace(/\.[^.]+$/, "").slice(0, 80));
   }
@@ -187,7 +187,7 @@ function AddMediaDialog({ onClose, onDone }: { onClose: () => void; onDone: (k: 
             : preview && kind === "audio" ? <span><Music size={30} strokeWidth={1.5} /><small>{file?.name}</small></span>
             : <span>Choose a file<small>Pictures (PNG, JPEG, WebP), videos (MP4, MOV, WebM) or sounds (MP3, WAV, M4A, OGG).</small></span>}
         </button>
-        <input ref={input} type="file" accept={ACCEPT} hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
+        <input ref={input} type="file" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
         <label className="up-field">
           <span>Name</span>
           <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="e.g. Front view" />

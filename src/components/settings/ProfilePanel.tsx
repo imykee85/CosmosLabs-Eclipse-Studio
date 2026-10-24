@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import { useDemoProfile } from "@/components/account";
 import { clerkEnabled } from "@/lib/clerk-enabled";
@@ -76,10 +76,10 @@ function ProfileForm({ name, image, saveName, saveAvatar, deleteAccount, leave }
         <div className="st-avatar-row">
           <Avatar name={value || name} image={image} className="st-avatar" />
           <div>
-            <button type="button" className="st-ghost" disabled={busy} onClick={() => file.current?.click()}><Upload size={15} /> Change avatar</button>
+            <button type="button" className="st-ghost" disabled={busy} onClick={() => file.current?.click()}><Plus size={15} /> Change avatar</button>
             <p className="st-hint">PNG, JPEG or WebP · max 15 MB</p>
           </div>
-          <input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} aria-label="Upload avatar" />
+          <input ref={file} type="file" hidden onChange={onFile} aria-label="Upload avatar" />
         </div>
 
         <form onSubmit={submit}>
