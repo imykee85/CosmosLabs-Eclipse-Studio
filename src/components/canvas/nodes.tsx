@@ -270,7 +270,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     if (seedNum < seedSpec.min || seedNum > seedSpec.max) updateNodeData(id, { seed: "" });
   }, [model, seedSpec, seedNum, id, updateNodeData]);
 
-  const composed = useMemo(() => composePrompt(kind, data.prompt ?? "", inputs, pics, Math.min(model?.maxPrompt ?? 2000, 5000)), [kind, data.prompt, inputs, pics, model?.maxPrompt]);
+  const composed = useMemo(() => composePrompt(kind, data.prompt ?? "", inputs, pics, model?.maxPrompt ?? 2000), [kind, data.prompt, inputs, pics, model?.maxPrompt]);
   const needsRef = !!model?.requiresReference && pics.length === 0;
   const tooMany = !!model && pics.length > model.maxReferences;
   const pending = data.pending ?? [];
@@ -368,7 +368,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
             </div>
           )}
           {gens.length > 1 && <p className="cv-nhint">The ticked image is the Result the next node receives.</p>}
-          <GrowArea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)} placeholder={kind === "fullbody" ? "Describe the full-body look…" : kind === "sheet" ? "Describe the character (or plug in a Character node)…" : "Describe the shot you imagine…"} aria-label="Prompt"
+          <GrowArea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} maxLength={model?.maxPrompt ?? 2000} placeholder={kind === "fullbody" ? "Describe the full-body look…" : kind === "sheet" ? "Describe the character (or plug in a Character node)…" : "Describe the shot you imagine…"} aria-label="Prompt"
             onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
           <div className="cv-controls nodrag">

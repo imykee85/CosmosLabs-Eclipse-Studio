@@ -34,7 +34,6 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   const { userId } = input;
   const prompt = typeof input.prompt === "string" ? input.prompt.trim() : "";
   if (!prompt) return { ok: false, status: 400, error: "Prompt is required" };
-  if (prompt.length > 10000) return { ok: false, status: 400, error: "Prompt is too long" };
 
   const moderation = checkPrompt(prompt);
   if (!moderation.ok) { console.warn("prompt refused", moderation.category); return { ok: false, status: 422, error: moderation.reason }; }
