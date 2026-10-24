@@ -313,7 +313,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <Link href="/dashboard" className="ws-back"><ArrowLeft size={15} /> Dashboard</Link>
           {project && <span className="ws-project" title="Current project">{project}</span>}
           <div className="ws-topbar-right">
-            <CreditsPill className="ws-pill ws-pill-solid" />
+            <CreditsPill className="" />
             <ThemeToggle className="ws-icon-btn" />
             <NotificationsButton className="ws-icon-btn" />
           </div>
@@ -322,7 +322,7 @@ export default function WorkspaceShell({ children }: { children: React.ReactNode
           <button className="mb-icon" aria-label="Open menu" onClick={() => setDrawer(true)}><Menu size={22} /></button>
           <h1 className="mb-title">{TITLES[pathname] ?? (pathname.startsWith("/tools/") ? "Tools" : "Eclipse Studio")}</h1>
           <div className="mb-right">
-            <CreditsPill className="mb-pill" />
+            <CreditsPill className="" />
             <ThemeToggle className="mb-theme" />
             <UserMenu variant="avatar" />
           </div>

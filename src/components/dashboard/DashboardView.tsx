@@ -136,7 +136,7 @@ export default function DashboardView() {
       <header className="db-header">
         <div className="db-left"><span className="db-logo"><LogoMark size={48} /></span><h1 className="db-title">Dashboard</h1></div>
         <div className="db-header-right">
-          <CreditsPill className="db-pill db-pill-solid db-credits" />
+          <CreditsPill className="" />
           <ThemeToggle className="db-icon" />
           <NotificationsButton className="db-icon" />
           <UserMenu />
