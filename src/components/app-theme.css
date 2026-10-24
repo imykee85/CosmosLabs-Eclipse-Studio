@@ -60,7 +60,8 @@ html[data-app-theme="light"] .cr-box, html[data-app-theme="light"] .cn-box, html
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ws-team { max-width: 104px; } }
 
 /* One credit pill look on every page (the dashboard's). */
-.credit-pill { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 14px; font-weight: 500; white-space: nowrap; }
+.credit-pill { display: inline-flex; align-items: center; gap: 6px; height: 36px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font-size: 14px; font-weight: 500; white-space: nowrap; transition: border-color .18s; }
+.credit-pill:hover { border-color: var(--a-line4); }
 
 /* Every text box's send button is the Treatment one: 44 px, round, red, white arrow. */
 .tr-send, .cn-send, .pm-send, .aw-input button:not(.aw-clip) { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #c00707; color: #fff; cursor: pointer; }

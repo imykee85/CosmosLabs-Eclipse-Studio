@@ -28,7 +28,7 @@ export default function AccountShell({ children }: { children: React.ReactNode }
           <Link href={back} className="ws-back acct-back" aria-label="Back" title="Back"><ChevronLeft size={24} /></Link>
         </div>
         <div className="db-header-right">
-          <CreditsPill className="db-pill db-pill-solid" />
+          <CreditsPill className="" />
           <ThemeToggle className="db-icon" />
           <NotificationsButton className="db-icon" />
           <UserMenu />

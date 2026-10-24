@@ -58,7 +58,7 @@ export default function TutorialView({ back }: { back: { path: string; label: st
         <span className="db-logo"><LogoMark size={48} /></span>
         <div className="db-header-right">
           <Link href={back.path} className="db-pill"><BackIcon size={15} /> {back.label}</Link>
-          <CreditsPill className="db-pill db-pill-solid" />
+          <CreditsPill className="" />
           <ThemeToggle className="db-icon" />
           <NotificationsButton className="db-icon" />
           <UserMenu />

@@ -9,10 +9,9 @@ import { useCredits } from "@/lib/use-credits";
 import { fmtCredits, toCredits } from "@/lib/credit-units";
 import { WORKSPACE_KEY } from "@/components/WorkspaceWatcher";
 
-// Whole credits stay as they are (one decimal only when fractional); 1000 becomes 1k, 1250 becomes 1.2k (rounded down so the pill never overstates), 1,000,000 becomes 1M.
-function short(units: number): string {
-  const n = toCredits(units);
-  if (n < 1000) return fmtCredits(units);
+// Whole credits only; 1000 becomes 1k, 1250 becomes 1.2k (rounded down so the pill never overstates), 1,000,000 becomes 1M.
+function short(n: number): string {
+  if (n < 1000) return n.toLocaleString("en-US");
   const fmt = (v: number, unit: string) => `${(Math.floor(v * 10) / 10).toString()}${unit}`;
   if (n >= 1_000_000) return fmt(n / 1_000_000, "M");
   if (n >= 1000) return n >= 999_950 ? "999.9k" : fmt(n / 1000, "k");
@@ -24,7 +23,7 @@ function TeamChipInner({ className, text }: { className: string; text: boolean }
   const { organization, isLoaded } = useOrganization();
   if (!isLoaded || !organization) return null;
   return (
-    <Link href="/settings?tab=team" className={`${className} ws-team`} title={`Team workspace: ${organization.name}. Credits, projects and the Library are shared with the team.`}>
+    <Link href="/settings?tab=team" className={`${className} credit-pill ws-team`} title={`Team workspace: ${organization.name}. Credits, projects and the Library are shared with the team.`}>
       <Users size={text ? 15 : 14} /> <span className="ws-team-name">{text ? `Team: ${organization.name}` : organization.name}</span>
     </Link>
   );
@@ -38,7 +37,7 @@ export default function CreditsPill({ className, text = false }: { className: st
   const { credits } = useCredits();
   const [team, setTeam] = useState<string | null>(null);
   useEffect(() => { try { setTeam((JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "null") as { name?: string | null } | null)?.name ?? null); } catch {} }, []);
-  const n = credits ? short(Math.round(credits.balance)) : ""; // whole credits only: decimals are rounded off
+  const n = credits ? short(Math.round(toCredits(credits.balance))) : ""; // whole credits only: the balance is kept in tenths
   const full = credits ? `${fmtCredits(credits.balance)} credit${credits.balance === 10 ? "" : "s"}` : "Credits";
   const title = (credits && !credits.charging ? `${full} (not charged yet)` : full) + (team ? ` (team ${team})` : "") + (credits?.expiring ? `. ${fmtCredits(credits.expiring.amount)} credits expire on ${new Date(credits.expiring.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "");
   return (
