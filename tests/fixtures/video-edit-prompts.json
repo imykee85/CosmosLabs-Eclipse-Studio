@@ -1,0 +1,64 @@
+[
+ {
+  "preset": "product-swap",
+  "values": {
+   "object": "white paper coffee cup",
+   "product": "slim cream drinks can with a blue circle"
+  },
+  "who": "the man with dark curly hair",
+  "extra": "",
+  "expected": "Edit @video1. Keep absolutely everything exactly the same, frame for frame: the man with dark curly hair (face, body, every movement and expression), the camera movement, framing and lens, the set, the light and the timing. Change only the white paper coffee cup in the hand: it becomes the slim cream drinks can with a blue circle from @image1, held exactly the same way at the same size, printed and lit exactly as in @image1. Nothing else changes. No text, no letters, no logos, no watermarks.",
+  "images": 1
+ },
+ {
+  "preset": "outfit",
+  "values": {
+   "outfit": "a long camel wool overcoat, open, over a white t-shirt"
+  },
+  "who": "the man with dark curly hair",
+  "extra": "",
+  "expected": "Edit @video1. Keep absolutely everything exactly the same, frame for frame: the man with dark curly hair (face, body, every movement and expression), the camera movement, framing and lens, the set, the light and the timing. Change only the clothes to the outfit in @image1, which is a frame of this same shot: a long camel wool overcoat, open, over a white t-shirt. Same fit to the body, the fabric moving and creasing naturally with every movement. Nothing else changes. No text, no letters, no logos, no watermarks.",
+  "images": 1
+ },
+ {
+  "preset": "recast",
+  "values": {
+   "new_person": "a woman in her thirties with short auburn hair and freckles"
+  },
+  "who": "the man with dark curly hair",
+  "extra": "",
+  "expected": "Edit @video1. Keep exactly the same camera movement, framing, timing and every movement, gesture and expression of the man with dark curly hair, frame for frame. The person becomes the person in @image1, which is a frame of this same shot: a woman in her thirties with short auburn hair and freckles. Same movements, expressions and lip movements; the clothes, the set and the light stay exactly as in @video1. Nothing else changes. No text, no letters, no logos, no watermarks.",
+  "images": 1
+ },
+ {
+  "preset": "new-location",
+  "values": {
+   "location": "a snowy alpine village path at blue hour"
+  },
+  "who": "the man with dark curly hair",
+  "extra": "",
+  "expected": "Edit @video1. Keep exactly the same camera movement, framing, timing and every movement, gesture and expression of the man with dark curly hair, frame for frame. Move the whole scene to a snowy alpine village path at blue hour as in @image1, which is a frame of this same shot in the new place: new ground, walls, sky and background; same performer, same clothes, same movements and camera path, light motivated by the new place. Nothing else changes. No text, no letters, no logos, no watermarks.",
+  "images": 1
+ },
+ {
+  "preset": "anime",
+  "values": {
+   "place": "a rain-soaked neon street at night"
+  },
+  "who": "the man with dark curly hair",
+  "extra": "",
+  "expected": "Restyle @video1 completely into a hand-drawn 2D anime feature film: clean ink lines, flat cel shading with one shadow tone, painted backgrounds. Redraw every part of every frame in this style, the man with dark curly hair and the whole background alike; nothing may stay photographic: no photo texture, no lens look, no film grain. Keep exactly the same camera movement, framing, timing and every movement of the man with dark curly hair, frame for frame. The man with dark curly hair is a hand-drawn anime character with the same hair and clothes. The background (a rain-soaked neon street at night) is hand-painted anime background art with flat colour areas and painted clouds. It must look like a version of the shot made from scratch in this style, not a filter over the video. No text, no letters, no logos.",
+  "images": 0
+ },
+ {
+  "preset": "product-swap",
+  "values": {
+   "object": "white paper coffee cup",
+   "product": "slim cream drinks can"
+  },
+  "who": "the man with dark curly hair",
+  "extra": "Keep the cup out of frame until the last second",
+  "expected": "Edit @video1. Keep absolutely everything exactly the same, frame for frame: the man with dark curly hair (face, body, every movement and expression), the camera movement, framing and lens, the set, the light and the timing. Change only the white paper coffee cup in the hand: it becomes the slim cream drinks can from @image1, held exactly the same way at the same size, printed and lit exactly as in @image1. Keep the cup out of frame until the last second. Nothing else changes. No text, no letters, no logos, no watermarks.",
+  "images": 1
+ }
+]
