@@ -1,5 +1,6 @@
 "use client";
 
+import EditVideoPanel from "./EditVideoPanel";
 import GrowArea from "@/components/GrowArea";
 import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
@@ -50,6 +51,7 @@ export default function VideoStudio() {
   const pickerModel = videoModelById(modelId);
   // Motion transfer (the Motion chip) has its own engines, kept out of the model picker: Kling Motion Control (2.6 or 3.0, Standard or Pro) or Genjutsu.
   const [motion, setMotion] = useState<MotionMode | null>(null);
+  const [editOpen, setEditOpen] = useState(false); // Eclipse Edit panel (edit a video you made)
   const [mcEngine, setMcEngine] = useState<"kling3" | "kling26" | "genjutsu">("kling3");
   const [mcTier, setMcTier] = useState<"pro" | "std">("pro");
   const [mcOrient, setMcOrient] = useState<"video" | "image">("video");
@@ -412,6 +414,10 @@ export default function VideoStudio() {
       </section>
 
       <div className="cr-dock">
+        {editOpen && vrefs[0] && (
+          <EditVideoPanel sourceId={vrefs[0].id} sourceLabel={vrefs[0].label} pictureIds={refs.filter((r) => r.type === "upload").map((r) => r.id)}
+            onStarted={(id) => { setActiveId(id); setEditOpen(false); void reload(); }} onClose={() => setEditOpen(false)} />
+        )}
         <PromptEdge message={edge} />
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>
           <label htmlFor="vs-prompt" className="sr-only">Describe the clip you imagine</label>
@@ -519,6 +525,7 @@ export default function VideoStudio() {
                 </>
               )}
               <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax && !mc) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax && !mc ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose a picture (who or what appears) and the video whose movement should be copied" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""}${caps.refAudioMax ? ` and ${caps.refAudioMax} sounds` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length + vrefs.length + arefs.length + (mc && start ? 1 : 0) ? ` (${refs.length + vrefs.length + arefs.length + (mc && start ? 1 : 0)})` : ""}</button>
+              <button type="button" className={`cr-chip ${editOpen ? "is-on" : ""}`} aria-pressed={editOpen} disabled={!!motion || !vrefs.length} title={!vrefs.length ? "Add a video of yours to edit it" : motion ? "Turn Motion off to edit" : "Change what is in your video and keep its performance"} onClick={() => setEditOpen((v) => !v)}>Edit video</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Atlas"}</span></button>
