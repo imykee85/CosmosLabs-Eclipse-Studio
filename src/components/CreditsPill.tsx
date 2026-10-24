@@ -38,13 +38,13 @@ export default function CreditsPill({ className, text = false }: { className: st
   const { credits } = useCredits();
   const [team, setTeam] = useState<string | null>(null);
   useEffect(() => { try { setTeam((JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "null") as { name?: string | null } | null)?.name ?? null); } catch {} }, []);
-  const n = credits ? short(credits.balance) : "";
+  const n = credits ? short(Math.round(credits.balance)) : ""; // whole credits only: decimals are rounded off
   const full = credits ? `${fmtCredits(credits.balance)} credit${credits.balance === 10 ? "" : "s"}` : "Credits";
   const title = (credits && !credits.charging ? `${full} (not charged yet)` : full) + (team ? ` (team ${team})` : "") + (credits?.expiring ? `. ${fmtCredits(credits.expiring.amount)} credits expire on ${new Date(credits.expiring.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "");
   return (
     <>
       <TeamChip className={className} text={text} />
-      <Link href="/settings?tab=billing" className={className} title={title}>
+      <Link href="/settings?tab=billing" className={`${className} credit-pill`} title={title}>
         <Coins size={text ? 15 : 14} /> {n && (text ? `${n} credits` : n)}
       </Link>
     </>
