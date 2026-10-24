@@ -9,6 +9,7 @@ import { engineById } from "@/lib/prompt-engines";
 import { claimUsage } from "@/lib/usage";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
+import { clipBlocks } from "@/lib/agent-video";
 import { workspaceSession } from "@/lib/workspace";
 import { gateFeature } from "@/lib/access";
 
@@ -55,7 +56,18 @@ export async function POST(req: Request) {
   const pics = await loadPromptImages(userId, refs);
   if (!pics.ok) return NextResponse.json({ error: pics.error }, { status: 400 });
 
+  // A video the user attached is watched (frames, end to end) and read with the message.
+  const clipId = typeof body?.video?.id === "string" ? body.video.id : "";
+  let watched: Anthropic.ContentBlockParam[] = [];
+  if (clipId) {
+    const w = await clipBlocks(userId, clipId);
+    if (!w.ok) return NextResponse.json({ error: w.error }, { status: 400 });
+    watched = w.blocks;
+  }
   const messages: Anthropic.MessageParam[] = turns.map((t, i) => {
+    if (t.role === "user" && i === turns.length - 1 && watched.length) {
+      return { role: "user", content: [...watched, { type: "text" as const, text: `${t.text}\n\n(The video above is the one the user attached; its frames are in time order.)` }] };
+    }
     if (t.role === "user" && i === turns.length - 1 && pics.images.length) {
       const labels = pics.images.map((p, n) => `Image ${n + 1}: ${p.label}`).join("\n");
       return { role: "user", content: [...pics.images.map((p) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.mediaType, data: p.data } })), { type: "text" as const, text: `${t.text}\n\n(The user attached ${pics.images.length} reference image${pics.images.length === 1 ? "" : "s"}, in this order:\n${labels})` }] };

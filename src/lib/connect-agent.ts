@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { clipBlocks } from "@/lib/agent-video";
 import { db } from "@/lib/db";
 import { BRAND_RULE } from "@/lib/brand";
 import { loadPromptImages } from "@/lib/prompt-images";
@@ -86,7 +87,7 @@ const toParam = (r: { role: string; content: unknown }): Param => ({ role: r.rol
 
 /** One user turn: stores the message, runs the model and its tools until it answers, storing every step as it goes. */
 export async function runTurn(opts: {
-  userId: string; chatId: string | null; projectId: string | null; text: string; imageIds: string[]; model: string; emit: (e: AgentEvent) => void;
+  userId: string; chatId: string | null; projectId: string | null; text: string; imageIds: string[]; clipId?: string | null; model: string; emit: (e: AgentEvent) => void;
 }): Promise<void> {
   const { userId, projectId, emit } = opts;
   const started = Date.now();
@@ -118,7 +119,14 @@ export async function runTurn(opts: {
     }
   }
 
-  const content: Block[] = [...(await imageBlocks(userId, opts.imageIds))];
+  // A video attached to the message is watched like Atlas watches one: evenly spaced frames, labelled with their times.
+  const watched: Block[] = [];
+  if (opts.clipId) {
+    const w = await clipBlocks(userId, opts.clipId);
+    if (w.ok) watched.push(...(w.blocks as Block[]));
+    else watched.push({ type: "text", text: `The attached video could not be read: ${w.error}` });
+  }
+  const content: Block[] = [...watched, ...(await imageBlocks(userId, opts.imageIds))];
   content.push({ type: "text", text: `${rows.length === 0 ? await contextDigest(userId, projectId) : ""}${opts.text}` });
   await store("user", content);
   messages.push({ role: "user", content });

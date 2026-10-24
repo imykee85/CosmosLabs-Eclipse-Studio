@@ -62,3 +62,7 @@
 .pm-edit-acts .is-send { border-color: #c00707; background: #c00707; color: #fff; }
 .pm-edit-acts .is-send:disabled { opacity: .5; cursor: default; }
 .pm-tool.is-live { border-color: #c00707; background: #c00707; color: #fff; }
+
+/* An attached video: its name and a remove button. */
+.pm-clip { display: flex; align-items: center; gap: 6px; margin: 0; padding: 2px 4px; color: var(--a-muted); font-size: 12px; }
+.pm-clip button { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }

@@ -26,6 +26,7 @@ export async function POST(req: Request) {
   if (text.length > 8000) return NextResponse.json({ error: "That message is too long." }, { status: 400 });
   const chatId = typeof body?.chatId === "string" ? body.chatId : null;
   const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
+  const clipId = typeof body?.clip === "string" && /^[\w-]{1,64}$/.test(body.clip) ? body.clip : null; // a video attached to the message, watched end to end
   const imageIds: string[] = Array.isArray(body?.images) ? body.images.filter((x: unknown): x is string => typeof x === "string").slice(0, 3) : [];
 
   const broke = await chatRefusal(userId);
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       const emit = (e: AgentEvent) => { if (!open) return; try { controller.enqueue(enc.encode(JSON.stringify(e) + "\n")); } catch { open = false; } };
       try {
         // Keeps going (and saving) even if the browser disconnects, so a started render or sent message is never half-recorded.
-        await runTurn({ userId, chatId, projectId, text, imageIds, model: apiModelFor(body?.model), emit });
+        await runTurn({ userId, chatId, projectId, text, imageIds, clipId, model: apiModelFor(body?.model), emit });
       } catch (err) {
         console.error("connect chat failed", err);
         const why = err instanceof Anthropic.RateLimitError ? "The assistant is busy right now. Try again in a minute."
