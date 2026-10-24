@@ -34,7 +34,6 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   const { userId } = input;
   const prompt = typeof input.prompt === "string" ? input.prompt.trim() : "";
   if (!prompt) return { ok: false, status: 400, error: "Prompt is required" };
-  if (prompt.length > 10000) return { ok: false, status: 400, error: "Prompt is too long" };
 
   const moderation = checkPrompt(prompt);
   if (!moderation.ok) { console.warn("prompt refused", moderation.category); return { ok: false, status: 422, error: moderation.reason }; }
@@ -42,7 +41,6 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   // The model must be named and available. There is no default and no fallback to a different model.
   const model = findEnabledModel(input.model);
   if (!model) return { ok: false, status: 400, error: "That model is not available." };
-  if (prompt.length > model.maxPrompt) return { ok: false, status: 400, error: `${model.label} accepts prompts up to ${model.maxPrompt} characters (yours is ${prompt.length}).` };
 
   // Reference pictures: ids of the user's own uploads and renders, checked against the model's limits.
   const refs = parseReferenceRefs(input.references);

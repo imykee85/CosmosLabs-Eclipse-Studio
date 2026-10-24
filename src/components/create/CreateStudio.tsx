@@ -413,7 +413,6 @@ export default function CreateStudio() {
             id="cr-prompt"
             ref={box}
             rows={2}
-            maxLength={Math.min(model?.maxPrompt ?? 2000, 5000)}
             placeholder="Describe the shot you imagine…"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
