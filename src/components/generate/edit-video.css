@@ -1,4 +1,4 @@
-/* Eclipse Edit panel in Video Studio: sits above the prompt box, same colours as the rest of the studio. */
+/* Eclone panel in Video Studio: sits above the prompt box, same colours as the rest of the studio. */
 .cr-edit { display: grid; gap: 10px; margin: 0 0 10px; padding: 14px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); color: var(--a-fg); }
 .cr-edit header { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .cr-edit header span { color: var(--a-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }

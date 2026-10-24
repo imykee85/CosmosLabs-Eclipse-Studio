@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { PRESETS, findPreset, FEATURE_NAME } from "@/lib/video-edit/prompts";
 import "./edit-video.css";
 
-// Eclipse Edit inside Video Studio: change what is in the chosen video (swap, recast, new place, restyle) and keep its performance.
+// Eclone inside Video Studio: change what is in the chosen video (swap, recast, new place, restyle) and keep its performance.
 // Sends the choice to /api/video/alter, which builds the prompt from the tested presets and starts a draft (or a final) run.
 export default function EditVideoPanel({ sourceId, sourceLabel, pictureIds, onStarted, onClose }: {
   sourceId: string; sourceLabel: string; pictureIds: string[]; onStarted: (id: string) => void; onClose: () => void;

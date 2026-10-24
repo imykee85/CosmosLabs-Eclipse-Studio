@@ -5,7 +5,7 @@ import { workspaceSession } from "@/lib/workspace";
 import { gateFeature } from "@/lib/access";
 import { buildEditPrompt, EditPromptError, FEATURE_NAME } from "@/lib/video-edit/prompts";
 
-// Eclipse Edit: change what is in one of the person's own videos and keep its performance. The prompt comes from the tested presets
+// Eclone: change what is in one of the person's own videos and keep its performance. The prompt comes from the tested presets
 // (src/lib/video-edit/prompts.ts); the job runs through the same start path as every Seedance video (limits, holds, credits, moderation).
 // A 480p run is a draft: it is finished later through the draft route, the same as any Seedance draft.
 export const maxDuration = 60;

@@ -1,8 +1,8 @@
-// Eclipse Edit: builds the edit prompt for a change to an existing video, from the tested presets in presets.json.
+// Eclone: builds the edit prompt for a change to an existing video, from the tested presets in presets.json.
 // The rules are ported from the open-source scenario-alter skill (see NOTICE.md). Same inputs give the same prompt text.
 import data from "./presets.json";
 
-export const FEATURE_NAME = "Eclipse Edit";
+export const FEATURE_NAME = "Eclone";
 export const MAX_PROMPT = 10000;
 
 type Preset = { name: string; group: string; mode: "O" | "M" | "R"; target_frame?: boolean | "optional"; change: string; style?: string; opening?: string; fill?: Record<string, string>; refs?: string[]; check: string; unreliable?: boolean; note?: string };

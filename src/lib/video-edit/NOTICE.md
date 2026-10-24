@@ -1,4 +1,4 @@
-# Notices: Eclipse Edit prompt presets and rules
+# Notices: Eclone prompt presets and rules
 
 `presets.json` and the prompt rules in `prompts.ts` are adapted from the `scenario-alter` skill (the Scenario skills collection). Its licence is MIT, and the full licence text is below.
 
