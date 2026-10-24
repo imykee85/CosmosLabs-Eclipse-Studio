@@ -1,3 +1,4 @@
+import { videoCreditsAtProviderRate } from "../../src/lib/price-constants";
 import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { fmtCredits, toLedger, toCredits, LEDGER_UNITS_PER_CREDIT } from "../../src/lib/credit-units";
@@ -37,7 +38,7 @@ test("plans and packs grant what the brief says (ledger units) and show whole cr
 });
 
 test("plan cards: what the credits buy and the saving against Starter", () => {
-  assert.deepEqual(plans.map(planValue), ["200 images or 50 videos", "600 images or 150 videos", "2,500 images or 625 videos"]);
+  assert.deepEqual(plans.map(planValue), ["200 images or 100 videos", "600 images or 300 videos", "2,500 images or 1,250 videos"]);
   assert.deepEqual(plans.map(planSaving), [0, 14, 16]);
   const imgs = allImageModels().flatMap((m) => Object.keys(m.usd).map((k) => imageCredits(m, k === "default" ? undefined : k)).filter((c): c is number => c != null));
   assert.equal(CHEAPEST_IMAGE_CREDITS, Math.min(...imgs), "the cheapest image on any model");
@@ -116,6 +117,7 @@ const VIDEO_TABLE: [string, string | undefined, number, number][] = [
 
 test("5 s and 4 s clips cost what the master brief table says for every model and resolution (1.8x)", () => {
   for (const [id, res, five, four] of VIDEO_TABLE) {
+    if (id.startsWith("seedance")) continue; // Seedance is at the provider rate: see the Seedance test below
     const m = videoModelById(id);
     assert.ok(m?.live, `${id} is connected`);
     assert.equal(videoCredits(m!, res, 5, true), five, `${id} ${res ?? ""} 5 s`);
@@ -139,7 +141,7 @@ test("video is rounded ONCE for the whole clip, never per second", () => {
   assert.ok(videoCredits(std, undefined, 5, false)! < videoCredits(std, undefined, 5, true)!);
   const seed = videoModelById("seedance_2_0")!;
   assert.equal(videoCredits(seed, "720p", 5, true), videoCredits(seed, "720p", 5, false));
-  assert.equal(videoCredits(seed, "720p", 1, false), 6, "5.44 rounds up");
+  assert.equal(videoCredits(seed, "720p", 1, false), 4, "0.3024 a second at the provider rate: 3.024 rounds up");
 });
 
 test("Seedance clips can be 4 s: the minimum comes from the model settings", () => {
@@ -148,18 +150,14 @@ test("Seedance clips can be 4 s: the minimum comes from the model settings", () 
 
 test("Seedance direct is cheaper and follows the route that is really used", () => {
   const s25 = videoModelById("seedance_2_5")!;
-  assert.equal(videoCredits(s25, "720p", 5, false, "direct"), 21);
-  assert.equal(videoPrice(s25, "720p", 5, false, "direct"), 210);
-  assert.equal(videoCredits(s25, "1080p", 4, false, "direct"), 41);
-  assert.equal(videoPrice(s25, "1080p", 4, false, "direct"), 410);
-  assert.equal(videoCredits(s25, "720p", 5, false, "higgsfield"), 42);
   const s20 = videoModelById("seedance_2_0")!;
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 5, false, "direct")), [7, 14, 34]);
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s20, r, 4, false, "direct")), [6, 11, 27]);
-  assert.equal(videoCredits(s20, "4k", 5, false, "direct"), 71, "BytePlus' own 4k list price, 0.78 a second");
-  assert.equal(videoCredits(s20, "4k", 5, false, "higgsfield"), 140);
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s25, r, 5, false, "direct")), [10, 21, 52]);
-  assert.deepEqual(["480p", "720p", "1080p"].map((r) => videoCredits(s25, r, 4, false, "direct")), [8, 17, 41]);
+  // Seedance is sold at the provider rate with no markup (owner 2026-10-24): credits = provider cost / $0.10, rounded up once per clip.
+  assert.equal(videoCredits(s20, "720p", 5, false, "direct"), 8, "0.15 x 5 = $0.75 -> 7.5 -> 8");
+  assert.equal(videoCredits(s20, "1080p", 5, false, "direct"), 19, "0.37 x 5 = $1.85 -> 18.5 -> 19");
+  assert.equal(videoCredits(s20, "4k", 5, false, "direct"), 39, "0.78 x 5 = $3.90 -> 39");
+  assert.equal(videoCredits(s20, "480p", 4, false, "direct"), 3, "0.07 x 4 = $0.28 -> 2.8 -> 3");
+  assert.equal(videoPrice(s25, "720p", 5, false, "direct"), videoCredits(s25, "720p", 5, false, "direct")! * 10, "the ledger unit is a tenth of a credit");
+  assert.equal(videoCredits(s25, "720p", 5, false, "higgsfield"), videoCreditsAtProviderRate(s25.live!.price.usd["720p"] * 5), "on the other route, still at the provider rate");
 });
 
 // ---- routes ---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -215,7 +213,7 @@ test("out-of-credits messages speak in credits", () => {
 test("every plan earns the margin floor on every row (20% video, 40% the rest), and the estimates are flagged", () => {
   const rows = allPriceRows();
   assert.ok(rows.length > 100);
-  for (const r of rows) for (const [plan, m] of Object.entries(r.margin)) assert.ok(m > (r.kind === "video" ? 0.2 : 0.4), `${r.model} ${r.setting} on ${plan}: ${m}`);
+  for (const r of rows) for (const [plan, m] of Object.entries(r.margin)) if (!r.model.startsWith("seedance")) assert.ok(m > (r.kind === "video" ? 0.2 : 0.4), `${r.model} ${r.setting} on ${plan}: ${m}`);
   assert.deepEqual(plans.map((p) => Number(netPerCredit(p).toFixed(4))), [0.0876, 0.0761, 0.0745]);
   const flagged = (id: string, setting: string) => rows.find((r) => r.model === id && r.setting === setting)?.estimate;
   assert.equal(flagged("soul_cinema", "1080p"), true);
