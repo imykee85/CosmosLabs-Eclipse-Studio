@@ -14,7 +14,7 @@ export function parsePictures(input: unknown): PicturePick[] {
     if ((p?.type !== "upload" && p?.type !== "render") || typeof p.id !== "string" || !p.id || p.id.length > 64 || seen.has(`${p.type}:${p.id}`)) continue;
     seen.add(`${p.type}:${p.id}`);
     out.push({ type: p.type, id: p.id, role: clip(p.role, 40) });
-    if (out.length >= 4) break;
+    if (out.length >= 8) break;
   }
   return out;
 }

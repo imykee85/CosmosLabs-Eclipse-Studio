@@ -3,12 +3,13 @@ import assert from "node:assert/strict";
 import type Anthropic from "@anthropic-ai/sdk";
 import { attachPictures, parsePictures } from "../../src/lib/agent-pictures";
 
-test("parsePictures keeps valid ids, drops duplicates and junk, caps at 4", () => {
+test("parsePictures keeps valid ids, drops duplicates and junk, caps at 8", () => {
   const out = parsePictures([
     { type: "upload", id: "a", role: "start frame" }, { type: "upload", id: "a" }, { type: "render", id: "b" }, { type: "url", id: "c" },
     { type: "render", id: "" }, { type: "render", id: "d" }, { type: "render", id: "e" }, { type: "render", id: "f" },
+    { type: "render", id: "g" }, { type: "render", id: "h" }, { type: "render", id: "i" }, { type: "render", id: "j" }, { type: "render", id: "k" },
   ]);
-  assert.deepEqual(out.map((p) => p.id), ["a", "b", "d", "e"]);
+  assert.deepEqual(out.map((p) => p.id), ["a", "b", "d", "e", "f", "g", "h", "i"]);
   assert.equal(out[0].role, "start frame");
   assert.deepEqual(parsePictures("nope"), []);
 });
