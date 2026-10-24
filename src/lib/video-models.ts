@@ -5,7 +5,10 @@
 // Shared by the browser (controls, price estimate) and the server (validation, request body, price).
 
 import { toLedger } from "./credit-units";
-import { videoCreditsForUsd } from "./price-constants";
+import { videoCreditsAtProviderRate, videoCreditsForUsd } from "./price-constants";
+
+// Seedance models are sold at the provider's rate with no markup; the other video models keep their margin.
+const atProviderRate = (id: string) => id.startsWith("seedance");
 import type { Route } from "./routes";
 
 export type Workflow = "t2v" | "i2v" | "ref" | "motion"; // text, start frame(s), reference pictures/clips, or motion transfer (Motion chip)
@@ -535,8 +538,8 @@ export function videoCredits(m: VideoModel, resolution: string | undefined, dura
   const table = direct && direct[resolution ?? "default"] != null ? direct : normal;
   const key = resolution && table[resolution] != null ? resolution : table.default != null ? "default" : Object.keys(table)[0];
   const perSecond = table[key] ?? l.price.usd[key] ?? Math.max(...Object.values(l.price.usd));
-  // video markup 1.8x (master brief section 1); the ceil happens once, on the whole clip
-  return videoCreditsForUsd(duration * perSecond);
+  // video markup 1.8x (master brief section 1); Seedance at the provider rate. The ceil happens once, on the whole clip
+  return atProviderRate(m.id) ? videoCreditsAtProviderRate(duration * perSecond) : videoCreditsForUsd(duration * perSecond);
 }
 export function videoPrice(m: VideoModel, resolution: string | undefined, duration: number, audio: boolean, route: Route = "higgsfield", inputVideoSec?: number): number | null {
   const c = inputVideoSec != null && route === "direct" ? videoCreditsWithVideo(m, resolution, duration, inputVideoSec) ?? videoCredits(m, resolution, duration, audio, route) : videoCredits(m, resolution, duration, audio, route);
@@ -556,7 +559,8 @@ export function videoCreditsWithVideo(m: VideoModel, resolution: string | undefi
   if (!d || d.perMillion[res] == null || !(outputSec > 0) || !(inputSec >= 0)) return null;
   const billedSec = Math.max(inputSec + outputSec, outputSec + d.minExtraSec);
   const tokens = (billedSec * d.px[res] * BYTEPLUS_FPS) / 1024;
-  return videoCreditsForUsd((tokens * d.perMillion[res]) / 1e6);
+  const usd = (tokens * d.perMillion[res]) / 1e6;
+  return atProviderRate(m.id) ? videoCreditsAtProviderRate(usd) : videoCreditsForUsd(usd);
 }
 
 // How long a render may run before it is given up (the held price is released): longer for 4K and long clips.

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { videoCreditsWithVideo, videoModelById } from "../../src/lib/video-models";
-import { videoCreditsForUsd } from "../../src/lib/price-constants";
+import { videoCreditsAtProviderRate } from "../../src/lib/price-constants";
 
 // BytePlus' own price tables (pricing page, 16:9, 5 s output, USD per video); the lowest figure is the minimum billing (2 to 4 s input), the highest the longest input.
 const s25 = videoModelById("seedance_2_5")!;
@@ -18,7 +18,7 @@ const rows: [typeof s25, string, number, number, number][] = [
 test("the token formula reproduces BytePlus' with-video price tables (within a credit)", () => {
   for (const [m, res, inSec, usd] of rows.map((r) => [r[0], r[1], r[2], r[3]] as const)) {
     const got = videoCreditsWithVideo(m, res, 5, inSec)!;
-    const want = videoCreditsForUsd(usd);
+    const want = videoCreditsAtProviderRate(usd); // Seedance is sold at the provider rate (owner 2026-10-24)
     assert.ok(Math.abs(got - want) <= 1, `${m.id} ${res} ${inSec}s input: got ${got}, table says ${want}`);
   }
 });

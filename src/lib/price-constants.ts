@@ -15,3 +15,5 @@ export const videoMargin = () => positive("VIDEO_MARGIN", 1.8);
 export const videoCreditUsd = () => positive("VIDEO_CREDIT_USD", 0.1);
 /** Whole credits for a clip whose provider cost is `usd` in total. */
 export const videoCreditsForUsd = (usd: number): number => Math.max(1, Math.ceil(Math.round((usd * videoMargin() / videoCreditUsd()) * 1e6) / 1e6));
+/** Seedance is sold at the provider's own rate (owner 2026-10-24: no markup): whole credits for the provider cost, rounded up once. */
+export const videoCreditsAtProviderRate = (usd: number): number => Math.max(1, Math.ceil(Math.round((usd / videoCreditUsd()) * 1e6) / 1e6));
