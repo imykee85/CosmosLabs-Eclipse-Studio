@@ -105,3 +105,11 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
 }
+
+// A video someone attached to a chat, read the way Atlas watches a clip: evenly spaced frames, each labelled with its time. Returns the
+// blocks to put in front of the message, or a plain reason it could not be read. Owner-checked (only the person's own finished clips).
+export async function clipBlocks(userId: string, clipId: string): Promise<{ ok: true; blocks: Anthropic.ContentBlockParam[] } | { ok: false; error: string }> {
+  const run = await runVideoTool(userId, "watch_video", { clip_id: clipId, frames: 12 }, { captures: 0 });
+  if (run.isError || typeof run.content === "string") return { ok: false, error: typeof run.content === "string" ? run.content : "The video could not be read." };
+  return { ok: true, blocks: run.content as Anthropic.ContentBlockParam[] };
+}

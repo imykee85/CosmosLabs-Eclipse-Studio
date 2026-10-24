@@ -9,7 +9,7 @@ import { readCurrentProject } from "@/lib/projects";
 import { useDraftText } from "@/lib/use-draft-text";
 import { useDictation } from "@/lib/use-dictation";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
-import { uploadPicture } from "@/lib/use-uploads";
+import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { refreshCredits } from "@/lib/use-credits";
 import ImageStudioIcon from "../ImageStudioIcon";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
@@ -19,7 +19,7 @@ import "./prompts.css";
 // The Prompts page (VIDEO step 2): a prompt engineer. Pick an engine, add reference pictures if you have them, describe the idea, and get a production-ready
 // prompt back to copy or carry on to Video Studio or Image Studio. The chat is kept in this browser, one per engine.
 type Pic = { type: "upload" | "render"; id: string; label: string };
-type Msg = { id: string; role: "user" | "assistant"; text: string; pics?: Pic[]; error?: boolean };
+type Msg = { id: string; role: "user" | "assistant"; text: string; pics?: Pic[]; video?: { id: string; label: string }; error?: boolean };
 
 const KEY = (engine: string) => `eclipse-prompts-${engine}`;
 const MAX_PICS = 4;
@@ -58,6 +58,9 @@ export default function PromptsView() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useDraftText("prompts");
   const [pics, setPics] = useState<RefPick[]>([]);
+  const [clip, setClip] = useState<{ id: string; label: string } | null>(null); // one video, watched end to end when sent
+  const [clipBusy, setClipBusy] = useState(false);
+  const clipInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -81,7 +84,8 @@ export default function PromptsView() {
     if (!t || busy || !engine.available) return;
     setNote("");
     mic.stop();
-    const sent: Msg = { id: uid(), role: "user", text: t, pics: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })) };
+    const sent: Msg = { id: uid(), role: "user", text: t, pics: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })), ...(clip ? { video: clip } : {}) };
+    setClip(null);
     setText("");
     setPics([]);
     await ask([...msgs, sent]);
@@ -107,12 +111,24 @@ export default function PromptsView() {
     commit(history);
     setBusy(true);
     try {
-      const res = await fetch("/api/prompts/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engine: engine.id, messages: history.map((m) => ({ role: m.role, text: m.text })), images: last?.pics?.map((p) => ({ type: p.type, id: p.id })) }) });
+      const res = await fetch("/api/prompts/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engine: engine.id, messages: history.map((m) => ({ role: m.role, text: m.text })), images: last?.pics?.map((p) => ({ type: p.type, id: p.id })), video: last?.video ? { id: last.video.id } : undefined }) });
       const data = await res.json().catch(() => ({}));
       commit([...history, res.ok ? { id: uid(), role: "assistant", text: String(data.text ?? "") } : { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The prompt engine couldn't answer. Please try again.", error: true }]);
     } catch {
       commit([...history, { id: uid(), role: "assistant", text: "I couldn't reach the server. Check your connection and try again.", error: true }]);
     } finally { setBusy(false); refreshCredits(); }
+  }
+
+  async function uploadClip(f: File | undefined) {
+    if (!f) return;
+    setNote("");
+    if (!f.type.startsWith("video/")) { setNote("Only video files can be added here."); return; }
+    setClipBusy(true);
+    try {
+      const r = await uploadVideo<{ id: string }>(f, f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Video", readCurrentProject()?.id ?? null);
+      if (!r.ok) { setNote(r.error); return; }
+      setClip({ id: r.item.id, label: f.name });
+    } finally { setClipBusy(false); }
   }
 
   async function uploadFromDevice(f: File | undefined) {
@@ -205,6 +221,7 @@ export default function PromptsView() {
       <div className="pm-dock">
         {note && <p className="pm-note" role="status">{note}</p>}
         <form className="pm-box" onSubmit={(e) => { e.preventDefault(); void send(); }}>
+          {clip && <p className="pm-clip" aria-label="Attached video">Video: {clip.label} <button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={12} /></button></p>}
           {pics.length > 0 && (
             <div className="pm-attached" aria-label="Reference pictures">
               {pics.map((p, i) => (
@@ -221,6 +238,8 @@ export default function PromptsView() {
           <div className="pm-tools">
             <button type="button" className="pm-tool" aria-label="Upload a picture from your device" title="Upload a picture from your device" disabled={uploading || pics.length >= MAX_PICS} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
             <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="pm-tool" aria-label="Attach a video" title="Attach a video to watch" disabled={clipBusy || !!clip} onClick={() => clipInput.current?.click()}>{clipBusy ? <Loader2 size={15} className="cr-spin" /> : <Clapperboard size={15} />}</button>
+            <input ref={clipInput} type="file" accept="video/*" hidden onChange={(e) => { void uploadClip(e.target.files?.[0]); e.target.value = ""; }} />
             <button type="button" className={`pm-tool ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={15} /></button>
             <button type="button" className="pm-tool pm-wide" onClick={() => setPicking(true)} title="Choose pictures you already have"><Layers size={14} /> Ingredients{pics.length ? ` (${pics.length})` : ""}</button>
             {msgs.length > 0 && <button type="button" className="pm-tool" aria-label="Clear the conversation" title="Clear the conversation" onClick={clear}><Trash2 size={15} /></button>}
