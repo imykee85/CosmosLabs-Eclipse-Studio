@@ -7,7 +7,7 @@ import SoonTag from "../SoonTag";
 export type MotionMode = "subject" | "scene";
 
 const MODES: { id: MotionMode; title: string; text: string; icon: typeof Video; soon?: boolean }[] = [
-  { id: "subject", title: "Motion + subject", text: "Moves your subject picture like the person in one of your clips (Kling Motion Control or Genjutsu). The length follows the clip.", icon: Video },
+  { id: "subject", title: "Motion + subject", text: "Moves your subject picture like the person in one of your clips (Kling Motion Control or Genjutsu), or changes what is in a video you made (Eclone).", icon: Video },
   { id: "scene", title: "3D scene", text: "You block the shot yourself: several shots, camera placed where you want it. Needs character and location pictures.", icon: Box, soon: true },
 ];
 

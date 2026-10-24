@@ -1,5 +1,6 @@
 "use client";
 
+import EditVideoPanel from "./EditVideoPanel";
 import GrowArea from "@/components/GrowArea";
 import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
@@ -50,7 +51,7 @@ export default function VideoStudio() {
   const pickerModel = videoModelById(modelId);
   // Motion transfer (the Motion chip) has its own engines, kept out of the model picker: Kling Motion Control (2.6 or 3.0, Standard or Pro) or Genjutsu.
   const [motion, setMotion] = useState<MotionMode | null>(null);
-  const [mcEngine, setMcEngine] = useState<"kling3" | "kling26" | "genjutsu">("kling3");
+  const [mcEngine, setMcEngine] = useState<"kling3" | "kling26" | "genjutsu" | "eclone">("kling3");
   const [mcTier, setMcTier] = useState<"pro" | "std">("pro");
   const [mcOrient, setMcOrient] = useState<"video" | "image">("video");
   const [mcSound, setMcSound] = useState(true);
@@ -94,7 +95,7 @@ export default function VideoStudio() {
       setRefs(cleanPicks(d.refs, 30).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r) })));
       setVrefs(cleanPicks(d.vrefs, 10).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r), sec: r.sec ?? null })));
       if (d.motion === "subject" || d.motion === "scene") setMotion(d.motion);
-      if (d.mcEngine === "kling3" || d.mcEngine === "kling26" || d.mcEngine === "genjutsu") setMcEngine(d.mcEngine);
+      if (d.mcEngine === "kling3" || d.mcEngine === "kling26" || d.mcEngine === "genjutsu" || d.mcEngine === "eclone") setMcEngine(d.mcEngine);
       if (d.mcTier === "pro" || d.mcTier === "std") setMcTier(d.mcTier);
       if (d.mcOrient === "video" || d.mcOrient === "image") setMcOrient(d.mcOrient);
       if (typeof d.mcSound === "boolean") setMcSound(d.mcSound);
@@ -447,6 +448,10 @@ export default function VideoStudio() {
               ))}
             </div>
           )}
+          {mc && mcEngine === "eclone" && vrefs[0] && (
+            <EditVideoPanel sourceId={vrefs[0].id} sourceLabel={vrefs[0].label} pictureIds={refs.filter((r) => r.type === "upload").map((r) => r.id)}
+              onStarted={(id) => { setActiveId(id); void reload(); }} onClose={() => setMotion(null)} />
+          )}
           {mc && (
             <div className="vs-motion" role="group" aria-label="Motion transfer">
               <label><span>Engine</span>
@@ -454,6 +459,7 @@ export default function VideoStudio() {
                   <option value="kling3">Kling 3.0 Motion Control</option>
                   <option value="kling26">Kling 2.6 Motion Control</option>
                   <option value="genjutsu">Genjutsu Motion transfer</option>
+                  <option value="eclone">Eclone: change what is in a video you made</option>
                 </select>
               </label>
               {mcEngine === "genjutsu" && (
@@ -528,7 +534,7 @@ export default function VideoStudio() {
               </div>
               <button type="button" className={`cr-chip vs-gear ${settingsInUse ? "is-on" : ""}`} aria-label="Settings" aria-haspopup="dialog" title="Seed, leave out and prompt strength" onClick={(e) => setSettingsAnchor(e.currentTarget.getBoundingClientRect())}><Settings size={16} />{settingsInUse && <i className="vs-dot" />}</button>
             </div>
-            <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad}>
+            <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad || (mc && mcEngine === "eclone")}>
               {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate {price != null ? <span className="cr-cost" title={creditsText(price)}><Coins size={14} />{fmtCredits(price)}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
             </button>
           </div>
