@@ -174,7 +174,7 @@ export default function MemoryView() {
       <button type="button" className="mm-grab" aria-label="Show history" onClick={() => setOpen((o) => !o)} {...swipe(() => setOpen(true), () => setOpen(false))}><i /></button>
       <form className="mm-add" {...swipe(() => setOpen(true))} onSubmit={(e) => { e.preventDefault(); add(); }}>
         <button type="button" className="mm-plus" aria-label="Upload a file" title="Add memories from a file: text, Word, PDF or a picture" onClick={() => fileInput.current?.click()}><Plus size={18} /></button>
-        <input ref={fileInput} type="file" accept=".txt,.md,.markdown,.csv,.json,.docx,.pdf,image/png,image/jpeg,image/webp,text/plain" hidden onChange={(e) => { void uploadFile(e.target.files?.[0]); e.target.value = ""; }} />
+        <input ref={fileInput} type="file" hidden onChange={(e) => { void uploadFile(e.target.files?.[0]); e.target.value = ""; }} />
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MEMORY_TEXT_MAX} placeholder="Add a memory" aria-label="Add a memory" />
         <select value={saveTopic} onChange={(e) => { setSaveTopic(e.target.value as MemoryTopic); setTopic(e.target.value as MemoryTopic); }} aria-label="Topic for this memory">
           {MEMORY_TOPICS.map((t) => <option key={t} value={t}>{TOPIC_LABEL[t]}</option>)}

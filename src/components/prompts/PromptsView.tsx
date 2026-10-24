@@ -4,6 +4,7 @@ import GrowArea from "@/components/GrowArea";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Check, Clapperboard, Copy, Layers, Loader2, Mic, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { attachKind, readDocument, type DocumentRead } from "@/lib/attach-file";
 import { PROMPT_ENGINES, type PromptEngine } from "@/lib/prompt-engines";
 import { readCurrentProject } from "@/lib/projects";
 import { useDraftText } from "@/lib/use-draft-text";
@@ -19,7 +20,8 @@ import "./prompts.css";
 // The Prompts page (VIDEO step 2): a prompt engineer. Pick an engine, add reference pictures if you have them, describe the idea, and get a production-ready
 // prompt back to copy or carry on to Video Studio or Image Studio. The chat is kept in this browser, one per engine.
 type Pic = { type: "upload" | "render"; id: string; label: string };
-type Msg = { id: string; role: "user" | "assistant"; text: string; pics?: Pic[]; video?: { id: string; label: string }; error?: boolean };
+type Msg = { id: string; role: "user" | "assistant"; text: string; pics?: Pic[]; video?: { id: string; label: string }; docs?: { name: string; text?: string }[]; error?: boolean };
+type Doc = Extract<DocumentRead, { ok: true }>;
 
 const KEY = (engine: string) => `eclipse-prompts-${engine}`;
 const MAX_PICS = 4;
@@ -60,7 +62,7 @@ export default function PromptsView() {
   const [pics, setPics] = useState<RefPick[]>([]);
   const [clip, setClip] = useState<{ id: string; label: string } | null>(null); // one video, watched end to end when sent
   const [clipBusy, setClipBusy] = useState(false);
-  const clipInput = useRef<HTMLInputElement>(null);
+  const [docs, setDocs] = useState<Doc[]>([]); // documents waiting to go with the next message (text inline, PDFs as files)
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -84,11 +86,13 @@ export default function PromptsView() {
     if (!t || busy || !engine.available) return;
     setNote("");
     mic.stop();
-    const sent: Msg = { id: uid(), role: "user", text: t, pics: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })), ...(clip ? { video: clip } : {}) };
+    const sent: Msg = { id: uid(), role: "user", text: t, pics: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })), ...(clip ? { video: clip } : {}), ...(docs.length ? { docs: docs.map((d) => ({ name: d.name, text: d.text })) } : {}) };
+    const sentPdfs = docs.filter((d) => d.pdf !== undefined).map((d) => ({ name: d.name, pdf: d.pdf }));
     setClip(null);
     setText("");
     setPics([]);
-    await ask([...msgs, sent]);
+    setDocs([]);
+    await ask([...msgs, sent], sentPdfs);
   }
   // Retry an answer (the one that failed, or one you'd like again): drop it and ask again from the message before it.
   function retry(at: number) {
@@ -106,12 +110,12 @@ export default function PromptsView() {
     if (at < 0 || !t) return;
     void ask([...msgs.slice(0, at), { ...msgs[at], text: t }]);
   }
-  async function ask(history: Msg[]) {
+  async function ask(history: Msg[], pdfs: { name: string; pdf?: string }[] = []) {
     const last = history[history.length - 1];
     commit(history);
     setBusy(true);
     try {
-      const res = await fetch("/api/prompts/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engine: engine.id, messages: history.map((m) => ({ role: m.role, text: m.text })), images: last?.pics?.map((p) => ({ type: p.type, id: p.id })), video: last?.video ? { id: last.video.id } : undefined }) });
+      const res = await fetch("/api/prompts/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engine: engine.id, documents: pdfs, messages: history.map((m) => ({ role: m.role, text: m.text + (m.docs ?? []).filter((d) => d.text !== undefined).map((d) => `\n\n[Attached file: ${d.name}]\n${d.text}`).join("") })), images: last?.pics?.map((p) => ({ type: p.type, id: p.id })), video: last?.video ? { id: last.video.id } : undefined }) });
       const data = await res.json().catch(() => ({}));
       commit([...history, res.ok ? { id: uid(), role: "assistant", text: String(data.text ?? "") } : { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The prompt engine couldn't answer. Please try again.", error: true }]);
     } catch {
@@ -131,10 +135,24 @@ export default function PromptsView() {
     } finally { setClipBusy(false); }
   }
 
+  // The + takes any file: pictures become references, videos are watched with the message, documents go with the message.
+  async function addFile(f: File | undefined) {
+    if (!f) return;
+    const kind = attachKind(f);
+    if (kind === "video") return uploadClip(f);
+    if (kind === "document") {
+      setNote("");
+      const r = await readDocument(f);
+      if (r.ok) setDocs((d) => [...d, r].slice(-4));
+      else setNote(r.error);
+      return;
+    }
+    return uploadFromDevice(f);
+  }
+
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setNote("");
-    if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setNote("Only PNG, JPEG and WebP pictures can be added."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setNote("That picture is larger than 50 MB. Please use a smaller one."); return; }
     if (pics.length >= MAX_PICS) { setNote(`You can add up to ${MAX_PICS} pictures.`); return; }
     setUploading(true);
@@ -221,6 +239,7 @@ export default function PromptsView() {
       <div className="pm-dock">
         {note && <p className="pm-note" role="status">{note}</p>}
         <form className="pm-box" onSubmit={(e) => { e.preventDefault(); void send(); }}>
+          {docs.length > 0 && <p className="pm-clip" aria-label="Attached files">{docs.map((d, i) => <span key={`${d.name}-${i}`}>File: {d.name} <button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}><X size={12} /></button></span>)}</p>}
           {clip && <p className="pm-clip" aria-label="Attached video">Video: {clip.label} <button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={12} /></button></p>}
           {pics.length > 0 && (
             <div className="pm-attached" aria-label="Reference pictures">
@@ -236,10 +255,8 @@ export default function PromptsView() {
           <GrowArea rows={2} value={text} maxLength={6000} aria-label="Describe your idea" placeholder={engine.forModel === "video" ? "Describe the video you want…" : "Describe the image you want…"}
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
           <div className="pm-tools">
-            <button type="button" className="pm-tool" aria-label="Upload a picture from your device" title="Upload a picture from your device" disabled={uploading || pics.length >= MAX_PICS} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
-            <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
-            <button type="button" className="pm-tool" aria-label="Attach a video" title="Attach a video to watch" disabled={clipBusy || !!clip} onClick={() => clipInput.current?.click()}>{clipBusy ? <Loader2 size={15} className="cr-spin" /> : <Clapperboard size={15} />}</button>
-            <input ref={clipInput} type="file" accept="video/*" hidden onChange={(e) => { void uploadClip(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="pm-tool" aria-label="Add a file" title="Add a file" disabled={uploading || clipBusy} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
+            <input ref={fileInput} type="file" hidden onChange={(e) => { void addFile(e.target.files?.[0]); e.target.value = ""; }} />
             <button type="button" className={`pm-tool ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={15} /></button>
             <button type="button" className="pm-tool pm-wide" onClick={() => setPicking(true)} title="Choose pictures you already have"><Layers size={14} /> Ingredients{pics.length ? ` (${pics.length})` : ""}</button>
             {msgs.length > 0 && <button type="button" className="pm-tool" aria-label="Clear the conversation" title="Clear the conversation" onClick={clear}><Trash2 size={15} /></button>}

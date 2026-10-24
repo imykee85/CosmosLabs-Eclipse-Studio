@@ -1,6 +1,7 @@
 "use client";
 
 import GrowArea from "@/components/GrowArea";
+import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
@@ -156,7 +157,7 @@ export default function CreateStudio() {
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setError("");
-    if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setError("Only PNG, JPEG and WebP pictures can be uploaded."); return; }
+    if (attachKind(f) !== "picture") { setError("Pictures are added here. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 50 MB. Please use a smaller one."); return; }
     setUploading(true);
     try {
@@ -407,7 +408,7 @@ export default function CreateStudio() {
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <div className="cr-field">
           <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
-          <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
+          <input ref={fileInput} type="file" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
           <GrowArea
             id="cr-prompt"
             ref={box}

@@ -3,9 +3,10 @@
 import GrowArea from "@/components/GrowArea";
 import { thumbOf, fallbackTo } from "@/lib/thumb-url";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Paperclip, Pencil, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
+import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Pencil, Plus, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
-import { canUseFrame, useAgentChat, type Attach } from "@/lib/agent-chat";
+import { canUseFrame, useAgentChat, type Attach, type AttachedDoc } from "@/lib/agent-chat";
+import { attachKind, readDocument } from "@/lib/attach-file";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
 import { CUE_EVENT, takeCue } from "@/lib/use-agent";
@@ -72,6 +73,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const [showPast, setShowPast] = useState(false);
   // Pictures and videos added in the chat itself (paperclip): uploaded at once, sent with the next message.
   const [atts, setAtts] = useState<Attach[]>([]);
+  const [docs, setDocs] = useState<AttachedDoc[]>([]);
   const [uploading, setUploading] = useState<number | null>(null);
   const [attErr, setAttErr] = useState("");
   const fileIn = useRef<HTMLInputElement>(null);
@@ -182,9 +184,11 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     if (!t || chat.busy || uploading !== null) return;
     setDraft("");
     const sent = atts;
+    const sentDocs = docs;
     setAtts([]);
+    setDocs([]);
     setAttErr("");
-    void chat.send(t, sent);
+    void chat.send(t, sent, sentDocs);
   }
 
   async function addFiles(files: FileList | null) {
@@ -195,9 +199,15 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     const projectId = readCurrentProject()?.id ?? null;
     for (const f of list) {
       const name = f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Attachment";
-      const isVideo = f.type.startsWith("video/") || /\.(mp4|mov|webm|m4v)$/i.test(f.name);
+      const kind = attachKind(f);
       setUploading(0);
-      if (isVideo) {
+      if (kind === "document") {
+        const r = await readDocument(f);
+        if (r.ok) setDocs((d) => [...d, { name: r.name, text: r.text, pdf: r.pdf }].slice(-4));
+        else setAttErr(r.error);
+        continue;
+      }
+      if (kind === "video") {
         const r = await uploadVideo<{ id: string }>(f, name, projectId, setUploading);
         if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "video" as const, id: r.item.id, name }].slice(-4));
         else setAttErr(r.ok ? "Could not add that video." : r.error);
@@ -314,13 +324,16 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
               {atts.map((a) => (
                 <span key={a.id} className="aw-att aw-att-pic" title={a.name}><Thumb kind={a.kind} id={a.id} name={a.name} /><button type="button" aria-label={`Remove ${a.name}`} onClick={() => setAtts((l) => l.filter((x) => x.id !== a.id))}><X size={11} /></button></span>
               ))}
+              {docs.map((d, i) => (
+                <span key={`${d.name}-${i}`} className="aw-att" title={d.name}>{d.name}<button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}><X size={12} /></button></span>
+              ))}
               {uploading !== null && <span className="aw-att"><Loader2 size={12} className="cr-spin" />{uploading > 0 && uploading < 1 ? `${Math.round(uploading * 100)}%` : "Adding…"}</span>}
               {attErr && <span className="aw-att is-error">{attErr}</span>}
             </div>
           )}
           <form className="aw-input" onSubmit={submit}>
-            <input ref={fileIn} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,.mov,.mp4,.webm,.m4v" onChange={(e) => void addFiles(e.target.files)} />
-            <button type="button" className="aw-clip" aria-label="Add a picture or video" title="Add a picture or video" disabled={uploading !== null || chat.busy || atts.length >= 8} onClick={() => fileIn.current?.click()}><Paperclip size={15} /></button>
+            <input ref={fileIn} type="file" hidden multiple onChange={(e) => void addFiles(e.target.files)} />
+            <button type="button" className="aw-clip" aria-label="Add a file" title="Add a file" disabled={uploading !== null || chat.busy || atts.length + docs.length >= 8} onClick={() => fileIn.current?.click()}><Plus size={15} /></button>
             <GrowArea noExpand value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
             <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy || uploading !== null}><ArrowUp size={16} /></button>
           </form>

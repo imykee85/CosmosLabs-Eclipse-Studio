@@ -3,7 +3,9 @@
 import GrowArea from "@/components/GrowArea";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Copy, FileText, Loader2, Trash2, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Paperclip, Palette, Send, Lightbulb, Upload, User, X } from "lucide-react";
+import { ArrowRight, Copy, FileText, Loader2, Trash2, Link2, MessagesSquare, MapPin, Mic, MoreHorizontal, Package, Palette, Plus, Send, Lightbulb, Upload, User, X } from "lucide-react";
+import { attachKind, readDocument } from "@/lib/attach-file";
+import { uploadPicture } from "@/lib/use-uploads";
 import AgentIcon from "@/components/AgentIcon";
 import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
@@ -52,18 +54,7 @@ const MEDIA = [
 
 type Msg = { id: string; role: "user" | "assistant"; text: string; full?: string; error?: boolean };
 const uid = () => Math.random().toString(36).slice(2, 10);
-const TEXT_FILE = /\.(txt|md|csv|json)$/i;
-const DOCX = /\.docx$/i;
-const PDF = /\.pdf$/i;
-const MAX_PDF = 3_000_000;
 type Pic = RefPick & { role: string };
-// Reads a Word file's text in the browser (mammoth is only loaded when someone attaches one).
-async function docxText(f: File): Promise<string> {
-  const mammoth = await import("mammoth");
-  const r = await mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() });
-  return r.value.trim();
-}
-const toBase64 = (buf: ArrayBuffer) => { let bin = ""; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(bin); };
 const KEY = (project: string) => `eclipse-treatment-${project}`;
 
 export default function TreatmentView() {
@@ -121,28 +112,27 @@ export default function TreatmentView() {
     if ((!typed && !files.length && !pics.length && !links.length) || busy) return;
     setError("");
     stopMic();
-    // Text and Word files are read here and sent as text; one PDF (up to 3 MB) is sent as a document the model reads itself.
+    // Text and Word files are read here and sent as text; a PDF (up to 3 MB) is sent as a document the model reads itself.
     let full = typed;
-    let pdf: { name: string; data: string } | null = null;
+    const pdfs: { name: string; pdf: string }[] = [];
     const skipped: string[] = [];
     for (const f of files) {
-      try {
-        if (TEXT_FILE.test(f.name) && f.size <= 200_000) full += `\n\n[Attached file: ${f.name}]\n${(await f.text()).slice(0, 8000)}`;
-        else if (DOCX.test(f.name) && f.size <= 10_000_000) full += `\n\n[Attached file: ${f.name}]\n${(await docxText(f)).slice(0, 12000)}`;
-        else if (PDF.test(f.name) && f.size <= MAX_PDF && !pdf) pdf = { name: f.name, data: toBase64(await f.arrayBuffer()) };
-        else skipped.push(f.name);
-      } catch { skipped.push(f.name); }
+      const r = await readDocument(f);
+      if (!r.ok) { skipped.push(f.name); continue; }
+      if (r.text !== undefined) full += `\n\n[Attached file: ${r.name}]\n${r.text}`;
+      else if (r.pdf !== undefined) pdfs.push({ name: r.name, pdf: r.pdf });
     }
-    if (skipped.length) setError(`Could not read ${skipped.join(", ")}. Text, Word (.docx) and one PDF up to 3 MB per message can be read.`);
+    if (skipped.length) setError(`Could not read ${skipped.join(", ")}. Text, Word and PDF files can be read here.`);
+    const pdf = pdfs[0] ?? null;
     const attached = [...files.filter((f) => !skipped.includes(f.name)).map((f) => f.name), ...pics.map((p) => `${p.role}: ${p.label}`), ...links];
-    if (!full.trim() && !pdf && !pics.length && !links.length) return;
+    if (!full.trim() && !pdfs.length && !pics.length && !links.length) return;
     const shown = typed || (attached.length ? `(${attached.join(", ")})` : "");
     const mine: Msg = { id: uid(), role: "user", text: shown + (typed && attached.length ? `\n(attached: ${attached.join(", ")})` : ""), full: full || shown };
     const history = [...msgs, mine];
     const sentPics = pics, sentLinks = links;
     setMsgs(history); setText(""); setFiles([]); setPics([]); setLinks([]); setLinkOpen(false); setBusy(true);
     try {
-      const res = await fetch("/api/treatment/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: active.id, treatment: plan, messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, text: m.full ?? m.text })), pictures: sentPics.map((p) => ({ type: p.type, id: p.id, role: p.role })), links: sentLinks, pdf }) });
+      const res = await fetch("/api/treatment/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: active.id, treatment: plan, messages: history.filter((m) => !m.error).map((m) => ({ role: m.role, text: m.full ?? m.text })), pictures: sentPics.map((p) => ({ type: p.type, id: p.id, role: p.role })), links: sentLinks, documents: pdfs }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setMsgs((l) => [...l, { id: uid(), role: "assistant", text: typeof data.error === "string" ? data.error : "The planner couldn't answer. Please try again.", error: true }]); return; }
       // A linked page's text is kept with the message, so later turns still have it.
@@ -175,7 +165,23 @@ export default function TreatmentView() {
   };
   const newPlan = () => { if (busy) return; setMsgs([]); setPlan(EMPTY_TREATMENT); setError(""); };
 
-  const addFiles = (list: FileList | null) => { const picked = Array.from(list ?? []); if (picked.length) setFiles((f) => [...f, ...picked]); if (picker.current) picker.current.value = ""; };
+  // The + takes any file: pictures become references (saved to Assets), videos are not read here, everything else is a document for this message.
+  const addFiles = async (list: FileList | null) => {
+    const picked = Array.from(list ?? []);
+    if (picker.current) picker.current.value = "";
+    const docs: File[] = [];
+    for (const f of picked) {
+      const kind = attachKind(f);
+      if (kind === "document") docs.push(f);
+      else if (kind === "picture") {
+        const name = f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture";
+        const r = await uploadPicture(f, "asset", name, null);
+        if (r.ok && r.item) setPics((p) => [...p, { type: "upload", id: r.item!.id, url: r.item!.imageUrl, label: name, role: "Reference" }]);
+        else if (!r.ok) setError(r.error);
+      } else setError("Videos are added in Atlas or Video Studio.");
+    }
+    if (docs.length) setFiles((f) => [...f, ...docs]);
+  };
 
   return (
     <div className="tr-wrap">
@@ -312,8 +318,8 @@ export default function TreatmentView() {
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
           {error && <p className="tr-error" role="alert">{error}</p>}
           <div className="tr-tools">
-            <input ref={picker} type="file" multiple hidden accept=".txt,.md,.csv,.json,.pdf,.docx" onChange={(e) => addFiles(e.target.files)} />
-            <button type="button" className="tr-tool" aria-label="Attach a brief" title="Attach a brief" onClick={() => picker.current?.click()}><Paperclip size={16} /></button>
+            <input ref={picker} type="file" multiple hidden onChange={(e) => void addFiles(e.target.files)} />
+            <button type="button" className="tr-tool" aria-label="Add a file" title="Add a file" onClick={() => picker.current?.click()}><Plus size={16} /></button>
             <button type="button" className={`tr-tool ${linkOpen ? "is-on" : ""}`} aria-label="Add a link" title="Add a link" aria-pressed={linkOpen} onClick={() => setLinkOpen((v) => !v)}><Link2 size={16} /></button>
             <button type="button" className={`tr-tool ${listening ? "is-live" : ""}`} aria-label={listening ? "Stop voice input" : "Voice input"} title={listening ? "Stop" : "Talk instead of typing"} aria-pressed={listening} onClick={toggleMic}><Mic size={16} /></button>
             <div className="cr-grp tr-agent">

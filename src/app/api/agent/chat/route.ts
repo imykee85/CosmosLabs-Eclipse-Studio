@@ -1,3 +1,4 @@
+import { documentBlocks, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE } from "@/lib/brand";
@@ -83,6 +84,13 @@ export async function POST(req: Request) {
     const messages = buildMessages(turns, await loadHistoryImages(userId, historyPictures(turns), loadPromptImages));
     // The pictures attached to the box are shown to the agent (up to 8, ids only, owner-checked, read from our own storage).
     const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
+    // PDFs the person attached to this message go to the agent as files (text documents are already in the message text).
+    const pdfs = documentBlocks(parseDocuments(body?.documents));
+    if (pdfs.length) {
+      const last = messages[messages.length - 1];
+      const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
+      last.content = [...pdfs, ...own];
+    }
 
     const broke = await chatRefusal(userId);
     if (broke) return { status: 402, json: broke };

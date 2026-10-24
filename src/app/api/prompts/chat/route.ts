@@ -1,3 +1,4 @@
+import { documentBlocks, documentText, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE } from "@/lib/brand";
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
 
   const refs = parseImageRefs(body?.images);
   if (refs === null) return NextResponse.json({ error: "Those pictures could not be read." }, { status: 400 });
+  const docs = parseDocuments(body?.documents);
   const pics = await loadPromptImages(userId, refs);
   if (!pics.ok) return NextResponse.json({ error: pics.error }, { status: 400 });
 
@@ -64,14 +66,18 @@ export async function POST(req: Request) {
     if (!w.ok) return NextResponse.json({ error: w.error }, { status: 400 });
     watched = w.blocks;
   }
+  // Documents the person attached to this message (PDF as a file, text as text) ride with the latest message only.
+  const docPdfs = documentBlocks(docs);
+  const docText = documentText(docs);
   const messages: Anthropic.MessageParam[] = turns.map((t, i) => {
     if (t.role === "user" && i === turns.length - 1 && watched.length) {
-      return { role: "user", content: [...watched, { type: "text" as const, text: `${t.text}\n\n(The video above is the one the user attached; its frames are in time order.)` }] };
+      return { role: "user", content: [...watched, ...docPdfs, { type: "text" as const, text: `${t.text}${docText}\n\n(The video above is the one the user attached; its frames are in time order.)` }] };
     }
     if (t.role === "user" && i === turns.length - 1 && pics.images.length) {
       const labels = pics.images.map((p, n) => `Image ${n + 1}: ${p.label}`).join("\n");
-      return { role: "user", content: [...pics.images.map((p) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.mediaType, data: p.data } })), { type: "text" as const, text: `${t.text}\n\n(The user attached ${pics.images.length} reference image${pics.images.length === 1 ? "" : "s"}, in this order:\n${labels})` }] };
+      return { role: "user", content: [...pics.images.map((p) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.mediaType, data: p.data } })), ...docPdfs, { type: "text" as const, text: `${t.text}${docText}\n\n(The user attached ${pics.images.length} reference image${pics.images.length === 1 ? "" : "s"}, in this order:\n${labels})` }] };
     }
+    if (t.role === "user" && i === turns.length - 1 && docs.length) return { role: "user", content: [...docPdfs, { type: "text" as const, text: `${t.text}${docText}` }] };
     return { role: t.role, content: t.text };
   });
 

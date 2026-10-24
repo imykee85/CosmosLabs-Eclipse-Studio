@@ -12,7 +12,8 @@ export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label
 export type Frame = { id: string; label: string; sec: number; used?: string };
 // A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
 export type Attach = { kind: "picture" | "video"; id: string; name: string };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
+export type AttachedDoc = { name: string; text?: string; pdf?: string };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
 
 // What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
 export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
@@ -174,16 +175,16 @@ export function useAgentChat(agent: string | null) {
     add({ role: "agent", text });
   }, [agent, add]);
 
-  const send = useCallback(async (raw: string, atts: Attach[] = []) => {
+  const send = useCallback(async (raw: string, atts: Attach[] = [], docs: AttachedDoc[] = []) => {
     const text = raw.trim();
     if (!agent || !text || busyAgents.has(agent)) return;
-    add({ role: "user", text, ...(atts.length ? { attach: atts.map((a) => ({ kind: a.kind, name: a.name, id: a.id })) } : {}) });
-    await ask(atts);
+    add({ role: "user", text, ...(atts.length ? { attach: atts.map((a) => ({ kind: a.kind, name: a.name, id: a.id })) } : {}), ...(docs.length ? { docs: docs.map((d) => ({ name: d.name, text: d.text })) } : {}) });
+    await ask(atts, docs);
   }, [agent, add]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Asks the agent about the chat as it stands now (its last message is the person's). The reply is written on the server, so it
   // keeps going if the person leaves the page; the browser collects it (followRun) and shows it when it is ready.
-  const ask = useCallback(async (atts: Attach[]) => {
+  const ask = useCallback(async (atts: Attach[], docs: AttachedDoc[] = []) => {
     if (!agent) return;
     setBusy(true);
     try {
@@ -195,9 +196,11 @@ export function useAgentChat(agent: string | null) {
       const list = read(agent);
       const lastUser = list.map((m) => m.role).lastIndexOf("user");
       if (lastUser >= 0) write(agent, list.map((m, i) => (i === lastUser ? { ...m, seen: { pictures: pictures.map((p) => ({ type: p.type, id: p.id, role: p.role ?? "" })), videos: videos.map((v) => ({ id: v.id, label: v.label, role: v.role ?? "" })) } } : m)));
-      const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text, ...(m.seen ? { seen: m.seen } : {}) }));
+      // Text documents are part of the message they were attached to (kept with the chat, deleted with it); PDFs go once, with the message that carries them.
+      const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text + (m.docs ?? []).filter((d) => d.text !== undefined).map((d) => `\n\n[Attached file: ${d.name}]\n${d.text}`).join(""), ...(m.seen ? { seen: m.seen } : {}) }));
+      const pdfs = docs.filter((d) => d.pdf !== undefined).map((d) => ({ name: d.name, pdf: d.pdf }));
       const page = host?.page ?? "studio";
-      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, context: { page, ...base, pictures, videos, options: host?.controls?.options() } }) });
+      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, documents: pdfs, context: { page, ...base, pictures, videos, options: host?.controls?.options() } }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || typeof data.runId !== "string") { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
       await followRun(agent, data.runId, page);

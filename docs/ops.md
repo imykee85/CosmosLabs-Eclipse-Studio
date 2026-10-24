@@ -55,7 +55,7 @@ every Vercel preview address is a different origin, so add the ones you use):
 ```json
 [
   {
-    "AllowedOrigins": ["https://cosmos-labs-eclipse-studio-git-claude-new-sessi-86596b-ai-labs8.vercel.app"],
+    "AllowedOrigins": ["https://eclipse.cosmoslabsai.com", "https://cosmos-labs-eclipse-studio-git-claude-new-sessi-86596b-ai-labs8.vercel.app"],
     "AllowedMethods": ["PUT"],
     "AllowedHeaders": ["Content-Type"],
     "ExposeHeaders": ["ETag"],

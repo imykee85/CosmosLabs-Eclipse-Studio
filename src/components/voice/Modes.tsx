@@ -2,7 +2,7 @@
 
 import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Coins, Loader2, Mic, Paperclip, Repeat, Square, Users } from "lucide-react";
+import { Coins, Loader2, Mic, Plus, Repeat, Square, Users } from "lucide-react";
 import { estimateSeconds } from "@/lib/audio/pricing-client";
 import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
 
@@ -116,9 +116,9 @@ export function TranscribeConsole({ models, onStart, setError }: Props) {
   return (
     <div className="vc-console vc-console-tr">
       <div className="vc-drop">
-        <input ref={pick} type="file" className="sr-only" aria-label="Recording" accept="audio/*,video/mp4,video/webm,video/quicktime,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.webm,.mp4,.mov" onChange={(e) => { choosePicked(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+        <input ref={pick} type="file" className="sr-only" aria-label="Recording" onChange={(e) => { choosePicked(e.target.files?.[0] ?? null); e.target.value = ""; }} />
         <button type="button" className="vc-dropbtn" onClick={() => pick.current?.click()} disabled={recording || busy}>
-          <Paperclip size={16} />
+          <Plus size={16} />
           <span>{file ? `${file.name} · ${sizeOf(file.size)}` : "Add a recording"}</span>
         </button>
         {recording

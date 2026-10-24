@@ -1,6 +1,7 @@
 "use client";
 
 import GrowArea from "@/components/GrowArea";
+import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -248,7 +249,7 @@ export default function VideoStudio() {
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setError("");
-    if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setError("Only PNG, JPEG and WebP pictures can be uploaded."); return; }
+    if (attachKind(f) !== "picture") { setError("Pictures are added here. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 50 MB. Please use a smaller one."); return; }
     setUploading(true);
     try {
@@ -416,7 +417,7 @@ export default function VideoStudio() {
           <label htmlFor="vs-prompt" className="sr-only">Describe the clip you imagine</label>
           <div className="cr-field">
             <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
-            <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
+            <input ref={fileInput} type="file" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
             <GrowArea id="vs-prompt" ref={box} rows={2} maxLength={caps.promptMax} placeholder={(wf === "i2v" || wf === "ref" || wf === "motion") && !caps.promptRequired ? (wf === "motion" ? "Optional: describe the look or setting, e.g. studio lighting…" : wf === "ref" ? "Optional: describe how to use the pictures, e.g. picture 1 walks into the room…" : "Optional: describe how the picture should move…") : "Describe the clip you imagine…"} value={prompt} onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }} />
           </div>

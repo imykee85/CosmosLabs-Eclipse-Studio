@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Coins, Loader2, Mic, Pause, Play, X } from "lucide-react";
+import { Coins, Loader2, Mic, Pause, Play, Plus, X } from "lucide-react";
 import { cloneVoiceRequest, designVoiceRequest, saveDesignRequest, type DesignPreview, type OwnVoice, type VoiceCosts, type VoiceModel } from "@/lib/use-voice";
 import { orbStyle } from "./look";
 
@@ -118,9 +118,9 @@ export default function VoiceCreator({ models, provider, costs, consentText, onC
             <>
               <div className="vc-new-field">
                 <span>Recording</span>
-                <input ref={pick} type="file" className="sr-only" aria-label="Voice recording" accept="audio/*,.mp3,.wav,.m4a" onChange={(e) => choose(e.target.files?.[0] ?? null)} />
+                <input ref={pick} type="file" className="sr-only" aria-label="Voice recording" onChange={(e) => choose(e.target.files?.[0] ?? null)} />
                 <button type="button" className="vc-new-file" onClick={() => pick.current?.click()}>
-                  <Mic size={16} />
+                  <Plus size={16} />
                   <span>{file ? `${file.name} · ${sizeOf(file.size)}` : "Choose a recording"}</span>
                 </button>
                 <small>One person, clean and clear, 10 to 30 seconds. MP3, WAV or M4A, under 4 MB. The recording is not kept.</small>

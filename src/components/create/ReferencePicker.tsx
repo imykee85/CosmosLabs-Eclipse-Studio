@@ -178,7 +178,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
           <>
             <label className={`rp-upload ${vProgress !== null ? "is-busy" : ""}`} style={{ cursor: vProgress !== null ? "default" : "pointer" }}>
               <Upload size={15} /> {vProgress === null ? "Upload a video" : vProgress < 1 ? `Uploading ${Math.round(vProgress * 100)}%` : "Checking the video…"}
-              <input type="file" accept="video/mp4,video/quicktime,video/webm" hidden disabled={vProgress !== null || (videoMax > 0 && pickedVideos.length >= videoMax && videoMax > 1)} onChange={(e) => { void pickVideoFile(e.target.files?.[0]); e.target.value = ""; }} />
+              <input type="file" hidden disabled={vProgress !== null || (videoMax > 0 && pickedVideos.length >= videoMax && videoMax > 1)} onChange={(e) => { void pickVideoFile(e.target.files?.[0]); e.target.value = ""; }} />
             </label>
             {vError && <p className="up-error" role="alert">{vError}</p>}
           </>

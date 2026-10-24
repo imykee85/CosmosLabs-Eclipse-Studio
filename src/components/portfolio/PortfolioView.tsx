@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, Link2, Moon, Monitor, Radio, Smartphone, Sun, Upload } from "lucide-react";
+import { Check, Copy, ExternalLink, Link2, Moon, Monitor, Radio, Smartphone, Plus, Sun } from "lucide-react";
 import { listProjects, type Project } from "@/lib/projects";
 import "./portfolio.css";
 
@@ -224,8 +224,8 @@ export default function PortfolioView() {
                   </button>
                 ))}
               </div>
-              <button type="button" className="pf-upload" aria-label={`Upload a photo for ${slot}`} onClick={() => fileRef.current?.click()}><Upload size={17} /></button>
-              <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files?.[0])} />
+              <button type="button" className="pf-upload" aria-label={`Upload a photo for ${slot}`} onClick={() => fileRef.current?.click()}><Plus size={17} /></button>
+              <input ref={fileRef} type="file" hidden onChange={(e) => pick(e.target.files?.[0])} />
             </div>
 
             <Field label="E-mail"><input type="email" value={d.email} onChange={(e) => set("email", e.target.value)} placeholder="you@studio.com" /></Field>

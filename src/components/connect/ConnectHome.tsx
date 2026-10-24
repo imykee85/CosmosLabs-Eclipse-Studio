@@ -5,7 +5,8 @@ import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Brain, Clock, Film, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
+import { ArrowUp, Brain, Clock, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
+import { attachKind, readDocument } from "@/lib/attach-file";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import AgentWidget from "../create/AgentWidget";
@@ -49,7 +50,7 @@ function ConnectChat() {
   const [picking, setPicking] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const clipInput = useRef<HTMLInputElement>(null);
+  const [docs, setDocs] = useState<{ name: string; text: string }[]>([]); // text documents for the next message (kept in the chat)
   const [clip, setClip] = useState<{ id: string; label: string } | null>(null); // one video, watched end to end when sent
   const [clipBusy, setClipBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
@@ -70,20 +71,24 @@ function ConnectChat() {
     const clean = message.trim();
     if (!clean || busy) return;
     const clipId = clip?.id ?? null;
+    const sentDocs = docs;
+    const docText = sentDocs.map((d) => `\n\n[Attached file: ${d.name}]\n${d.text}`).join("");
     setBusy(true);
     setNotice("");
     setText("");
     setPicked([]);
     setClip(null);
+    setDocs([]);
     stopMic();
-    setLines((l) => [...l, { role: "user", parts: [{ kind: "text", text: images.length ? `${clean}\n(${images.length} picture${images.length > 1 ? "s" : ""} attached)` : clean }] }, { role: "assistant", parts: [] }]);
+    const shown = [images.length ? `${clean}\n(${images.length} picture${images.length > 1 ? "s" : ""} attached)` : clean, ...sentDocs.map((d) => `(file: ${d.name})`)].join("\n");
+    setLines((l) => [...l, { role: "user", parts: [{ kind: "text", text: shown }] }, { role: "assistant", parts: [] }]);
     const patch = (fn: (a: Line) => Line) => setLines((l) => { const c = [...l]; c[c.length - 1] = fn(c[c.length - 1]); return c; });
     try {
       let model = "auto";
       try { model = localStorage.getItem(MODEL_KEY) ?? "auto"; } catch {}
       const res = await fetch("/api/connect/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: clean, chatId, model, images, clip: clipId, projectId: readCurrentProject()?.id }),
+        body: JSON.stringify({ message: clean + docText, chatId, model, images, clip: clipId, projectId: readCurrentProject()?.id }),
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
@@ -122,7 +127,7 @@ function ConnectChat() {
       setBusy(false);
       refreshCredits();
     }
-  }, [busy, chatId, clip, setText, stopMic]);
+  }, [busy, chatId, clip, docs, setText, stopMic]);
 
   useEffect(() => {
     if (started.current) return;
@@ -173,10 +178,22 @@ function ConnectChat() {
     } finally { setClipBusy(false); }
   }
 
+  // The + takes any file: pictures go to Assets and into the message, videos are watched, text documents go with the message.
+  async function addFile(f: File | undefined) {
+    if (!f) return;
+    const kind = attachKind(f);
+    if (kind === "video") return uploadClip(f);
+    if (kind === "picture") return uploadFromDevice(f);
+    setNotice("");
+    const r = await readDocument(f);
+    if (!r.ok) { setNotice(r.error); return; }
+    if (r.text === undefined) { setNotice("PDFs are read in Atlas, Prompts and Treatment for now."); return; }
+    setDocs((d) => [...d, { name: r.name, text: r.text! }].slice(-4));
+  }
+
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setNotice("");
-    if (!["image/png", "image/jpeg", "image/webp"].includes(f.type)) { setNotice("Only PNG, JPEG and WebP pictures can be added."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setNotice("That picture is larger than 50 MB. Please use a smaller one."); return; }
     if (picked.length >= 3) { setNotice("You can add up to 3 pictures."); return; }
     setUploading(true);
@@ -237,10 +254,9 @@ function ConnectChat() {
             placeholder={chatting ? "Reply…" : "Ask for an image, run a skill, or send something to an app..."} />
           {notice && <p className="cn-err" role="alert">{notice}</p>}
           <div className="cn-tools">
-            <button type="button" className="cn-round" aria-label="Upload a picture from your device" title="Upload a picture from your device" disabled={uploading || picked.length >= 3} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
-            <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
-            <button type="button" className="cn-round" aria-label="Attach a video" title="Attach a video to watch" disabled={clipBusy || !!clip} onClick={() => clipInput.current?.click()}>{clipBusy ? <Loader2 size={15} className="cr-spin" /> : <Film size={15} />}</button>
-            <input ref={clipInput} type="file" accept="video/*" hidden onChange={(e) => { void uploadClip(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="cn-round" aria-label="Add a file" title="Add a file" disabled={uploading || clipBusy} onClick={() => fileInput.current?.click()}>{uploading || clipBusy ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+            <input ref={fileInput} type="file" hidden onChange={(e) => { void addFile(e.target.files?.[0]); e.target.value = ""; }} />
+            {docs.map((d, i) => <span key={`${d.name}-${i}`} className="cn-clip">{d.name}<button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}><X size={11} /></button></span>)}
             {clip && <span className="cn-clip">{clip.label}<button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={11} /></button></span>}
             <button type="button" className="cr-chip" title="Choose pictures from your Library" onClick={() => setPicking(true)}><Layers size={14} /> <span className="cr-aname">Ingredients{picked.length ? ` (${picked.length})` : ""}</span></button>
             <button type="button" className={`cn-round ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={17} /></button>

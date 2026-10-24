@@ -18,15 +18,36 @@ export function sniffImageType(b: Uint8Array): "image/png" | "image/jpeg" | "ima
   return null;
 }
 
+// Any other picture format (GIF, HEIC, AVIF, TIFF, BMP, SVG...) is redrawn as PNG when it has transparency, else JPEG, so the image providers can take it.
+export async function convertPicture(bytes: Uint8Array): Promise<{ bytes: Uint8Array; contentType: "image/png" | "image/jpeg" } | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const img = sharp(Buffer.from(bytes), { failOn: "none", limitInputPixels: 100_000_000 }).rotate();
+    const meta = await img.metadata();
+    if (!meta.format) return null;
+    const alpha = !!meta.hasAlpha;
+    const out = alpha ? await img.png().toBuffer() : await img.jpeg({ quality: 95, mozjpeg: true }).toBuffer();
+    return { bytes: new Uint8Array(out), contentType: alpha ? "image/png" : "image/jpeg" };
+  } catch {
+    return null;
+  }
+}
+
 export const isUploadKind = (v: unknown): v is UploadKind => typeof v === "string" && (UPLOAD_KINDS as readonly string[]).includes(v);
 
 export type StoredUpload = { key: string; contentType: string; sizeBytes: number; width: number | null; height: number | null };
 
-export async function storeUpload(userId: string, bytes: Uint8Array): Promise<StoredUpload | { error: string }> {
+export async function storeUpload(userId: string, bytesIn: Uint8Array): Promise<StoredUpload | { error: string }> {
+  let bytes = bytesIn;
   if (bytes.byteLength === 0) return { error: "That file is empty." };
   if (bytes.byteLength > MAX_UPLOAD_BYTES) return { error: "That picture is larger than 4 MB. Please use a smaller one." };
-  const contentType = sniffImageType(bytes);
-  if (!contentType) return { error: "Only PNG, JPEG and WebP pictures can be uploaded." };
+  let contentType = sniffImageType(bytes);
+  if (!contentType) {
+    const converted = await convertPicture(bytes);
+    if (!converted) return { error: "That file is not a picture we can read." };
+    bytes = converted.bytes;
+    contentType = converted.contentType;
+  }
   const key = `u/${userId}/up-${randomUUID()}.${EXT[contentType]}`;
   await putObject(key, bytes, contentType);
   const size = readImageSize(bytes);
