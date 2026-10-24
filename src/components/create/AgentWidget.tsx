@@ -3,7 +3,7 @@
 import GrowArea from "@/components/GrowArea";
 import { thumbOf, fallbackTo } from "@/lib/thumb-url";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, History, Loader2, Maximize2, Minimize2, Paperclip, Pencil, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
+import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Paperclip, Pencil, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import { canUseFrame, useAgentChat, type Attach } from "@/lib/agent-chat";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
@@ -77,6 +77,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const fileIn = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [viewing, setViewing] = useState<{ kind: "picture" | "video"; id: string; name: string } | null>(null);
   const chat = useAgentChat(name);
   // The latest real answer (not a status note) gets the Try again button.
   const lastAgent = chat.messages.reduce((n, m, i) => (m.role === "agent" && !m.note ? i : n), -1);
@@ -234,6 +235,14 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const cardTop = pos.y + SIZE + 8;
   return (
     <>
+      {viewing && (
+        <div className="aw-view" role="dialog" aria-label={viewing.name} onClick={() => setViewing(null)}>
+          <button type="button" className="aw-view-x" aria-label="Close" onClick={() => setViewing(null)}><X size={18} /></button>
+          {viewing.kind === "video"
+            ? <video className="aw-view-media" src={`/api/generations/${viewing.id}/file`} controls playsInline autoPlay onClick={(e) => e.stopPropagation()} />
+            : <img className="aw-view-media" src={`/api/uploads/${viewing.id}/file`} alt={viewing.name} onClick={(e) => e.stopPropagation()} />}
+        </div>
+      )}
       {open && (
         <div className={`aw-card ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={big ? undefined : { left: cardLeft, top: cardTop }}>
           <div className="aw-head"><AgentIcon size={16} /><b>{name}</b>
@@ -256,7 +265,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             {chat.messages.length === 0 && <p className="aw-empty">Say hello, or tell me what you want to make.</p>}
             {chat.messages.map((m, at) => (
               <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""} ${editing?.id === m.id ? "is-editing" : ""}`}>
-                {m.attach && m.attach.length > 0 && <div className="aw-attached">{m.attach.map((a, i) => (a.id ? <Thumb key={a.id + i} kind={a.kind} id={a.id} name={a.name} big /> : <span key={a.name + i} className="aw-att-name">{a.name}</span>))}</div>}
+                {m.attach && m.attach.length > 0 && <div className="aw-attached">{m.attach.map((a, i) => (a.id ? <button key={a.id + i} type="button" className="aw-open" aria-label={`Open ${a.name}`} title="Open" onClick={() => setViewing({ kind: a.kind, id: a.id!, name: a.name })}><Thumb kind={a.kind} id={a.id} name={a.name} big /></button> : <span key={a.name + i} className="aw-att-name">{a.name}</span>))}</div>}
                 {editing?.id === m.id ? (
                   <form className="aw-edit" onSubmit={(e) => { e.preventDefault(); const t = editing.text; setEditing(null); void chat.resend(m.id, t); }}>
                     <GrowArea rows={2} value={editing.text} maxLength={4000} aria-label="Edit your message" autoFocus onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
@@ -293,8 +302,8 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                   </div>
                 )}
                 {!chat.busy && !editing && !m.note && (m.role === "user"
-                  ? <div className="aw-msg-acts"><button type="button" aria-label="Edit and resend" title="Edit and resend" onClick={() => setEditing({ id: m.id, text: m.text })}><Pencil size={13} /></button></div>
-                  : (m.error || at === lastAgent) && <div className="aw-msg-acts"><button type="button" aria-label="Try again" title="Try again" onClick={() => void chat.retry(m.id)}><RotateCcw size={13} /></button></div>)}
+                  ? <div className="aw-msg-acts"><button type="button" aria-label="Copy" title="Copy" onClick={() => void navigator.clipboard?.writeText(m.text).catch(() => {})}><Copy size={13} /></button><button type="button" aria-label="Edit and resend" title="Edit and resend" onClick={() => setEditing({ id: m.id, text: m.text })}><Pencil size={13} /></button></div>
+                  : <div className="aw-msg-acts"><button type="button" aria-label="Copy" title="Copy" onClick={() => void navigator.clipboard?.writeText(m.text).catch(() => {})}><Copy size={13} /></button>{(m.error || at === lastAgent) && <button type="button" aria-label="Try again" title="Try again" onClick={() => void chat.retry(m.id)}><RotateCcw size={13} /></button>}</div>)}
               </div>
             ))}
             {chat.busy && <div className="aw-msg is-agent"><p className="aw-typing"><Loader2 size={13} className="cr-spin" /> Thinking…</p></div>}
