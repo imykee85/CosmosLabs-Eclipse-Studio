@@ -43,6 +43,14 @@ export async function videoRouteNow(modelId: string, resolution?: string, inputV
   return "direct";
 }
 
+export const isSafetyRefusal = (err: { detail?: string }): boolean => /SensitiveContent|PrivacyInformation/i.test(err.detail ?? "");
+
+/** What a person reads when the start is refused: a safety refusal names the pictures, anything else says the route is having trouble. */
+export function startRefusalText(label: string, err: { detail?: string }): string {
+  if (isSafetyRefusal(err)) return `${label} could not use one of the pictures or videos you chose: the safety check flagged it (it may show a real person). Nothing was charged. Try different pictures.`;
+  return `${label} is having trouble right now. Please try again in a few minutes. Nothing was charged.`;
+}
+
 export class NeedsMoreCredits extends Error {}
 /** The direct start was refused and the Higgsfield price is higher than the one the person was shown: they are asked again before paying it. */
 export class PriceChanged extends Error { constructor(readonly cost: number) { super("price changed"); } }
@@ -59,7 +67,8 @@ export async function submitRouted(a: RoutedStart) {
     } catch (err) {
       if (!(err instanceof ArkError) || err.ambiguous) throw err;
       console.error("direct video route refused before starting, falling back to Higgsfield", a.modelId, err.detail);
-      if (seedanceFallbackOn() && err.status != null && [400, 401, 403, 404].includes(err.status)) arkBlockedUntil = Date.now() + BLOCK_MS;
+      // A safety refusal of one picture is about that picture only: other people's videos keep going to BytePlus.
+      if (seedanceFallbackOn() && err.status != null && [400, 401, 403, 404].includes(err.status) && !isSafetyRefusal(err)) arkBlockedUntil = Date.now() + BLOCK_MS;
       // A job that exists only at BytePlus (Seedance 2.0 Fast/Mini, a draft's final) has nowhere else to run: the start simply fails and the hold is released.
       if (a.noFallback || !seedanceFallbackOn()) throw err;
       const held = a.row.creditsHeld ?? 0;

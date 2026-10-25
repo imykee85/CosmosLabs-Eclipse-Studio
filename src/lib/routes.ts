@@ -47,7 +47,7 @@ export function routeSetting(modelId: string): Route {
 
 /** Seedance only (owner 2026-10-21): when the direct BytePlus route cannot take a video, it is NOT moved to Higgsfield by itself; the owner decides and switches by hand
  *  (`ROUTE_SEEDANCE_2_5=higgsfield`, a Config value). `SEEDANCE_HIGGSFIELD_FALLBACK=on` (Config value) brings the old automatic fallback back. */
-export const seedanceFallbackOn = (): boolean => process.env.SEEDANCE_HIGGSFIELD_FALLBACK === "on";
+export const seedanceFallbackOn = (): boolean => process.env.SEEDANCE_HIGGSFIELD_FALLBACK !== "off"; // on by default: Higgsfield is the backup, always shown at its own price first
 
 /** The route a render of this model really uses right now. */
 export function routeFor(modelId: string): Route {
