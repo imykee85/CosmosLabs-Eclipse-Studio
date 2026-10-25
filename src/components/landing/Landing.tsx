@@ -4,7 +4,7 @@ import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Play, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
@@ -46,6 +46,27 @@ function Cta({ dark = false, glint = false, children = "Start Creating" }: { dar
 
 function Wordmark() {
   return <Logo className="wordmark" size={60} />;
+}
+
+// A muted, looping clip on a model card. Phones only start a video once its muted attribute exists in the HTML, so it is set on the element itself.
+const CARD_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
+  "WAN 3.0 PRIME": { src: "/landing/wan-card.mp4", webm: "/landing/wan-card.webm", poster: "/landing/wan-card-poster.jpg" },
+};
+
+function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+    void v.play().catch(() => {});
+  }, []);
+  return (
+    <video ref={ref} className="card-video" poster={poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true">
+      <source src={src} type="video/mp4" />
+      <source src={webm} type="video/webm" />
+    </video>
+  );
 }
 
 export default function Landing() {
@@ -121,7 +142,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <button className={`audience-card ${selected === i ? "selected" : ""}`} onClick={() => setSelected(i)}>
-                <div className={`tile tone-${i % 10}`} />
+                {CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
