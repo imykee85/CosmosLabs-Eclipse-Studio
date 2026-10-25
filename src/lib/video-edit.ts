@@ -1,3 +1,4 @@
+import { startRefusalText } from "@/lib/video-submit";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getAdmin } from "@/lib/admin";
@@ -107,6 +108,6 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
     if (err instanceof NeedsMoreCredits) return { ok: false, status: 402, error: err.message };
     const detail = err instanceof HiggsfieldError || err instanceof ArkError ? err.detail : "";
     const why = (await getAdmin().catch(() => null)) && detail ? ` (Owner only: ${detail})` : "";
-    return { ok: false, status: 502, error: err instanceof ArkError ? `${model.label} is having trouble right now. Please try again in a few minutes. Nothing was charged.${why}` : rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
+    return { ok: false, status: 502, error: err instanceof ArkError ? `${startRefusalText(model.label, err)}${why}` : rejected ? `The video was not accepted.${why} Nothing was charged.` : `The video could not be started. Please try again.${why}` };
   }
 }
