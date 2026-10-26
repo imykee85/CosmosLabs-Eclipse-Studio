@@ -3,24 +3,29 @@
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  addEdge, Background, BackgroundVariant, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, SelectionMode, useEdgesState, useNodesState, useReactFlow,
-  type Connection, type Edge, type FinalConnectionState, type NodeMouseHandler,
+  addEdge, Background, BackgroundVariant, ConnectionLineType, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, SelectionMode, useEdgesState, useNodesState, useReactFlow, useStoreApi, ViewportPortal,
+  type Connection, type Edge, type FinalConnectionState, type NodeChange, type NodeMouseHandler,
 } from "@xyflow/react";
-import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2, Undo2, Redo2, MousePointer2, Hand } from "lucide-react";
+import { ArrowLeft, AudioLines, Clapperboard, Eraser, Film, Group, LayoutTemplate, ListOrdered, MessageSquareText, Mic, Mountain, Music2, Package, Palette, PersonStanding, Minimize2, Plus, Search, Settings, Share2, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2, Undo2, Redo2, MousePointer2, Hand, ZoomIn } from "lucide-react";
 import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgentHost } from "@/lib/agent-chat";
 import ModelPicker, { AUTO } from "@/components/create/ModelPicker";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import RenderDialog from "@/components/library/RenderDialog";
-import { deleteTemplate, instantiate, loadTemplates, newNode, NODE_GROUPS, refFileUrl, saveTemplate, type CanvasNodeData, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
-import { canWire, inputsOf, isGen, makeEdge, NEXT_KINDS, outLabelOf, picturesOf, portFor, portLabel, PREV_KINDS, TITLES, withoutReplaced, type PortId } from "@/lib/canvas-flow";
+import { instantiate, newNode, NODE_GROUPS, refFileUrl, type CanvasNodeData, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
+import { deleteAnyTemplate, listAllTemplates, saveAnyTemplate } from "@/lib/canvas-templates";
+import { alignDrag, type Guides } from "@/lib/canvas-guides";
+import { useCanvasSettings } from "@/lib/canvas-settings";
+import { useCanvasComments } from "@/lib/use-canvas-comments";
+import { canWire, inputsOf, isAudioNode, makesPicture, makeEdge, NEXT_KINDS, outLabelOf, picturesOf, portFor, portLabel, PREV_KINDS, TITLES, withoutReplaced, type PortId } from "@/lib/canvas-flow";
 import { renameCanvas, saveCanvasDoc, type CanvasDoc, type CanvasMeta } from "@/lib/canvas-store";
 import { useAgent } from "@/lib/use-agent";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import type { Render } from "@/lib/use-renders";
 import { CanvasCtx, type AskRequest } from "./CanvasContext";
-import { nodeTypes } from "./nodes";
+import { CommentsPanel, SettingsModal, SharePanel } from "./CanvasPanels";
+import { nodeTypes } from "./node-types";
 import "@/components/create/create.css";
 import "./canvas.css";
 
@@ -28,6 +33,7 @@ const ICONS: Record<string, React.ReactNode> = {
   text: <Type size={20} />, character: <User size={20} />, product: <Package size={20} />, scene: <Mountain size={20} />, style: <Palette size={20} />,
   fullbody: <PersonStanding size={20} />, generator: <ImageIcon size={20} />, note: <StickyNote size={20} />,
   video: <Clapperboard size={20} />, videogen: <Clapperboard size={20} />, sheet: <Shirt size={20} />, image: <ImageIcon size={20} />, clip: <Film size={20} />,
+  assistant: <MessageSquareText size={20} />, editor: <Eraser size={20} />, upscaler: <ZoomIn size={20} />, list: <ListOrdered size={20} />, voiceover: <Mic size={20} />, sfx: <AudioLines size={20} />, music: <Music2 size={20} />,
 };
 const DOUBLE_TAP_MS = 320;
 
@@ -75,10 +81,15 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const saved = doc;
   const [nodes, setNodes, onNodesChange] = useNodesState<CNode>(doc.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(doc.edges);
-  const [panel, setPanel] = useState<null | "nodes" | "templates">(null);
+  const [panel, setPanel] = useState<null | "nodes" | "templates" | "share" | "comments">(null);
   const [query, setQuery] = useState("");
   const [templates, setTemplates] = useState<CanvasTemplate[]>([]);
   const [tplName, setTplName] = useState("");
+  const [tplError, setTplError] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, changeSettings] = useCanvasSettings();
+  const [guides, setGuides] = useState<Guides | null>(null);   // alignment lines shown while a node is dragged
+  const comments = useCanvasComments(canvasId);
   const [full, setFull] = useState(false);
   const [hint, setHint] = useState(true);
   const [focused, setFocused] = useState<string | null>(null);
@@ -95,10 +106,12 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
+  const groupDrag = useRef<{ id: string; from: { x: number; y: number }; members: Map<string, { x: number; y: number }> } | null>(null);
   const lastTap = useRef({ id: "", t: 0 });
   const dark = useAppDark();
   const models = useModels({ edit: true });
   const agent = useAgent();
+  const store = useStoreApi();
   const { screenToFlowPosition, getNode, getNodes, getEdges, getViewport, setViewport } = useReactFlow();
   // The agent works on the selected image generator (else the first one): it can put a prompt in it and, once the user approves, run it.
   const targetGen = () => { const all = getNodes() as CNode[]; return all.find((n) => n.type === "generator" && n.selected) ?? all.find((n) => n.type === "generator") ?? null; };
@@ -132,7 +145,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     timer.current = setTimeout(flush, 400);
   }, [flush, getViewport]);
   // Save only when something that is kept changed (what is in the nodes, where they sit, the wiring): measuring the nodes on opening, or selecting one, is not an edit.
-  const sigOf = (ns: CNode[], es: Edge[]) => JSON.stringify([ns.map((n) => [n.id, n.type, n.position.x, n.position.y, n.data]), es.map((e) => [e.id, e.source, e.target])]);
+  const sigOf = (ns: CNode[], es: Edge[]) => JSON.stringify([ns.map((n) => [n.id, n.type, n.position.x, n.position.y, n.data, n.type === "group" ? [n.width, n.height] : 0]), es.map((e) => [e.id, e.source, e.target])]);
   const lastSig = useRef(sigOf(doc.nodes, doc.edges));
   useEffect(() => { const sig = sigOf(nodes, edges); if (sig === lastSig.current) return; lastSig.current = sig; persist(); }, [nodes, edges, persist]);
   useEffect(() => {
@@ -187,6 +200,8 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     setCanUndo(true); setCanRedo(h.future.length > 0);
   }, [restoreSnap]);
 
+  const groupSelectedRef = useRef<() => void>(() => {});
+
   // Keyboard: Ctrl or Cmd + Z undoes, plus Shift (or Y) redoes, N opens the node list. Not while typing in a field.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -196,6 +211,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
       const k = e.key.toLowerCase();
       if (mod && k === "z") { e.preventDefault(); if (e.shiftKey) redoStep(); else undoStep(); }
       else if (mod && k === "y") { e.preventDefault(); redoStep(); }
+      else if (mod && k === "g") { e.preventDefault(); groupSelectedRef.current(); }
       else if (!mod && !e.altKey && k === "v") { setTool("select"); }
       else if (!mod && !e.altKey && k === "h") { setTool("pan"); }
       else if (!mod && !e.altKey && k === "n") { e.preventDefault(); setPanel((p) => (p === "nodes" ? null : "nodes")); setQuery(""); }
@@ -303,9 +319,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     setPanel(null);
   }
 
-  function openPanel(which: "nodes" | "templates") {
+  function openPanel(which: "nodes" | "templates" | "share" | "comments") {
     if (panel === which) { setPanel(null); return; }
-    if (which === "templates") setTemplates(loadTemplates());
+    if (which === "templates") { setTplError(""); void listAllTemplates().then(setTemplates); }
     setQuery("");
     setPanel(which);
   }
@@ -323,10 +339,12 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     setTimeout(() => flyTo(g.nodes.map((n) => n.id), 0.2, 1), 120);
   }
 
-  function saveAsTemplate() {
+  async function saveAsTemplate() {
     if (!nodes.length) return;
-    setTemplates(saveTemplate(tplName || "My template", nodes, edges));
-    setTplName("");
+    setTplError("");
+    const r = await saveAnyTemplate(tplName || "My template", nodes, edges);
+    setTemplates(r.list);
+    if (r.error) setTplError(r.error); else setTplName("");
   }
 
   // Full screen covers the rest of the app (a fixed layer rather than the browser's Fullscreen API, which phones do not offer).
@@ -342,11 +360,11 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   // Wires run while their source is still making an image, and are dashed while the source has nothing to give yet.
   const shownEdges = useMemo(() => edges.map((e) => {
     const src = nodes.find((n) => n.id === e.source);
-    const makes = !!src && (isGen(src.type) || src.type === "videogen");
+    const makes = !!src && (makesPicture(src.type) || src.type === "videogen" || isAudioNode(src.type));
     const waiting = makes && !(src!.data.gens?.length) && !(src!.data.pending?.length);
     const running = makes && (src!.data.pending?.length ?? 0) > 0;
-    return { ...e, animated: running, className: waiting ? "cv-wire-wait" : "" };
-  }), [edges, nodes]);
+    return { ...e, type: settings.edge === "bezier" ? undefined : settings.edge, animated: running, className: waiting ? "cv-wire-wait" : "" };
+  }), [edges, nodes, settings.edge]);
 
   // Pickers and dialogs a node asked for.
   const askNode = ask && "nodeId" in ask ? (nodes.find((n) => n.id === ask.nodeId) as CNode | undefined) : undefined;
@@ -418,6 +436,65 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     setUndo({ nodes: dn, edges: de });
   }
 
+  // Group the selected nodes: a titled frame behind them. Dragging the frame moves what sits inside it.
+  function groupSelected() {
+    const sel = nodes.filter((n) => n.selected && n.type !== "group");
+    if (!sel.length) return;
+    const pad = 40, head = 36;
+    const x0 = Math.min(...sel.map((n) => n.position.x)), y0 = Math.min(...sel.map((n) => n.position.y));
+    const x1 = Math.max(...sel.map((n) => n.position.x + (n.measured?.width ?? 264))), y1 = Math.max(...sel.map((n) => n.position.y + (n.measured?.height ?? 320)));
+    const g = newNode("group", { x: x0 - pad, y: y0 - pad - head });
+    g.width = x1 - x0 + pad * 2; g.height = y1 - y0 + pad * 2 + head;
+    setNodes((ns) => [{ ...g, selected: true }, ...ns.map((x) => ({ ...x, selected: false }))]);
+    store.setState({ nodesSelectionActive: false }); // the box left by a multi-select goes away; only the group is selected now
+    setTimeout(() => flyTo([g.id], 0.2, 1), 150);
+  }
+  groupSelectedRef.current = groupSelected;
+  const onNodeDragStart = useCallback((_: unknown, node: CNode) => {
+    if (node.type !== "group") { groupDrag.current = null; return; }
+    const w = node.measured?.width ?? node.width ?? 480, h = node.measured?.height ?? node.height ?? 340;
+    const members = new Map<string, { x: number; y: number }>();
+    for (const n of getNodes() as CNode[]) {
+      if (n.id === node.id || n.type === "group") continue;
+      const cx = n.position.x + (n.measured?.width ?? 264) / 2, cy = n.position.y + (n.measured?.height ?? 320) / 2;
+      if (cx >= node.position.x && cx <= node.position.x + w && cy >= node.position.y && cy <= node.position.y + h) members.set(n.id, { ...n.position });
+    }
+    groupDrag.current = { id: node.id, from: { ...node.position }, members };
+  }, [getNodes]);
+  const onNodeDrag = useCallback((_: unknown, node: CNode) => {
+    const g = groupDrag.current;
+    if (!g || g.id !== node.id || !g.members.size) return;
+    const dx = node.position.x - g.from.x, dy = node.position.y - g.from.y;
+    setNodes((ns) => ns.map((n) => { const m = g.members.get(n.id); return m ? { ...n, position: { x: m.x + dx, y: m.y + dy } } : n; }));
+  }, [setNodes]);
+  const onNodeDragStop = useCallback(() => { groupDrag.current = null; setGuides(null); }, []);
+  // Helper lines: one node dragged alone snaps to the edges and centres of its neighbours, and the lines show what it lined up with.
+  const onNodesChangeGuided = useCallback((changes: NodeChange<CNode>[]) => {
+    const one = changes.length === 1 ? changes[0] : null;
+    if (settings.helperLines && one && one.type === "position" && one.dragging && one.position) {
+      const n = getNode(one.id);
+      if (n && n.type !== "group") {
+        const others = (getNodes() as CNode[]).filter((o) => o.id !== n.id && o.type !== "group").map((o) => ({ x: o.position.x, y: o.position.y, w: o.measured?.width ?? 264, h: o.measured?.height ?? 320 }));
+        const r = alignDrag({ x: one.position.x, y: one.position.y, w: n.measured?.width ?? 264, h: n.measured?.height ?? 320 }, others);
+        setGuides(r.guides.x.length || r.guides.y.length ? r.guides : null);
+        onNodesChange([{ ...one, position: { x: r.x, y: r.y } }]);
+        return;
+      }
+    }
+    if (guides && changes.some((c) => c.type === "position" && c.dragging === false)) setGuides(null);
+    onNodesChange(changes);
+  }, [settings.helperLines, getNode, getNodes, onNodesChange, guides]);
+  const commentNode = (() => { const sel = nodes.filter((n) => n.selected && n.type !== "group"); return sel.length === 1 ? { id: sel[0].id, title: TITLES[sel[0].type as NodeKind] ?? "this node" } : null; })();
+  const openCommentCount = comments.items.filter((c) => !c.resolved).length;
+
+  const extraBtns = (
+    <>
+          <button type="button" className="cv-add" aria-expanded={panel === "share"} aria-haspopup="dialog" onClick={() => openPanel("share")} title="Share a view-only link"><Share2 size={16} /> Share</button>
+          <button type="button" className="cv-add cv-hist" aria-expanded={panel === "comments"} aria-haspopup="dialog" aria-label={`Comments${openCommentCount ? `, ${openCommentCount} open` : ""}`} title="Comments" onClick={() => openPanel("comments")}><MessageSquareText size={16} />{openCommentCount > 0 ? openCommentCount : ""}</button>
+          <button type="button" className="cv-add cv-hist" aria-label="Canvas settings" title="Canvas settings" onClick={() => { setPanel(null); setShowSettings(true); }}><Settings size={16} /></button>
+    </>
+  );
+
   const toolbar = (
     <>
         <div className="cv-btns">
@@ -425,8 +502,10 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
           <button type="button" className="cv-add cv-hist" disabled={!canUndo} onClick={undoStep} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={16} /></button>
           <button type="button" className="cv-add cv-hist" disabled={!canRedo} onClick={redoStep} aria-label="Redo" title="Redo (Shift+Ctrl+Z)"><Redo2 size={16} /></button>
           <button type="button" className={`cv-add cv-hist ${tool === "select" ? "is-on" : ""}`} aria-pressed={tool === "select"} onClick={() => setTool((t) => (t === "select" ? "pan" : "select"))} aria-label={tool === "select" ? "Select mode: drag a box round nodes" : "Pan mode: drag to move the board"} title={tool === "select" ? "Select (V): drag a box round nodes. Press H for pan." : "Pan (H). Press V to select several nodes."}>{tool === "select" ? <MousePointer2 size={16} /> : <Hand size={16} />}</button>
+          {selectedCount > 0 && <button type="button" className="cv-add cv-hist" onClick={groupSelected} aria-label="Group the selected nodes" title="Group the selected nodes (Ctrl+G)"><Group size={16} /></button>}
           {selectedCount > 1 && <button type="button" className="cv-add cv-hist cv-danger" onClick={deleteSelected} aria-label={`Delete ${selectedCount} selected nodes`} title="Delete the selected nodes"><Trash2 size={16} />{selectedCount}</button>}
           <button type="button" className="cv-add" aria-expanded={panel === "templates"} aria-haspopup="dialog" onClick={() => openPanel("templates")}><LayoutTemplate size={16} /> Templates</button>
+          {phone && extraBtns}
         </div>
         {phone && panel && <div className="cv-scrim" onClick={() => setPanel(null)} />}
         {panel === "nodes" && (
@@ -455,6 +534,11 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
             </div>
           </div>
         )}
+        {panel === "share" && <SharePanel canvasId={canvasId} onClose={() => setPanel(null)} />}
+        {panel === "comments" && (
+          <CommentsPanel items={comments.items} error={comments.error} enabled={comments.enabled} add={comments.add} resolve={comments.resolve} remove={comments.remove}
+            selected={commentNode} label={(nid) => { const n = getNode(nid); return n ? TITLES[n.type as NodeKind] ?? null : null; }} onFocusNode={(nid) => focus(nid)} onClose={() => setPanel(null)} />
+        )}
         {panel === "templates" && (
           <div className="cv-pop" role="dialog" aria-label="Templates">
             <header><b>Templates</b><button type="button" aria-label="Close" onClick={() => setPanel(null)}><X size={16} /></button></header>
@@ -462,11 +546,12 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
               <section>
                 <h3>Save this canvas</h3>
                 <div className="cv-save">
-                  <input value={tplName} maxLength={40} onChange={(e) => setTplName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveAsTemplate(); }}
+                  <input value={tplName} maxLength={40} onChange={(e) => setTplName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void saveAsTemplate(); }}
                     placeholder="Template name" aria-label="Template name" disabled={!nodes.length} />
-                  <button type="button" disabled={!nodes.length} onClick={saveAsTemplate}>Save</button>
+                  <button type="button" disabled={!nodes.length} onClick={() => void saveAsTemplate()}>Save</button>
                 </div>
                 {!nodes.length && <p className="cv-none">Add some nodes first.</p>}
+                {tplError && <p className="cv-error" role="alert">{tplError}</p>}
               </section>
               <section>
                 <h3>Use a template</h3>
@@ -475,9 +560,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
                     <div key={t.id} className="cv-tpl">
                       <button type="button" className="cv-tpl-use" onClick={() => applyTemplate(t)}>
                         <LayoutTemplate size={18} />
-                        <span><b>{t.name}</b><small>{t.nodes.length} nodes{t.builtIn ? " · built in" : ""}</small></span>
+                        <span><b>{t.name}</b><small>{t.nodes.length} nodes{t.builtIn ? " · built in" : t.server ? " · saved to your account" : " · this browser"}</small></span>
                       </button>
-                      {!t.builtIn && <button type="button" className="cv-tpl-del" aria-label={`Delete ${t.name}`} title="Delete template" onClick={() => setTemplates(deleteTemplate(t.id))}><Trash2 size={15} /></button>}
+                      {!t.builtIn && <button type="button" className="cv-tpl-del" aria-label={`Delete ${t.name}`} title="Delete template" onClick={() => void deleteAnyTemplate(t).then(setTemplates)}><Trash2 size={15} /></button>}
                     </div>
                   ))}
                 </div>
@@ -489,11 +574,12 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   );
 
   return (
-    <CanvasCtx.Provider value={{ focus, ask: setAsk, addAfter: (id, r) => openAdd(id, "after", r), addBefore: (id, r) => openAdd(id, "before", r) }}>
+    <CanvasCtx.Provider value={{ focus, ask: setAsk, addAfter: (id, r) => openAdd(id, "after", r), addBefore: (id, r) => openAdd(id, "before", r), comments: comments.counts, openComments: () => setPanel("comments") }}>
       <div className={`cv-wrap ${full ? "is-full" : ""}`} ref={wrap} onWheelCapture={() => { flight.current++; }} onPointerDownCapture={() => { flight.current++; }}>
         <ReactFlow
           nodes={nodes} edges={shownEdges} nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={isValidConnection}
+          onNodesChange={onNodesChangeGuided} onEdgesChange={onEdgesChange} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop}
+          zoomOnScroll={settings.wheel === "zoom"} panOnScroll={settings.wheel === "pan"} connectionLineType={settings.edge === "bezier" ? ConnectionLineType.Bezier : settings.edge === "step" ? ConnectionLineType.Step : settings.edge === "straight" ? ConnectionLineType.Straight : ConnectionLineType.SmoothStep} onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={isValidConnection}
           onNodeClick={onNodeClick} onPaneClick={onPaneClick} onMoveEnd={persist} onDelete={onDelete}
           defaultViewport={saved?.viewport ?? undefined} fitView={!saved?.viewport} fitViewOptions={{ padding: 0.25 }}
           minZoom={0.15} maxZoom={2.5} zoomOnDoubleClick={false} deleteKeyCode={["Backspace", "Delete"]}
@@ -509,12 +595,19 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
             {!phone && toolbar}
           </Panel>
           {phone && <Panel position="bottom-center" className="cv-panel cv-dock">{toolbar}</Panel>}
-          <Panel position="top-right" className="cv-panel">
+          <Panel position="top-right" className="cv-panel cv-right">
+            {!phone && extraBtns}
             <button type="button" className="cv-fit" onClick={() => setFull((f) => !f)} aria-pressed={full} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen (Esc)" : "Full screen"}>
               {full ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
           </Panel>
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} />
+          {guides && (
+            <ViewportPortal>
+              {guides.x.map((x) => <div key={`gx${x}`} className="cv-guide" style={{ left: x, top: -20000, width: 0, height: 40000, borderLeft: "1px dashed #c00707" }} />)}
+              {guides.y.map((y) => <div key={`gy${y}`} className="cv-guide" style={{ top: y, left: -20000, height: 0, width: 40000, borderTop: "1px dashed #c00707" }} />)}
+            </ViewportPortal>
+          )}
           <Controls showInteractive={false} position="bottom-left" />
           {nodes.length > 0 && <MiniMap pannable zoomable position="bottom-right" className="cv-minimap" nodeColor="#8a857e" nodeStrokeWidth={0} />}
           {hint && !phone && nodes.length > 0 && <Panel position="bottom-center" className="cv-hint">Double-tap a node to zoom in on it</Panel>}
@@ -568,6 +661,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
           <ModelPicker models={models} value={modelOf(askNode.data)} onClose={() => setAsk(null)}
             onPick={(id) => { patchNode(askNode.id, { model: id }); try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {} setAsk(null); }} />
         )}
+        {showSettings && <SettingsModal settings={settings} onChange={changeSettings} onClose={() => setShowSettings(false)} />}
         {notice && (
           <div className="cv-notice" role="alert">
             <span>{notice}</span>

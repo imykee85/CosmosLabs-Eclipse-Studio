@@ -40,7 +40,7 @@ test("the new nodes: Image, Video, Character sheet and Video generator", async (
   assert.equal(portFor("clip", "generator"), null, "a clip never goes into an image generator");
   assert.equal(portFor("videogen", "videogen"), "clips");
   assert.ok(!inPortsOf("sheet").some((p) => p.id === "scene"));
-  assert.deepEqual(inPortsOf("videogen").map((p) => p.id), ["description", "start", "ingredients", "clips"]);
+  assert.deepEqual(inPortsOf("videogen").map((p) => p.id), ["description", "start", "ingredients", "clips", "sounds"]);
   assert.equal(accepts("character", "start"), true);
   assert.equal(accepts("text", "clips"), false);
   const nodes = [

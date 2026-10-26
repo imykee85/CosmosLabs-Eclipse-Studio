@@ -4,10 +4,10 @@ import GrowArea from "@/components/GrowArea";
 import AgentIcon from "@/components/AgentIcon";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { ArrowUp, Check, Clapperboard, ChevronDown, Coins, Film, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shirt, Sprout, StickyNote, Trash2, Type, User, Volume2, VolumeX, Wand2, X } from "lucide-react";
+import { ArrowUp, AudioLines, Check, Clapperboard, ChevronDown, Coins, Film, ListOrdered, MessageSquareText, Music2, Mic, ZoomIn, Eraser, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shirt, Sprout, StickyNote, Trash2, Type, User, Volume2, VolumeX, Wand2, X } from "lucide-react";
 import { AUTO } from "@/components/create/ModelPicker";
 import { refFileUrl, STYLES, type CanvasNodeData, type CNode, type NodeKind } from "@/lib/canvas";
-import { composePrompt, inPortsOf, inputsOf, isGen, outLabelOf, OUT_HANDLE, picturesOf, takesInputs, TITLES } from "@/lib/canvas-flow";
+import { composePrompt, inPortsOf, inputsOf, isGen, MAX_LIST, outLabelOf, OUT_HANDLE, picturesOf, takesInputs, TITLES, type Input } from "@/lib/canvas-flow";
 import { DEFAULT_VIDEO_MODEL, VIDEO_MODELS, capsFor, isLive, videoModelById, videoPrice, workflowFor } from "@/lib/video-models";
 import { refreshCredits } from "@/lib/use-credits";
 import { imageCost, MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
@@ -17,24 +17,27 @@ import { useAgent } from "@/lib/use-agent";
 import { useModels } from "@/lib/use-models";
 import { useCanvas } from "./CanvasContext";
 
-const ICONS: Record<NodeKind, React.ReactNode> = {
+export const ICONS: Record<NodeKind, React.ReactNode> = {
   character: <User size={15} />, product: <Package size={15} />, scene: <Mountain size={15} />, text: <Type size={15} />, style: <Palette size={15} />,
   note: <StickyNote size={15} />, fullbody: <PersonStanding size={15} />, generator: <ImageIcon size={15} />,
   sheet: <Shirt size={15} />, image: <ImageIcon size={15} />, clip: <Film size={15} />, videogen: <Clapperboard size={15} />,
+  assistant: <MessageSquareText size={15} />, voiceover: <Mic size={15} />, sfx: <AudioLines size={15} />, music: <Music2 size={15} />, editor: <Eraser size={15} />, upscaler: <ZoomIn size={15} />, list: <ListOrdered size={15} />, group: <Layers size={15} />,
 };
-const BIG: Record<NodeKind, React.ReactNode> = {
+export const BIG: Record<NodeKind, React.ReactNode> = {
   character: <User size={34} strokeWidth={1.3} />, product: <Package size={34} strokeWidth={1.3} />, scene: <Mountain size={34} strokeWidth={1.3} />, text: <Type size={34} strokeWidth={1.3} />, style: <Palette size={34} strokeWidth={1.3} />,
   note: <StickyNote size={34} strokeWidth={1.3} />, fullbody: <Wand2 size={34} strokeWidth={1.3} />, generator: <Wand2 size={34} strokeWidth={1.3} />,
   sheet: <Shirt size={34} strokeWidth={1.3} />, image: <ImageIcon size={34} strokeWidth={1.3} />, clip: <Film size={34} strokeWidth={1.3} />, videogen: <Clapperboard size={34} strokeWidth={1.3} />,
+  assistant: <MessageSquareText size={34} strokeWidth={1.3} />, voiceover: <Mic size={34} strokeWidth={1.3} />, sfx: <AudioLines size={34} strokeWidth={1.3} />, music: <Music2 size={34} strokeWidth={1.3} />,
+  editor: <Eraser size={34} strokeWidth={1.3} />, upscaler: <ZoomIn size={34} strokeWidth={1.3} />, list: <ListOrdered size={34} strokeWidth={1.3} />, group: <Layers size={34} strokeWidth={1.3} />,
 };
 
 // Ports sit on the edges of the display card, first one near the top, evenly spaced; their labels show when the node is selected.
 const PORT_TOP = 40, PORT_STEP = 30;
 
 // A node: its title above, a big display card (what it holds or made), its controls underneath. Ports sit on the display card's edges.
-function Shell({ id, kind, selected, className = "", display, controls, cardStyle }: { id: string; kind: NodeKind; selected?: boolean; className?: string; display: React.ReactNode; controls?: React.ReactNode; cardStyle?: React.CSSProperties }) {
+export function Shell({ id, kind, selected, className = "", display, controls, cardStyle }: { id: string; kind: NodeKind; selected?: boolean; className?: string; display: React.ReactNode; controls?: React.ReactNode; cardStyle?: React.CSSProperties }) {
   const { deleteElements } = useReactFlow();
-  const { focus, addAfter, addBefore } = useCanvas();
+  const { focus, addAfter, addBefore, comments, openComments } = useCanvas();
   const edges = useEdges();
   const title = TITLES[kind];
   const ins = inPortsOf(kind);
@@ -46,6 +49,7 @@ function Shell({ id, kind, selected, className = "", display, controls, cardStyl
       <header className="cv-n-title">
         <span>{title}</span>
         <span className="cv-head-btns nodrag">
+          {(comments[id] ?? 0) > 0 && <button type="button" className="cv-cbadge" aria-label={`${comments[id]} open ${comments[id] === 1 ? "comment" : "comments"} on ${title}`} title="Open comments" onClick={() => openComments(id)}><MessageSquareText size={12} />{comments[id]}</button>}
           <button type="button" aria-label={`Zoom to ${title}`} title="Zoom to this node" onClick={() => focus(id)}><Maximize2 size={12} /></button>
           <button type="button" className="cv-del" aria-label={`Delete ${title}`} title="Delete this node (you can undo)" onClick={() => deleteElements({ nodes: [{ id }] })}><Trash2 size={12} /></button>
         </span>
@@ -198,8 +202,14 @@ function StyleNode({ id, data, selected }: NodeProps<CNode>) {
   );
 }
 
+/** The lines of the longest List plugged into a node (a generator runs once per line). */
+export function listItems(inputs: Input[]): string[] {
+  const lists = inputs.filter((i) => i.list?.length).map((i) => i.list!);
+  return (lists.sort((a, b) => b.length - a.length)[0] ?? []).slice(0, MAX_LIST);
+}
+
 // One finished image of a generator. A render that was deleted since (or cannot be read) shows a quiet "removed" tile instead of a broken picture.
-function Result({ gid, ratio, on, onPick, onOpen, small }: { gid: string; ratio: string; on: boolean; onPick?: () => void; onOpen: () => void; small?: boolean }) {
+export function Result({ gid, ratio, on, onPick, onOpen, small }: { gid: string; ratio: string; on: boolean; onPick?: () => void; onOpen: () => void; small?: boolean }) {
   const [gone, setGone] = useState(false);
   return (
     <div className={`cv-res ${small ? "is-small" : ""} ${on ? "is-on" : ""}`} style={{ aspectRatio: (ratio === "auto" ? "1:1" : ratio).replace(":", " / ") }}>
@@ -311,10 +321,40 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [pendingKey, id, updateNodeData]);
 
-  const canGo = !!composed.trim() && !!model && !busy && !submitting && !needsRef && !tooMany && waiting.length === 0 && tierOk;
+  const items = listItems(inputs);
+  const canGo = (!!composed.trim() || items.length > 0) && !!model && !busy && !submitting && !needsRef && !tooMany && waiting.length === 0 && tierOk;
+
+  // A List plugged in makes this node run once per item (after the person confirms how many images that is and what it costs).
+  async function runList() {
+    if (!model) return;
+    const total = items.length * qty;
+    const each = modelId !== AUTO ? imageCost(model ?? undefined, model?.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, qty) : null;
+    if (!window.confirm(`This runs ${items.length} times and makes ${total} ${total === 1 ? "image" : "images"}${each != null ? `, about ${creditsText(each * items.length)}` : ""}. Start?`)) return;
+    setSubmitting(true);
+    updateNodeData(id, { error: undefined, note: undefined });
+    const ids: string[] = [];
+    let problem = "";
+    let firstSeedSeen: number | undefined;
+    try {
+      for (const item of items) {
+        const prompt = composePrompt(kind, [data.prompt ?? "", item].filter((x) => x.trim()).join(". "), inputs, pics, Number.POSITIVE_INFINITY);
+        const { results, seed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt, ratio, tier, qty, refs: refList, seedOn, seedNum: seedNum ?? firstSeedSeen ?? null, projectId: readCurrentProject()?.id });
+        if (seed != null && firstSeedSeen == null) firstSeedSeen = seed;
+        ids.push(...results.filter((r) => r.ok && r.id).map((r) => r.id!));
+        const bad = results.find((r) => !r.ok);
+        if (bad) { problem = bad.error; if (!results.some((r) => r.ok)) break; }
+      }
+      if (!ids.length) throw new Error(problem || "Something went wrong. Please try again.");
+      updateNodeData(id, { pending: ids, gens: data.keep ? gens : [], pick: data.keep ? data.pick : undefined, error: problem ? `Some items could not be started: ${problem}` : undefined });
+    } catch (e) {
+      if (ids.length) updateNodeData(id, { pending: ids, gens: data.keep ? gens : [], error: e instanceof Error ? e.message : undefined });
+      else updateNodeData(id, { error: e instanceof Error ? e.message : "Something went wrong. Please try again." });
+    } finally { setSubmitting(false); }
+  }
 
   async function run() {
     if (!canGo || !model) return;
+    if (items.length) { await runList(); return; }
     setSubmitting(true);
     updateNodeData(id, { error: undefined, note: undefined });
     try {
@@ -406,6 +446,12 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
                 onClick={() => { if (!agent.agent) { if (agentChip.current) ask({ kind: "agent", anchor: agentChip.current.getBoundingClientRect() }); return; } agent.setOn(!agent.on); }}><i /></button>
             </span>
           </div>
+          {items.length > 0 && (
+            <div className="cv-controls nodrag">
+              <span className="cv-chip" title="A List is plugged in: this node runs once per item"><ListOrdered size={13} /> {items.length} {items.length === 1 ? "item" : "items"}</span>
+              <button type="button" className={`cv-chip ${data.keep ? "is-on" : ""}`} aria-pressed={!!data.keep} title={data.keep ? "New results are added to the earlier ones" : "New results replace the earlier ones"} onClick={() => updateNodeData(id, { keep: !data.keep })}>{data.keep ? "Keep earlier results" : "Replace earlier results"}</button>
+            </div>
+          )}
           <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={run}>
             {submitting ? <><Loader2 size={15} className="cv-spin" /> Generating</> : busy ? <><Loader2 size={15} className="cv-spin" /> Creating {pending.length === 1 ? "your image" : `${pending.length} images`}</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><Coins size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
           </button>
@@ -430,7 +476,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
           {needsRef && <p className="cv-nhint">{model?.label} edits a picture. Choose one with Ingredients, or plug in a node that gives a picture.</p>}
           {tooMany && model && <p className="cv-error" role="alert">{model.label} takes up to {model.maxReferences} {model.maxReferences === 1 ? "ingredient" : "ingredients"}; {pics.length} are plugged in or chosen.{model.maxReferences === 0 ? " Choose a model that uses pictures, or remove them." : ""}</p>}
           {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
-          {!composed.trim() && !busy && <p className="cv-nhint">Write a prompt here or plug in a text prompt to begin.</p>}
+          {!composed.trim() && !items.length && !busy && <p className="cv-nhint">Write a prompt here or plug in a text prompt to begin.</p>}
           {data.error && <p className="cv-error" role="alert">{data.error}</p>}
         </>
       } />
@@ -454,9 +500,11 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
   const start = inputs.find((i) => i.port === "start" && i.pic)?.pic ?? null;
   const refPics = picturesOf(inputs.filter((i) => i.port === "ingredients"));
   const clips = inputs.filter((i) => i.port === "clips" && i.clip).map((i) => i.clip!);
+  const sounds = inputs.filter((i) => i.port === "sounds" && i.audio).map((i) => i.audio!);
+  const items = listItems(inputs).slice(0, 10);
   const waiting = inputs.filter((i) => i.fromResult && !i.ready);
   const model = videoModelById(data.model ?? "") ?? videoModelById(DEFAULT_VIDEO_MODEL) ?? LIVE_VIDEO[0];
-  const wf = workflowFor(model, !!start, refPics.length > 0 || clips.length > 0);
+  const wf = workflowFor(model, !!start, refPics.length > 0 || clips.length > 0 || sounds.length > 0);
   const caps = capsFor(model, wf);
   const duration = data.duration && caps.durations.includes(data.duration) ? data.duration : caps.defaultDuration;
   const ratio = caps.ratios.length ? (data.ratio && caps.ratios.includes(data.ratio) ? data.ratio : caps.defaultRatio) : "";
@@ -470,10 +518,10 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
   const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState<{ creditsOn?: boolean; direct?: string[] } | null>(null);
   useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => c && setConfig(c)).catch(() => {}); }, []);
-  const tooManyRefs = refPics.length > caps.refMax || clips.length > caps.refVideoMax;
+  const tooManyRefs = refPics.length > caps.refMax || clips.length > caps.refVideoMax || sounds.length > caps.refAudioMax;
   const startUnusable = !!start && !model.startFrame;
   const price = config?.creditsOn ? videoPrice(model, quality || undefined, duration, sound, config?.direct?.includes(model.id) ? "direct" : "higgsfield") : null;
-  const canGo = isLive(model) && (!!prompt || !caps.promptRequired) && !busy && !submitting && waiting.length === 0 && !tooManyRefs && !startUnusable;
+  const canGo = isLive(model) && (!!prompt || items.length > 0 || !caps.promptRequired) && !busy && !submitting && waiting.length === 0 && !tooManyRefs && !startUnusable;
 
   // A running video is followed through its status route until it is done (it keeps rendering on the server if you leave).
   const pendingKey = pending.join(",");
@@ -507,30 +555,54 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [pendingKey, id, updateNodeData]);
 
+  // Starts one video; returns its id, or what went wrong (a price that needs confirming comes back as `needsConfirm`).
+  async function startOne(promptText: string, confirm: boolean): Promise<{ id?: string; needsConfirm?: number; error?: string }> {
+    const res = await fetch("/api/video", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: promptText, model: model.id, duration, projectId: readCurrentProject()?.id ?? undefined,
+        resolution: quality || undefined, aspectRatio: ratio || undefined, audio: caps.audio ? sound : undefined,
+        start: start ? { type: start.type, id: start.id } : undefined,
+        refs: !start && refPics.length ? refPics.map((p) => ({ type: p.pic.type, id: p.pic.id })) : undefined,
+        videoRefs: !start && clips.length ? clips.map((c) => ({ id: c.id })) : undefined,
+        audioRefs: !start && sounds.length ? sounds.map((a) => ({ id: a.id })) : undefined,
+        confirm: confirm || undefined,
+      }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (res.status === 409 && d.needsConfirm) return { needsConfirm: d.cost };
+    if (!res.ok || typeof d.id !== "string") return { error: typeof d.error === "string" ? d.error : "Could not start the video. Please try again." };
+    return { id: d.id };
+  }
+
   async function run(confirm = false): Promise<void> {
     if (!canGo) return;
     setSubmitting(true);
     updateNodeData(id, { error: undefined });
     try {
-      const res = await fetch("/api/video", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt, model: model.id, duration, projectId: readCurrentProject()?.id ?? undefined,
-          resolution: quality || undefined, aspectRatio: ratio || undefined, audio: caps.audio ? sound : undefined,
-          start: start ? { type: start.type, id: start.id } : undefined,
-          refs: !start && refPics.length ? refPics.map((p) => ({ type: p.pic.type, id: p.pic.id })) : undefined,
-          videoRefs: !start && clips.length ? clips.map((c) => ({ id: c.id })) : undefined,
-          confirm: confirm || undefined,
-        }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (res.status === 409 && d.needsConfirm) {
-        setSubmitting(false);
-        if (window.confirm(`This video costs ${fmtCredits(d.cost)} credits. Start it?`)) return run(true);
+      if (items.length) {
+        // A List is plugged in: one video per item, after confirming how many. A price that needs its own confirmation stops the run (start one video first).
+        const each = price;
+        if (!window.confirm(`This makes ${items.length} videos${each != null ? `, about ${creditsText(each * items.length)}` : ""}. Start?`)) return;
+        const ids: string[] = [];
+        let problem = "";
+        for (const item of items) {
+          const r = await startOne([own, item, ...inputs.filter((i) => i.port === "description" && i.text).map((i) => i.text!)].filter(Boolean).join(". ").slice(0, caps.promptMax), false);
+          if (r.id) ids.push(r.id); else { problem = r.needsConfirm != null ? `This video costs ${fmtCredits(r.needsConfirm)} credits and needs your confirmation. Make one video on its own first.` : r.error ?? ""; break; }
+        }
+        if (ids.length) updateNodeData(id, { pending: [...pending, ...ids], gens: data.keep ? gens : [], pick: data.keep ? data.pick : undefined, error: problem || undefined });
+        else updateNodeData(id, { error: problem || "Could not start the videos." });
+        refreshCredits();
         return;
       }
-      if (!res.ok || typeof d.id !== "string") throw new Error(typeof d.error === "string" ? d.error : "Could not start the video. Please try again.");
-      updateNodeData(id, { pending: [...pending, d.id] });
+      const r = await startOne(prompt, confirm);
+      if (r.needsConfirm != null) {
+        setSubmitting(false);
+        if (window.confirm(`This video costs ${fmtCredits(r.needsConfirm)} credits. Start it?`)) return run(true);
+        return;
+      }
+      if (!r.id) throw new Error(r.error);
+      updateNodeData(id, { pending: [...pending, r.id] });
       refreshCredits();
     } catch (e) { updateNodeData(id, { error: e instanceof Error ? e.message : "Could not start the video." }); }
     finally { setSubmitting(false); }
@@ -588,9 +660,15 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
             {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Making your video</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><Coins size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
           </button>
           {startUnusable && <p className="cv-nhint">{model.label} can&rsquo;t take a start frame. Choose another model or unplug the picture.</p>}
-          {tooManyRefs && <p className="cv-error" role="alert">{model.label} takes up to {caps.refMax} reference {caps.refMax === 1 ? "picture" : "pictures"} and {caps.refVideoMax} {caps.refVideoMax === 1 ? "clip" : "clips"}.</p>}
-          {start && (refPics.length > 0 || clips.length > 0) && <p className="cv-nhint">With a start frame, the Ingredients and Clips are not sent.</p>}
+          {tooManyRefs && <p className="cv-error" role="alert">{model.label} takes up to {caps.refMax} reference {caps.refMax === 1 ? "picture" : "pictures"}, {caps.refVideoMax} {caps.refVideoMax === 1 ? "clip" : "clips"} and {caps.refAudioMax} {caps.refAudioMax === 1 ? "sound" : "sounds"}.</p>}
+          {start && (refPics.length > 0 || clips.length > 0 || sounds.length > 0) && <p className="cv-nhint">With a start frame, the Ingredients, Clips and Sounds are not sent.</p>}
           {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
+          {items.length > 0 && (
+            <div className="cv-controls nodrag">
+              <span className="cv-chip" title="A List is plugged in: one video per item"><ListOrdered size={13} /> {items.length} {items.length === 1 ? "item" : "items"}</span>
+              <button type="button" className={`cv-chip ${data.keep ? "is-on" : ""}`} aria-pressed={!!data.keep} onClick={() => updateNodeData(id, { keep: !data.keep })}>{data.keep ? "Keep earlier results" : "Replace earlier results"}</button>
+            </div>
+          )}
           {picked && <button type="button" className="cv-ctl nodrag" onClick={() => ask({ kind: "details", genId: picked })}>Details</button>}
           {data.error && <p className="cv-error" role="alert">{data.error}</p>}
         </>

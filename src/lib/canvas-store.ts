@@ -1,7 +1,7 @@
 import type { Edge } from "@xyflow/react";
 import { clerkEnabled } from "./clerk-enabled";
 import { migrateNode, newNode, type CNode, type SavedCanvas } from "./canvas";
-import { isGen, makeEdge, migrateEdges, outputOf } from "./canvas-flow";
+import { makesPicture, makeEdge, migrateEdges, outputOf } from "./canvas-flow";
 
 // The canvas library of one project. Signed in: the account holds the canvases (so they follow you across devices) and this browser keeps a copy of each
 // that is used when the account cannot be reached; a copy that could not be sent is marked and wins on the next open. Demo mode (no sign-in): browser only.
@@ -35,7 +35,7 @@ function normalize(d: unknown): CanvasDoc | null {
 // What is saved of a graph: layout, wiring and everything typed or chosen; running work is kept so it can be picked up again.
 function payloadOf(nodes: CNode[], edges: Edge[], viewport?: CanvasDoc["viewport"]): CanvasDoc {
   return {
-    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data } })),
+    nodes: nodes.map(({ id, type, position, data, width, height, zIndex }) => ({ id, type, position, ...(type === "group" ? { width, height, zIndex } : {}), data: { ...data } })),
     edges: edges.map(({ id, source, sourceHandle, target, targetHandle }) => ({ id, source, sourceHandle, target, targetHandle })),
     viewport: viewport ?? null,
   };
@@ -43,7 +43,7 @@ function payloadOf(nodes: CNode[], edges: Edge[], viewport?: CanvasDoc["viewport
 
 // The render shown on a canvas's library card: the first generator's picture that has been made.
 export function thumbOf(nodes: CNode[]): string | null {
-  for (const n of nodes) if (isGen(n.type)) { const id = outputOf(n); if (id) return id; }
+  for (const n of nodes) if (makesPicture(n.type)) { const id = outputOf(n); if (id) return id; }
   return null;
 }
 
