@@ -73,6 +73,121 @@ test.describe("Canvas on desktop", () => {
     await expect(page.locator(".react-flow__node")).toHaveCount(0);
   });
 
+  test("the wrapper nodes, List and Group can all be added", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    for (const label of ["Assistant", "Image editor", "Upscaler", "List", "Voiceover", "Sound effects", "Music"]) await addFromPanel(page, `^${label}$`);
+    await expect(page.locator(".react-flow__node")).toHaveCount(7);
+    for (const title of ["Assistant", "Image editor", "Upscaler", "List", "Voiceover", "Sound effects", "Music"]) await expect(page.locator(".cv-n-title", { hasText: new RegExp(`^${title}`) }).first()).toBeVisible();
+  });
+
+  test("the Assistant writes text from an instruction and shows it", async ({ page }) => {
+    await seed(page);
+    let sent: { instruction?: string } = {};
+    await page.route("**/api/canvas/assistant", async (r) => { sent = r.request().postDataJSON(); await r.fulfill({ json: { text: "A short, punchy ad script." } }); });
+    await openNewCanvas(page);
+    await addFromPanel(page, "^Assistant$");
+    await page.getByLabel("Instruction").fill("Write a 10 second ad");
+    await page.getByRole("button", { name: /^Run/ }).click();
+    await expect(page.getByLabel("Assistant result")).toHaveValue("A short, punchy ad script.");
+    expect(sent.instruction).toBe("Write a 10 second ad");
+  });
+
+  test("a List fans an image generator out: one run per line, after a confirmation", async ({ page }) => {
+    await seed(page);
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [{ id: "m", label: "Model", blurb: "x", ratios: ["1:1"], resolutions: [], maxBatch: 4, maxPrompt: 2000, verified: true, autoPick: true, seed: { supported: false }, maxReferences: 0, requiresReference: false, credits: null, prices: null, batch: 1 }] } }));
+    const prompts: string[] = [];
+    let n = 0;
+    await page.route("**/api/generate", async (r) => { prompts.push(r.request().postDataJSON().prompt); await r.fulfill({ json: { id: `g${++n}` } }); });
+    await page.route("**/api/generations/**", (r) => r.fulfill({ json: { status: "completed" } }));
+    await openNewCanvas(page);
+    await addFromPanel(page, "Image generator");
+    await page.getByRole("button", { name: "Add a node that feeds Image generator" }).click();
+    await page.getByRole("menuitem", { name: /List/ }).click();
+    await expect(page.locator(".react-flow__node")).toHaveCount(2);
+    await page.getByLabel("List items").fill("red dress\nblue suit");
+    await page.getByLabel("Prompt", { exact: true }).fill("Studio photo of a");
+    await expect(page.locator(".cv-chip", { hasText: "2 items" })).toBeVisible();
+    page.once("dialog", (d) => { expect(d.message()).toContain("2 times"); void d.accept(); });
+    await page.getByRole("button", { name: /^Generate/ }).click();
+    await expect.poll(() => prompts.length).toBe(2);
+    expect(prompts[0]).toContain("Studio photo of a. red dress");
+    expect(prompts[1]).toContain("Studio photo of a. blue suit");
+  });
+
+  test("a node dragged with helper lines on still moves", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    await addFromPanel(page, "Text prompt");
+    const node = page.locator(".react-flow__node").first();
+    // zoom out a little so the node's title is clear of the toolbar
+    await page.mouse.move(1000, 560);
+    await page.mouse.wheel(0, 500);
+    await page.waitForTimeout(300);
+    const before = await node.boundingBox();
+    const title = node.locator(".cv-n-title");
+    const t = (await title.boundingBox())!;
+    await page.mouse.move(t.x + 20, t.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(t.x + 160, t.y + 90, { steps: 6 });
+    await page.mouse.up();
+    const after = await node.boundingBox();
+    expect(Math.abs(after!.x - before!.x)).toBeGreaterThan(80);
+    expect(Math.abs(after!.y - before!.y)).toBeGreaterThan(40);
+  });
+
+  test("grouping selected nodes draws a titled frame behind them, which can be renamed and recoloured", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    await addFromPanel(page, "Text prompt");
+    await addFromPanel(page, "Character");
+    await page.keyboard.press("v");
+    const pane = await page.locator(".react-flow__pane").boundingBox();
+    await page.mouse.move(pane!.x + 4, pane!.y + 120);
+    await page.mouse.down();
+    await page.mouse.move(pane!.x + pane!.width - 4, pane!.y + pane!.height - 4, { steps: 8 });
+    await page.mouse.up();
+    await page.getByRole("button", { name: "Group the selected nodes" }).click();
+    await expect(page.locator(".react-flow__node-group")).toHaveCount(1);
+    await page.getByLabel("Group name").fill("Hero shot");
+    await expect(page.getByLabel("Group name")).toHaveValue("Hero shot");
+    await page.getByRole("button", { name: "Colour green" }).click();
+    await expect(page.getByRole("button", { name: "Colour green" })).toHaveClass(/is-on/);
+  });
+
+  test("settings: wire style, mouse wheel and the shortcut list; the choice is remembered", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    await page.getByRole("button", { name: "Canvas settings" }).click();
+    const modal = page.getByRole("dialog", { name: "Canvas settings" });
+    await expect(modal).toBeVisible();
+    await expect(modal.getByText("Open the node list")).toBeVisible();
+    await modal.getByLabel("Wire style").selectOption("step");
+    await modal.getByLabel("Mouse wheel").selectOption("pan");
+    await modal.getByLabel("Helper lines").click();
+    await page.keyboard.press("Escape");
+    await expect(modal).toHaveCount(0);
+    await page.reload();
+    await page.getByRole("button", { name: "Canvas settings" }).click();
+    await expect(page.getByLabel("Wire style")).toHaveValue("step");
+    await expect(page.getByLabel("Mouse wheel")).toHaveValue("pan");
+    await expect(page.getByLabel("Helper lines")).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("share and comments say they need an account in preview mode; templates still save in this browser", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    await page.getByRole("button", { name: /^Share/ }).click();
+    await expect(page.getByText("Sharing needs an account")).toBeVisible();
+    await page.getByRole("button", { name: /^Comments/ }).click();
+    await expect(page.getByText("Comments need an account")).toBeVisible();
+    await addFromPanel(page, "Text prompt");
+    await page.getByRole("button", { name: /Templates/ }).click();
+    await page.getByLabel("Template name").fill("My ad");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByText("My ad")).toBeVisible();
+  });
+
   test("the board is kept after a reload", async ({ page }) => {
     await seed(page);
     await openNewCanvas(page);
@@ -103,7 +218,7 @@ test.describe("Canvas on a phone", () => {
     await expect(sheet).toBeVisible();
     const sb = await sheet.boundingBox();
     expect(sb && sb.width >= 500 && sb.x <= 1).toBeTruthy(); // a full-width bottom sheet
-    await page.getByLabel("Search nodes").fill("text");
+    await page.getByLabel("Search nodes").fill("text prompt");
     await expect(page.locator(".cv-tile")).toHaveCount(1);
     await page.getByRole("button", { name: /Text prompt/i }).first().tap();
     await expect(page.locator(".react-flow__node")).toHaveCount(1);

@@ -16,7 +16,9 @@ type Ctx = {
   ask: (r: AskRequest) => void;
   addAfter: (id: string, anchor: DOMRect) => void;              // the + on a node's output: add the next node, already connected
   addBefore: (id: string, anchor: DOMRect) => void;             // the + on a generator's input: add a node that feeds it
+  comments: Record<string, number>;                             // open comments per node
+  openComments: (nodeId: string) => void;                       // the comments panel, on that node
 };
 
-export const CanvasCtx = createContext<Ctx>({ focus: () => {}, ask: () => {}, addAfter: () => {}, addBefore: () => {} });
+export const CanvasCtx = createContext<Ctx>({ focus: () => {}, ask: () => {}, addAfter: () => {}, addBefore: () => {}, comments: {}, openComments: () => {} });
 export const useCanvas = () => useContext(CanvasCtx);

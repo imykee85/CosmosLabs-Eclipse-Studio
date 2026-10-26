@@ -104,9 +104,49 @@ model Canvas {
   deletedAt DateTime? @map("deleted_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
+  comments  CanvasComment[]
+  share     CanvasShare?
 
   @@index([userId, projectId, deletedAt])
   @@map("canvases")
+}
+
+// The read-only link of a canvas: anyone with the token can look at it while this row exists (its own table so no existing table needs a new unique column).
+model CanvasShare {
+  canvasId  String   @id @map("canvas_id")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  canvas    Canvas   @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+
+  @@map("canvas_shares")
+}
+
+// A note on a canvas, optionally pinned to one node. userId is the person who wrote it (the canvas itself belongs to a workspace).
+model CanvasComment {
+  id         String   @id @default(cuid())
+  canvasId   String   @map("canvas_id")
+  userId     String   @map("user_id")
+  authorName String   @map("author_name")
+  nodeId     String?  @map("node_id")
+  text       String
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+  canvas     Canvas   @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+
+  @@index([canvasId])
+  @@map("canvas_comments")
+}
+
+// A canvas saved as a template, kept in the workspace so it follows the person across devices (and is shared with a team).
+model CanvasTemplate {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("canvas_templates")
 }
 
 // Append-only credit ledger. A user's balance is the sum of delta; credits live here, never in the payment provider.

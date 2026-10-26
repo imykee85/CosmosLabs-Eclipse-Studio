@@ -2,7 +2,8 @@ import type { Edge, Node } from "@xyflow/react";
 import { makeEdge, migrateEdges, type PortId } from "./canvas-flow";
 
 // Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
-export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator" | "sheet" | "image" | "clip" | "videogen";
+export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator" | "sheet" | "image" | "clip" | "videogen"
+  | "assistant" | "voiceover" | "sfx" | "music" | "editor" | "upscaler" | "list" | "group";
 
 export type PicRef = { type: "upload" | "render"; id: string; label: string };
 
@@ -29,6 +30,18 @@ export type CanvasNodeData = {
   pick?: string;      // which finished render this node hands to the next one (the first by default)
   note?: string;
   error?: string;
+  // Wrapper nodes (Assistant, Voiceover, Sound effects, Music, Image editor, Upscaler), the List node and groups.
+  instruction?: string; // assistant: what to do with the text that is wired in
+  voice?: string;       // voiceover: the voice id
+  voiceName?: string;
+  amodel?: string;      // voiceover, sound effects, music: an audio model id
+  seconds?: number;     // sound effects and music: length (0 or unset = the model decides)
+  instrumental?: boolean; // music
+  keep?: boolean;       // generators fed by a List: keep the earlier results instead of replacing them
+  title?: string;       // group: its title
+  color?: string;       // group: its colour name
+  option?: string;      // upscaler and image editor: unused for now
+
   // Older saves: one render at a time. Read once and turned into the fields above by migrateNode.
   busy?: boolean;
   pendingId?: string;
@@ -43,6 +56,17 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
   { title: "Generators", items: [
     { id: "generator", kind: "generator", label: "Image generator", blurb: "Turns the wired-in nodes into a picture" },
     { id: "video", kind: "videogen", label: "Video generator", blurb: "Turns a picture into motion" },
+  ] },
+  { title: "Tools", items: [
+    { id: "assistant", kind: "assistant", label: "Assistant", blurb: "Writes or rewrites text for you" },
+    { id: "editor", kind: "editor", label: "Image editor", blurb: "Changes a picture from an instruction" },
+    { id: "upscaler", kind: "upscaler", label: "Upscaler", blurb: "Makes a picture sharper and larger" },
+    { id: "list", kind: "list", label: "List", blurb: "Run a generator once per line" },
+  ] },
+  { title: "Audio", items: [
+    { id: "voiceover", kind: "voiceover", label: "Voiceover", blurb: "Speaks your text in a voice" },
+    { id: "sfx", kind: "sfx", label: "Sound effects", blurb: "A sound made from a description" },
+    { id: "music", kind: "music", label: "Music", blurb: "A piece of music from a description" },
   ] },
   { title: "Input", items: [
     { id: "character", kind: "character", label: "Character", blurb: "Who is in it" },
@@ -62,12 +86,15 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
   ] },
 ];
 
+export const GROUP_COLORS: Record<string, string> = { slate: "#8a857e", red: "#c00707", amber: "#d9822b", green: "#3f9a5a", blue: "#3b82c4", violet: "#8b5cf6" };
+
 export const STYLES = ["None", "Editorial", "Cinematic", "Minimal studio", "Film grain", "Golden hour", "Luxury product"];
 
 const uid = () => `n-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 export function newNode(kind: NodeKind, position: { x: number; y: number }, data: CanvasNodeData = {}): CNode {
   const base: CanvasNodeData = kind === "generator" || kind === "fullbody" || kind === "sheet" ? { ratio: kind === "fullbody" ? "9:16" : kind === "sheet" ? "16:9" : "4:5" } : kind === "videogen" ? { ratio: "16:9" } : kind === "style" ? { style: "None" } : {};
+  if (kind === "group") return { id: uid(), type: kind, position, width: 480, height: 340, zIndex: -1, data: { title: "Group", color: "slate", ...data } };
   return { id: uid(), type: kind, position, data: { ...base, ...data } };
 }
 
@@ -91,7 +118,7 @@ function starterGraph(): { nodes: CNode[]; edges: Edge[] } {
 }
 
 // Templates: the built-in starter flow plus the user's own, saved in this browser for every project.
-export type CanvasTemplate = { id: string; name: string; nodes: CNode[]; edges: Edge[]; builtIn?: boolean };
+export type CanvasTemplate = { id: string; name: string; nodes: CNode[]; edges: Edge[]; builtIn?: boolean; server?: boolean };
 const TEMPLATES_KEY = "eclipse-canvas-templates";
 
 export function loadTemplates(): CanvasTemplate[] {
@@ -108,12 +135,15 @@ function writeTemplates(list: CanvasTemplate[]) {
 }
 
 // Keep the layout, the wiring and what was typed; leave out results and errors.
-export function saveTemplate(name: string, nodes: CNode[], edges: Edge[]): CanvasTemplate[] {
-  const t: CanvasTemplate = {
-    id: `t-${Date.now().toString(36)}`, name: name.trim().slice(0, 40) || "My template",
-    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data: { ...data, error: undefined, note: undefined, gens: undefined, pending: undefined, pick: undefined } })),
+export function templateGraph(nodes: CNode[], edges: Edge[]): { nodes: CNode[]; edges: Edge[] } {
+  return {
+    nodes: nodes.map(({ id, type, position, data, width, height, zIndex }) => ({ id, type, position, ...(type === "group" ? { width, height, zIndex } : {}), data: { ...data, error: undefined, note: undefined, gens: undefined, pending: undefined, pick: undefined } })),
     edges: edges.map(({ id, source, sourceHandle, target, targetHandle }) => ({ id, source, sourceHandle, target, targetHandle })),
   };
+}
+
+export function saveTemplate(name: string, nodes: CNode[], edges: Edge[]): CanvasTemplate[] {
+  const t: CanvasTemplate = { id: `t-${Date.now().toString(36)}`, name: name.trim().slice(0, 40) || "My template", ...templateGraph(nodes, edges) };
   const list = [...loadTemplates(), t];
   writeTemplates(list);
   return list;
@@ -131,6 +161,7 @@ export function instantiate(t: CanvasTemplate, at: { x: number; y: number }): { 
   const minX = Math.min(...t.nodes.map((n) => n.position.x)), minY = Math.min(...t.nodes.map((n) => n.position.y));
   const nodes = t.nodes.map((n) => {
     const c = newNode(n.type as NodeKind, { x: n.position.x - minX + at.x, y: n.position.y - minY + at.y }, { ...n.data });
+    if (n.type === "group") { c.width = n.width ?? c.width; c.height = n.height ?? c.height; }
     ids.set(n.id, c.id);
     return c;
   });

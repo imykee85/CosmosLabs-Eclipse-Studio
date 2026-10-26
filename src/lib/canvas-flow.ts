@@ -13,9 +13,13 @@ import type { CNode, NodeKind, PicRef } from "./canvas";
 
 export const isGen = (t?: string) => t === "generator" || t === "fullbody" || t === "sheet"; // the image generators
 export const isVideoGen = (t?: string) => t === "videogen";
-export const takesInputs = (t?: string) => isGen(t) || isVideoGen(t);
+export const isEditor = (t?: string) => t === "editor" || t === "upscaler"; // picture tools: one picture in, a new picture out
+export const isAudioNode = (t?: string) => t === "voiceover" || t === "sfx" || t === "music";
+/** Nodes whose finished renders (gens) are pictures. */
+export const makesPicture = (t?: string) => isGen(t) || isEditor(t);
+export const takesInputs = (t?: string) => isGen(t) || isVideoGen(t) || isEditor(t) || isAudioNode(t) || t === "assistant";
 
-export type PortId = "description" | "character" | "product" | "scene" | "style" | "ingredients" | "start" | "clips";
+export type PortId = "description" | "character" | "product" | "scene" | "style" | "ingredients" | "start" | "clips" | "sounds";
 export type PortDef = { id: PortId; label: string; many: boolean };
 
 const PORTS: Record<PortId, PortDef> = {
@@ -27,29 +31,31 @@ const PORTS: Record<PortId, PortDef> = {
   ingredients: { id: "ingredients", label: "Ingredients", many: true },
   start: { id: "start", label: "Start frame", many: false },
   clips: { id: "clips", label: "Clips", many: true },
+  sounds: { id: "sounds", label: "Sounds", many: true },
 };
-const PORT_ORDER: PortId[] = ["description", "start", "character", "product", "scene", "style", "ingredients", "clips"];
+const PORT_ORDER: PortId[] = ["description", "start", "character", "product", "scene", "style", "ingredients", "clips", "sounds"];
 const IMAGE_PORTS: PortId[] = ["description", "character", "product", "scene", "style", "ingredients"];
-const VIDEO_PORTS: PortId[] = ["description", "start", "ingredients", "clips"];
+const VIDEO_PORTS: PortId[] = ["description", "start", "ingredients", "clips", "sounds"];
 
 export const OUT_HANDLE = "out";
 
 // The inputs a generator offers, top to bottom.
-export const inPortsOf = (kind?: string): PortDef[] => (kind === "generator" ? IMAGE_PORTS : kind === "fullbody" || kind === "sheet" ? IMAGE_PORTS.filter((p) => p !== "scene") : kind === "videogen" ? VIDEO_PORTS : []).map((p) => PORTS[p]);
+export const inPortsOf = (kind?: string): PortDef[] => (kind === "editor" ? ["description", "ingredients"] as PortId[] : kind === "upscaler" ? ["ingredients"] as PortId[] : kind === "assistant" || isAudioNode(kind) ? ["description"] as PortId[] : kind === "generator" ? IMAGE_PORTS : kind === "fullbody" || kind === "sheet" ? IMAGE_PORTS.filter((p) => p !== "scene") : kind === "videogen" ? VIDEO_PORTS : []).map((p) => PORTS[p]);
 export const portLabel = (id: string): string => PORTS[id as PortId]?.label ?? id;
 export const isMany = (id: string): boolean => PORTS[id as PortId]?.many ?? true;
 
 // What a node's output is called (null: it has none).
 export const outLabelOf = (kind?: string): string | null =>
   kind === "text" ? "Prompt" : kind === "character" ? "Character" : kind === "product" ? "Product" : kind === "scene" ? "Scene" : kind === "style" ? "Style" : isGen(kind) ? "Result"
-  : kind === "image" ? "Picture" : kind === "clip" ? "Clip" : kind === "videogen" ? "Video" : null;
+  : kind === "image" ? "Picture" : kind === "clip" ? "Clip" : kind === "videogen" ? "Video"
+  : kind === "assistant" ? "Text" : kind === "list" ? "List" : isEditor(kind) ? "Result" : kind === "voiceover" ? "Voice" : kind === "sfx" ? "Sound" : kind === "music" ? "Music" : null;
 
 // The input port a node's output belongs on.
 export const naturalPort = (kind?: string): PortId | null =>
-  kind === "text" ? "description" : kind === "character" ? "character" : kind === "product" ? "product" : kind === "scene" ? "scene" : kind === "style" ? "style" : isGen(kind) || kind === "image" ? "ingredients"
-  : kind === "clip" || kind === "videogen" ? "clips" : null;
+  kind === "text" || kind === "assistant" || kind === "list" ? "description" : kind === "character" ? "character" : kind === "product" ? "product" : kind === "scene" ? "scene" : kind === "style" ? "style" : isGen(kind) || isEditor(kind) || kind === "image" ? "ingredients"
+  : kind === "clip" || kind === "videogen" ? "clips" : isAudioNode(kind) ? "sounds" : null;
 
-const givesPicture = (kind?: string) => kind === "character" || kind === "product" || kind === "scene" || kind === "image" || isGen(kind);
+const givesPicture = (kind?: string) => kind === "character" || kind === "product" || kind === "scene" || kind === "image" || makesPicture(kind);
 const givesClip = (kind?: string) => kind === "clip" || kind === "videogen";
 
 // May an output of `source` kind be plugged into this input port?
@@ -57,6 +63,7 @@ export const accepts = (sourceKind: string | undefined, port: string): boolean =
   if (!sourceKind || sourceKind === "note") return false;
   if (port === "ingredients" || port === "start") return givesPicture(sourceKind);
   if (port === "clips") return givesClip(sourceKind);
+  if (port === "sounds") return isAudioNode(sourceKind);
   return naturalPort(sourceKind) === port;
 };
 
@@ -73,6 +80,7 @@ export const portFor = (sourceKind: string | undefined, targetKind: string | und
 export const TITLES: Record<NodeKind, string> = {
   character: "Character", product: "Product", scene: "Scene", text: "Text prompt", style: "Style", note: "Note", fullbody: "Full-body generator", generator: "Image generator",
   sheet: "Character sheet generator", image: "Image", clip: "Video", videogen: "Video generator",
+  assistant: "Assistant", voiceover: "Voiceover", sfx: "Sound effects", music: "Music", editor: "Image editor", upscaler: "Upscaler", list: "List", group: "Group",
 };
 
 // The picture a generator hands on: the one marked, else its first finished render.
@@ -81,7 +89,7 @@ export const outputOf = (n: CNode): string | null => {
   return n.data.pick && g.includes(n.data.pick) ? n.data.pick : g[0] ?? null;
 };
 
-export type Role = "prompt" | "style" | "character" | "product" | "scene" | "ingredient" | "start" | "clip";
+export type Role = "prompt" | "style" | "character" | "product" | "scene" | "ingredient" | "start" | "clip" | "sound";
 export type Input = {
   nodeId: string;
   kind: NodeKind;
@@ -91,12 +99,19 @@ export type Input = {
   text?: string;       // the prompt, description or style the node gives
   pic?: PicRef;        // the picture the node gives
   clip?: { id: string; label: string; sec?: number | null }; // the clip the node gives (Video node, or a video generator's result)
+  audio?: { id: string; label: string }; // the sound an audio node gives
+  list?: string[];     // the lines of a List node: the generator it feeds runs once per line
   fromResult: boolean; // the picture is another generator's result
   ready: boolean;      // false: the node has nothing to give yet (a generator that has not made an image)
   why?: string;        // plain words for "not ready"
 };
 
-const roleOfPort = (port: PortId): Role => (port === "description" ? "prompt" : port === "ingredients" ? "ingredient" : port === "clips" ? "clip" : port);
+const roleOfPort = (port: PortId): Role => (port === "description" ? "prompt" : port === "ingredients" ? "ingredient" : port === "clips" ? "clip" : port === "sounds" ? "sound" : port);
+
+/** The lines of a List node's text (empty lines dropped). */
+export const listLines = (text?: string): string[] => (text ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 40);
+/** A generator run once per line: the longest list wired in is used, the rest are ignored. */
+export const MAX_LIST = 20;
 
 // The port an edge ends at (older saves have no handle ids: they are read as the source's own port).
 export function targetPortOf(e: Edge, nodes: CNode[]): PortId {
@@ -120,13 +135,15 @@ export function inputsOf(nodes: CNode[], edges: Edge[], generatorId: string): In
     seen.add(`${n.id}:${port}`);
     const d = n.data;
     const title = TITLES[n.type as NodeKind] ?? "Node";
-    const base = { nodeId: n.id, kind: n.type as NodeKind, title, port, role: roleOfPort(port), fromResult: isGen(n.type) || isVideoGen(n.type) };
+    const base = { nodeId: n.id, kind: n.type as NodeKind, title, port, role: roleOfPort(port), fromResult: makesPicture(n.type) || isVideoGen(n.type) || isAudioNode(n.type) };
+    if (port === "sounds") { const aid = outputOf(n); out.push({ ...base, audio: aid ? { id: aid, label: d.prompt?.trim() || title } : undefined, ready: !!aid, why: `${title} has not made a sound yet. Generate it first.` }); continue; }
     if (port === "clips") {
       if (isVideoGen(n.type)) { const cid = outputOf(n); out.push({ ...base, clip: cid ? { id: cid, label: d.prompt?.trim() || title } : undefined, ready: !!cid, why: `${title} has not made a video yet. Generate it first.` }); }
       else out.push({ ...base, clip: d.clip, ready: !!d.clip, why: "The Video node has no clip yet." });
-    } else if (port === "description") out.push({ ...base, text: d.text?.trim() || undefined, ready: !!d.text?.trim(), why: "The text prompt is empty." });
+    } else if (port === "description" && n.type === "list") { const lines = listLines(d.text); out.push({ ...base, list: lines, ready: lines.length > 0, why: "The List is empty. Write one item per line." }); }
+    else if (port === "description") out.push({ ...base, text: d.text?.trim() || undefined, ready: !!d.text?.trim(), why: n.type === "assistant" ? "The Assistant has not written anything yet. Run it first." : "The text prompt is empty." });
     else if (port === "style") { const st = d.style && d.style !== "None" ? d.style : undefined; out.push({ ...base, text: st, ready: !!st, why: "No style is chosen." }); }
-    else if (isGen(n.type)) {
+    else if (makesPicture(n.type)) {
       const id = outputOf(n);
       out.push({ ...base, pic: id ? { type: "render", id, label: d.prompt?.trim() || title } : undefined, ready: !!id, why: `${title} has not made a picture yet. Generate it first.` });
     } else if (port === "ingredients" || port === "start") out.push({ ...base, pic: d.ref, ready: !!d.ref, why: `${title} has no picture yet.` });
@@ -203,5 +220,5 @@ export function migrateEdges(nodes: CNode[], edges: Edge[]): Edge[] {
 }
 
 // What the "+" beside a node offers: after a node (its output) only generators can take it in; before a generator (its input) any input node.
-export const NEXT_KINDS: NodeKind[] = ["generator", "fullbody", "sheet", "videogen"];
-export const PREV_KINDS: NodeKind[] = ["text", "character", "product", "scene", "style", "image", "clip", "generator", "fullbody", "sheet", "videogen"];
+export const NEXT_KINDS: NodeKind[] = ["generator", "fullbody", "sheet", "videogen", "editor", "upscaler", "assistant", "voiceover", "sfx", "music"];
+export const PREV_KINDS: NodeKind[] = ["text", "assistant", "list", "character", "product", "scene", "style", "image", "clip", "generator", "fullbody", "sheet", "editor", "upscaler", "videogen", "voiceover", "sfx", "music"];
