@@ -176,9 +176,10 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   // Seedance never moves to Higgsfield by itself (owner 2026-10-21): when BytePlus cannot take the video the person is told, nothing is held, and the owner decides.
   if (routeNow === "unavailable") return { ok: false, status: 503, error: `${model.label} is having trouble right now. Please try again in a few minutes. Nothing was charged.` };
   const route: Route = routeNow;
-  // A model that exists only at BytePlus, and a draft, have no Higgsfield route: when the direct route cannot take the job right now it is refused, not moved.
-  const onlyDirect = live.directOnly === true || draft;
-  if (onlyDirect && route !== "direct") return { ok: false, status: 503, error: draft ? "Draft previews are not available right now. Please try again in a few minutes." : `${model.label} is not available right now. Please try again in a few minutes or choose another model.` };
+  // A model that exists only at BytePlus (Seedance 2.0 Fast/Mini) has no Higgsfield route: when the direct route cannot take the job right now it is refused, not moved.
+  // A draft preview can run on either provider (Higgsfield has its own draft mode).
+  const onlyDirect = live.directOnly === true;
+  if (onlyDirect && route !== "direct") return { ok: false, status: 503, error: `${model.label} is not available right now. Please try again in a few minutes or choose another model.` };
   const cost = cfg.creditsOn ? videoPrice(model, resolutionUsed, duration, audioUsed, route, inputVideoSec ?? undefined) : null;
   const higgsfieldCost = cfg.creditsOn && !onlyDirect ? videoPrice(model, resolutionUsed, duration, audioUsed, "higgsfield") : null;
   if (cost != null) {

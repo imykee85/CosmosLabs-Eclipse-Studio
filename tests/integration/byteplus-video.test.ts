@@ -280,6 +280,24 @@ test("draft mode: a 480p draft task, then the final 1080p from the draft id; no 
   assert.equal(other.ok, false, "drafts are Seedance 2.5 only");
 });
 
+test("draft on Higgsfield: when BytePlus refuses, the draft runs in Higgsfield's draft mode and the final sends draft_job_id", { skip }, async () => {
+  process.env.ROUTE_SEEDANCE_2_5 = "direct"; process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; arkMode.kind = "forbid";
+  const { startDraftFinal } = await import("../../src/lib/video-draft");
+  const d = await make({ draft: true, resolution: "1080p", confirm: true });
+  assert.equal(d.ok, true, d.ok ? "" : d.error);
+  const sent = hfSent[hfSent.length - 1].body as { draft?: boolean; resolution: string };
+  assert.equal(sent.draft, true); assert.equal(sent.resolution, "480p");
+  const row = await lib.db.generation.findUnique({ where: { id: d.item.id } });
+  assert.equal(row.provider, "higgsfield");
+  await lib.db.generation.update({ where: { id: row.id }, data: { status: "completed", storageKey: "u/a/h.mp4", imageUrl: "" } });
+  const fin = await startDraftFinal({ userId: A, draftId: d.item.id, confirm: true });
+  assert.equal(fin.ok, true, fin.ok ? "" : fin.error);
+  assert.deepEqual(hfSent[hfSent.length - 1].body, { draft_job_id: row.requestId, resolution: "1080p" });
+  const again = await startDraftFinal({ userId: A, draftId: d.item.id });
+  assert.equal(again.ok, false); assert.equal(again.status, 409);
+  arkMode.kind = "ok"; delete process.env.SEEDANCE_HIGGSFIELD_FALLBACK;
+});
+
 test("fallback OFF (the default): a refusal by BytePlus stops the video, nothing is held and Higgsfield is never asked", { skip }, async () => {
   delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
   const a = await make({ confirm: true });
