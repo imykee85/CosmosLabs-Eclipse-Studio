@@ -51,6 +51,7 @@ function Wordmark() {
 // A muted, looping clip on a model card. Phones only start a video once its muted attribute exists in the HTML, so it is set on the element itself.
 const CARD_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
   "WAN 3.0 PRIME": { src: "/landing/wan-card.mp4", webm: "/landing/wan-card.webm", poster: "/landing/wan-card-poster.jpg" },
+  "SEEDANCE 2.5": { src: "/landing/seedance-card.mp4", webm: "/landing/seedance-card.webm", poster: "/landing/seedance-card-poster.jpg" },
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
