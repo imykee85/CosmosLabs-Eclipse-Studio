@@ -3,10 +3,10 @@
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  addEdge, Background, BackgroundVariant, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow,
+  addEdge, Background, BackgroundVariant, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, SelectionMode, useEdgesState, useNodesState, useReactFlow,
   type Connection, type Edge, type FinalConnectionState, type NodeMouseHandler,
 } from "@xyflow/react";
-import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2, Undo2, Redo2 } from "lucide-react";
+import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2, Undo2, Redo2, MousePointer2, Hand } from "lucide-react";
 import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgentHost } from "@/lib/agent-chat";
@@ -32,6 +32,20 @@ const ICONS: Record<string, React.ReactNode> = {
 const DOUBLE_TAP_MS = 320;
 
 // The app theme lives on <html data-app-theme>; follow it so the canvas switches with the toggle.
+// The phone layout (same query the rest of the app uses): the toolbar docks at the bottom and the node list is a bottom sheet.
+const PHONE_QUERY = "(max-width: 800px), (pointer: coarse) and (max-width: 1000px)";
+function usePhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE_QUERY);
+    const on = () => setPhone(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return phone;
+}
+
 function useAppDark() {
   const [dark, setDark] = useState(true);
   useEffect(() => {
@@ -74,6 +88,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const [undo, setUndo] = useState<{ nodes: CNode[]; edges: Edge[] } | null>(null); // what was just deleted, for the Undo bar
   const [name, setName] = useState(meta.name);
   const [status, setStatus] = useState<"saved" | "saving" | "local">("saved");
+  const phone = usePhone();
+  const [tool, setTool] = useState<"pan" | "select">("pan"); // Pan: drag the board. Select: drag a box round nodes (the only way to do it with a finger).
+  const [cat, setCat] = useState<string>("All");           // node list category
   const [notice, setNotice] = useState<string | null>(null); // a short message (for example a wire that cannot be made)
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -179,6 +196,8 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
       const k = e.key.toLowerCase();
       if (mod && k === "z") { e.preventDefault(); if (e.shiftKey) redoStep(); else undoStep(); }
       else if (mod && k === "y") { e.preventDefault(); redoStep(); }
+      else if (!mod && !e.altKey && k === "v") { setTool("select"); }
+      else if (!mod && !e.altKey && k === "h") { setTool("pan"); }
       else if (!mod && !e.altKey && k === "n") { e.preventDefault(); setPanel((p) => (p === "nodes" ? null : "nodes")); setQuery(""); }
     };
     window.addEventListener("keydown", onKey);
@@ -387,7 +406,87 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   }
 
   const q = query.trim().toLowerCase();
-  const groups = NODE_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !q || i.label.toLowerCase().includes(q)) })).filter((g) => g.items.length);
+  const groups = NODE_GROUPS.filter((g) => cat === "All" || g.title === cat).map((g) => ({ ...g, items: g.items.filter((i) => !q || i.label.toLowerCase().includes(q) || i.blurb.toLowerCase().includes(q)) })).filter((g) => g.items.length);
+  const selectedCount = nodes.filter((n) => n.selected).length;
+  function deleteSelected() {
+    const ids = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
+    if (!ids.size) return;
+    const dn = nodes.filter((n) => ids.has(n.id));
+    const de = edges.filter((e) => ids.has(e.source) || ids.has(e.target));
+    setNodes((ns) => ns.filter((n) => !ids.has(n.id)));
+    setEdges((es) => es.filter((e) => !ids.has(e.source) && !ids.has(e.target)));
+    setUndo({ nodes: dn, edges: de });
+  }
+
+  const toolbar = (
+    <>
+        <div className="cv-btns">
+          <button type="button" className="cv-add" aria-expanded={panel === "nodes"} aria-haspopup="dialog" onClick={() => openPanel("nodes")} title="Add node (N)"><Plus size={16} /> Add node</button>
+          <button type="button" className="cv-add cv-hist" disabled={!canUndo} onClick={undoStep} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={16} /></button>
+          <button type="button" className="cv-add cv-hist" disabled={!canRedo} onClick={redoStep} aria-label="Redo" title="Redo (Shift+Ctrl+Z)"><Redo2 size={16} /></button>
+          <button type="button" className={`cv-add cv-hist ${tool === "select" ? "is-on" : ""}`} aria-pressed={tool === "select"} onClick={() => setTool((t) => (t === "select" ? "pan" : "select"))} aria-label={tool === "select" ? "Select mode: drag a box round nodes" : "Pan mode: drag to move the board"} title={tool === "select" ? "Select (V): drag a box round nodes. Press H for pan." : "Pan (H). Press V to select several nodes."}>{tool === "select" ? <MousePointer2 size={16} /> : <Hand size={16} />}</button>
+          {selectedCount > 1 && <button type="button" className="cv-add cv-hist cv-danger" onClick={deleteSelected} aria-label={`Delete ${selectedCount} selected nodes`} title="Delete the selected nodes"><Trash2 size={16} />{selectedCount}</button>}
+          <button type="button" className="cv-add" aria-expanded={panel === "templates"} aria-haspopup="dialog" onClick={() => openPanel("templates")}><LayoutTemplate size={16} /> Templates</button>
+        </div>
+        {phone && panel && <div className="cv-scrim" onClick={() => setPanel(null)} />}
+        {panel === "nodes" && (
+          <div className="cv-pop" role="dialog" aria-label="Nodes">
+            <header><b>Nodes</b><button type="button" aria-label="Close" onClick={() => setPanel(null)}><X size={16} /></button></header>
+            <label className="cv-search"><Search size={15} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search nodes..." aria-label="Search nodes" /></label>
+            <div className="cv-cats" role="tablist" aria-label="Node categories">
+              {["All", ...NODE_GROUPS.map((g) => g.title)].map((c) => (
+                <button key={c} type="button" role="tab" aria-selected={cat === c} className={cat === c ? "is-on" : ""} onClick={() => setCat(c)}>{c}</button>
+              ))}
+            </div>
+            <div className="cv-pop-body">
+              {groups.map((g) => (
+                <section key={g.title}>
+                  <h3>{g.title}</h3>
+                  <div className="cv-grid">
+                    {g.items.map((i) => (
+                      <button key={i.id} type="button" className="cv-tile" title={i.blurb} onClick={() => i.kind && addNode(i.kind)}>
+                        {ICONS[i.id]}<span>{i.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+              {!groups.length && <p className="cv-none">No nodes match.</p>}
+            </div>
+          </div>
+        )}
+        {panel === "templates" && (
+          <div className="cv-pop" role="dialog" aria-label="Templates">
+            <header><b>Templates</b><button type="button" aria-label="Close" onClick={() => setPanel(null)}><X size={16} /></button></header>
+            <div className="cv-pop-body">
+              <section>
+                <h3>Save this canvas</h3>
+                <div className="cv-save">
+                  <input value={tplName} maxLength={40} onChange={(e) => setTplName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveAsTemplate(); }}
+                    placeholder="Template name" aria-label="Template name" disabled={!nodes.length} />
+                  <button type="button" disabled={!nodes.length} onClick={saveAsTemplate}>Save</button>
+                </div>
+                {!nodes.length && <p className="cv-none">Add some nodes first.</p>}
+              </section>
+              <section>
+                <h3>Use a template</h3>
+                <div className="cv-tpls">
+                  {templates.map((t) => (
+                    <div key={t.id} className="cv-tpl">
+                      <button type="button" className="cv-tpl-use" onClick={() => applyTemplate(t)}>
+                        <LayoutTemplate size={18} />
+                        <span><b>{t.name}</b><small>{t.nodes.length} nodes{t.builtIn ? " · built in" : ""}</small></span>
+                      </button>
+                      {!t.builtIn && <button type="button" className="cv-tpl-del" aria-label={`Delete ${t.name}`} title="Delete template" onClick={() => setTemplates(deleteTemplate(t.id))}><Trash2 size={15} /></button>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
+    </>
+  );
 
   return (
     <CanvasCtx.Provider value={{ focus, ask: setAsk, addAfter: (id, r) => openAdd(id, "after", r), addBefore: (id, r) => openAdd(id, "before", r) }}>
@@ -398,6 +497,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
           onNodeClick={onNodeClick} onPaneClick={onPaneClick} onMoveEnd={persist} onDelete={onDelete}
           defaultViewport={saved?.viewport ?? undefined} fitView={!saved?.viewport} fitViewOptions={{ padding: 0.25 }}
           minZoom={0.15} maxZoom={2.5} zoomOnDoubleClick={false} deleteKeyCode={["Backspace", "Delete"]}
+          panOnDrag={tool === "pan" ? true : [1, 2]} selectionOnDrag={tool === "select"} selectionMode={SelectionMode.Partial} multiSelectionKeyCode={["Meta", "Control", "Shift"]}
           colorMode={dark ? "dark" : "light"} proOptions={{ hideAttribution: true }}
         >
           <Panel position="top-left" className="cv-panel">
@@ -406,64 +506,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
               <input className="cv-name" value={name} maxLength={60} aria-label="Canvas name" onChange={(e) => setName(e.target.value)} onBlur={commitName} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
               <span className={`cv-status is-${status}`} aria-live="polite" title={status === "local" ? "Kept in this browser. It will be sent to your account on the next change." : undefined}>{status === "saving" ? "Saving…" : status === "local" ? "Saved on this device" : "Saved"}</span>
             </div>
-            <div className="cv-btns">
-              <button type="button" className="cv-add" aria-expanded={panel === "nodes"} aria-haspopup="dialog" onClick={() => openPanel("nodes")} title="Add node (N)"><Plus size={16} /> Add node</button>
-              <button type="button" className="cv-add cv-hist" disabled={!canUndo} onClick={undoStep} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={16} /></button>
-              <button type="button" className="cv-add cv-hist" disabled={!canRedo} onClick={redoStep} aria-label="Redo" title="Redo (Shift+Ctrl+Z)"><Redo2 size={16} /></button>
-              <button type="button" className="cv-add" aria-expanded={panel === "templates"} aria-haspopup="dialog" onClick={() => openPanel("templates")}><LayoutTemplate size={16} /> Templates</button>
-            </div>
-            {panel === "nodes" && (
-              <div className="cv-pop" role="dialog" aria-label="Nodes">
-                <header><b>Nodes</b><button type="button" aria-label="Close" onClick={() => setPanel(null)}><X size={16} /></button></header>
-                <label className="cv-search"><Search size={15} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search nodes..." aria-label="Search nodes" /></label>
-                <div className="cv-pop-body">
-                  {groups.map((g) => (
-                    <section key={g.title}>
-                      <h3>{g.title}</h3>
-                      <div className="cv-grid">
-                        {g.items.map((i) => (
-                          <button key={i.id} type="button" className="cv-tile" title={i.blurb} onClick={() => i.kind && addNode(i.kind)}>
-                            {ICONS[i.id]}<span>{i.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                  {!groups.length && <p className="cv-none">No nodes match.</p>}
-                </div>
-              </div>
-            )}
-            {panel === "templates" && (
-              <div className="cv-pop" role="dialog" aria-label="Templates">
-                <header><b>Templates</b><button type="button" aria-label="Close" onClick={() => setPanel(null)}><X size={16} /></button></header>
-                <div className="cv-pop-body">
-                  <section>
-                    <h3>Save this canvas</h3>
-                    <div className="cv-save">
-                      <input value={tplName} maxLength={40} onChange={(e) => setTplName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveAsTemplate(); }}
-                        placeholder="Template name" aria-label="Template name" disabled={!nodes.length} />
-                      <button type="button" disabled={!nodes.length} onClick={saveAsTemplate}>Save</button>
-                    </div>
-                    {!nodes.length && <p className="cv-none">Add some nodes first.</p>}
-                  </section>
-                  <section>
-                    <h3>Use a template</h3>
-                    <div className="cv-tpls">
-                      {templates.map((t) => (
-                        <div key={t.id} className="cv-tpl">
-                          <button type="button" className="cv-tpl-use" onClick={() => applyTemplate(t)}>
-                            <LayoutTemplate size={18} />
-                            <span><b>{t.name}</b><small>{t.nodes.length} nodes{t.builtIn ? " · built in" : ""}</small></span>
-                          </button>
-                          {!t.builtIn && <button type="button" className="cv-tpl-del" aria-label={`Delete ${t.name}`} title="Delete template" onClick={() => setTemplates(deleteTemplate(t.id))}><Trash2 size={15} /></button>}
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                </div>
-              </div>
-            )}
+            {!phone && toolbar}
           </Panel>
+          {phone && <Panel position="bottom-center" className="cv-panel cv-dock">{toolbar}</Panel>}
           <Panel position="top-right" className="cv-panel">
             <button type="button" className="cv-fit" onClick={() => setFull((f) => !f)} aria-pressed={full} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen (Esc)" : "Full screen"}>
               {full ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
@@ -472,7 +517,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} />
           <Controls showInteractive={false} position="bottom-left" />
           {nodes.length > 0 && <MiniMap pannable zoomable position="bottom-right" className="cv-minimap" nodeColor="#8a857e" nodeStrokeWidth={0} />}
-          {hint && nodes.length > 0 && <Panel position="bottom-center" className="cv-hint">Double-tap a node to zoom in on it</Panel>}
+          {hint && !phone && nodes.length > 0 && <Panel position="bottom-center" className="cv-hint">Double-tap a node to zoom in on it</Panel>}
           {nodes.length === 0 && !panel && (
             <Panel position="top-left" className="cv-empty-wrap">
               <div className="cv-blank">

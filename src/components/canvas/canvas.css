@@ -258,3 +258,25 @@
 .cv-hist:disabled { opacity: .4; cursor: default; }
 .cv-notice { position: absolute; left: 50%; top: 66px; z-index: 31; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); padding: 8px 8px 8px 16px; transform: translateX(-50%); border: 1px solid #c00707; border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 13px; }
 .cv-notice button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; }
+
+/* Select and pan tool, category chips, delete-selected */
+.cv-hist.is-on { background: var(--a-fg); color: var(--a-bg); border-color: var(--a-fg); }
+.cv-danger { gap: 4px; color: #c00707; }
+.cv-cats { display: flex; gap: 6px; padding: 0 16px 6px; overflow-x: auto; scrollbar-width: none; }
+.cv-cats::-webkit-scrollbar { display: none; }
+.cv-cats button { flex: none; height: 30px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.cv-cats button.is-on { background: var(--a-fg); color: var(--a-bg); border-color: var(--a-fg); }
+
+/* Phone: the toolbar docks at the bottom of the board, the node list is a bottom sheet over a dimmed board, targets are 44 px. */
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cv-dock { margin-bottom: 10px; }
+  .cv-dock .cv-btns { justify-content: center; flex-wrap: wrap; }
+  .cv-dock .cv-add { height: 44px; min-width: 44px; justify-content: center; }
+  .cv-scrim { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); }
+  .react-flow__panel.cv-dock.bottom.center { left: 0; right: 0; transform: none; display: flex; justify-content: center; }
+  .cv-dock .cv-pop { position: fixed; z-index: 41; left: 0; right: 0; bottom: calc(82px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: min(72dvh, 560px); border-radius: 18px 18px 0 0; }
+  .cv-dock .cv-pop::before { content: ""; width: 38px; height: 4px; margin: 8px auto 0; border-radius: 4px; background: var(--a-line3); }
+  .cv-dock .cv-tile { min-height: 96px; }
+  .cv-dock .cv-pop > header button, .cv-cats button { min-height: 36px; }
+  .cv-handle::after { content: ""; position: absolute; inset: -14px; }
+}
