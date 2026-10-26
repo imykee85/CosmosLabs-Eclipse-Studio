@@ -252,3 +252,9 @@
 .cv-send p { margin: 0; overflow-wrap: anywhere; }
 .cv-n .cv-chip { height: 30px; } .cv-n .cv-grp { margin-left: auto; }
 .cv-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-items: start; }
+
+/* Undo and redo buttons, and the short notice (a wire that cannot be made). */
+.cv-hist { padding-left: 10px; padding-right: 10px; }
+.cv-hist:disabled { opacity: .4; cursor: default; }
+.cv-notice { position: absolute; left: 50%; top: 66px; z-index: 31; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); padding: 8px 8px 8px 16px; transform: translateX(-50%); border: 1px solid #c00707; border-radius: 999px; background: var(--a-card); color: var(--a-fg); font-size: 13px; }
+.cv-notice button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; }
