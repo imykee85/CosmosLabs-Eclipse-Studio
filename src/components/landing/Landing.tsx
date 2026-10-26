@@ -75,7 +75,6 @@ export default function Landing() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
 
   const close = () => setMobileOpen(false);
 
@@ -143,7 +142,7 @@ export default function Landing() {
         <div className="audience-grid">
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
-              <button className={`audience-card ${selected === i ? "selected" : ""}`} onClick={() => setSelected(i)}>
+              <button className="audience-card" onClick={() => router.push("/sign-up")}>
                 {CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
