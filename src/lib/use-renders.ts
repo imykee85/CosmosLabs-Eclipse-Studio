@@ -22,6 +22,8 @@ export type Render = {
   error: string | null;
   imageUrl: string | null;
   kind: "image" | "video";
+  draft?: boolean;      // a Seedance 2.5 draft preview
+  finalMade?: boolean;  // the final 1080p video was already started from this draft
   durationSec: number | null;
   hasAudio: boolean | null;
   uploaded?: boolean;

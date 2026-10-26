@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { ModelIcon } from "../create/ModelPicker";
 import SoonTag from "../SoonTag";
-import { PICKER_MODELS as VIDEO_MODELS, isLive, videoPrice, type VideoModel } from "@/lib/video-models";
+import { PICKER_MODELS as VIDEO_MODELS, isLive, routeIdOf, videoPrice, type VideoModel } from "@/lib/video-models";
 import { creditsText } from "@/lib/credit-units";
 
 // The video model sheet, the same design as Image Studio's (`ModelPicker`, `mp-` styles from create.css): a search box, Popular (the models that
 // work today) and All models by maker. Models not connected yet are listed with the Soon tag; choosing one still selects it so the controls show its
 // settings greyed, but Generate says it is not connected.
 // The models most people reach for first; every connected model is also under its maker below.
-const POPULAR = ["kling_3_pro", "seedance_2_5", "seedance_2_0", "happy_horse_1_1", "wan3_0", "pixverse_v6"];
+const POPULAR = ["kling_3_pro", "seedance_2_5", "seedance_2_5_draft", "seedance_2_0", "wan3_0", "minimax_h3"];
 const range = (m: VideoModel) => `${m.durations[0]} to ${m.durations[m.durations.length - 1]} s${m.qualities.length ? ` · ${m.qualities[0]} to ${m.qualities[m.qualities.length - 1]}` : ""}${m.sound === "toggle" ? " · sound" : ""}`;
 
 // "from 18 credits": a 5 second clip (or the model's shortest) at its cheapest quality, sound off. Null while credits are off or the model is not connected.
@@ -19,7 +19,7 @@ function fromPrice(m: VideoModel, direct: string[]): string | null {
   if (!isLive(m)) return null;
   const secs = Math.max(5, m.durations[0] ?? 5);
   const qualities = m.live && m.live.resolution ? m.live.resolution.values : [undefined];
-  const prices = qualities.map((q) => videoPrice(m, q, secs, false, direct.includes(m.id) ? "direct" : "higgsfield")).filter((p): p is number => p != null);
+  const prices = qualities.map((q) => videoPrice(m, q, secs, false, direct.includes(routeIdOf(m)) ? "direct" : "higgsfield")).filter((p): p is number => p != null);
   return prices.length ? `from ${creditsText(Math.min(...prices))}` : null;
 }
 

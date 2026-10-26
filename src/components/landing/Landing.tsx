@@ -74,7 +74,7 @@ export default function Landing() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
 
   const close = () => setMobileOpen(false);
 
@@ -136,7 +136,7 @@ export default function Landing() {
           <div>
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
             <h2>what do you want<br /><em>to create?</em></h2>
-            <p className="audience-sub">Discover the frontier of generative AI.</p>
+            <p className="audience-sub">Discover the frontier of generative AI at the cheapest prices.</p>
           </div>
         </div>
         <div className="audience-grid">

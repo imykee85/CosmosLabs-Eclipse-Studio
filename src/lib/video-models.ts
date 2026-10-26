@@ -71,6 +71,7 @@ export type VideoModel = {
   refImages: number;           // reference pictures (0 = none); not connected yet for any model
   live?: VideoLive;            // present = connected to Higgsfield and generating
   hidden?: boolean;            // not in the model picker (the Motion chip's engines)
+  draftOf?: string;            // a draft preview of this model (480p; its final 1080p video is made later from the draft)
 };
 
 const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
@@ -410,6 +411,7 @@ export const VIDEO_MODELS: VideoModel[] = [
   { id: "kling_2_5_turbo_std", label: "Kling 2.5 Turbo Standard", maker: "Kling", blurb: "Start-frame animation only (needs a start frame), 5 or 10 seconds.", ratios: [], durations: [5, 10], qualities: [], sound: "none", startFrame: true, endFrame: false, refImages: 0, live: kling25t("standard") },
   { id: "seedance_2_0", label: "Seedance 2.0", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 4K.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: SEEDANCE_RES, sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2 },
   { id: "seedance_2_5", label: "Seedance 2.5", maker: "Bytedance", blurb: "Text and start-frame video with sound, up to 30 seconds.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p", "720p", "1080p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 30, live: seedance25 },
+  { id: "seedance_2_5_draft", label: "Seedance 2.5 Draft", maker: "Bytedance", blurb: "A quick 480p preview. Make the final 1080p video from it when you like it.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 30), qualities: ["480p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 30, live: seedance25, draftOf: "seedance_2_5" },
   { id: "seedance_2_0_fast", label: "Seedance 2.0 Fast", maker: "Bytedance", blurb: "Quicker, lower-cost Seedance 2.0, up to 720p.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2Small("fast") },
   { id: "seedance_2_0_mini", label: "Seedance 2.0 Mini", maker: "Bytedance", blurb: "The lowest-cost Seedance 2.0, up to 720p.", ratios: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"], durations: range(4, 15), qualities: ["480p", "720p"], sound: "toggle", startFrame: true, endFrame: true, refImages: 9, live: seedance2Small("mini") },
   { id: "happy_horse_1_1", label: "Happy Horse 1.1", maker: "Happy Horse", blurb: "Text, start frame and reference pictures, with a seed.", ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"], durations: range(3, 15), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: false, refImages: 9, live: happyHorse11 },
@@ -449,6 +451,8 @@ export const videoModelById = (id: string | null | undefined): VideoModel => VID
 // What the model picker lists (the motion engines belong to the Motion chip).
 export const PICKER_MODELS = VIDEO_MODELS.filter((m) => !m.hidden);
 export const findVideoModel = (id: unknown): VideoModel | undefined => (typeof id === "string" ? VIDEO_MODELS.find((m) => m.id === id) : undefined);
+/** The id the routes and prices know the model by (a draft preview uses its model's route). */
+export const routeIdOf = (m: VideoModel): string => m.draftOf ?? m.id;
 export const isLive = (m: VideoModel): m is VideoModel & { live: VideoLive } => !!m.live;
 
 // --- What a model offers for the way it is used ----------------------------------------------------------------------------------------------------------------
@@ -506,8 +510,8 @@ export function capsFor(m: VideoModel, wf: Workflow): Caps {
   return {
     durations: d.values ?? range(d.min, d.max),
     defaultDuration: d.values ? (d.values.includes(l.durationDefault) ? l.durationDefault : d.values[0]) : Math.min(Math.max(l.durationDefault, d.min), d.max),
-    qualities: e.resolution?.values ?? [],
-    defaultQuality: e.resolution?.default ?? "",
+    qualities: m.draftOf ? ["480p"] : e.resolution?.values ?? [],
+    defaultQuality: m.draftOf ? "480p" : e.resolution?.default ?? "",
     ratios: e.aspect?.values ?? [],
     defaultRatio: e.aspect?.default ?? "",
     audio: !!e.audio,

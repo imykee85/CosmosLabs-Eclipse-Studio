@@ -26,7 +26,8 @@ import { readCurrentProject } from "@/lib/projects";
 import { useRenders, type Render } from "@/lib/use-renders";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
-import { DEFAULT_VIDEO_MODEL, LONGEST_MODEL_LABEL, VIDEO_MODELS, capsFor, isLive, videoModelById, videoPrice, workflowFor, type VideoModel } from "@/lib/video-models";
+import { DEFAULT_VIDEO_MODEL, LONGEST_MODEL_LABEL, VIDEO_MODELS, capsFor, isLive, routeIdOf, videoModelById, videoPrice, workflowFor, type VideoModel } from "@/lib/video-models";
+import { refreshCredits } from "@/lib/use-credits";
 import "../create/create.css";
 import "./generate.css";
 
@@ -287,7 +288,7 @@ export default function VideoStudio() {
   const shotSum = shotList ? shotList.reduce((a, x) => a + x.duration, 0) : 0;
   const shotsBad = !!shotList && (shotList.some((x) => !x.prompt.trim()) || !caps.durations.includes(shotSum));
   const priceSeconds = mc ? (clipSec != null ? Math.min(Math.ceil(clipSec), 30) : null) : shotList ? shotSum : duration;
-  const price = live && config?.creditsOn && priceSeconds != null ? videoPrice(model, caps.qualities.length ? quality : undefined, priceSeconds, mc ? false : hasSound, config?.direct?.includes(model.id) ? "direct" : "higgsfield") : null;
+  const price = live && config?.creditsOn && priceSeconds != null ? videoPrice(model, caps.qualities.length ? quality : undefined, priceSeconds, mc ? false : hasSound, config?.direct?.includes(routeIdOf(model)) ? "direct" : "higgsfield") : null;
   const motionReady = !mc || (!!start && vrefs.length === 1);
   const canGo = (!!prompt.trim() || (live && !caps.promptRequired)) && motionReady && !shotsBad;
 
@@ -323,6 +324,30 @@ export default function VideoStudio() {
     } catch { setError("Could not reach the server. Check your connection and try again."); }
     finally { setSubmitting(false); }
   }, [live, model.label, config?.paused, config?.creditsOn, caps, prompt, seedBad, model.id, mc, mcOrient, mcSound, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, refs, vrefs, arefs, shotList, shotSum, reload]);
+
+  // A finished draft (Seedance 2.5, 480p preview) is made into its final 1080p video once. Asks first when the price is above the confirm line.
+  const [makingFinal, setMakingFinal] = useState<string | null>(null);
+  async function makeFinal(g: Render) {
+    setError(""); setMakingFinal(g.id);
+    try {
+      let confirm = false;
+      for (;;) {
+        const res = await fetch("/api/video/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draftId: g.id, confirm: confirm || undefined }) });
+        const d = await res.json().catch(() => ({}));
+        if (res.status === 409 && d.needsConfirm && !confirm) {
+          if (!window.confirm(`The final 1080p video costs ${fmtCredits(d.cost)} credits. Start it?`)) return;
+          confirm = true;
+          continue;
+        }
+        if (!res.ok || typeof d.id !== "string") { setError(d.error ?? "The final video could not be started. Please try again."); return; }
+        setActiveId(d.id);
+        refreshCredits();
+        await reload();
+        return;
+      }
+    } catch { setError("Could not reach the server. Check your connection and try again."); }
+    finally { setMakingFinal(null); }
+  }
 
   async function cancel(g: Render) {
     setCancelling(g.id); setError("");
@@ -398,6 +423,9 @@ export default function VideoStudio() {
             <video key={active.id} src={active.imageUrl} controls playsInline loop preload="auto" aria-label={active.prompt}
               onLoadedMetadata={(e) => { const v = e.currentTarget; if (v.videoWidth && v.videoHeight) setNatural({ id: active.id, ratio: `${v.videoWidth}:${v.videoHeight}` }); }} />
           ) : null}
+          {active?.status === "completed" && active.draft && !active.finalMade && (
+            <button type="button" className="vs-final" disabled={makingFinal === active.id} onClick={() => void makeFinal(active)}>{makingFinal === active.id ? "Starting…" : "Make final 1080p"}</button>
+          )}
         </div>
         {done.length > 0 && (
           <div className="cr-earlier" aria-label="Your five most recent videos">
