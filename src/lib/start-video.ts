@@ -50,8 +50,11 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (cfg.paused) return { ok: false, status: 503, error: "Video generation is paused right now. Please try again later." };
   if (!process.env.HIGGSFIELD_API_KEY) return { ok: false, status: 503, error: "Video generation is not set up yet." };
 
-  const model = findVideoModel(input.model);
-  if (!model) return { ok: false, status: 400, error: "That model is not available." };
+  const picked = findVideoModel(input.model);
+  if (!picked) return { ok: false, status: 400, error: "That model is not available." };
+  // A draft entry in the picker is its model in draft mode (a 480p preview; the final 1080p video is made from it later).
+  const model = picked.draftOf ? findVideoModel(picked.draftOf) ?? picked : picked;
+  const draftMode = model !== picked || input.draft === true;
   if (!model.live) return { ok: false, status: 400, error: `${model.label} is not available yet.` };
   const live = model.live;
 
@@ -109,7 +112,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   const conform = autoTrimEnabled() && input.aspectRatio === AUTO_RATIO && caps.ratios.length ? await autoTarget(userId, refs[0] ?? start ?? undefined) : null;
   if (aspectIn === AUTO_RATIO && !caps.ratios.includes(AUTO_RATIO)) aspectIn = await resolveAutoRatio(userId, refs[0] ?? start ?? undefined, caps.ratios, caps.defaultRatio);
   // Draft mode (Seedance 2.5 only): a cheap 480p preview that can later be turned into the final 1080p video (src/lib/video-draft.ts). Direct route only.
-  const draft = input.draft === true;
+  const draft = draftMode;
   if (draft && (model.id !== "seedance_2_5" || motion || shots)) return { ok: false, status: 400, error: "Draft previews are available for Seedance 2.5 only." };
   const resolution = draft ? "480p" : typeof input.resolution === "string" ? input.resolution : undefined;
   const audio = typeof input.audio === "boolean" ? input.audio : undefined;

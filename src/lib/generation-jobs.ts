@@ -48,6 +48,8 @@ export type RenderItem = {
   startedAt: Date | null;     // videos: when the provider first reported it running
   createdAt: Date;
   deletedAt: Date | null;
+  draft?: boolean;
+  finalMade?: boolean;
 };
 
 const REASONS: Record<string, string> = {
@@ -189,6 +191,8 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     durationSec: g.durationSec,
     hasAudio: g.hasAudio,
     uploaded: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).uploaded === true),
+    draft: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).draft === true),
+    finalMade: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).finalId),
     credits: g.creditsHeld,
     startedAt: g.startedAt,
     createdAt: g.createdAt,

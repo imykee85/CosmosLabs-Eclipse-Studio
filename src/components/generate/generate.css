@@ -118,3 +118,6 @@
 .vs-shot button { width: 28px; } .vs-shot button:disabled { opacity: .35; cursor: default; }
 .vs-shot-add { justify-self: start; padding: 0 10px; color: var(--a-fg2); }
 .vs-shot-err { margin: 0; color: #e5484d; font-size: 13px; }
+.vs-final { margin-top: 10px; padding: 9px 18px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.vs-final:hover:not(:disabled) { background: #d90b0b; }
+.vs-final:disabled { opacity: .6; cursor: default; }
