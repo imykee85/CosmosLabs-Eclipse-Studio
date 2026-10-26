@@ -6,7 +6,7 @@ import {
   addEdge, Background, BackgroundVariant, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow,
   type Connection, type Edge, type FinalConnectionState, type NodeMouseHandler,
 } from "@xyflow/react";
-import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2 } from "lucide-react";
+import { ArrowLeft, Clapperboard, Film, LayoutTemplate, Mountain, Package, Palette, PersonStanding, Minimize2, Plus, Search, Shirt, StickyNote, Trash2, Type, User, X, Image as ImageIcon, Maximize2, Undo2, Redo2 } from "lucide-react";
 import AgentMenu from "@/components/create/AgentMenu";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgentHost } from "@/lib/agent-chat";
@@ -14,7 +14,7 @@ import ModelPicker, { AUTO } from "@/components/create/ModelPicker";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import RenderDialog from "@/components/library/RenderDialog";
 import { deleteTemplate, instantiate, loadTemplates, newNode, NODE_GROUPS, refFileUrl, saveTemplate, type CanvasNodeData, type CanvasTemplate, type CNode, type NodeKind } from "@/lib/canvas";
-import { canWire, inputsOf, isGen, makeEdge, NEXT_KINDS, picturesOf, portFor, PREV_KINDS, TITLES, withoutReplaced, type PortId } from "@/lib/canvas-flow";
+import { canWire, inputsOf, isGen, makeEdge, NEXT_KINDS, outLabelOf, picturesOf, portFor, portLabel, PREV_KINDS, TITLES, withoutReplaced, type PortId } from "@/lib/canvas-flow";
 import { renameCanvas, saveCanvasDoc, type CanvasDoc, type CanvasMeta } from "@/lib/canvas-store";
 import { useAgent } from "@/lib/use-agent";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
@@ -74,6 +74,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const [undo, setUndo] = useState<{ nodes: CNode[]; edges: Edge[] } | null>(null); // what was just deleted, for the Undo bar
   const [name, setName] = useState(meta.name);
   const [status, setStatus] = useState<"saved" | "saving" | "local">("saved");
+  const [notice, setNotice] = useState<string | null>(null); // a short message (for example a wire that cannot be made)
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const lastTap = useRef({ id: "", t: 0 });
   const dark = useAppDark();
@@ -120,6 +123,73 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     window.addEventListener("pagehide", leave);
     return () => { window.removeEventListener("pagehide", leave); leave(); };
   }, [flush]);
+
+  // Undo and redo for what shapes the canvas: nodes added or removed, where they sit, and the wiring. A change is filed as one step a moment
+  // after the last edit. Going back keeps what a node has made since (its pictures, its text): only existence, position and wires are restored.
+  const structSig = (ns: CNode[], es: Edge[]) => JSON.stringify([ns.map((n) => [n.id, n.type, Math.round(n.position.x), Math.round(n.position.y)]), es.map((e) => [e.id, e.source, e.sourceHandle ?? "", e.target, e.targetHandle ?? ""])]);
+  const hist = useRef<{ past: { nodes: CNode[]; edges: Edge[] }[]; future: { nodes: CNode[]; edges: Edge[] }[]; base: { nodes: CNode[]; edges: Edge[] }; sig: string }>({
+    past: [], future: [], base: { nodes: doc.nodes, edges: doc.edges }, sig: structSig(doc.nodes, doc.edges),
+  });
+  useEffect(() => {
+    const h = hist.current;
+    const sig = structSig(nodes, edges);
+    if (sig === h.sig) return;
+    const t = setTimeout(() => {
+      h.past.push(h.base);
+      if (h.past.length > 60) h.past.shift();
+      h.future = [];
+      h.base = { nodes, edges };
+      h.sig = sig;
+      setCanUndo(true); setCanRedo(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [nodes, edges]);
+  const restoreSnap = useCallback((snap: { nodes: CNode[]; edges: Edge[] }) => {
+    const cur = new Map((getNodes() as CNode[]).map((n) => [n.id, n]));
+    setNodes(snap.nodes.map((n) => { const c = cur.get(n.id); return c ? { ...c, position: n.position, selected: false } : { ...n, selected: false }; }));
+    setEdges(snap.edges);
+  }, [getNodes, setNodes, setEdges]);
+  const undoStep = useCallback(() => {
+    const h = hist.current;
+    const now = { nodes: getNodes() as CNode[], edges: getEdges() };
+    const dirty = structSig(now.nodes, now.edges) !== h.sig; // an edit not filed yet: go back to the last filed state
+    const target = dirty ? h.base : h.past.pop();
+    if (!target) return;
+    h.future.push(now);
+    h.base = target; h.sig = structSig(target.nodes, target.edges);
+    restoreSnap(target);
+    setCanUndo(h.past.length > 0); setCanRedo(true);
+  }, [getNodes, getEdges, restoreSnap]);
+  const redoStep = useCallback(() => {
+    const h = hist.current;
+    const target = h.future.pop();
+    if (!target) return;
+    h.past.push(h.base);
+    h.base = target; h.sig = structSig(target.nodes, target.edges);
+    restoreSnap(target);
+    setCanUndo(true); setCanRedo(h.future.length > 0);
+  }, [restoreSnap]);
+
+  // Keyboard: Ctrl or Cmd + Z undoes, plus Shift (or Y) redoes, N opens the node list. Not while typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.closest("input, textarea, select, [contenteditable=true]"))) return;
+      const mod = e.metaKey || e.ctrlKey;
+      const k = e.key.toLowerCase();
+      if (mod && k === "z") { e.preventDefault(); if (e.shiftKey) redoStep(); else undoStep(); }
+      else if (mod && k === "y") { e.preventDefault(); redoStep(); }
+      else if (!mod && !e.altKey && k === "n") { e.preventDefault(); setPanel((p) => (p === "nodes" ? null : "nodes")); setQuery(""); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undoStep, redoStep]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   // Fly the camera to fit some nodes. The tween is driven by hand (frame by frame) because a click on a node leaves the library's own
   // animation interrupted before it starts.
@@ -169,6 +239,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
 
   // A wire dragged out and dropped on empty space opens the same "add the next node" menu, there.
   const onConnectEnd = useCallback((event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+    if (state.isValid === false && state.fromNode && state.toNode && state.toHandle) { setNotice(`Cannot connect ${outLabelOf(state.fromNode.type)?.toLowerCase() ?? "this"} to ${portLabel(state.toHandle.id ?? "").toLowerCase()}.`); return; }
     if (state.isValid || !state.fromNode || state.toNode || state.toHandle) return;
     const pt = "changedTouches" in event ? event.changedTouches[0] : event;
     const box = wrap.current?.getBoundingClientRect();
@@ -336,7 +407,9 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
               <span className={`cv-status is-${status}`} aria-live="polite" title={status === "local" ? "Kept in this browser. It will be sent to your account on the next change." : undefined}>{status === "saving" ? "Saving…" : status === "local" ? "Saved on this device" : "Saved"}</span>
             </div>
             <div className="cv-btns">
-              <button type="button" className="cv-add" aria-expanded={panel === "nodes"} aria-haspopup="dialog" onClick={() => openPanel("nodes")}><Plus size={16} /> Add node</button>
+              <button type="button" className="cv-add" aria-expanded={panel === "nodes"} aria-haspopup="dialog" onClick={() => openPanel("nodes")} title="Add node (N)"><Plus size={16} /> Add node</button>
+              <button type="button" className="cv-add cv-hist" disabled={!canUndo} onClick={undoStep} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={16} /></button>
+              <button type="button" className="cv-add cv-hist" disabled={!canRedo} onClick={redoStep} aria-label="Redo" title="Redo (Shift+Ctrl+Z)"><Redo2 size={16} /></button>
               <button type="button" className="cv-add" aria-expanded={panel === "templates"} aria-haspopup="dialog" onClick={() => openPanel("templates")}><LayoutTemplate size={16} /> Templates</button>
             </div>
             {panel === "nodes" && (
@@ -449,6 +522,12 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
         {ask?.kind === "model" && askNode && models && (
           <ModelPicker models={models} value={modelOf(askNode.data)} onClose={() => setAsk(null)}
             onPick={(id) => { patchNode(askNode.id, { model: id }); try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch {} setAsk(null); }} />
+        )}
+        {notice && (
+          <div className="cv-notice" role="alert">
+            <span>{notice}</span>
+            <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)}><X size={13} /></button>
+          </div>
         )}
         {undo && (
           <div className="cv-undo" role="status">
