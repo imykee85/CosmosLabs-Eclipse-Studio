@@ -43,6 +43,36 @@ test.describe("Canvas on desktop", () => {
     await expect(page.locator(".react-flow__node")).toHaveCount(2);
   });
 
+  test("the node list filters by category and by search", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    await page.getByRole("button", { name: /Add node/ }).click();
+    await page.getByRole("tab", { name: "Input" }).click();
+    await expect(page.getByRole("button", { name: /Character/ }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /Image generator/i })).toHaveCount(0);
+    await page.getByRole("tab", { name: "All" }).click();
+    await page.getByLabel("Search nodes").fill("video");
+    await expect(page.locator(".cv-tile")).toHaveCount(2); // Video generator and Video (clip)
+  });
+
+  test("select mode: a box round two nodes selects both and one button deletes them", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    await addFromPanel(page, "Text prompt");
+    await addFromPanel(page, "Character");
+    await expect(page.locator(".react-flow__node")).toHaveCount(2);
+    await page.keyboard.press("v");
+    await expect(page.getByRole("button", { name: /Select mode/ })).toHaveAttribute("aria-pressed", "true");
+    const pane = await page.locator(".react-flow__pane").boundingBox();
+    expect(pane).toBeTruthy();
+    await page.mouse.move(pane!.x + 4, pane!.y + 120);
+    await page.mouse.down();
+    await page.mouse.move(pane!.x + pane!.width - 4, pane!.y + pane!.height - 4, { steps: 8 });
+    await page.mouse.up();
+    await page.getByRole("button", { name: /Delete 2 selected nodes/ }).click();
+    await expect(page.locator(".react-flow__node")).toHaveCount(0);
+  });
+
   test("the board is kept after a reload", async ({ page }) => {
     await seed(page);
     await openNewCanvas(page);
@@ -66,9 +96,18 @@ test.describe("Canvas on a phone", () => {
     await expect(add).toBeVisible();
     const box = await add.boundingBox();
     expect(box && box.x >= 0 && box.x + box.width <= 520).toBeTruthy();
+    // the toolbar is docked low on the board, above the tab bar
+    expect(box!.y).toBeGreaterThan(450);
     await add.tap();
+    const sheet = page.getByRole("dialog", { name: "Nodes" });
+    await expect(sheet).toBeVisible();
+    const sb = await sheet.boundingBox();
+    expect(sb && sb.width >= 500 && sb.x <= 1).toBeTruthy(); // a full-width bottom sheet
+    await page.getByLabel("Search nodes").fill("text");
+    await expect(page.locator(".cv-tile")).toHaveCount(1);
     await page.getByRole("button", { name: /Text prompt/i }).first().tap();
     await expect(page.locator(".react-flow__node")).toHaveCount(1);
+    await expect(sheet).toHaveCount(0); // choosing a node closes the sheet
     await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeVisible();
   });
 });
