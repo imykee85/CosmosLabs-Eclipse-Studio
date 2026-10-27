@@ -781,3 +781,6 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .audience-card:hover > video.card-video { transform: scale(1.04); }
 /* No dark tint on a card with a clip: the video shows as it is. */
 .audience-card:has(> video.card-video):after { display: none; }
+
+/* The results wall clip: the video is clipped to its own rounded corners (Safari does not clip a playing video to its parent). */
+.results-col article > video.card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; clip-path: inset(0 round 8px); }

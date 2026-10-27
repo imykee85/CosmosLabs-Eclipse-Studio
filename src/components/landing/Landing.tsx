@@ -55,6 +55,11 @@ const CARD_VIDEO: Record<string, { src: string; webm: string; poster: string }> 
   "MUSIC VIDEOS": { src: "/landing/minimax-card.mp4", webm: "/landing/minimax-card.webm", poster: "/landing/minimax-card-poster.jpg" },
 };
 
+// The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
+const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
+  Food: { src: "/landing/food-tile.mp4", webm: "/landing/food-tile.webm", poster: "/landing/food-tile-poster.jpg" },
+};
+
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
@@ -180,7 +185,7 @@ export default function Landing() {
               <div className="results-col" key={c}>
                 {results.filter((_, i) => i % 4 === c).map((name, j) => (
                   <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
-                    <div className={`tile tone-${(c + j * 4) % 10}`} />
+                    {RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
                   </article>
                 ))}
               </div>
