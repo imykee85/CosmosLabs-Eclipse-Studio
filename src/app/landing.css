@@ -623,7 +623,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Every heading subtext on the homepage has the size of "AI Creative Suite" (owner 2026-10-15): 20px, 24px on desktop, weight 500. */
 .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 20px; font-weight: 500; line-height: 1.35; letter-spacing: -.01em; }
 @media (min-width: 801px) { .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 24px; } }
-.audience-sub { max-width: 600px; } .core-head p { max-width: 600px; } .results-heading p { max-width: 400px; }
+.audience-sub { max-width: 720px; } .core-head p { max-width: 600px; } .results-heading p { max-width: 400px; }
 
 /* One reading size for the small texts (owner 2026-10-15): the size of "AI Creative Suite" (20px, 24px on desktop) now also sets the Core feature texts, the FAQ, the small
    headings above the section headings (eyebrows) and the small line above the Create Yours button. Wide letter spacing is trimmed so the bigger capitals still fit on one line. */
@@ -666,7 +666,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .results-head p { margin: 12px 0 0; color: #6b665f; font-size: 20px; line-height: 1.35; font-weight: 500; letter-spacing: -.01em; max-width: 560px; }
 @media (min-width: 801px) { .results-head p { font-size: 24px; } }
 .results-head > a, .results-head > .pill-btn { flex: none; }
-.results-wall { position: relative; max-width: 1165px; margin: 0 auto; aspect-ratio: 1165 / 1310; overflow: hidden; }
+.results-wall { position: relative; max-width: 1165px; margin: 0 auto; aspect-ratio: 1165 / 2060; overflow: hidden; }
 .results-cols { display: flex; gap: 8px; align-items: flex-start; }
 .results-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .results-col article { position: relative; overflow: hidden; border-radius: 8px; background: #ccc; aspect-ratio: 9 / 16; }
@@ -781,3 +781,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .audience-card:hover > video.card-video { transform: scale(1.04); }
 /* No dark tint on a card with a clip: the video shows as it is. */
 .audience-card:has(> video.card-video):after { display: none; }
+
+/* The results wall clip: the video is clipped to its own rounded corners (Safari does not clip a playing video to its parent). */
+.results-col article > video.card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; clip-path: inset(0 round 8px); }
+.audience-card > img.card-image { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; opacity: 1; }
+.audience-card:has(> img.card-image):after { display: none; }

@@ -48,7 +48,7 @@ function ConnectChat() {
   // Pictures riding with the next message: from the device (the +, saved to Assets) or the Library (the Ingredients chip), up to 3.
   const [picked, setPicked] = useState<RefPick[]>([]);
   const [picking, setPicking] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const [docs, setDocs] = useState<{ name: string; text: string }[]>([]); // text documents for the next message (kept in the chat)
   const [clip, setClip] = useState<{ id: string; label: string } | null>(null); // one video, watched end to end when sent
@@ -196,14 +196,14 @@ function ConnectChat() {
     setNotice("");
     if (f.size > PICK_LIMIT_BYTES) { setNotice("That picture is larger than 50 MB. Please use a smaller one."); return; }
     if (picked.length >= 3) { setNotice("You can add up to 3 pictures."); return; }
-    setUploading(true);
+    setUploading((n) => n + 1);
     try {
       const fitted = await shrinkToFit(f);
       if (!fitted) { setNotice("Could not make that picture small enough. Please try another."); return; }
       const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
       if (!r.ok) { setNotice(r.error); return; }
       if (r.item) setPicked((l) => [...l, { type: "upload" as const, id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }].slice(0, 3));
-    } finally { setUploading(false); }
+    } finally { setUploading((n) => n - 1); }
   }
   const chatting = lines.length > 0;
 
@@ -254,8 +254,8 @@ function ConnectChat() {
             placeholder={chatting ? "Reply…" : "Ask for an image, run a skill, or send something to an app..."} />
           {notice && <p className="cn-err" role="alert">{notice}</p>}
           <div className="cn-tools">
-            <button type="button" className="cn-round" aria-label="Add a file" title="Add a file" disabled={uploading || clipBusy} onClick={() => fileInput.current?.click()}>{uploading || clipBusy ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
-            <input ref={fileInput} type="file" hidden onChange={(e) => { void addFile(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="cn-round" aria-label="Add a file" title="Add a file" onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+            <input ref={fileInput} type="file" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void addFile(f); e.target.value = ""; }} />
             {docs.map((d, i) => <span key={`${d.name}-${i}`} className="cn-clip">{d.name}<button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}><X size={11} /></button></span>)}
             {clip && <span className="cn-clip">{clip.label}<button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={11} /></button></span>}
             <button type="button" className="cr-chip" title="Choose pictures from your Library" onClick={() => setPicking(true)}><Layers size={14} /> <span className="cr-aname">Ingredients{picked.length ? ` (${picked.length})` : ""}</span></button>

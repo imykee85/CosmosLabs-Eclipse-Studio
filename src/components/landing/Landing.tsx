@@ -50,9 +50,19 @@ function Wordmark() {
 
 // A muted, looping clip on a model card. Phones only start a video once its muted attribute exists in the HTML, so it is set on the element itself.
 const CARD_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
-  "WAN 3.0 PRIME": { src: "/landing/wan-card.mp4", webm: "/landing/wan-card.webm", poster: "/landing/wan-card-poster.jpg" },
-  "SEEDANCE 2.5": { src: "/landing/seedance-card.mp4", webm: "/landing/seedance-card.webm", poster: "/landing/seedance-card-poster.jpg" },
-  "MINIMAX H3": { src: "/landing/minimax-card.mp4", webm: "/landing/minimax-card.webm", poster: "/landing/minimax-card-poster.jpg" },
+  "ADVERTISEMENT": { src: "/landing/wan-card.mp4", webm: "/landing/wan-card.webm", poster: "/landing/wan-card-poster.jpg" },
+  "FILM MAKING": { src: "/landing/seedance-card.mp4", webm: "/landing/seedance-card.webm", poster: "/landing/seedance-card-poster.jpg" },
+  "MUSIC VIDEOS": { src: "/landing/minimax-card.mp4", webm: "/landing/minimax-card.webm", poster: "/landing/minimax-card-poster.jpg" },
+};
+
+// Model cards that show a picture instead of a clip.
+const CARD_IMAGE: Record<string, string> = {
+  "PRODUCT PHOTOGRAPHY": "/landing/product-card.jpg",
+};
+
+// The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
+const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
+  Food: { src: "/landing/food-tile.mp4", webm: "/landing/food-tile.webm", poster: "/landing/food-tile-poster.jpg" },
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
@@ -143,7 +153,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <button className="audience-card" onClick={() => router.push("/sign-up")}>
-                {CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : <div className={`tile tone-${i % 10}`} />}
+                {CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <img className="card-image" src={CARD_IMAGE[title]} alt="" /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
@@ -180,7 +190,7 @@ export default function Landing() {
               <div className="results-col" key={c}>
                 {results.filter((_, i) => i % 4 === c).map((name, j) => (
                   <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
-                    <div className={`tile tone-${(c + j * 4) % 10}`} />
+                    {RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
                   </article>
                 ))}
               </div>

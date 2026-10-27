@@ -64,7 +64,7 @@ export default function PromptsView() {
   const [clipBusy, setClipBusy] = useState(false);
   const [docs, setDocs] = useState<Doc[]>([]); // documents waiting to go with the next message (text inline, PDFs as files)
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(0);
   const [picking, setPicking] = useState(false);
   const [note, setNote] = useState("");
   const [copied, setCopied] = useState("");
@@ -155,14 +155,14 @@ export default function PromptsView() {
     setNote("");
     if (f.size > PICK_LIMIT_BYTES) { setNote("That picture is larger than 50 MB. Please use a smaller one."); return; }
     if (pics.length >= MAX_PICS) { setNote(`You can add up to ${MAX_PICS} pictures.`); return; }
-    setUploading(true);
+    setUploading((n) => n + 1);
     try {
       const fitted = await shrinkToFit(f);
       if (!fitted) { setNote("Could not make that picture small enough. Please try another."); return; }
       const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
       if (!r.ok) { setNote(r.error); return; }
       if (r.item) setPics((l) => [...l, { type: "upload" as const, id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }].slice(0, MAX_PICS));
-    } finally { setUploading(false); }
+    } finally { setUploading((n) => n - 1); }
   }
 
   function copy(id: string, value: string) {
@@ -255,8 +255,8 @@ export default function PromptsView() {
           <GrowArea rows={2} value={text} maxLength={6000} aria-label="Describe your idea" placeholder={engine.forModel === "video" ? "Describe the video you want…" : "Describe the image you want…"}
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
           <div className="pm-tools">
-            <button type="button" className="pm-tool" aria-label="Add a file" title="Add a file" disabled={uploading || clipBusy} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
-            <input ref={fileInput} type="file" hidden onChange={(e) => { void addFile(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="pm-tool" aria-label="Add a file" title="Add a file" onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
+            <input ref={fileInput} type="file" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void addFile(f); e.target.value = ""; }} />
             <button type="button" className={`pm-tool ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={15} /></button>
             <button type="button" className="pm-tool pm-wide" onClick={() => setPicking(true)} title="Choose pictures you already have"><Layers size={14} /> Ingredients{pics.length ? ` (${pics.length})` : ""}</button>
             {msgs.length > 0 && <button type="button" className="pm-tool" aria-label="Clear the conversation" title="Clear the conversation" onClick={clear}><Trash2 size={15} /></button>}

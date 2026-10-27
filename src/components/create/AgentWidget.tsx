@@ -75,6 +75,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const [atts, setAtts] = useState<Attach[]>([]);
   const [docs, setDocs] = useState<AttachedDoc[]>([]);
   const [uploading, setUploading] = useState<number | null>(null);
+  const uploadsRunning = useRef(0); // picks still uploading; the spinner clears only when the last one ends
   const [attErr, setAttErr] = useState("");
   const fileIn = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
@@ -197,6 +198,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     if (!list.length) return;
     setAttErr("");
     const projectId = readCurrentProject()?.id ?? null;
+    uploadsRunning.current += 1;
     for (const f of list) {
       const name = f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Attachment";
       const kind = attachKind(f);
@@ -217,7 +219,8 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
         else setAttErr(r.ok ? "Could not add that picture." : r.error);
       }
     }
-    setUploading(null);
+    uploadsRunning.current -= 1;
+    if (uploadsRunning.current === 0) setUploading(null);
   }
 
   function down(e: React.PointerEvent<HTMLButtonElement>) {
@@ -333,7 +336,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           )}
           <form className="aw-input" onSubmit={submit}>
             <input ref={fileIn} type="file" hidden multiple onChange={(e) => void addFiles(e.target.files)} />
-            <button type="button" className="aw-clip" aria-label="Add a file" title="Add a file" disabled={uploading !== null || chat.busy || atts.length + docs.length >= 8} onClick={() => fileIn.current?.click()}><Plus size={15} /></button>
+            <button type="button" className="aw-clip" aria-label="Add a file" title="Add a file" disabled={chat.busy || atts.length + docs.length >= 8} onClick={() => fileIn.current?.click()}><Plus size={15} /></button>
             <GrowArea noExpand value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
             <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy || uploading !== null}><ArrowUp size={16} /></button>
           </form>

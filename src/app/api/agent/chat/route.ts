@@ -9,6 +9,7 @@ import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
+import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
 import { claimUsage } from "@/lib/usage";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages } from "@/lib/prompt-images";
@@ -105,8 +106,11 @@ export async function POST(req: Request) {
       const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
       // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
       const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
+      // The Scene Director (docs/prompt-engines/knowledge/scene-director.md) rides along when a picture or clip is attached, or the talk is about shots or scenes.
+      const hasMedia = parsePictures(c.pictures).length > 0 || (Array.isArray(c.clips) && c.clips.length > 0);
+      const scene = isAtlas && wantsSceneDirector(messages, hasMedia) ? `\n\n${SCENE_DIRECTOR}` : "";
       // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
-      const system = cachedSystem(`${persona.system}${director}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const system = cachedSystem(`${persona.system}${director}${scene}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const tools = isAtlas ? [...base, ...VIDEO_TOOLS] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
