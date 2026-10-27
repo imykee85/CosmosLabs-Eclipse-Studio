@@ -623,7 +623,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* Every heading subtext on the homepage has the size of "AI Creative Suite" (owner 2026-10-15): 20px, 24px on desktop, weight 500. */
 .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 20px; font-weight: 500; line-height: 1.35; letter-spacing: -.01em; }
 @media (min-width: 801px) { .audience-sub, .atl-sub, .core-head p, .results-heading p { font-size: 24px; } }
-.audience-sub { max-width: 600px; } .core-head p { max-width: 600px; } .results-heading p { max-width: 400px; }
+.audience-sub { max-width: 720px; } .core-head p { max-width: 600px; } .results-heading p { max-width: 400px; }
 
 /* One reading size for the small texts (owner 2026-10-15): the size of "AI Creative Suite" (20px, 24px on desktop) now also sets the Core feature texts, the FAQ, the small
    headings above the section headings (eyebrows) and the small line above the Create Yours button. Wide letter spacing is trimmed so the bigger capitals still fit on one line. */
