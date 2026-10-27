@@ -3,6 +3,11 @@
 import { useEffect, useRef } from "react";
 import { wowTiles } from "./data";
 
+// Carousel cards that play a clip instead of the gradient tile (the owner's real estate clip).
+const WOW_VIDEO: Record<string, { src: string; poster: string }> = {
+  "REAL ESTATE": { src: "/landing/real-estate-card.mp4", poster: "/landing/real-estate-card-poster.jpg" },
+};
+
 // The "One canvas" cards as a looping 3D carousel, matched to the owner's reference (a Framer site, measured from their screenshot): the cards stand on the
 // inside of a ring and the viewer stands at its centre, so every card faces you. That one geometry gives all three things seen in the reference:
 //   - the cards in the middle are the smallest (furthest away),
@@ -109,8 +114,12 @@ export default function CanvasCarousel() {
         const [title, sub] = wowTiles[i];
         return (
           <article className="wow-slide" key={j} aria-hidden={j >= wowTiles.length || undefined}>
-            <div className={`tile tone-${i}`} />
-            <div className="image-wash" />
+            {WOW_VIDEO[title] ? (
+              <video className="wow-video" src={WOW_VIDEO[title].src} poster={WOW_VIDEO[title].poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true" />
+            ) : (
+              <div className={`tile tone-${i}`} />
+            )}
+            {!WOW_VIDEO[title] && <div className="image-wash" />}
             <div className="wow-label"><b>{title}</b><span>{sub}</span></div>
           </article>
         );
