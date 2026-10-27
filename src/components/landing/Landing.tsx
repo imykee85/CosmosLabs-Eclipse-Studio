@@ -174,12 +174,12 @@ export default function Landing() {
         <div className="audience-grid">
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
-              <button className="audience-card" onClick={() => router.push("/sign-up")}>
+              <div className="audience-card">
                 {CARD_COLLAGE[title] ? <div className="card-collage">{CARD_COLLAGE[title].map((c) => <div key={c.src}><CardVideo {...c} /></div>)}</div> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
-              </button>
+              </div>
               <div className="audience-info"><p>{facts}</p></div>
             </div>
           ))}

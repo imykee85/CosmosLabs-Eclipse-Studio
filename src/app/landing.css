@@ -57,7 +57,7 @@
 .audience-preview b { font-family: var(--font-display); font-size: 18px; }
 .audience-preview p { color: var(--muted); font-size: 12px; line-height: 1.4; margin: 7px 0 0; }
 .audience-grid { max-width: 1165px; margin: auto; display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
-.audience-card { position: relative; overflow: hidden; min-height: 232px; padding: 20px; text-align: left; border: 0; border-radius: 9px; background: #1a1a1a; cursor: pointer; transition: border-color .2s, transform .25s var(--ease); }
+.audience-card { position: relative; overflow: hidden; min-height: 232px; padding: 20px; text-align: left; border: 0; border-radius: 9px; background: #1a1a1a; cursor: default; transition: border-color .2s, transform .25s var(--ease); }
 .audience-card:hover { transform: translateY(-4px); }
 .audience-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .42; transition: transform .5s var(--ease), opacity .3s; }
 .audience-card:hover img { transform: scale(1.06); opacity: .56; }
