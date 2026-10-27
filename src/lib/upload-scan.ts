@@ -44,9 +44,20 @@ const TOOL = {
 
 export type ScanResult = { ok: true; scanned: boolean } | { ok: false; status: number; error: string };
 
+// TEMPORARILY OFF (owner, 2026-10-27): no picture or video frame is checked until this is set back to true.
+export const UPLOAD_SCAN_ENABLED = false;
+
+/** Every upload goes through here. Off while UPLOAD_SCAN_ENABLED is false (or UPLOAD_SCAN=off, or no key). */
 export async function scanUpload(bytes: Uint8Array, mediaType: "image/png" | "image/jpeg" | "image/webp"): Promise<ScanResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (process.env.UPLOAD_SCAN === "off" || !apiKey) return { ok: true, scanned: false };
+  if (!UPLOAD_SCAN_ENABLED || process.env.UPLOAD_SCAN === "off" || !apiKey) return { ok: true, scanned: false };
+  return scanPicture(bytes, mediaType);
+}
+
+/** The checker itself (always runs when called; the tests call it directly). */
+export async function scanPicture(bytes: Uint8Array, mediaType: "image/png" | "image/jpeg" | "image/webp"): Promise<ScanResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { ok: true, scanned: false };
   try {
     const client = new Anthropic({ apiKey, maxRetries: 1, timeout: 20_000 });
     const model = connectModels.find((m) => m.id === "claude-haiku-5-5")!.api;

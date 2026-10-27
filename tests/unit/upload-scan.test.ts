@@ -26,7 +26,7 @@ before(async () => {
 after(() => server.close());
 
 test("scan answers decide the upload", async () => {
-  const { scanUpload } = await import("../../src/lib/upload-scan");
+  const { scanPicture: scanUpload } = await import("../../src/lib/upload-scan");
   mode = "allow";
   assert.deepEqual(await scanUpload(png, "image/png"), { ok: true, scanned: true });
   mode = "watermark";
@@ -42,7 +42,7 @@ test("scan answers decide the upload", async () => {
 });
 
 test("when the checker is down, uploads are blocked unless allowed by setting", async () => {
-  const { scanUpload } = await import("../../src/lib/upload-scan");
+  const { scanPicture: scanUpload } = await import("../../src/lib/upload-scan");
   mode = "error";
   const blocked = await scanUpload(png, "image/png");
   assert.equal(blocked.ok, false);
@@ -52,14 +52,14 @@ test("when the checker is down, uploads are blocked unless allowed by setting", 
 });
 
 test("the scan can be switched off and is skipped without a key", async () => {
-  const { scanUpload } = await import("../../src/lib/upload-scan");
+  const { scanUpload, scanPicture } = await import("../../src/lib/upload-scan");
   const before = calls;
   process.env.UPLOAD_SCAN = "off";
   assert.deepEqual(await scanUpload(png, "image/png"), { ok: true, scanned: false });
   delete process.env.UPLOAD_SCAN;
   const key = process.env.ANTHROPIC_API_KEY;
   delete process.env.ANTHROPIC_API_KEY;
-  assert.deepEqual(await scanUpload(png, "image/png"), { ok: true, scanned: false });
+  assert.deepEqual(await scanPicture(png, "image/png"), { ok: true, scanned: false });
   process.env.ANTHROPIC_API_KEY = key;
   assert.equal(calls, before);
 });
