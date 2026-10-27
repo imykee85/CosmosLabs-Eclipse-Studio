@@ -61,9 +61,26 @@ const CARD_COLLAGE: Record<string, { src: string; webm: string; poster: string }
 };
 
 // Model cards that show a picture instead of a clip.
-const CARD_IMAGE: Record<string, string> = {
-  "PRODUCT PHOTOGRAPHY": "/landing/product-card.jpg",
+const CARD_IMAGE: Record<string, string[]> = {
+  "PRODUCT PHOTOGRAPHY": ["/landing/product-card.jpg", "/landing/product-card-2.jpg"],
 };
+
+// Pictures that change on their own every few seconds (a crossfade). Under reduced motion only the first picture shows.
+function CardSlides({ srcs }: { srcs: string[] }) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (srcs.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = window.setInterval(() => setIndex((i) => (i + 1) % srcs.length), 3500);
+    return () => window.clearInterval(t);
+  }, [srcs.length]);
+  return (
+    <div className="card-slides">
+      {srcs.map((src, i) => (
+        <img key={src} className={`card-slide${i === index ? " is-on" : ""}`} src={src} alt="" />
+      ))}
+    </div>
+  );
+}
 
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
 const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
@@ -158,7 +175,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <button className="audience-card" onClick={() => router.push("/sign-up")}>
-                {CARD_COLLAGE[title] ? <div className="card-collage">{CARD_COLLAGE[title].map((c) => <div key={c.src}><CardVideo {...c} /></div>)}</div> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <img className="card-image" src={CARD_IMAGE[title]} alt="" /> : <div className={`tile tone-${i % 10}`} />}
+                {CARD_COLLAGE[title] ? <div className="card-collage">{CARD_COLLAGE[title].map((c) => <div key={c.src}><CardVideo {...c} /></div>)}</div> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
