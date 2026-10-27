@@ -55,6 +55,11 @@ const CARD_VIDEO: Record<string, { src: string; webm: string; poster: string }> 
   "MUSIC VIDEOS": { src: "/landing/minimax-card.mp4", webm: "/landing/minimax-card.webm", poster: "/landing/minimax-card-poster.jpg" },
 };
 
+// Model cards that show a picture instead of a clip.
+const CARD_IMAGE: Record<string, string> = {
+  "PRODUCT PHOTOGRAPHY": "/landing/product-card.jpg",
+};
+
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
 const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
   Food: { src: "/landing/food-tile.mp4", webm: "/landing/food-tile.webm", poster: "/landing/food-tile-poster.jpg" },
@@ -148,7 +153,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <button className="audience-card" onClick={() => router.push("/sign-up")}>
-                {CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : <div className={`tile tone-${i % 10}`} />}
+                {CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <img className="card-image" src={CARD_IMAGE[title]} alt="" /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />

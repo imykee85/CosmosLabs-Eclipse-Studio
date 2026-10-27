@@ -784,3 +784,5 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 
 /* The results wall clip: the video is clipped to its own rounded corners (Safari does not clip a playing video to its parent). */
 .results-col article > video.card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; clip-path: inset(0 round 8px); }
+.audience-card > img.card-image { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; opacity: 1; }
+.audience-card:has(> img.card-image):after { display: none; }
