@@ -24,8 +24,11 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const projectId = params.get("projectId");
   const inBin = params.get("bin") === "1";
-  // `?uploaded=1`: only videos the person added from their device (Assets).
-  const uploadedOnly = params.get("uploaded") === "1" ? { kind: "video", params: { path: ["uploaded"], equals: true } } : {};
+  // Videos the person added from their device are not generated, so they stay out of Library, Gallery and Video Studio's history.
+  // `?uploaded=1`: only those (Assets); `?uploaded=all`: everything (the reference and Core pickers, which may use them).
+  const uploadedParam = params.get("uploaded");
+  const isUploaded = { kind: "video", params: { path: ["uploaded"], equals: true } };
+  const uploadedOnly = uploadedParam === "1" ? isUploaded : uploadedParam === "all" ? {} : { NOT: isUploaded };
   try {
     await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err));
     const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), ...uploadedOnly, deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
