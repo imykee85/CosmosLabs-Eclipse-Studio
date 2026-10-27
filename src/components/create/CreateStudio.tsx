@@ -153,22 +153,22 @@ export default function CreateStudio() {
 
   // The + in the prompt box: pick a picture from this device and attach it right away as an ingredient (it is saved to Assets).
   const fileInput = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(0);
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setError("");
     if (attachKind(f) !== "picture") { setError("Pictures are added here. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 50 MB. Please use a smaller one."); return; }
-    setUploading(true);
+    setUploading((n) => n + 1);
     try {
       const fitted = await shrinkToFit(f);
       if (!fitted) { setError("Could not make that picture small enough. Please try another."); return; }
       const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
       if (!r.ok) { setError(r.error); return; }
       const maxRefs = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
-      if (r.item && maxRefs > refs.length) { setNoRefs(false); setRefs((l) => [...l, { type: "upload", id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }]); }
+      if (r.item && maxRefs > 0) { setNoRefs(false); setRefs((l) => (l.length < maxRefs ? [...l, { type: "upload", id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }] : l)); }
       else if (maxRefs === 0) setNoRefs(true);
-    } finally { setUploading(false); }
+    } finally { setUploading((n) => n - 1); }
   }
 
   function pickModel(id: string) {
@@ -407,8 +407,8 @@ export default function CreateStudio() {
       <form className="cr-box" onSubmit={(e) => { e.preventDefault(); submitBox(); }}>
         <label htmlFor="cr-prompt" className="sr-only">Describe the shot you imagine</label>
         <div className="cr-field">
-          <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
-          <input ref={fileInput} type="file" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
+          <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+          <input ref={fileInput} type="file" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void uploadFromDevice(f); e.target.value = ""; }} />
           <GrowArea
             id="cr-prompt"
             ref={box}

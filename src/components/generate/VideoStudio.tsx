@@ -112,7 +112,7 @@ export default function VideoStudio() {
       motion, mcEngine, mcTier, mcOrient, mcSound,
     });
   }, [draftReady, prompt, ratio, duration, quality, sound, start, end, refs, vrefs, motion, mcEngine, mcTier, mcOrient, mcSound]);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -253,7 +253,7 @@ export default function VideoStudio() {
     setError("");
     if (attachKind(f) !== "picture") { setError("Pictures are added here. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 50 MB. Please use a smaller one."); return; }
-    setUploading(true);
+    setUploading((n) => n + 1);
     try {
       const fitted = await shrinkToFit(f);
       if (!fitted) { setError("Could not make that picture small enough. Please try another."); return; }
@@ -268,7 +268,7 @@ export default function VideoStudio() {
       else if (model.startFrame) setStart(pic);
       else if (caps.refMax > 0) setRefs((l) => [...l, pic].slice(0, caps.refMax));
       else setNote(`${model.label} makes video from text only. Choose a model that takes a start frame or pictures.`);
-    } finally { setUploading(false); }
+    } finally { setUploading((n) => n - 1); }
   }
 
   function openPicker(t: Target) { setNote(""); setTarget(t); }
@@ -445,8 +445,8 @@ export default function VideoStudio() {
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>
           <label htmlFor="vs-prompt" className="sr-only">Describe the clip you imagine</label>
           <div className="cr-field">
-            <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
-            <input ref={fileInput} type="file" hidden onChange={(e) => { void uploadFromDevice(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+            <input ref={fileInput} type="file" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void uploadFromDevice(f); e.target.value = ""; }} />
             <GrowArea id="vs-prompt" ref={box} rows={2} maxLength={caps.promptMax} placeholder={(wf === "i2v" || wf === "ref" || wf === "motion") && !caps.promptRequired ? (wf === "motion" ? "Optional: describe the look or setting, e.g. studio lighting…" : wf === "ref" ? "Optional: describe how to use the pictures, e.g. picture 1 walks into the room…" : "Optional: describe how the picture should move…") : "Describe the clip you imagine…"} value={prompt} onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }} />
           </div>
