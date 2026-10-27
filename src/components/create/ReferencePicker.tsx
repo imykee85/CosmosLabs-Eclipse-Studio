@@ -57,7 +57,7 @@ export default function ReferencePicker({ max, picked, onChange, onClose, videoM
   const knownIds = useRef<Set<string> | null>(null); // ids present before an upload, to spot the new one
   const ingredients = useUploads("ingredients");
   const assets = useUploads("asset");
-  const { renders, reload: reloadRenders } = useRenders(undefined, 60);
+  const { renders, reload: reloadRenders } = useRenders(undefined, 60, false, true);
   const [vProgress, setVProgress] = useState<number | null>(null); // upload of a video from the device (0 to 1)
   const [vError, setVError] = useState("");
 

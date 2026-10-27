@@ -32,7 +32,7 @@ export default function ToolsView() {
   // The + attaches up to 3 finished pictures from the Library; they go with the first message of the Core chat.
   const [attachOpen, setAttachOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
-  const { renders } = useRenders(attachOpen || picked.length ? undefined : null, 16);
+  const { renders } = useRenders(attachOpen || picked.length ? undefined : null, 16, false, true);
   const done = (renders ?? []).filter((r) => r.status === "completed" && r.kind !== "video" && r.imageUrl).slice(0, 12);
   const togglePick = (id: string) => setPicked((l) => (l.includes(id) ? l.filter((x) => x !== id) : l.length < 3 ? [...l, id] : l));
   const [recent, setRecent] = useState<string[]>([]);

@@ -39,7 +39,7 @@ const VIDEO_POLL_MS = 5000; // a video runs for minutes: ask the provider every 
 // The signed-in user's renders, newest first (one project's when projectId is given; the ones in the Bin when bin is true). While any render is still
 // running the list is fetched again every few seconds, so a render finishes on screen without a refresh, and one
 // started before leaving the page (or on another device) is found again when you come back.
-export function useRenders(projectId?: string | null, limit = 100, bin = false) {
+export function useRenders(projectId?: string | null, limit = 100, bin = false, uploaded = false) {
   const [renders, setRenders] = useState<Render[] | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const live = useRef(true);
@@ -51,6 +51,7 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false) 
     const q = new URLSearchParams({ limit: String(limit) });
     if (projectId) q.set("projectId", projectId);
     if (bin) q.set("bin", "1");
+    if (uploaded) q.set("uploaded", "all");
     let items: Render[] | null = null;
     try {
       const r = await fetch(`/api/generations?${q}`);
