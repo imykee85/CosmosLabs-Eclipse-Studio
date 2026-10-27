@@ -55,6 +55,11 @@ const CARD_VIDEO: Record<string, { src: string; webm: string; poster: string }> 
   "MUSIC VIDEOS": { src: "/landing/minimax-card.mp4", webm: "/landing/minimax-card.webm", poster: "/landing/minimax-card-poster.jpg" },
 };
 
+// Model cards that show several clips side by side (a collage of the owner's three clips).
+const CARD_COLLAGE: Record<string, { src: string; webm: string; poster: string }[]> = {
+  "AI INFLUENCERS": [1, 2, 3].map((n) => ({ src: `/landing/influencer-${n}.mp4`, webm: `/landing/influencer-${n}.webm`, poster: `/landing/influencer-${n}-poster.jpg` })),
+};
+
 // Model cards that show a picture instead of a clip.
 const CARD_IMAGE: Record<string, string> = {
   "PRODUCT PHOTOGRAPHY": "/landing/product-card.jpg",
@@ -153,7 +158,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <button className="audience-card" onClick={() => router.push("/sign-up")}>
-                {CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <img className="card-image" src={CARD_IMAGE[title]} alt="" /> : <div className={`tile tone-${i % 10}`} />}
+                {CARD_COLLAGE[title] ? <div className="card-collage">{CARD_COLLAGE[title].map((c) => <div key={c.src}><CardVideo {...c} /></div>)}</div> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <img className="card-image" src={CARD_IMAGE[title]} alt="" /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
