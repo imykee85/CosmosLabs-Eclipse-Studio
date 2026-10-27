@@ -666,7 +666,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .results-head p { margin: 12px 0 0; color: #6b665f; font-size: 20px; line-height: 1.35; font-weight: 500; letter-spacing: -.01em; max-width: 560px; }
 @media (min-width: 801px) { .results-head p { font-size: 24px; } }
 .results-head > a, .results-head > .pill-btn { flex: none; }
-.results-wall { position: relative; max-width: 1165px; margin: 0 auto; aspect-ratio: 1165 / 1310; overflow: hidden; }
+.results-wall { position: relative; max-width: 1165px; margin: 0 auto; aspect-ratio: 1165 / 2060; overflow: hidden; }
 .results-cols { display: flex; gap: 8px; align-items: flex-start; }
 .results-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .results-col article { position: relative; overflow: hidden; border-radius: 8px; background: #ccc; aspect-ratio: 9 / 16; }
