@@ -13,12 +13,12 @@ export const wowTiles = [
 
 // [name, short line on the card, maker, kind, small facts shown under the card, name as written under the card]. Facts come from our own model list (video-models.ts / models.ts): nothing invented, no prices.
 export const audience = [
-  ["SEEDANCE 2.5", "ByteDance video with sound, up to 30 seconds.", "ByteDance", "Video", "Text to video and start-frame video, with sound, 4 to 30 seconds.", "Seedance 2.5"],
-  ["KLING 3.0", "Multi-shot video with sound and top general motion.", "Kling", "Video", "Multi-shot clips from text or images, with sound.", "Kling 3.0"],
-  ["MINIMAX H3", "2K video from text, keyframes or references.", "MiniMax", "Video", "2K video from text, keyframes or reference files.", "MiniMax H3"],
-  ["WAN 3.0 PRIME", "Long clips up to 30 seconds, with sound.", "Wan", "Video", "Clips up to 30 seconds from text, pictures or clips, with sound.", "Wan 3.0 Prime"],
-  ["NANO BANANA PRO", "Google's highest quality image model.", "Google", "Image", "Google's highest quality image model, with reference pictures.", "Nano Banana Pro"],
-  ["GPT IMAGE 2.5", "OpenAI's newest image model.", "OpenAI", "Image", "OpenAI's newest image model, with picture edits.", "GPT Image 2.5"],
+  ["FILM MAKING", "ByteDance video with sound, up to 30 seconds.", "ByteDance", "Video", "Text to video and start-frame video, with sound, 4 to 30 seconds.", "Seedance 2.5"],
+  ["AI INFLUENCERS", "Multi-shot video with sound and top general motion.", "Kling", "Video", "Multi-shot clips from text or images, with sound.", "Kling 3.0"],
+  ["MUSIC VIDEOS", "2K video from text, keyframes or references.", "MiniMax", "Video", "2K video from text, keyframes or reference files.", "MiniMax H3"],
+  ["ADVERTISEMENT", "Long clips up to 30 seconds, with sound.", "Wan", "Video", "Clips up to 30 seconds from text, pictures or clips, with sound.", "Wan 3.0 Prime"],
+  ["LOOK BOOK", "Google's highest quality image model.", "Google", "Image", "Google's highest quality image model, with reference pictures.", "Nano Banana Pro"],
+  ["PRODUCT PHOTOGRAPHY", "OpenAI's newest image model.", "OpenAI", "Image", "OpenAI's newest image model, with picture edits.", "GPT Image 2.5"],
 ] as const;
 
 export const results = ["Fashion", "Automotive", "Products", "Real Estate", "People", "Food", "Beauty", "Advertising", "Interiors", "Travel", "Jewelry", "Sports", "Gaming", "Architecture", "Music", "Fitness"];
