@@ -140,7 +140,7 @@ const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }
 };
 
 // Wide (16:9) cards added under a wall tile, by that tile's slot ("column-row"); the value is the gradient tone.
-const WIDE_AFTER: Record<string, number> = { "1-0": 3, "2-1": 7 };
+const WIDE_AFTER: Record<string, number> = { "1-0": 3, "2-2": 7 };
 
 // A clip placed on the wall by slot.
 const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
@@ -267,6 +267,8 @@ export default function Landing() {
                   {WIDE_AFTER[`${c}-${j}`] != null && <article className="rt-wide" aria-hidden="true"><div className={`tile tone-${WIDE_AFTER[`${c}-${j}`]}`} /></article>}
                   </Fragment>
                 ))}
+                {/* One more card under every column so each runs past the bottom edge of the wall and no gap shows. */}
+                <article className="rt-fill" aria-hidden="true"><div className={`tile tone-${(c * 3 + 1) % 10}`} /></article>
               </div>
             ))}
           </div>
