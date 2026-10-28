@@ -120,14 +120,19 @@ function CardSlides({ srcs, mode }: { srcs: string[]; mode: "fade" | "slide" }) 
   );
 }
 
-// Results wall tiles that show a picture.
-const RESULT_IMAGE: Record<string, string> = {
-  Fashion: "/landing/results-fashion.jpg",
+// Results wall tiles that show a picture, by their place on the wall ("column-row", both counted from 0).
+const SLOT_IMAGE: Record<string, string> = {
+  "3-0": "/landing/results-fashion.jpg",
 };
 
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
 const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
   Food: { src: "/landing/food-tile.mp4", webm: "/landing/food-tile.webm", poster: "/landing/food-tile-poster.jpg" },
+};
+
+// A clip placed on the wall by slot.
+const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
+  "3-2": { src: "/landing/results-video.mp4", webm: "/landing/results-video.webm", poster: "/landing/results-video-poster.jpg" },
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
@@ -243,7 +248,7 @@ export default function Landing() {
               <div className="results-col" key={c}>
                 {results.filter((_, i) => i % 4 === c).map((name, j) => (
                   <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
-                    {RESULT_IMAGE[name] ? <img src={RESULT_IMAGE[name]} alt="" /> : RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
+                    {SLOT_IMAGE[`${c}-${j}`] ? <img src={SLOT_IMAGE[`${c}-${j}`]} alt="" /> : SLOT_VIDEO[`${c}-${j}`] ? <CardVideo {...SLOT_VIDEO[`${c}-${j}`]} /> : RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
                   </article>
                 ))}
               </div>
