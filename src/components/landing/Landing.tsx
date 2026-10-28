@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipCard } from "./ClipCard";
+import { ClipCard, type ClipMode } from "./ClipCard";
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
@@ -70,22 +70,29 @@ const CARD_IMAGE: Record<string, string[]> = {
 // The three-clip collage: one play button for all three clips. Until they play, the card shows the three posters (pictures, so no
 // phone draws its own play button on each clip). The clips load and play together when autoplay works, or when the one button is pressed.
 function CardCollage({ clips }: { clips: { src: string; webm: string; poster: string }[] }) {
-  const [playing, setPlaying] = useState(true); // try autoplay first; if the phone refuses, show posters and the button
+  // Same steps as ClipCard: the videos, then (if the phone refuses autoplay) the MP4s as images, then posters with one button.
+  const [mode, setMode] = useState<ClipMode>("video");
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
   useEffect(() => {
-    if (!playing) return;
+    if (mode !== "video") return;
     const vids = refs.current.filter((v): v is HTMLVideoElement => !!v);
     if (!vids.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    vids.forEach((v) => { v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); });
+    vids.forEach((v) => { v.muted = true; v.defaultMuted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); });
     const first = vids[0].play();
-    if (first) first.then(() => vids.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => setPlaying(false));
-  }, [playing]);
-  const start = () => setPlaying(true);
-  if (!playing) {
+    if (first) first.then(() => vids.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => setMode("image"));
+  }, [mode]);
+  if (mode === "image") {
+    return (
+      <div className="card-collage is-still">
+        {clips.map((c) => <div key={c.src}><img src={c.src} alt="" onError={() => setMode("still")} /></div>)}
+      </div>
+    );
+  }
+  if (mode === "still") {
     return (
       <div className="card-collage is-still">
         {clips.map((c) => <div key={c.src}><img src={c.poster} alt="" /></div>)}
-        <button type="button" className="clip-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); start(); }}><Play size={14} fill="currentColor" /></button>
+        <button type="button" className="clip-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); setMode("video"); }}><Play size={14} fill="currentColor" /></button>
       </div>
     );
   }
@@ -280,8 +287,13 @@ export default function Landing() {
             <p className="plan-price">$0</p>
             <ul>
               <li><Check size={15} /> Free trial credits</li>
-              <li><Check size={15} /> Any image model</li>
+              <li><Check size={15} /> No card needed</li>
+              <li><Check size={15} /> Any image model, premium ones too</li>
+              <li><Check size={15} /> Full quality, no watermark</li>
+              <li><Check size={15} /> Download and share your work</li>
               <li><Check size={15} /> Access to free tutorials</li>
+              <li><Check size={15} /> Build your portfolio draft</li>
+              <li><Check size={15} /> Everything you make stays yours</li>
             </ul>
             <SignedOut><Link className="pill-btn" href="/sign-up">Start free</Link></SignedOut>
             <SignedIn><Link className="pill-btn" href="/dashboard">Open Eclipse</Link></SignedIn>
