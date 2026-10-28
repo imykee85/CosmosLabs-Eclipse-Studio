@@ -135,6 +135,7 @@ const SLOT_IMAGE: Record<string, string> = {
   "0-0": "/landing/results-utv.jpg",
   "1-0": "/landing/results-suit.jpg",
   "0-1": "/landing/results-bags.jpg",
+  "2-0": "/landing/results-boats.jpg",
   "2-2": "/landing/results-pool.jpg",
 };
 
