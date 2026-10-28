@@ -276,8 +276,8 @@ export default function Landing() {
             ))}
           </div>
           <div className="results-fade" aria-hidden="true" />
-          <div className="results-more"><Cta dark>Create Yours</Cta></div>
         </div>
+        <div className="results-more"><Cta dark>Create Yours</Cta></div>
       </section>
 
       <section className="try-section try-cta section-pad">
