@@ -6,7 +6,6 @@ import { ClipCard } from "./ClipCard";
 
 // Carousel cards that play a clip instead of the gradient tile (the owner's real estate clip).
 const WOW_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
-  "REAL ESTATE": { src: "/landing/real-estate-card.mp4", webm: "/landing/real-estate-card.webm", poster: "/landing/real-estate-card-poster.jpg" },
 };
 
 // Starts the clip by script as well as by attribute: iPhone Safari ignores the muted and autoplay props unless the element is muted and asked to play.
