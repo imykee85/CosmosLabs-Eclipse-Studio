@@ -133,6 +133,7 @@ const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }
 // A clip placed on the wall by slot.
 const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
   "3-2": { src: "/landing/results-video.mp4", webm: "/landing/results-video.webm", poster: "/landing/results-video-poster.jpg" },
+  "0-2": { src: "/landing/real-estate-card.mp4", webm: "/landing/real-estate-card.webm", poster: "/landing/real-estate-card-poster.jpg" },
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
