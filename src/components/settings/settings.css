@@ -156,23 +156,14 @@
 .st-buy { width: 100%; margin-top: 14px; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .st-topbar { gap: 10px; } .st-chip { padding: 0 14px; font-size: 15px; } .st-chiptext { gap: 6px; } .st-option { flex-wrap: wrap; } }
 .st-secform { display: grid; gap: 14px; max-width: 420px; margin-top: 14px; }
-.st-secform label, .st-setup label { display: grid; gap: 6px; }
+.st-secform label { display: grid; gap: 6px; }
 .st-check { display: flex !important; align-items: center; gap: 10px; color: var(--a-fg2); font-size: 14px; }
 .st-secsave { width: auto; padding: 0 28px; justify-self: start; }
-.st-factor { display: grid; gap: 14px; margin-top: 14px; padding: 18px; border: 1px solid var(--a-line2); border-radius: 20px; background: var(--a-input); }
-.st-factorhead { display: flex; align-items: flex-start; gap: 14px; }
-.st-factorhead > div { flex: 1 1 auto; min-width: 0; }
-.st-factorhead b { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--a-fg); font-weight: 600; }
-.st-factorhead p { margin: 4px 0 0; }
 .st-on { background: #c00707; color: #fff; }
-.st-setup { display: grid; gap: 12px; justify-items: start; }
-.st-qr { border-radius: 14px; background: #fff; padding: 6px; }
 .st-keyline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; }
-.st-keyline code, .st-backup code { padding: 4px 8px; border-radius: 8px; background: var(--a-card); color: var(--a-fg); font-size: 13px; letter-spacing: .05em; word-break: break-all; }
+.st-keyline code { padding: 4px 8px; border-radius: 8px; background: var(--a-card); color: var(--a-fg); font-size: 13px; letter-spacing: .05em; word-break: break-all; }
 .st-codeinput { width: 170px; text-align: center; letter-spacing: .35em; font-size: 20px; font-variant-numeric: tabular-nums; }
 .st-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
-.st-backup { display: grid; gap: 10px; padding: 14px; border: 1px dashed var(--a-line3); border-radius: 16px; }
-.st-backup ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 
 /* Plan cards with the saving tag and the "what the credits buy" line: a column whose button sits at the bottom. */
 .st-planCard { display: flex; flex-direction: column; align-items: flex-start; }
