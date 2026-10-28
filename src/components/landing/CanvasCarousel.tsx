@@ -54,6 +54,26 @@ export default function CanvasCarousel() {
       box.style.setProperty("--ch", `${h}px`);
       box.style.setProperty("--cr", `${Math.max(10, w * 0.085)}px`);
     };
+    // The 3D perspective enlarges a card's play button and skews it, so the carousel draws its own flat buttons over the cards.
+    const overlays: (HTMLButtonElement | null)[] = cards.map(() => null);
+    const place = (j: number, el: HTMLElement, orig: HTMLElement | null) => {
+      if (!orig) { if (overlays[j]) overlays[j]!.style.display = "none"; return; }
+      if (!overlays[j]) {
+        const ov = document.createElement("button");
+        ov.type = "button";
+        ov.className = "clip-play cv-play";
+        ov.setAttribute("aria-label", "Play");
+        ov.innerHTML = orig.innerHTML;
+        ov.addEventListener("click", (e) => { e.stopPropagation(); orig.click(); });
+        box.appendChild(ov);
+        overlays[j] = ov;
+      }
+      const r = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+      const ov = overlays[j]!;
+      ov.style.display = "";
+      ov.style.left = `${r.left + r.width / 2 - b.left}px`;
+      ov.style.top = `${r.top + r.height / 2 - b.top}px`;
+    };
     const paint = () => {
       for (let j = 0; j < cards.length; j++) {
         let k = (j - pos) % SLOTS;                       // steps from the middle, wrapped to -SLOTS/2 .. SLOTS/2
@@ -61,10 +81,11 @@ export default function CanvasCarousel() {
         if (k < -SLOTS / 2) k += SLOTS;
         const deg = k * stepDeg;
         const el = cards[j];
-        if (Math.abs(deg) > HIDE_DEG) { el.style.visibility = "hidden"; continue; }
+        if (Math.abs(deg) > HIDE_DEG) { el.style.visibility = "hidden"; if (overlays[j]) overlays[j]!.style.display = "none"; continue; }
         el.style.visibility = "visible";
         // Out to the ring (R away), turned round the viewer, then the whole ring brought forward so its centre is the camera.
         el.style.transform = `translate3d(0,0,${R.toFixed(1)}px) rotateY(${(-deg).toFixed(3)}deg) translate3d(0,0,${(-R).toFixed(1)}px)`;
+        place(j, el, el.querySelector<HTMLElement>("button.clip-play"));
       }
     };
     const tick = (t: number) => {
@@ -106,6 +127,7 @@ export default function CanvasCarousel() {
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf); io.disconnect();
+      overlays.forEach((o) => o?.remove());
       window.removeEventListener("resize", resize);
       box.removeEventListener("pointerdown", onDown); box.removeEventListener("pointermove", onMove);
       box.removeEventListener("pointerup", onUp); box.removeEventListener("pointercancel", onUp);
