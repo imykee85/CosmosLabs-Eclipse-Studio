@@ -119,6 +119,11 @@ function CardSlides({ srcs }: { srcs: string[] }) {
   );
 }
 
+// Results wall tiles that show a picture.
+const RESULT_IMAGE: Record<string, string> = {
+  Fashion: "/landing/results-fashion.jpg",
+};
+
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
 const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
   Food: { src: "/landing/food-tile.mp4", webm: "/landing/food-tile.webm", poster: "/landing/food-tile-poster.jpg" },
@@ -249,7 +254,7 @@ export default function Landing() {
               <div className="results-col" key={c}>
                 {results.filter((_, i) => i % 4 === c).map((name, j) => (
                   <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
-                    {RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
+                    {RESULT_IMAGE[name] ? <img src={RESULT_IMAGE[name]} alt="" /> : RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
                   </article>
                 ))}
               </div>
