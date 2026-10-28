@@ -9,16 +9,22 @@ import { Play } from "lucide-react";
 // (Showing the MP4 in an <img> was tried and left the cards blank on iPhone.)
 export type ClipMode = "video" | "still";
 
-// Starts `videos` on the first tap, click or key press anywhere; `onPlaying` runs once they are playing. Returns a cleanup.
+// Starts `videos` on the first touch, swipe, scroll, click or key press anywhere (iPhone may only allow some of these); `onPlaying` runs once they are playing. Returns a cleanup.
 export function playOnFirstGesture(videos: () => HTMLVideoElement[], onPlaying: () => void): () => void {
-  const events = ["touchend", "click", "keydown"] as const;
+  const events = ["touchstart", "touchmove", "touchend", "pointerdown", "pointerup", "scroll", "wheel", "click", "keydown"] as const;
+  let trying = false;
   const go = () => {
     const vids = videos();
-    if (!vids.length) return;
-    vids[0].play().then(() => { stop(); vids.slice(1).forEach((v) => { void v.play().catch(() => {}); }); onPlaying(); }).catch(() => {});
+    if (!vids.length || trying) return;
+    trying = true;
+    vids[0].play()
+      .then(() => { stop(); vids.slice(1).forEach((v) => { void v.play().catch(() => {}); }); onPlaying(); })
+      .catch(() => {})
+      .finally(() => { trying = false; });
   };
-  const stop = () => events.forEach((e) => window.removeEventListener(e, go, true));
-  events.forEach((e) => window.addEventListener(e, go, true));
+  const opts = { capture: true, passive: true };
+  const stop = () => events.forEach((e) => window.removeEventListener(e, go, opts));
+  events.forEach((e) => window.addEventListener(e, go, opts));
   return stop;
 }
 
