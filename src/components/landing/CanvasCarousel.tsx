@@ -8,6 +8,12 @@ import { ClipCard } from "./ClipCard";
 const WOW_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
 };
 
+// Carousel cards that show a picture instead of the gradient tile.
+const WOW_IMAGE: Record<string, string> = {
+  FOOD: "/landing/wow-food.jpg",
+  ART: "/landing/wow-art.jpg",
+};
+
 // Starts the clip by script as well as by attribute: iPhone Safari ignores the muted and autoplay props unless the element is muted and asked to play.
 function WowVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
   return <ClipCard src={src} webm={webm} poster={poster} className="wow-video" />;
@@ -143,10 +149,12 @@ export default function CanvasCarousel() {
           <article className="wow-slide" key={j} aria-hidden={j >= wowTiles.length || undefined}>
             {WOW_VIDEO[title] ? (
               <WowVideo {...WOW_VIDEO[title]} />
+            ) : WOW_IMAGE[title] ? (
+              <img className="wow-video" src={WOW_IMAGE[title]} alt="" draggable={false} />
             ) : (
               <div className={`tile tone-${i}`} />
             )}
-            {!WOW_VIDEO[title] && <div className="image-wash" />}
+            {!WOW_VIDEO[title] && !WOW_IMAGE[title] && <div className="image-wash" />}
             <div className="wow-label"><b>{title}</b><span>{sub}</span></div>
           </article>
         );
