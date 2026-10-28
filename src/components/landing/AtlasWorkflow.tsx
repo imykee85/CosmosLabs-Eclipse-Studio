@@ -73,7 +73,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
       <div className="atl-left">
         <div className="eyebrow">INTRODUCING</div>
         <h2>Meet <em>Atlas</em></h2>
-        <p className="atl-sub">Your agentic creative partner.</p>
+        <p className="atl-sub">Your agentic creative partner, equipped with world-class art direction and taste.</p>
         {/* Atlas, drawn like the agent in the app (the eyes turn round the ball in 3D), only bigger. Beside him, his art direction types out as if live. */}
         <div className="atl-intro" ref={introRow}>
         <div className={`atl-bot${intro ? " is-intro" : ""}`} ref={bot} role="img" aria-label="Atlas, the Eclipse agent">
