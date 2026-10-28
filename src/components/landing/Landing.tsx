@@ -103,17 +103,17 @@ function CardCollage({ clips }: { clips: { src: string; webm: string; poster: st
 }
 
 // Pictures that change on their own every few seconds (a crossfade). Under reduced motion only the first picture shows.
-function CardSlides({ srcs }: { srcs: string[] }) {
-  const [index, setIndex] = useState(0);
+function CardSlides({ srcs, mode }: { srcs: string[]; mode: "fade" | "slide" }) {
+  const [s, setS] = useState({ index: 0, prev: -1 });
   useEffect(() => {
     if (srcs.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = window.setInterval(() => setIndex((i) => (i + 1) % srcs.length), 3500);
+    const t = window.setInterval(() => setS((c) => ({ index: (c.index + 1) % srcs.length, prev: c.index })), 3500);
     return () => window.clearInterval(t);
   }, [srcs.length]);
   return (
-    <div className="card-slides">
+    <div className={`card-slides${mode === "slide" ? " is-slide" : ""}`}>
       {srcs.map((src, i) => (
-        <img key={src} className={`card-slide${i === index ? " is-on" : ""}`} src={src} alt="" />
+        <img key={src} className={`card-slide${i === s.index ? " is-on" : i === s.prev ? " is-prev" : ""}`} src={src} alt="" />
       ))}
     </div>
   );
@@ -217,7 +217,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <div className="audience-card">
-                {CARD_COLLAGE[title] ? <CardCollage clips={CARD_COLLAGE[title]} /> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} /> : <div className={`tile tone-${i % 10}`} />}
+                {CARD_COLLAGE[title] ? <CardCollage clips={CARD_COLLAGE[title]} /> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} mode={title === "LOOK BOOK" ? "slide" : "fade"} /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
