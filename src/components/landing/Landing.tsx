@@ -132,6 +132,8 @@ function CardSlides({ srcs, mode }: { srcs: string[]; mode: "fade" | "slide" }) 
 // Results wall tiles that show a picture, by their place on the wall ("column-row", both counted from 0).
 const SLOT_IMAGE: Record<string, string> = {
   "3-0": "/landing/results-fashion.jpg",
+  "0-0": "/landing/results-utv.jpg",
+  "2-2": "/landing/results-pool.jpg",
 };
 
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
