@@ -79,7 +79,7 @@ function CardCollage({ clips }: { clips: { src: string; webm: string; poster: st
     if (!vids.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     vids.forEach((v) => { v.muted = true; v.defaultMuted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); });
     const first = vids[0].play();
-    if (first) first.then(() => vids.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => setMode("image"));
+    if (first) first.then(() => vids.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => setMode("still"));
   }, [mode]);
   if (mode === "image") {
     return (

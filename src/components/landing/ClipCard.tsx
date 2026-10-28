@@ -3,10 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
 
-// A looping clip that always starts by itself. iPhone Low Power Mode refuses to autoplay a <video>, but Safari also plays an
-// MP4 placed in an <img> (muted, looping, like an animated picture), which that setting does not stop. So: try the video; if
-// play() is refused, show the same MP4 as an image; only if the browser cannot draw an MP4 image (not Safari) does the poster
-// show with one small play button.
+// A looping clip that starts by itself, at full quality. If the phone refuses autoplay (iPhone Low Power Mode), the poster shows
+// with one small play button; a tap plays the video. (Showing the MP4 in an <img> was tried and left the cards blank on iPhone.)
 export type ClipMode = "video" | "image" | "still";
 
 export function ClipCard({ src, webm, poster, className }: { src: string; webm?: string; poster: string; className: string }) {
@@ -17,7 +15,7 @@ export function ClipCard({ src, webm, poster, className }: { src: string; webm?:
     if (mode !== "video" || !v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     v.muted = true; v.defaultMuted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
     const started = v.play();
-    if (started) started.catch(() => setMode("image"));
+    if (started) started.catch(() => setMode("still"));
   }, [mode, setMode]);
   if (mode === "image") return <img className={className} src={src} alt="" onError={() => setMode("still")} />;
   if (mode === "still") {
