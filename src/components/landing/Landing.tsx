@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipCard, type ClipMode } from "./ClipCard";
+import { ClipCard, playOnFirstGesture, type ClipMode } from "./ClipCard";
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
@@ -70,42 +70,44 @@ const CARD_IMAGE: Record<string, string[]> = {
 // The three-clip collage: one play button for all three clips. Until they play, the card shows the three posters (pictures, so no
 // phone draws its own play button on each clip). The clips load and play together when autoplay works, or when the one button is pressed.
 function CardCollage({ clips }: { clips: { src: string; webm: string; poster: string }[] }) {
-  // Same steps as ClipCard: the videos, then (if the phone refuses autoplay) the MP4s as images, then posters with one button.
+  // Like ClipCard: the three videos stay on the page; if the phone refuses autoplay, the posters show with one button and the
+  // clips start on the visitor's first tap anywhere.
   const [mode, setMode] = useState<ClipMode>("video");
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
+  const vids = () => refs.current.filter((v): v is HTMLVideoElement => !!v);
   useEffect(() => {
-    if (mode !== "video") return;
-    const vids = refs.current.filter((v): v is HTMLVideoElement => !!v);
-    if (!vids.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    vids.forEach((v) => { v.muted = true; v.defaultMuted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); });
-    const first = vids[0].play();
-    if (first) first.then(() => vids.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => setMode("still"));
-  }, [mode]);
-  if (mode === "image") {
-    return (
-      <div className="card-collage is-still">
-        {clips.map((c) => <div key={c.src}><img src={c.src} alt="" onError={() => setMode("still")} /></div>)}
-      </div>
-    );
-  }
-  if (mode === "still") {
-    return (
-      <div className="card-collage is-still">
-        {clips.map((c) => <div key={c.src}><img src={c.poster} alt="" /></div>)}
-        <button type="button" className="clip-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); setMode("video"); }}><Play size={14} fill="currentColor" /></button>
-      </div>
-    );
-  }
+    const list = vids();
+    if (!list.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    list.forEach((v) => { v.muted = true; v.defaultMuted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); });
+    let stop = () => {};
+    let alive = true;
+    const first = list[0].play();
+    if (first) first.then(() => list.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => {
+      if (!alive) return;
+      setMode("still");
+      stop = playOnFirstGesture(vids, () => setMode("video"));
+    });
+    return () => { alive = false; stop(); };
+  }, []);
+  const tap = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const list = vids();
+    if (!list.length) return;
+    list[0].play().then(() => { list.slice(1).forEach((v) => { void v.play().catch(() => {}); }); setMode("video"); }).catch(() => {});
+  };
+  const still = mode === "still";
   return (
-    <div className="card-collage">
+    <div className={`card-collage${still ? " is-still" : ""}`}>
       {clips.map((c, i) => (
         <div key={c.src}>
-          <video ref={(el) => { refs.current[i] = el; }} className="card-video" poster={c.poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true">
+          <video ref={(el) => { refs.current[i] = el; }} className="card-video" poster={c.poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true" style={still ? { display: "none" } : undefined}>
             <source src={c.src} type="video/mp4" />
             <source src={c.webm} type="video/webm" />
           </video>
+          {still && <img src={c.poster} alt="" />}
         </div>
       ))}
+      {still && <button type="button" className="clip-play" aria-label="Play" onClick={tap}><Play size={14} fill="currentColor" /></button>}
     </div>
   );
 }
