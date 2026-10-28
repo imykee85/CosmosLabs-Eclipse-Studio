@@ -62,7 +62,7 @@ const CARD_COLLAGE: Record<string, { src: string; webm: string; poster: string }
 
 // Model cards that show a picture instead of a clip.
 const CARD_IMAGE: Record<string, string[]> = {
-  "PRODUCT PHOTOGRAPHY": ["/landing/product-card.jpg", "/landing/product-card-2.jpg"],
+  "PRODUCT PHOTOGRAPHY": ["/landing/product-card.jpg", "/landing/product-card-2.jpg", "/landing/product-card-3.jpg"],
 };
 
 // The three-clip collage: one play button for all three clips. Until they play, the card shows the three posters (pictures, so no
