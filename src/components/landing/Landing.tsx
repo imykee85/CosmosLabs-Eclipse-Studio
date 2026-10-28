@@ -65,19 +65,28 @@ const CARD_IMAGE: Record<string, string[]> = {
   "PRODUCT PHOTOGRAPHY": ["/landing/product-card.jpg", "/landing/product-card-2.jpg"],
 };
 
-// The three-clip collage. If the phone will not start the first clip (Low Power Mode or another block on autoplay), the card shows one clip
-// filling it instead, so there is one play button rather than three.
+// The three-clip collage: one play button for all three clips. Until they play, the card shows the three posters (pictures, so no
+// phone draws its own play button on each clip). The clips load and play together when autoplay works, or when the one button is pressed.
 function CardCollage({ clips }: { clips: { src: string; webm: string; poster: string }[] }) {
-  const [single, setSingle] = useState(false);
+  const [playing, setPlaying] = useState(true); // try autoplay first; if the phone refuses, show posters and the button
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
   useEffect(() => {
-    const v = refs.current[0];
-    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-    const started = v.play();
-    if (started) started.catch(() => setSingle(true));
-  }, []);
-  if (single) return <div className="card-collage is-single"><div><CardVideo {...clips[0]} /></div></div>;
+    if (!playing) return;
+    const vids = refs.current.filter((v): v is HTMLVideoElement => !!v);
+    if (!vids.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    vids.forEach((v) => { v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); });
+    const first = vids[0].play();
+    if (first) first.then(() => vids.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => setPlaying(false));
+  }, [playing]);
+  const start = () => setPlaying(true);
+  if (!playing) {
+    return (
+      <div className="card-collage is-still">
+        {clips.map((c) => <div key={c.src}><img src={c.poster} alt="" /></div>)}
+        <button type="button" className="collage-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); start(); }}><Play size={22} fill="currentColor" /></button>
+      </div>
+    );
+  }
   return (
     <div className="card-collage">
       {clips.map((c, i) => (
