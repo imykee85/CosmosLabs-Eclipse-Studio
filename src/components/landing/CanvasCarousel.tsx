@@ -30,8 +30,8 @@ function WowVideo({ src, webm, poster }: { src: string; webm: string; poster: st
 // The ring turns slowly on its own, can be dragged or swiped (a flick glides), and pauses under a mouse; vertical page scroll still works (`touch-action: pan-y`).
 const SLOTS = wowTiles.length * 2;   // two copies of the cards go round the ring
 const CAMERA = 0.52;                 // camera distance and ring radius, as a share of the width
-const CARD_W = 0.17;
-const CARD_H = 0.24;
+const CARD_W = 0.2;
+const CARD_H = 0.283;
 const GAP_DEG = 3;                   // empty angle between neighbouring cards
 const HIDE_DEG = 64;                 // cards further round than this are off screen
 const DRIFT_PX_S = 26;               // slow automatic turn, measured at the middle of the row
