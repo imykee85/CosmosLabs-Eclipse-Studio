@@ -65,6 +65,33 @@ const CARD_IMAGE: Record<string, string[]> = {
   "PRODUCT PHOTOGRAPHY": ["/landing/product-card.jpg", "/landing/product-card-2.jpg"],
 };
 
+// The three-clip collage. If the phone will not start the first clip (Low Power Mode or another block on autoplay), the card shows one clip
+// filling it instead, so there is one play button rather than three.
+function CardCollage({ clips }: { clips: { src: string; webm: string; poster: string }[] }) {
+  const [single, setSingle] = useState(false);
+  const refs = useRef<(HTMLVideoElement | null)[]>([]);
+  useEffect(() => {
+    const v = refs.current[0];
+    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+    const started = v.play();
+    if (started) started.catch(() => setSingle(true));
+  }, []);
+  if (single) return <div className="card-collage is-single"><div><CardVideo {...clips[0]} /></div></div>;
+  return (
+    <div className="card-collage">
+      {clips.map((c, i) => (
+        <div key={c.src}>
+          <video ref={(el) => { refs.current[i] = el; }} className="card-video" poster={c.poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true">
+            <source src={c.src} type="video/mp4" />
+            <source src={c.webm} type="video/webm" />
+          </video>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Pictures that change on their own every few seconds (a crossfade). Under reduced motion only the first picture shows.
 function CardSlides({ srcs }: { srcs: string[] }) {
   const [index, setIndex] = useState(0);
@@ -175,7 +202,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <div className="audience-card">
-                {CARD_COLLAGE[title] ? <div className="card-collage">{CARD_COLLAGE[title].map((c) => <div key={c.src}><CardVideo {...c} /></div>)}</div> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} /> : <div className={`tile tone-${i % 10}`} />}
+                {CARD_COLLAGE[title] ? <CardCollage clips={CARD_COLLAGE[title]} /> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />
