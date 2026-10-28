@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, MoreVertical, Plus } from "lucide-react";
+import { ClipCard } from "@/components/landing/ClipCard";
 import "./home-feed.css";
 
 // The lower half of the dashboard, laid out as a long home page: collections, video, looks, tools, questions.
@@ -15,35 +16,9 @@ const FAQ: [string, string][] = [
   ["Can I use my own pictures?", "Yes. Add them under Ingredients or Assets, then pick them as references in Image Studio when the model supports it."],
 ];
 
-// A muted looping clip that plays all the time, on screen or not (and not at all when the device asks for reduced motion).
-// Phones are strict about autoplay: the video must be muted as a real attribute (React only sets the property), so it is set
-// here before play(); if the browser still refuses (for example iPhone Low Power Mode) it tries again on the first touch, scroll
-// or key press, and whenever the tab comes back.
+// A muted looping clip that always plays (see ClipCard: if the phone refuses autoplay, the MP4 plays as an image instead).
 function LoopVideo({ src, webm, poster, className = "" }: { src: string; webm: string; poster: string; className?: string }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  const [still, setStill] = useState(false);
-  useEffect(() => {
-    const v = ref.current;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setStill(reduce);
-    if (!v || reduce) return;
-    v.muted = true; v.defaultMuted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-    const go = () => { if (v.paused) v.play().catch(() => {}); };
-    const events = ["touchstart", "pointerdown", "scroll", "keydown"] as const;
-    const retry = () => { go(); if (!v.paused) events.forEach((e) => window.removeEventListener(e, retry)); };
-    events.forEach((e) => window.addEventListener(e, retry, { passive: true }));
-    const vis = () => { if (document.visibilityState === "visible") go(); };
-    document.addEventListener("visibilitychange", vis);
-    v.addEventListener("loadeddata", go); v.addEventListener("canplay", go);
-    go();
-    return () => { events.forEach((e) => window.removeEventListener(e, retry)); document.removeEventListener("visibilitychange", vis); v.removeEventListener("loadeddata", go); v.removeEventListener("canplay", go); };
-  }, []);
-  return (
-    <video ref={ref} className={className} poster={poster} muted loop playsInline autoPlay={!still} preload="metadata" aria-hidden="true">
-      <source src={src} type="video/mp4" />
-      <source src={webm} type="video/webm" />
-    </video>
-  );
+  return <ClipCard src={src} webm={webm} poster={poster} className={className} />;
 }
 
 const Empty = ({ className = "" }: { className?: string }) => <span className={`hf-empty ${className}`} />;

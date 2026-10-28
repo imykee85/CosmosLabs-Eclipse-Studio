@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- plain <img> like the rest of the app (the image optimizer is off) */
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ClipCard } from "@/components/landing/ClipCard";
 import "./create-pick.css";
 
 // The default Create screen: three studios as tall picture cards (owner 2026-10-17: "make it premium, world class"). Each card shows what the studio
@@ -21,7 +22,7 @@ function Visual({ kind }: { kind: (typeof STUDIOS)[number]["kind"] }) {
   );
   if (kind === "video") return (
     <div className="cp-film" aria-hidden="true">
-      <video src="/carousel/card-2.mp4" poster="/carousel/card-2-poster.jpg" autoPlay muted loop playsInline preload="auto" />
+      <ClipCard src="/carousel/card-2.mp4" poster="/carousel/card-2-poster.jpg" className="" />
       <span className="cp-rec"><i />REC</span>
       <span className="cp-tc">00:00:08:14</span>
       <span className="cp-scrub"><i /></span>
