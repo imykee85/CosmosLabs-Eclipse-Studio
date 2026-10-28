@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipCard, type ClipMode } from "./ClipCard";
+import { ClipCard } from "./ClipCard";
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
@@ -71,7 +71,7 @@ const CARD_IMAGE: Record<string, string[]> = {
 // phone draws its own play button on each clip). The clips load and play together when autoplay works, or when the one button is pressed.
 function CardCollage({ clips }: { clips: { src: string; webm: string; poster: string }[] }) {
   // Same steps as ClipCard: the videos, then (if the phone refuses autoplay) the MP4s as images, then posters with one button.
-  const [mode, setMode] = useState<ClipMode>("video");
+  const [mode, setMode] = useState<"video" | "image" | "still">("video");
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
   useEffect(() => {
     if (mode !== "video") return;
