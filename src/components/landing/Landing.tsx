@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipCard } from "./ClipCard";
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
@@ -84,7 +85,7 @@ function CardCollage({ clips }: { clips: { src: string; webm: string; poster: st
     return (
       <div className="card-collage is-still">
         {clips.map((c) => <div key={c.src}><img src={c.poster} alt="" /></div>)}
-        <button type="button" className="collage-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); start(); }}><Play size={22} fill="currentColor" /></button>
+        <button type="button" className="clip-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); start(); }}><Play size={14} fill="currentColor" /></button>
       </div>
     );
   }
@@ -130,19 +131,7 @@ const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
-  const ref = useRef<HTMLVideoElement | null>(null);
-  useEffect(() => {
-    const v = ref.current;
-    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-    void v.play().catch(() => {});
-  }, []);
-  return (
-    <video ref={ref} className="card-video" poster={poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true">
-      <source src={src} type="video/mp4" />
-      <source src={webm} type="video/webm" />
-    </video>
-  );
+  return <ClipCard src={src} webm={webm} poster={poster} className="card-video" />;
 }
 
 export default function Landing() {

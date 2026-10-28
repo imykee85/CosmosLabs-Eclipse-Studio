@@ -796,9 +796,13 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .audience-card .card-collage video.card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: none; }
 .audience-card:has(> .card-collage):after { display: none; }
 .audience-card .card-collage.is-still img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.audience-card .card-collage .collage-play { position: absolute; left: 50%; top: 50%; z-index: 2; width: 56px; height: 56px; margin: -28px 0 0 -28px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; cursor: pointer; padding: 0; }
-.audience-card .card-collage .collage-play svg { margin-left: 3px; }
 .results-col article > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .audience-card > .card-slides.is-slide .card-slide { opacity: 1; transform: translateX(100%); transition: transform .7s var(--ease); }
 .audience-card > .card-slides.is-slide .card-slide.is-on { transform: translateX(0); }
 .audience-card > .card-slides.is-slide .card-slide.is-prev { transform: translateX(-100%); }
+/* Clips that cannot autoplay: the poster picture and one small play button (the same on every card). */
+button.clip-play { position: absolute; left: 50%; top: 50%; z-index: 3; width: 34px; height: 34px; margin: -17px 0 0 -17px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(0,0,0,.45); color: #fff; cursor: pointer; padding: 0; }
+button.clip-play svg { margin-left: 2px; }
+.audience-card > img.card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.wow-slide > img.wow-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; border-radius: var(--cr); clip-path: inset(0 round var(--cr)); }
+
