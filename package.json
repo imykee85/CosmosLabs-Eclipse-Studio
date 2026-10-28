@@ -2,7 +2,9 @@
   "name": "eclipse",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && node scripts/db-push.mjs && npm run i18n:extract && node --import tsx scripts/i18n-warm.mjs && next build",
@@ -32,6 +34,7 @@
     "@xyflow/react": "^12.12.0",
     "lucide-react": "^1.51.0",
     "mammoth": "1.13.0",
+    "mp4box": "^2.5.0",
     "next": "16.4.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",

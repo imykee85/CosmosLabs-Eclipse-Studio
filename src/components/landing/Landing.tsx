@@ -1,6 +1,8 @@
 "use client";
 
-import { ClipCard, type ClipMode } from "./ClipCard";
+import { ClipCard } from "./ClipCard";
+
+type ClipMode = "video" | "image" | "still";
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
