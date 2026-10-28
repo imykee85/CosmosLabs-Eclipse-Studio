@@ -125,10 +125,11 @@ export async function warmLanguage(lang: string, n = 180): Promise<{ added: numb
 /** How many of the CURRENT interface strings each language has. Rows for wording that has since changed or been removed are not counted:
  *  counting them made a language look complete while its new wording was still English, so the build step skipped it. */
 export async function translationCounts(): Promise<Record<string, number>> {
-  const current = new Set([...ALLOWED].map((t) => sha(t)));
-  const rows = await db.translation.findMany({ select: { lang: true, sourceHash: true } });
+  // Counted by the database (one row per language comes back) instead of downloading every translation row.
+  const current = [...ALLOWED].map((t) => sha(t));
+  const rows = await db.translation.groupBy({ by: ["lang"], where: { sourceHash: { in: current } }, _count: { _all: true } });
   const out: Record<string, number> = {};
-  for (const r of rows) if (current.has(r.sourceHash)) out[r.lang] = (out[r.lang] ?? 0) + 1;
+  for (const r of rows) out[r.lang] = r._count._all;
   return out;
 }
 

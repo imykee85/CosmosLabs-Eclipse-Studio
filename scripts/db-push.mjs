@@ -9,6 +9,18 @@ if (!process.env.VERCEL || !process.env.DIRECT_URL) {
   process.exit(0);
 }
 
+// Skip when the schema has not changed since the commit Vercel last deployed (VERCEL_GIT_PREVIOUS_SHA): `db push` reads the whole database
+// structure every time, and with hundreds of builds a month that was a large share of the Neon network transfer. When it cannot tell
+// (no previous commit, shallow clone, git error, FORCE_DB_PUSH=1), it pushes as before, so a schema change is never skipped by mistake.
+const prev = process.env.VERCEL_GIT_PREVIOUS_SHA;
+if (prev && process.env.FORCE_DB_PUSH !== "1") {
+  const diff = spawnSync("git", ["diff", "--quiet", prev, "HEAD", "--", "prisma/schema.prisma"], { stdio: "ignore" });
+  if (diff.status === 0) {
+    console.log(`db-push: skipped (prisma/schema.prisma unchanged since ${prev.slice(0, 7)})`);
+    process.exit(0);
+  }
+}
+
 console.log("db-push: applying prisma/schema.prisma");
 const run = spawnSync("npx", ["--no-install", "prisma", "db", "push", "--skip-generate"], { stdio: "inherit" });
 process.exit(run.status ?? 1);

@@ -26,7 +26,7 @@ export async function GET(_req: Request, props: { params: Promise<{ lang: string
       })());
     }
     // A complete dictionary may be cached for a long time; an incomplete one only briefly, so what is translated meanwhile shows up soon.
-    const cache = count >= total ? "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=20, stale-while-revalidate=60";
+    const cache = count >= total ? "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=300, stale-while-revalidate=600";
     return NextResponse.json({ d, n: count, t: total }, { headers: { "Cache-Control": cache } });
   } catch (e) {
     console.error("[i18n] dictionary failed:", e instanceof Error ? e.message : e);

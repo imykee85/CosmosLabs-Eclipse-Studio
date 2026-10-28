@@ -5,9 +5,10 @@
 // Settings (Config values): I18N_BUILD_WARM=off skips it; I18N_BUILD_BUDGET_MIN (default 12) is the most minutes it may take; I18N_BUILD_LANGS=es,pt limits the languages.
 import { LANG_CODES } from "../src/lib/i18n/languages.ts";
 
-const off = process.env.I18N_BUILD_WARM === "off";
-const force = process.env.I18N_BUILD_WARM === "on";
-if (off || (!process.env.VERCEL && !force)) { console.log("i18n warm: skipped (runs on Vercel builds; set I18N_BUILD_WARM=on to run elsewhere)"); process.exit(0); }
+// Off by default (2026-10-28): every build used to read the whole translations table from Neon, which used up the monthly network
+// transfer. New wording is now translated on demand (the /api/i18n/<lang> route completes a language in the background, and
+// /admin/translations has "Translate every language"). Set I18N_BUILD_WARM=on (Config value) to run it on a build again.
+if (process.env.I18N_BUILD_WARM !== "on") { console.log("i18n warm: skipped (set I18N_BUILD_WARM=on to translate during the build)"); process.exit(0); }
 if (!process.env.DATABASE_URL || !process.env.ANTHROPIC_API_KEY || process.env.TRANSLATE_KILL_SWITCH === "1") { console.log("i18n warm: skipped (needs DATABASE_URL and ANTHROPIC_API_KEY)"); process.exit(0); }
 
 const budgetMs = (Number(process.env.I18N_BUILD_BUDGET_MIN) || 12) * 60_000;
