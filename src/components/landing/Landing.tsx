@@ -5,7 +5,7 @@ import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Play, Plus, Lightbulb, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
@@ -139,6 +139,9 @@ const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }
   Food: { src: "/landing/food-tile.mp4", webm: "/landing/food-tile.webm", poster: "/landing/food-tile-poster.jpg" },
 };
 
+// Wide (16:9) cards added under a wall tile, by that tile's slot ("column-row"); the value is the gradient tone.
+const WIDE_AFTER: Record<string, number> = { "1-0": 3, "2-1": 7 };
+
 // A clip placed on the wall by slot.
 const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
   "3-2": { src: "/landing/results-video.mp4", webm: "/landing/results-video.webm", poster: "/landing/results-video-poster.jpg" },
@@ -257,9 +260,12 @@ export default function Landing() {
             {[0, 1, 2, 3].map((c) => (
               <div className="results-col" key={c}>
                 {results.filter((_, i) => i % 4 === c).map((name, j) => (
-                  <article key={name} className={`rt-${c}-${j}`} aria-label={name}>
+                  <Fragment key={name}>
+                  <article className={`rt-${c}-${j}`} aria-label={name}>
                     {SLOT_IMAGE[`${c}-${j}`] ? <img src={SLOT_IMAGE[`${c}-${j}`]} alt="" /> : SLOT_VIDEO[`${c}-${j}`] ? <CardVideo {...SLOT_VIDEO[`${c}-${j}`]} /> : RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
                   </article>
+                  {WIDE_AFTER[`${c}-${j}`] != null && <article className="rt-wide" aria-hidden="true"><div className={`tile tone-${WIDE_AFTER[`${c}-${j}`]}`} /></article>}
+                  </Fragment>
                 ))}
               </div>
             ))}

@@ -674,6 +674,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .results-col article:hover .tile { transform: scale(1.05); }
 .rt-1-0 { aspect-ratio: 3 / 4 !important; }
 .rt-2-1 { aspect-ratio: 1 / 1 !important; }
+.results-col article.rt-wide { aspect-ratio: 16 / 9; }
 .results-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; background: linear-gradient(180deg, rgba(240,237,232,0) 0%, var(--paper) 88%); pointer-events: none; }
 .results-more { position: absolute; left: 0; right: 0; bottom: 9%; display: flex; justify-content: center; }
 /* Atlas closing line: four lines, right aligned. */
@@ -759,8 +760,8 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 .nav-actions .pill-btn { height: auto; padding: 14px 20px 14px 22px; font-size: 16px; line-height: 24px; gap: 13px; }
 .hero-trial { margin: 14px 0 0; color: #d1cec9; font-size: 16px; font-weight: 500; }
 /* The last row of tiles must not leave a thin line at the bottom edge of the wall: the columns fade out with a mask instead of relying on the overlay alone. */
-.results-cols { -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 96%); mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 96%); }
-.results-fade { bottom: -2px; height: calc(18% + 2px); }
+.results-cols { -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 90%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 90%, transparent 100%); }
+.results-fade { bottom: -2px; height: calc(7% + 2px); }
 
 /* Hero (owner 2026-10-21): the line under "AI Creative Suite" has the same size as it; an outlined "Why Eclipse?" button sits above "Trusted by" (after the owner's reference). */
 .hero-deck { font-size: 20px; }
