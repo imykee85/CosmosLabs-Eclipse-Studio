@@ -803,6 +803,6 @@ button.clip-play svg { margin-left: 2px; }
 /* The wall cuts every column at the same height; each column is clipped with rounded bottom corners so the last cards end
    rounded, and the button sits below the wall instead of over it. */
 .results-cols { height: 100%; }
-.results-col { height: 100%; overflow: hidden; border-radius: 0 0 8px 8px; clip-path: inset(0 round 0 0 8px 8px); -webkit-clip-path: inset(0 round 0 0 8px 8px); }
+.results-col { height: 100%; overflow: hidden; border-radius: 0 0 18px 18px; clip-path: inset(0 round 0 0 18px 18px); -webkit-clip-path: inset(0 round 0 0 18px 18px); }
 .results-col > article { flex-shrink: 0; }
 .results-more { position: static; margin-top: 28px; display: flex; justify-content: center; }
