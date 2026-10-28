@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipCard } from "./ClipCard";
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
 import Link from "next/link";
@@ -84,7 +85,7 @@ function CardCollage({ clips }: { clips: { src: string; webm: string; poster: st
     return (
       <div className="card-collage is-still">
         {clips.map((c) => <div key={c.src}><img src={c.poster} alt="" /></div>)}
-        <button type="button" className="collage-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); start(); }}><Play size={22} fill="currentColor" /></button>
+        <button type="button" className="clip-play" aria-label="Play" onClick={(e) => { e.stopPropagation(); start(); }}><Play size={14} fill="currentColor" /></button>
       </div>
     );
   }
@@ -103,17 +104,17 @@ function CardCollage({ clips }: { clips: { src: string; webm: string; poster: st
 }
 
 // Pictures that change on their own every few seconds (a crossfade). Under reduced motion only the first picture shows.
-function CardSlides({ srcs }: { srcs: string[] }) {
-  const [index, setIndex] = useState(0);
+function CardSlides({ srcs, mode }: { srcs: string[]; mode: "fade" | "slide" }) {
+  const [s, setS] = useState({ index: 0, prev: -1 });
   useEffect(() => {
     if (srcs.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = window.setInterval(() => setIndex((i) => (i + 1) % srcs.length), 3500);
+    const t = window.setInterval(() => setS((c) => ({ index: (c.index + 1) % srcs.length, prev: c.index })), 3500);
     return () => window.clearInterval(t);
   }, [srcs.length]);
   return (
-    <div className="card-slides">
+    <div className={`card-slides${mode === "slide" ? " is-slide" : ""}`}>
       {srcs.map((src, i) => (
-        <img key={src} className={`card-slide${i === index ? " is-on" : ""}`} src={src} alt="" />
+        <img key={src} className={`card-slide${i === s.index ? " is-on" : i === s.prev ? " is-prev" : ""}`} src={src} alt="" />
       ))}
     </div>
   );
@@ -130,19 +131,7 @@ const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
-  const ref = useRef<HTMLVideoElement | null>(null);
-  useEffect(() => {
-    const v = ref.current;
-    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-    void v.play().catch(() => {});
-  }, []);
-  return (
-    <video ref={ref} className="card-video" poster={poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true">
-      <source src={src} type="video/mp4" />
-      <source src={webm} type="video/webm" />
-    </video>
-  );
+  return <ClipCard src={src} webm={webm} poster={poster} className="card-video" />;
 }
 
 export default function Landing() {
@@ -217,7 +206,7 @@ export default function Landing() {
           {audience.map(([title, , , , facts], i) => (
             <div className="audience-item" key={title}>
               <div className="audience-card">
-                {CARD_COLLAGE[title] ? <CardCollage clips={CARD_COLLAGE[title]} /> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} /> : <div className={`tile tone-${i % 10}`} />}
+                {CARD_COLLAGE[title] ? <CardCollage clips={CARD_COLLAGE[title]} /> : CARD_VIDEO[title] ? <CardVideo {...CARD_VIDEO[title]} /> : CARD_IMAGE[title] ? <CardSlides srcs={CARD_IMAGE[title]} mode={title === "LOOK BOOK" ? "slide" : "fade"} /> : <div className={`tile tone-${i % 10}`} />}
                 <span className="audience-number">0{i + 1}</span>
                 <div><b>{title}</b></div>
                 <ArrowRight className="audience-arrow" size={18} />

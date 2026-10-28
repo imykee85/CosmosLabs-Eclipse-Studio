@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { wowTiles } from "./data";
+import { ClipCard } from "./ClipCard";
 
 // Carousel cards that play a clip instead of the gradient tile (the owner's real estate clip).
 const WOW_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
@@ -10,19 +11,7 @@ const WOW_VIDEO: Record<string, { src: string; webm: string; poster: string }> =
 
 // Starts the clip by script as well as by attribute: iPhone Safari ignores the muted and autoplay props unless the element is muted and asked to play.
 function WowVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
-  const ref = useRef<HTMLVideoElement | null>(null);
-  useEffect(() => {
-    const v = ref.current;
-    if (!v || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-    void v.play().catch(() => {});
-  }, []);
-  return (
-    <video ref={ref} className="wow-video" poster={poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true">
-      <source src={src} type="video/mp4" />
-      <source src={webm} type="video/webm" />
-    </video>
-  );
+  return <ClipCard src={src} webm={webm} poster={poster} className="wow-video" />;
 }
 
 // The "One canvas" cards as a looping 3D carousel, matched to the owner's reference (a Framer site, measured from their screenshot): the cards stand on the
