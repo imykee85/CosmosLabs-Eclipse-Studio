@@ -15,6 +15,7 @@ const WOW_IMAGE: Record<string, string> = {
   FOOD: "/landing/wow-food.jpg",
   ART: "/landing/wow-art.jpg",
   CAMPAIGN: "/landing/wow-product.jpg",
+  FASHION: "/landing/wow-fashion.jpg",
   PORTRAIT: "/landing/wow-portrait-2.jpg",
   "INTERIOR DESIGN": "/landing/wow-interior.jpg",
   BEAUTY: "/landing/wow-portrait.jpg",
