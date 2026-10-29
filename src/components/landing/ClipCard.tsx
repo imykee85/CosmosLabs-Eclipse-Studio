@@ -17,9 +17,11 @@ export function playOnFirstGesture(videos: () => HTMLVideoElement[], onPlaying: 
     const vids = videos();
     if (!vids.length || trying) return;
     trying = true;
-    vids[0].play()
-      .then(() => { stop(); vids.slice(1).forEach((v) => { void v.play().catch(() => {}); }); onPlaying(); })
-      .catch(() => {})
+    // Every clip is asked to play in this same call (iPhone only allows a start inside the gesture); the group counts as playing only when all of them do.
+    Promise.all(vids.map((v) => v.play().then(() => true, () => false)))
+      .then((ok) => {
+        if (ok.every(Boolean)) { stop(); onPlaying(); } else vids.forEach((v) => v.pause());
+      })
       .finally(() => { trying = false; });
   };
   const opts = { capture: true, passive: true };
