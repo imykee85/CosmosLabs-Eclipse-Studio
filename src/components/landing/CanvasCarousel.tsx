@@ -6,6 +6,7 @@ import { ClipCard } from "./ClipCard";
 
 // Carousel cards that play a clip instead of the gradient tile (the owner's real estate clip).
 const WOW_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
+  UGC: { src: "/landing/wow-ugc.mp4", webm: "/landing/wow-ugc.webm", poster: "/landing/wow-ugc-poster.jpg" },
 };
 
 // Carousel cards that show a picture instead of the gradient tile.
