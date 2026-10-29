@@ -139,6 +139,7 @@ const SLOT_IMAGE: Record<string, string> = {
   "1-0": "/landing/results-suit.jpg",
   "0-1": "/landing/results-bags.jpg",
   "2-0": "/landing/results-boats.jpg",
+  "1-2": "/landing/results-earring.jpg",
 };
 
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
