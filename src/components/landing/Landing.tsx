@@ -132,7 +132,6 @@ function CardSlides({ srcs, mode }: { srcs: string[]; mode: "fade" | "slide" }) 
 // Results wall tiles that show a picture, by their place on the wall ("column-row", both counted from 0).
 const SLOT_IMAGE: Record<string, string> = {
   "3-0": "/landing/results-fashion.jpg",
-  "0-0": "/landing/results-utv.jpg",
   "1-0": "/landing/results-suit.jpg",
   "0-1": "/landing/results-bags.jpg",
   "2-0": "/landing/results-boats.jpg",
@@ -151,6 +150,7 @@ const WIDE_IMAGE: Record<string, string> = { "2-2": "/landing/results-flowers.jp
 // A clip placed on the wall by slot.
 const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
   "3-2": { src: "/landing/results-video.mp4", webm: "/landing/results-video.webm", poster: "/landing/results-video-poster.jpg" },
+  "0-0": { src: "/landing/results-clip4.mp4", webm: "/landing/results-clip4.webm", poster: "/landing/results-clip4-poster.jpg" },
   "2-2": { src: "/landing/results-clip3.mp4", webm: "/landing/results-clip3.webm", poster: "/landing/results-clip3-poster.jpg" },
   "2-3": { src: "/landing/results-clip2.mp4", webm: "/landing/results-clip2.webm", poster: "/landing/results-clip2-poster.jpg" },
   "0-2": { src: "/landing/real-estate-card.mp4", webm: "/landing/real-estate-card.webm", poster: "/landing/real-estate-card-poster.jpg" },
