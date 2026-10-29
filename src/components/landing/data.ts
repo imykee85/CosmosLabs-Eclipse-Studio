@@ -3,10 +3,10 @@ export const wowTiles = [
   ["PRODUCT", "CAMPAIGN"],
   ["FASHION", "EDITORIAL"],
   ["REAL ESTATE", "CINEMATIC"],
+  ["FILM", "CINEMATIC SHORTS"],
   ["BEAUTY", "COMMERCIAL"],
   ["FOOD", "ADVERTISING"],
   ["UGC", "CREATOR CONTENT"],
-  ["FILM", "CINEMATIC SHORTS"],
   ["ART", "DIGITAL ART"],
   ["CAMPAIGN", "BRAND LAUNCH"],
 ] as const;
