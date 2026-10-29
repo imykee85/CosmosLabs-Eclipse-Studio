@@ -810,3 +810,6 @@ button.clip-play svg { margin-left: 2px; }
 
 /* The "All created with Eclipse." line sits above the button in every section; the buttons sit lower to make room. */
 .audience-cta { margin-top: 84px; }
+
+/* A clip that cannot autoplay never shows the browser's own big play badge; the page draws one small button instead. */
+video.card-video::-webkit-media-controls-start-playback-button, video.wow-video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none; }

@@ -81,9 +81,10 @@ function CardCollage({ clips }: { clips: { src: string; webm: string; poster: st
     list.forEach((v) => { v.muted = true; v.defaultMuted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); });
     let stop = () => {};
     let alive = true;
-    const first = list[0].play();
-    if (first) first.then(() => list.slice(1).forEach((v) => { void v.play().catch(() => {}); })).catch(() => {
-      if (!alive) return;
+    // The three clips are one picture: if any of them is refused (iPhone Low Power Mode), all three stop and show their posters with one button.
+    Promise.all(list.map((v) => v.play().then(() => true, () => false))).then((ok) => {
+      if (ok.every(Boolean) || !alive) return;
+      list.forEach((v) => v.pause());
       setMode("still");
       stop = playOnFirstGesture(vids, () => setMode("video"));
     });
