@@ -43,6 +43,9 @@ const GAP_DEG = 3;                   // empty angle between neighbouring cards
 const HIDE_DEG = 64;                 // cards further round than this are off screen
 const DRIFT_PX_S = 26;               // slow automatic turn, measured at the middle of the row
 const MAX_W = 1600;                  // above this width the ring stops growing
+// The carousel always opens on the same view: Fashion, Interior design, Film and Beauty, with the middle of the ring between Interior design and Film.
+const START_AFTER = wowTiles.findIndex((t) => t[0] === "INTERIOR DESIGN");
+const START_POS = START_AFTER >= 0 ? START_AFTER + 0.5 : 0;
 
 export default function CanvasCarousel() {
   const root = useRef<HTMLDivElement>(null);
@@ -52,7 +55,7 @@ export default function CanvasCarousel() {
     if (!box) return;
     const cards = Array.from(box.querySelectorAll<HTMLElement>(".wow-slide"));
     let R = 1, stepDeg = 20, stepPx = 1;
-    let pos = 0, vel = 0, down = false, lastX = 0, lastT = 0, hover = false, raf = 0, prev = 0, visible = true;
+    let pos = START_POS, vel = 0, down = false, lastX = 0, lastT = 0, hover = false, raf = 0, prev = 0, visible = true;
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const measure = () => {
