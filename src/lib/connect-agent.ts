@@ -16,6 +16,7 @@ export type AgentEvent =
   | { t: "text"; d: string }
   | { t: "tool"; name: string }
   | { t: "render"; id: string }
+  | { t: "send"; id: string }
   | { t: "error"; message: string }
   | { t: "done" };
 
@@ -163,7 +164,7 @@ export async function runTurn(opts: {
       const calls = msg.content.filter((b): b is Anthropic.Beta.Messages.BetaToolUseBlock => b.type === "tool_use");
       for (const c of calls) emit({ t: "tool", name: c.name });
       const results = await Promise.all(calls.map(async (c) => {
-        const o = await runTool(c.name, c.input, { userId, projectId, chatId, onRender: (id) => emit({ t: "render", id }) });
+        const o = await runTool(c.name, c.input, { userId, projectId, chatId, onRender: (id) => emit({ t: "render", id }), onSend: (id) => emit({ t: "send", id }) });
         const content = o.image ? [{ type: "text" as const, text: o.text }, { type: "image" as const, source: { type: "base64" as const, media_type: o.image.mediaType, data: o.image.data } }] : o.text;
         return { type: "tool_result" as const, tool_use_id: c.id, content, ...(o.isError ? { is_error: true } : {}) };
       }));

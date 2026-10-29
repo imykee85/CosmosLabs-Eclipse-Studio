@@ -728,3 +728,21 @@ model ChatState {
   @@unique([userId, key])
   @@map("chat_states")
 }
+
+// A message the Core assistant wants to send to one of the person's connected apps. NOTHING is sent until the person presses Send in the chat
+// (`POST /api/connect/sends/<id>`): the assistant can only queue a message, so text it read in a document or a page cannot post anywhere by itself.
+model PendingSend {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  chatId       String?   @map("chat_id")
+  app          String
+  text         String    @db.Text
+  generationId String?   @map("generation_id")
+  status       String    @default("pending") // pending | sending | sent | canceled | failed
+  error        String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  decidedAt    DateTime? @map("decided_at")
+
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@map("pending_sends")
+}

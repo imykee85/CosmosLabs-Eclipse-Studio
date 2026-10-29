@@ -234,3 +234,17 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-clip { display: inline-flex; align-items: center; gap: 6px; max-width: 160px; padding: 4px 6px 4px 10px; border-radius: 999px; background: var(--a-hover); color: var(--a-fg); font-size: 12px; }
 .cn-clip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cn-clip button { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+
+/* A message the assistant prepared for a connected app: shown with Send and Cancel, nothing leaves until Send is pressed. */
+.cn-sc { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--a-line2, rgba(128,128,128,.35)); border-radius: 14px; background: var(--a-card, transparent); max-width: 100%; }
+.cn-sc.is-note { display: flex; align-items: center; gap: 8px; color: var(--a-sub, inherit); }
+.cn-sc-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.cn-sc-text { margin: 8px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cn-sc-pic { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; opacity: .75; }
+.cn-sc-actions { display: flex; gap: 8px; margin-top: 12px; }
+.cn-sc-go, .cn-sc-no { height: 36px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--a-line2, rgba(128,128,128,.4)); background: transparent; color: inherit; }
+.cn-sc-go { background: #c00707; border-color: #c00707; color: #fff; }
+.cn-sc-go:hover:not(:disabled) { background: #d90b0b; }
+.cn-sc-go:disabled, .cn-sc-no:disabled { opacity: .6; cursor: default; }
+.cn-sc.is-sent .cn-sc-head { color: #2e9d57; }
+.cn-sc.is-canceled, .cn-sc.is-expired { opacity: .7; }

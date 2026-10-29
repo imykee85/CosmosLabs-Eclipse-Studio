@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export type ChatPart = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string };
+export type ChatPart = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string } | { kind: "send"; id: string };
 export type ChatLine = { role: "user" | "assistant"; parts: ChatPart[] };
 
 type Block = { type: string; text?: string; name?: string; id?: string; tool_use_id?: string; content?: unknown };
@@ -37,8 +37,12 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     } else {
       // Tool results: pick out the renders that generate_image started and put them on the assistant line they belong to.
       for (const b of blocks) {
-        if (b.type !== "tool_result" || !b.tool_use_id || toolNames.get(b.tool_use_id) !== "generate_image" || typeof b.content !== "string") continue;
-        try { const id = JSON.parse(b.content).generation_id; if (typeof id === "string") lines[lines.length - 1]?.parts.push({ kind: "render", id }); } catch {}
+        if (b.type !== "tool_result" || !b.tool_use_id || typeof b.content !== "string") continue;
+        const tool = toolNames.get(b.tool_use_id);
+        try {
+          if (tool === "generate_image") { const id = JSON.parse(b.content).generation_id; if (typeof id === "string") lines[lines.length - 1]?.parts.push({ kind: "render", id }); }
+          else if (tool === "send_to_app") { const id = JSON.parse(b.content).pending_send_id; if (typeof id === "string") lines[lines.length - 1]?.parts.push({ kind: "send", id }); }
+        } catch {}
       }
     }
   }

@@ -60,11 +60,12 @@ export async function askCore(userId: string, args: Json): Promise<ApiResult> {
   if (cap !== null && !(await claimUsage(userId, "connect", cap, 24 * 3600 * 1000))) return { ok: false, status: 429, error: `You have reached today's limit of ${cap} Core messages. It resets on a rolling 24 hours.` };
 
   let reply = "", chat = chatId, failed = "";
-  const renders: string[] = [], tools: string[] = [];
+  const renders: string[] = [], tools: string[] = [], waiting: string[] = [];
   const emit = (e: AgentEvent) => {
     if (e.t === "chat") chat = e.id;
     else if (e.t === "text") reply += e.d;
     else if (e.t === "render") renders.push(e.id);
+    else if (e.t === "send") waiting.push(e.id);
     else if (e.t === "tool") tools.push(e.name);
     else if (e.t === "error") failed = e.message;
   };
@@ -75,5 +76,5 @@ export async function askCore(userId: string, args: Json): Promise<ApiResult> {
     return { ok: false, status: 502, error: "Core could not answer. Please try again." };
   }
   if (failed && !reply) return { ok: false, status: 502, error: failed };
-  return { ok: true, data: { chat_id: chat, reply: reply.trim(), ...(renders.length ? { renders_started: renders, note: "Poll each with get_render until it is completed." } : {}), ...(tools.length ? { tools_used: [...new Set(tools)] } : {}), ...(failed ? { warning: failed } : {}) } };
+  return { ok: true, data: { chat_id: chat, reply: reply.trim(), ...(renders.length ? { renders_started: renders, note: "Poll each with get_render until it is completed." } : {}), ...(waiting.length ? { messages_waiting_for_send: waiting.length, note_send: "Not sent. Messages to connected apps only go out when the person presses Send in Eclipse (Core)." } : {}), ...(tools.length ? { tools_used: [...new Set(tools)] } : {}), ...(failed ? { warning: failed } : {}) } };
 }

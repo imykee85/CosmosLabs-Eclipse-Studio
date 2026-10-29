@@ -118,6 +118,7 @@ function ConnectChat() {
           });
           else if (e.t === "tool" && e.name) patch((a) => ({ ...a, parts: [...a.parts, { kind: "tool", name: e.name! }] }));
           else if (e.t === "render" && e.id) patch((a) => ({ ...a, parts: [...a.parts, { kind: "render", id: e.id! }] }));
+          else if (e.t === "send" && e.id) patch((a) => ({ ...a, parts: [...a.parts, { kind: "send", id: e.id! }] }));
           else if (e.t === "error") patch((a) => ({ ...a, error: e.message }));
         }
       }
