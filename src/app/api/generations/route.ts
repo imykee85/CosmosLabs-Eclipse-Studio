@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
@@ -28,7 +29,9 @@ export async function GET(req: Request) {
   // `?uploaded=1`: only those (Assets); `?uploaded=all`: everything (the reference and Core pickers, which may use them).
   const uploadedParam = params.get("uploaded");
   const isUploaded = { kind: "video", params: { path: ["uploaded"], equals: true } };
-  const uploadedOnly = uploadedParam === "1" ? isUploaded : uploadedParam === "all" ? {} : { NOT: isUploaded };
+  // "Not uploaded" is spelled out: a plain NOT on the JSON test is NULL for every video without the flag, and would hide all generated videos.
+  const notUploaded = { OR: [{ kind: { not: "video" } }, { params: { equals: Prisma.DbNull } }, { params: { equals: Prisma.JsonNull } }, { params: { path: ["uploaded"], equals: Prisma.DbNull } }, { params: { path: ["uploaded"], not: true } }] };
+  const uploadedOnly = uploadedParam === "1" ? isUploaded : uploadedParam === "all" ? {} : notUploaded;
   try {
     await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err));
     const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), ...uploadedOnly, deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
