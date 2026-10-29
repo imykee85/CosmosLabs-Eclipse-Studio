@@ -1,9 +1,10 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { waitUntil } from "@vercel/functions";
 import { finalizeGeneration, purgeFailed, toItem } from "@/lib/generation-jobs";
-import { isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
+import { isLateWatch, rescueLateVideo, finalizeVideo } from "@/lib/video-jobs";
 import { workspaceSession } from "@/lib/workspace";
 
 const DEFAULT_LIMIT = 24;
@@ -28,12 +29,17 @@ export async function GET(req: Request) {
   // `?uploaded=1`: only those (Assets); `?uploaded=all`: everything (the reference and Core pickers, which may use them).
   const uploadedParam = params.get("uploaded");
   const isUploaded = { kind: "video", params: { path: ["uploaded"], equals: true } };
-  const uploadedOnly = uploadedParam === "1" ? isUploaded : uploadedParam === "all" ? {} : { NOT: isUploaded };
+  // "Not uploaded" is spelled out: a plain NOT on the JSON test is NULL for every video without the flag, and would hide all generated videos.
+  const notUploaded = { OR: [{ kind: { not: "video" } }, { params: { equals: Prisma.DbNull } }, { params: { equals: Prisma.JsonNull } }, { params: { path: ["uploaded"], equals: Prisma.DbNull } }, { params: { path: ["uploaded"], not: true } }] };
+  const uploadedOnly = uploadedParam === "1" ? isUploaded : uploadedParam === "all" ? {} : notUploaded;
   try {
     await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err));
     const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), ...uploadedOnly, deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
     // Renders still running are checked on here, so coming back later (or from another device) finds them finished.
     // Videos we stopped waiting for are asked about again in the background (a late finish turns the row into the video on the next load).
+    // Videos still marked running (the page was closed) are settled in the background, so they turn into the finished clip on the next load.
+    const open = rows.filter((g) => g.kind === "video" && g.status === "pending").slice(0, 3);
+    if (open.length) { try { waitUntil(Promise.allSettled(open.map(finalizeVideo))); } catch { /* not on Vercel */ } }
     const late = rows.filter(isLateWatch).slice(0, 3);
     if (late.length) { try { waitUntil(Promise.allSettled(late.map(rescueLateVideo))); } catch { /* not on Vercel */ } }
     // One bad row must never blank the whole list: if finishing or describing a render throws, fall back to the row as stored, and skip it only if even that fails.
