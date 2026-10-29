@@ -7,6 +7,7 @@ import { Analytics } from "@vercel/analytics/react"; // page views; sends nothin
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
 import WorkspaceWatcher from "@/components/WorkspaceWatcher";
+import ChatSync from "@/components/ChatSync";
 import SubscribeAlert from "@/components/SubscribeAlert";
 import ConfirmHost from "@/components/ConfirmHost";
 import "./globals.css";
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen bg-black font-[family-name:var(--font-sans)] text-neutral-100 antialiased">
         <LocaleProvider>{children}</LocaleProvider>
         <WorkspaceWatcher />
+        <ChatSync />
         <SubscribeAlert />
         <ConfirmHost />
         <Analytics />
