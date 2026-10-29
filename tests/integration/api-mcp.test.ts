@@ -44,7 +44,7 @@ test("MCP: initialize, tools/list, tools/call, notifications, unknown method", {
   const note = await lib.mcp.POST(req("/api/mcp", { jsonrpc: "2.0", method: "notifications/initialized" }));
   assert.equal(note.status, 202);
   const list = await (await lib.mcp.POST(req("/api/mcp", { jsonrpc: "2.0", id: 2, method: "tools/list" }))).json();
-  assert.deepEqual(list.result.tools.map((t: { name: string }) => t.name), ["list_models", "generate_image", "generate_video", "get_render", "list_renders", "get_credits"]);
+  assert.deepEqual(list.result.tools.map((t: { name: string }) => t.name), ["list_models", "generate_image", "generate_video", "get_render", "list_renders", "get_credits", "ask_atlas", "ask_core"]);
   const call = await (await lib.mcp.POST(req("/api/mcp", { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "get_render", arguments: { id: "gapi1" } } }))).json();
   assert.equal(call.result.structuredContent.id, "gapi1");
   const missing = await (await lib.mcp.POST(req("/api/mcp", { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "get_render", arguments: { id: "nope" } } }))).json();

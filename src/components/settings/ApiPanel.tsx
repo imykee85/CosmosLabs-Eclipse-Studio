@@ -100,7 +100,7 @@ export default function ApiPanel() {
       <CodeBlock id="st-code" text={claude} />
       <h3 className="st-h3 st-gap">Other MCP clients</h3>
       <CodeBlock id="st-json" text={json} />
-      <p className="st-hint">Streamable HTTP at {origin}/api/mcp. Tools: list_models, generate_image, generate_video, get_render, list_renders, get_credits.</p>
+      <p className="st-hint">Streamable HTTP at {origin}/api/mcp. Tools: list_models, generate_image, generate_video, get_render, list_renders, get_credits, ask_atlas, ask_core. Atlas and Core need the Growth plan. Commands: image, video, atlas, storyboard, core, balance (in Claude Code they are /mcp__eclipse__image and so on).</p>
       <h3 className="st-h3 st-gap">REST API</h3>
       <CodeBlock id="st-curl" text={curl} />
       <p className="st-hint">GET /api/v1/models, POST /api/v1/images, POST /api/v1/videos, GET /api/v1/renders, GET /api/v1/renders/&lt;id&gt;, GET /api/v1/credits. Up to 60 requests a minute per key.</p>
