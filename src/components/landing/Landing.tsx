@@ -134,6 +134,7 @@ function CardSlides({ srcs, mode }: { srcs: string[]; mode: "fade" | "slide" }) 
 const SLOT_IMAGE: Record<string, string> = {
   "3-0": "/landing/results-fashion.jpg",
   "1-3": "/landing/results-jackets.jpg",
+  "2-1": "/landing/results-balloon.jpg",
   "1-0": "/landing/results-suit.jpg",
   "0-1": "/landing/results-bags.jpg",
   "2-0": "/landing/results-boats.jpg",
