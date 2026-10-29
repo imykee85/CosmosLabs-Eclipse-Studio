@@ -14,7 +14,7 @@ import { unseal } from "@/lib/secret-box";
 
 // The tools the Connect assistant can call. Each one runs as the signed-in user and goes through the same code as the buttons
 // in the app (renders are priced and recorded by startRender, memory and links belong to the user's account).
-export type ToolContext = { userId: string; projectId: string | null; chatId?: string | null; onRender: (id: string) => void };
+export type ToolContext = { userId: string; projectId: string | null; chatId?: string | null; onRender: (id: string) => void; onSend?: (id: string) => void };
 export type ToolOutcome = { text: string; isError?: boolean; image?: { mediaType: "image/png" | "image/jpeg" | "image/webp"; data: string } };
 
 export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
@@ -143,7 +143,7 @@ export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
   },
   {
     name: "send_to_app",
-    description: "Send a message, optionally with one finished render, to a connected app (see list_connected_apps). This posts to the user's real channel, so only do it when the user asked for it or agreed to it.",
+    description: "Prepare a message, optionally with one finished render, for a connected app (see list_connected_apps). It is NOT sent: the person sees it in the chat with a Send button and it goes out only when they press it. Only prepare one when the user asked for it or agreed to it.",
     input_schema: {
       type: "object",
       properties: {
@@ -254,29 +254,24 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
       }
 
       case "send_to_app": {
+        // The assistant can only QUEUE a message. It is shown to the person with a Send button and goes out only when they press it, so nothing the
+        // assistant read in a document, a page or a memory can post anywhere by itself.
         const app = str(args.app, 40);
+        const text = str(args.text, 3500);
+        if (!text) return { text: "Write the message first.", isError: true };
         const link = await db.connectorLink.findUnique({ where: { userId_connector: { userId: ctx.userId, connector: app } } });
         if (!link || !directConnectors[app]) return { text: `${app} is not connected. Ask the user to connect it under Connectors.`, isError: true };
-        let image: Attachment | undefined;
         const genId = str(args.generation_id, 60);
         if (genId) {
           const g = await db.generation.findFirst({ where: { id: genId, userId: ctx.userId, deletedAt: null } });
           if (!g || g.status !== "completed") return { text: "That render is not finished yet (or does not exist). Check it with check_render first.", isError: true };
           if (g.kind === "video") return { text: "Videos cannot be sent to apps yet; send a picture or a link instead.", isError: true };
-          image = { url: await displayUrl(g), type: g.contentType ?? "image/png", name: fileNameFor(g) };
-          // Apps that keep the picture get the file itself (Discord, email) or a 7-day link (pages, tasks, issues), never the 10-minute one.
-          if (app === "discord" || app === "sendgrid") {
-            const res = await openImage(g);
-            const buf = res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
-            if (buf && buf.byteLength <= 8 * 1024 * 1024) image.bytes = buf;
-          }
-          if (directConnectors[app]?.verifyOnly) image.link7 = g.storageKey && storageEnabled ? await signedGetUrl(g.storageKey, 7 * 24 * 3600) : g.imageUrl;
         }
-        const secrets = JSON.parse(unseal(link.secret)) as Record<string, unknown>;
-        const linkData = { ...checkFields(app, secrets), ...(typeof secrets.teamId === "string" ? { teamId: secrets.teamId } : {}) };
-        if (app === "linear" && !linkData.teamId) await verify(app, linkData);
-        const sent = await sendTo(app, linkData, str(args.text, 3500), image);
-        return { text: JSON.stringify({ sent: true, to: sent }) };
+        const open = await db.pendingSend.count({ where: { userId: ctx.userId, status: "pending" } });
+        if (open >= 20) return { text: "There are already 20 messages waiting for the person to press Send. Tell them to send or cancel some first.", isError: true };
+        const row = await db.pendingSend.create({ data: { userId: ctx.userId, chatId: ctx.chatId ?? null, app, text, generationId: genId || null } });
+        ctx.onSend?.(row.id);
+        return { text: JSON.stringify({ queued: true, pending_send_id: row.id, sent: false, note: `NOT SENT YET. The message is shown to the person with a Send button. Tell them what you prepared and where it will go (${link.label || app}), and that they need to press Send. Do not say it was sent.` }) };
       }
 
       default:
@@ -287,5 +282,37 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
     if (err instanceof SendError) return { text: err.message, isError: true };
     console.error("connect tool failed", name, err);
     return { text: "That step failed on our side. Tell the user and carry on without it.", isError: true };
+  }
+}
+
+
+/** Sends a queued message for real. Only called from the person's own Send button (`/api/connect/sends/<id>`), never from the assistant. */
+export async function performSend(userId: string, app: string, text: string, generationId: string | null): Promise<{ ok: true; to: string } | { ok: false; error: string }> {
+  try {
+    const link = await db.connectorLink.findUnique({ where: { userId_connector: { userId, connector: app } } });
+    if (!link || !directConnectors[app]) return { ok: false, error: `${app} is not connected any more. Connect it under Connectors.` };
+    let image: Attachment | undefined;
+    if (generationId) {
+      const g = await db.generation.findFirst({ where: { id: generationId, userId, deletedAt: null } });
+      if (!g || g.status !== "completed") return { ok: false, error: "The picture is not available any more." };
+      if (g.kind === "video") return { ok: false, error: "Videos cannot be sent to apps yet." };
+      image = { url: await displayUrl(g), type: g.contentType ?? "image/png", name: fileNameFor(g) };
+      // Apps that keep the picture get the file itself (Discord, email) or a 7-day link (pages, tasks, issues), never the 10-minute one.
+      if (app === "discord" || app === "sendgrid") {
+        const res = await openImage(g);
+        const buf = res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+        if (buf && buf.byteLength <= 8 * 1024 * 1024) image.bytes = buf;
+      }
+      if (directConnectors[app]?.verifyOnly) image.link7 = g.storageKey && storageEnabled ? await signedGetUrl(g.storageKey, 7 * 24 * 3600) : g.imageUrl;
+    }
+    const secrets = JSON.parse(unseal(link.secret)) as Record<string, unknown>;
+    const linkData = { ...checkFields(app, secrets), ...(typeof secrets.teamId === "string" ? { teamId: secrets.teamId } : {}) };
+    if (app === "linear" && !linkData.teamId) await verify(app, linkData);
+    const to = await sendTo(app, linkData, text.slice(0, 3500), image);
+    return { ok: true, to };
+  } catch (err) {
+    if (err instanceof SendError) return { ok: false, error: err.message };
+    console.error("send to app failed", app, err);
+    return { ok: false, error: "That could not be sent just now. Please try again." };
   }
 }

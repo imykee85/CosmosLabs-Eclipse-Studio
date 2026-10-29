@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { AlertCircle, Brain, Check, Folder, Image as ImageIcon, Loader2, Puzzle, Send, Square, Volume2, Wrench } from "lucide-react";
 import type { Render } from "@/lib/use-renders";
 
-type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string };
+type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string } | { kind: "send"; id: string };
 export type Line = { role: "user" | "assistant"; parts: Part[]; error?: string };
 
 const TOOL_LABEL: Record<string, string> = {
   generate_image: "Started a render", check_render: "Checked a render", list_recent_renders: "Looked at recent renders", list_projects: "Looked at your projects", search_library: "Searched your Library", view_render: "Looked at a render", list_image_models: "Looked up image models",
   remember: "Saved to memory", recall: "Read your memory", forget: "Removed from memory", list_skills: "Looked at skills", use_skill: "Followed a skill",
-  list_connected_apps: "Checked connected apps", send_to_app: "Sent to an app",
+  list_connected_apps: "Checked connected apps", send_to_app: "Prepared a message",
 };
 const TOOL_ICON: Record<string, React.ReactNode> = {
   generate_image: <ImageIcon size={14} />, check_render: <ImageIcon size={14} />, list_recent_renders: <ImageIcon size={14} />, list_projects: <Folder size={14} />, search_library: <ImageIcon size={14} />, view_render: <ImageIcon size={14} />, list_image_models: <ImageIcon size={14} />,
@@ -55,6 +55,48 @@ function RenderCard({ id, grew }: { id: string; grew: () => void }) {
   );
 }
 
+
+type SendInfo = { appName: string; destination: string; text: string; hasPicture: boolean; status: string; error?: string | null };
+
+// A message the assistant prepared for a connected app. Nothing leaves until the person presses Send here (the server enforces it).
+function SendCard({ id, grew }: { id: string; grew: () => void }) {
+  const [info, setInfo] = useState<SendInfo | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let stop = false;
+    fetch(`/api/connect/sends/${id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (!stop && d) setInfo(d); }).catch(() => {});
+    return () => { stop = true; };
+  }, [id]);
+  useEffect(() => { grew(); }, [info?.status, err]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!info) return <div className="cn-sc is-note"><Loader2 size={16} className="cn-spin" /> Preparing a message…</div>;
+  const decide = async (action: "send" | "cancel") => {
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch(`/api/connect/sends/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok || d.status) setInfo((i) => (i ? { ...i, status: d.status ?? i.status, error: d.error ?? null } : i));
+      if (!r.ok) setErr(d.error ?? "That did not work. Please try again.");
+    } catch { setErr("The connection dropped. Please try again."); }
+    setBusy(false);
+  };
+  const where = info.destination ? `${info.appName} (${info.destination})` : info.appName;
+  return (
+    <div className={`cn-sc is-${info.status}`}>
+      <div className="cn-sc-head"><Send size={14} /> {info.status === "sent" ? `Sent to ${where}` : info.status === "canceled" ? `Canceled: not sent to ${where}` : info.status === "expired" ? `Expired: not sent to ${where}` : info.status === "failed" ? `Could not send to ${where}` : `Send to ${where}?`}</div>
+      <p className="cn-sc-text">{info.text}</p>
+      {info.hasPicture && <span className="cn-sc-pic"><ImageIcon size={13} /> A picture is attached</span>}
+      {(err || (info.status === "failed" && info.error)) && <p className="cn-err" role="alert"><AlertCircle size={15} /> {err || info.error}</p>}
+      {info.status === "pending" && (
+        <div className="cn-sc-actions">
+          <button type="button" className="cn-sc-go" disabled={busy} onClick={() => decide("send")}>Send</button>
+          <button type="button" className="cn-sc-no" disabled={busy} onClick={() => decide("cancel")}>Cancel</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Read a reply aloud with the device's own voice (owner 2026-10-19: a voice icon on Core). Tapping again stops it.
 function ReadAloud({ text }: { text: string }) {
   const [on, setOn] = useState(false);
@@ -81,6 +123,7 @@ export default function ChatThread({ lines, busy, grew }: { lines: Line[]; busy:
           {l.parts.map((p, k) =>
             p.kind === "text" ? <p key={k} className="cn-text-part">{p.text}</p>
             : p.kind === "tool" ? <span key={k} className="cn-tool">{TOOL_ICON[p.name] ?? <Wrench size={14} />}{TOOL_LABEL[p.name] ?? (p.name.startsWith("sandbox") ? "Worked in the build space" : "Used a tool")}<Check size={13} /></span>
+            : p.kind === "send" ? <SendCard key={k} id={p.id} grew={grew} />
             : <RenderCard key={k} id={p.id} grew={grew} />,
           )}
           {l.error && <p className="cn-err" role="alert"><AlertCircle size={15} /> {l.error}</p>}
