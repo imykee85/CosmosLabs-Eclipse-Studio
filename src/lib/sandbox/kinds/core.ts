@@ -25,7 +25,7 @@ export const ToolRunInput = z.object({
   runtime: z.enum(["node", "python"]),
   entry: SafePath,
   files: z.array(StoredFile).max(TOOL_LIMITS.sourceFiles),
-  params: z.record(z.unknown()),
+  params: z.record(z.string(), z.unknown()),
   inputFiles: z.array(z.object({ name: z.string().min(1).max(100).regex(/^[A-Za-z0-9._ -]+$/), key: z.string().min(1).max(300), bytes: z.number().int().min(0) }).strict()).max(TOOL_LIMITS.inFiles),
   network: z.enum(["none", "internet"]),
   outPrefix: z.string().min(1).max(300),
