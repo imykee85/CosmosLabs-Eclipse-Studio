@@ -13,7 +13,7 @@ const WOW_VIDEO: Record<string, { src: string; webm: string; poster: string }> =
 const WOW_IMAGE: Record<string, string> = {
   FOOD: "/landing/wow-food.jpg",
   ART: "/landing/wow-art.jpg",
-  PRODUCT: "/landing/wow-product.jpg",
+  CAMPAIGN: "/landing/wow-product.jpg",
   PORTRAIT: "/landing/wow-portrait-2.jpg",
   BEAUTY: "/landing/wow-portrait.jpg",
 };
