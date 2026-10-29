@@ -108,8 +108,10 @@ test.describe("Canvas on desktop", () => {
     await page.getByLabel("List items").fill("red dress\nblue suit");
     await page.getByLabel("Prompt", { exact: true }).fill("Studio photo of a");
     await expect(page.locator(".cv-chip", { hasText: "2 items" })).toBeVisible();
-    page.once("dialog", (d) => { expect(d.message()).toContain("2 times"); void d.accept(); });
     await page.getByRole("button", { name: /^Generate/ }).click();
+    const ask = page.getByRole("alertdialog");
+    await expect(ask).toContainText("2 times");
+    await ask.locator(".sa-go").click();
     await expect.poll(() => prompts.length).toBe(2);
     expect(prompts[0]).toContain("Studio photo of a. red dress");
     expect(prompts[1]).toContain("Studio photo of a. blue suit");
