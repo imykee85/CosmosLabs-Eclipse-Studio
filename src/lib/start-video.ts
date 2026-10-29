@@ -1,3 +1,4 @@
+import { finalizeVideo } from "@/lib/video-jobs";
 import { startRefusalText } from "@/lib/video-submit";
 import { outOfCredits } from "@/lib/credit-message";
 import { refusal } from "@/lib/subscribe-alert";
@@ -189,6 +190,9 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   }
 
   // Limits per person: a short burst limit, a daily count, how many may run at once, and (with credits on) a daily spend.
+  // Rows left "running" by a closed page are settled first (finished, failed or timed out), so they never block a new video.
+  const open = await db.generation.findMany({ where: { userId, kind: "video", status: { in: ["pending", "saving"] } }, take: 6 });
+  if (open.length) await Promise.race([Promise.allSettled(open.map((g) => finalizeVideo(g))), new Promise((r) => setTimeout(r, 6000))]);
   const running = await db.generation.count({ where: { userId, kind: "video", status: { in: ["pending", "saving"] } } });
   if (running >= cfg.maxRunning) return { ok: false, status: 429, error: `You already have ${running} videos running. Wait for one to finish.` };
   if (!(await claimUsage(userId, "video", cfg.perMinute, 60_000))) return { ok: false, status: 429, error: "You are starting videos very quickly. Wait a moment and try again." };
