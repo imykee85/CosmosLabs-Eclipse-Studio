@@ -1,5 +1,6 @@
 "use client";
 
+import ProtectMedia from "./ProtectMedia";
 import { ClipCard, playOnFirstGesture, type ClipMode } from "./ClipCard";
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
@@ -101,7 +102,7 @@ function CardCollage({ clips }: { clips: { src: string; webm: string; poster: st
     <div className={`card-collage${still ? " is-still" : ""}`}>
       {clips.map((c, i) => (
         <div key={c.src}>
-          <video ref={(el) => { refs.current[i] = el; }} className="card-video" poster={c.poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true" style={still ? { display: "none" } : undefined}>
+          <video ref={(el) => { refs.current[i] = el; }} className="card-video" poster={c.poster} muted loop playsInline autoPlay preload="metadata" disablePictureInPicture controlsList="nodownload noremoteplayback" aria-hidden="true" style={still ? { display: "none" } : undefined}>
             <source src={c.src} type="video/mp4" />
             <source src={c.webm} type="video/webm" />
           </video>
@@ -172,6 +173,7 @@ export default function Landing() {
 
   return (
     <main className="site-shell">
+      <ProtectMedia />
       <header className="nav-wrap">
         <Wordmark />
         <nav className={mobileOpen ? "nav-links mobile-visible" : "nav-links"}>

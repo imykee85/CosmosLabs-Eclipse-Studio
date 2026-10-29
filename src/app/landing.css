@@ -813,3 +813,7 @@ button.clip-play svg { margin-left: 2px; }
 
 /* A clip that cannot autoplay never shows the browser's own big play badge; the page draws one small button instead. */
 video.card-video::-webkit-media-controls-start-playback-button, video.wow-video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none; }
+
+/* Homepage pictures and clips are not saveable by the usual routes: no drag, no iPhone long-press save sheet, and they ignore the pointer, so a right-click lands on the page and not on the file. */
+.site-shell img, .site-shell video, .site-shell picture { -webkit-user-drag: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; pointer-events: none; }
+.site-shell .tile, .site-shell .card-collage, .site-shell .wow-carousel, .site-shell .results-wall { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
