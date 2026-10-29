@@ -54,7 +54,7 @@ export function ClipCard({ src, webm, poster, className }: { src: string; webm?:
   };
   return (
     <>
-      <video ref={ref} className={className} poster={poster} muted loop playsInline autoPlay preload="metadata" aria-hidden="true" style={mode === "still" ? { display: "none" } : undefined}>
+      <video ref={ref} className={className} poster={poster} muted loop playsInline autoPlay preload="metadata" disablePictureInPicture controlsList="nodownload noremoteplayback" aria-hidden="true" style={mode === "still" ? { display: "none" } : undefined}>
         <source src={src} type="video/mp4" />
         {webm && <source src={webm} type="video/webm" />}
       </video>
