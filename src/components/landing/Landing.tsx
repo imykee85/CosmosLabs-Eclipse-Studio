@@ -148,7 +148,7 @@ const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }
 // Wide (16:9) cards added under a wall tile, by that tile's slot ("column-row"); the value is the gradient tone.
 const WIDE_AFTER: Record<string, number> = { "1-0": 3, "2-2": 7 };
 // A wide card that shows a picture instead of its gradient, by the same slot key.
-const WIDE_IMAGE: Record<string, string> = { "2-2": "/landing/results-flowers.jpg" };
+const WIDE_IMAGE: Record<string, string> = { "2-2": "/landing/results-flowers.jpg", "1-0": "/landing/results-orb.jpg" };
 
 // A clip placed on the wall by slot.
 const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
