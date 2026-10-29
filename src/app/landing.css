@@ -806,4 +806,7 @@ button.clip-play svg { margin-left: 2px; }
 .results-col { height: 100%; }
 .results-col > article { flex-shrink: 1; min-height: 0; }
 .results-col > article:last-child { flex: 1 1 0; aspect-ratio: auto; min-height: 0; }
-.results-more { position: static; margin-top: 28px; display: flex; justify-content: center; }
+.results-more { position: static; margin-top: 72px; display: flex; justify-content: center; }
+
+/* The "All created with Eclipse." line sits above the button in every section; the buttons sit lower to make room. */
+.audience-cta { margin-top: 84px; }
