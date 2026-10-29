@@ -75,6 +75,8 @@ export default function PromptsView() {
 
   useEffect(() => { try { const e = localStorage.getItem("eclipse-prompts-engine"); if (e && PROMPT_ENGINES.some((x) => x.id === e && x.available)) setEngineId(e as PromptEngine["id"]); } catch {} }, []);
   useEffect(() => { setMsgs(load(engineId)); setNote(""); try { localStorage.setItem("eclipse-prompts-engine", engineId); } catch {} }, [engineId]);
+  // Chats fetched from the account (another device, or after logging in again) replace what is on screen.
+  useEffect(() => { const on = (e: Event) => { const keys = (e as CustomEvent<string[]>).detail ?? []; if (keys.includes(KEY(engineId))) setMsgs(load(engineId)); }; window.addEventListener("eclipse-sync-pulled", on); return () => window.removeEventListener("eclipse-sync-pulled", on); }, [engineId]);
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, busy]);
   // A treatment sent over from the Treatment step arrives as the first message to write.
   useEffect(() => { try { const t = sessionStorage.getItem("eclipse-treatment-handoff"); if (t) { sessionStorage.removeItem("eclipse-treatment-handoff"); setText(`Write the video prompt for this treatment:\n${t}`.slice(0, 4000)); } } catch {} }, [setText]);

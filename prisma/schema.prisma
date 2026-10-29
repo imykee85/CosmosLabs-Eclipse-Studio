@@ -714,3 +714,17 @@ model OauthGrant {
   @@index([clientId])
   @@map("oauth_grants")
 }
+
+// The Atlas, Prompts and Treatment chats (and the Atlas history), kept per PERSON so they survive logging out and follow the person to another device.
+// The browser still holds a working copy; it sends a key's text here a moment after it changes and fetches newer ones when it opens. One row per key.
+model ChatState {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  key       String
+  value     String   @db.Text
+  clientAt  BigInt   @map("client_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, key])
+  @@map("chat_states")
+}

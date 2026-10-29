@@ -90,6 +90,20 @@ export default function TreatmentView() {
     } catch {}
     setReady(true);
   }, []);
+  // A copy fetched from the account (another device, or after logging in again) replaces what is on screen.
+  useEffect(() => {
+    const on = (e: Event) => {
+      if (!((e as CustomEvent<string[]>).detail ?? []).includes(KEY(project))) return;
+      try {
+        const d = JSON.parse(localStorage.getItem(KEY(project)) ?? "null");
+        if (d && Array.isArray(d.msgs)) setMsgs(d.msgs.filter((m: Msg) => m && typeof m.text === "string" && (m.role === "user" || m.role === "assistant")).slice(-60));
+        if (d?.plan) setPlan(cleanTreatment(d.plan));
+        if (d?.mode === "brief" || d?.mode === "concept" || d?.mode === "guide") setMode(d.mode);
+      } catch {}
+    };
+    window.addEventListener("eclipse-sync-pulled", on);
+    return () => window.removeEventListener("eclipse-sync-pulled", on);
+  }, [project]);
   useEffect(() => {
     if (!ready) return;
     try { localStorage.setItem(KEY(project), JSON.stringify({ mode, msgs: msgs.slice(-60), plan })); } catch {}

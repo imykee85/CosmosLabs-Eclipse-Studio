@@ -88,6 +88,16 @@ function archive(agent: string) {
   writePast(agent, [{ id: uid(), at: Date.now(), title: first.replace(/\s+/g, " ").slice(0, 48), messages: cur }, ...readPast(agent)]);
 }
 
+// Chats fetched from the account (another device, or after logging in again) replace the copy held in memory.
+if (typeof window !== "undefined") {
+  window.addEventListener("eclipse-sync-pulled", (e) => {
+    for (const key of ((e as CustomEvent<string[]>).detail ?? [])) {
+      if (key.startsWith("eclipse-agent-chat-")) { const agent = key.slice("eclipse-agent-chat-".length); cache.delete(agent); window.dispatchEvent(new CustomEvent(EVENT, { detail: agent })); }
+      else if (key.startsWith("eclipse-agent-history-")) window.dispatchEvent(new CustomEvent(EVENT, { detail: key.slice("eclipse-agent-history-".length) }));
+    }
+  });
+}
+
 let busyAgents = new Set<string>();
 
 // Replies being written on the server. Kept in this browser so that a reply started on one page is collected on the next, even after the browser was closed.
