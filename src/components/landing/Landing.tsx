@@ -145,6 +145,8 @@ const RESULT_VIDEO: Record<string, { src: string; webm: string; poster: string }
 
 // Wide (16:9) cards added under a wall tile, by that tile's slot ("column-row"); the value is the gradient tone.
 const WIDE_AFTER: Record<string, number> = { "1-0": 3, "2-2": 7 };
+// A wide card that shows a picture instead of its gradient, by the same slot key.
+const WIDE_IMAGE: Record<string, string> = { "2-2": "/landing/results-flowers.jpg" };
 
 // A clip placed on the wall by slot.
 const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> = {
@@ -270,7 +272,7 @@ export default function Landing() {
                   <article className={`rt-${c}-${j}`} aria-label={name}>
                     {SLOT_IMAGE[`${c}-${j}`] ? <img src={SLOT_IMAGE[`${c}-${j}`]} alt="" /> : SLOT_VIDEO[`${c}-${j}`] ? <CardVideo {...SLOT_VIDEO[`${c}-${j}`]} /> : RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
                   </article>
-                  {WIDE_AFTER[`${c}-${j}`] != null && <article className="rt-wide" aria-hidden="true"><div className={`tile tone-${WIDE_AFTER[`${c}-${j}`]}`} /></article>}
+                  {WIDE_AFTER[`${c}-${j}`] != null && <article className="rt-wide" aria-hidden="true">{WIDE_IMAGE[`${c}-${j}`] ? <img src={WIDE_IMAGE[`${c}-${j}`]} alt="" /> : <div className={`tile tone-${WIDE_AFTER[`${c}-${j}`]}`} />}</article>}
                   </Fragment>
                 ))}
                 {/* One more card under every column so each runs past the bottom edge of the wall and no gap shows. */}
