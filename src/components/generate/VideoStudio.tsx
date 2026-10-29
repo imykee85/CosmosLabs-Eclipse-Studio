@@ -15,6 +15,7 @@ import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type ClipPick, type RefPick, type SoundPick } from "../create/ReferencePicker";
 import PromptEdge, { type EdgeMessage } from "../create/PromptEdge";
 import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
+import { askConfirm } from "@/components/ConfirmHost";
 import RenderDetails from "../library/RenderDetails";
 import OrderedRefs, { type RefItem } from "./OrderedRefs";
 import StyleLibrary from "./StyleLibrary";
@@ -313,7 +314,9 @@ export default function VideoStudio() {
       const data = await res.json().catch(() => ({}));
       if (res.status === 409 && data.needsConfirm) {
         // A dear render asks first (the server enforces this too).
-        if (window.confirm(`This video costs ${fmtCredits(data.cost)} credits. Start it?`)) { setSubmitting(false); return generate(true); }
+        setSubmitting(false);
+        if (await askConfirm(`This video costs ${fmtCredits(data.cost)} credits. Start it?`, "Start video")) return generate(true);
+        setNote("Not started. Nothing was charged.");
         return;
       }
       if (!res.ok) { setError(data.error ?? "Could not start the video. Please try again."); return; }
@@ -335,7 +338,7 @@ export default function VideoStudio() {
         const res = await fetch("/api/video/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draftId: g.id, confirm: confirm || undefined }) });
         const d = await res.json().catch(() => ({}));
         if (res.status === 409 && d.needsConfirm && !confirm) {
-          if (!window.confirm(`The final 1080p video costs ${fmtCredits(d.cost)} credits. Start it?`)) return;
+          if (!(await askConfirm(`The final 1080p video costs ${fmtCredits(d.cost)} credits. Start it?`, "Start final video"))) return;
           confirm = true;
           continue;
         }

@@ -16,6 +16,7 @@ import { readCurrentProject } from "@/lib/projects";
 import { useAgent } from "@/lib/use-agent";
 import { useModels } from "@/lib/use-models";
 import { useCanvas } from "./CanvasContext";
+import { askConfirm } from "@/components/ConfirmHost";
 
 export const ICONS: Record<NodeKind, React.ReactNode> = {
   character: <User size={15} />, product: <Package size={15} />, scene: <Mountain size={15} />, text: <Type size={15} />, style: <Palette size={15} />,
@@ -329,7 +330,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
     if (!model) return;
     const total = items.length * qty;
     const each = modelId !== AUTO ? imageCost(model ?? undefined, model?.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, qty) : null;
-    if (!window.confirm(`This runs ${items.length} times and makes ${total} ${total === 1 ? "image" : "images"}${each != null ? `, about ${creditsText(each * items.length)}` : ""}. Start?`)) return;
+    if (!(await askConfirm(`This runs ${items.length} times and makes ${total} ${total === 1 ? "image" : "images"}${each != null ? `, about ${creditsText(each * items.length)}` : ""}. Start?`, "Start"))) return;
     setSubmitting(true);
     updateNodeData(id, { error: undefined, note: undefined });
     const ids: string[] = [];
@@ -583,7 +584,7 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
       if (items.length) {
         // A List is plugged in: one video per item, after confirming how many. A price that needs its own confirmation stops the run (start one video first).
         const each = price;
-        if (!window.confirm(`This makes ${items.length} videos${each != null ? `, about ${creditsText(each * items.length)}` : ""}. Start?`)) return;
+        if (!(await askConfirm(`This makes ${items.length} videos${each != null ? `, about ${creditsText(each * items.length)}` : ""}. Start?`, "Start"))) return;
         const ids: string[] = [];
         let problem = "";
         for (const item of items) {

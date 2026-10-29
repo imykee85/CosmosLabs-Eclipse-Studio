@@ -8,6 +8,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
 import WorkspaceWatcher from "@/components/WorkspaceWatcher";
 import SubscribeAlert from "@/components/SubscribeAlert";
+import ConfirmHost from "@/components/ConfirmHost";
 import "./globals.css";
 
 // Inter is kept in the repo (src/app/fonts) instead of downloaded from Google at build time: a failed download once broke a Vercel build.
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LocaleProvider>{children}</LocaleProvider>
         <WorkspaceWatcher />
         <SubscribeAlert />
+        <ConfirmHost />
         <Analytics />
       </body>
     </html>
