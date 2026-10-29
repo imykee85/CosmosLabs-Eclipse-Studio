@@ -3,9 +3,12 @@
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
+import { safeNext } from "@/lib/safe-next";
 import AuthView, { type Handlers, type Mode, type Result } from "./AuthView";
 
 const AFTER_SIGN_IN = "/dashboard";
+// Connecting an outside app (Claude) sends the person here to sign in first: after signing in they go back to the connection page, never anywhere else.
+const afterSignIn = () => safeNext(new URLSearchParams(window.location.search).get("next")) ?? AFTER_SIGN_IN;
 const AFTER_SIGN_UP = "/onboarding"; // new accounts answer a few questions first
 
 // Signing in can need one more code: a second factor, or Clerk's "new device" check, which sends an email code. The installed Clerk typings
@@ -52,7 +55,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
           const res = await signIn.create({ identifier: email, password });
           if (res.status === "complete") {
             await setActiveIn({ session: res.createdSessionId });
-            router.push(AFTER_SIGN_IN);
+            router.push(afterSignIn());
             return;
           }
           if (NEEDS_CODE.includes(res.status ?? "")) return await requestCode(res as unknown as SecondFactorSignIn);
@@ -69,7 +72,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
 
     async google() {
       try {
-        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: mode === "signup" ? AFTER_SIGN_UP : AFTER_SIGN_IN } as const;
+        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: mode === "signup" ? AFTER_SIGN_UP : afterSignIn() } as const;
         if (mode === "signin") {
           if (!inLoaded) return loading;
           await signIn.authenticateWithRedirect(opts);
@@ -89,7 +92,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
           const res = await (signIn as unknown as SecondFactorSignIn).attemptSecondFactor({ strategy: factor.current, code: code.trim() });
           if (res.status === "complete") {
             await setActiveIn({ session: res.createdSessionId });
-            router.push(AFTER_SIGN_IN);
+            router.push(afterSignIn());
             return;
           }
           return { error: "That code didn't work. Check it and try again." };
@@ -138,7 +141,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
         const res = await signIn.attemptFirstFactor({ strategy: "reset_password_email_code", code, password });
         if (res.status === "complete") {
           await setActiveIn({ session: res.createdSessionId });
-          router.push(AFTER_SIGN_IN);
+          router.push(afterSignIn());
           return;
         }
         return { error: "Could not reset the password. Please try again." };

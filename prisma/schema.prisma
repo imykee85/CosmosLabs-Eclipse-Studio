@@ -668,3 +668,49 @@ model CspReport {
   @@index([createdAt])
   @@map("csp_reports")
 }
+
+// "Sign in with Eclipse" for the MCP endpoint (src/lib/oauth.ts), so claude.ai and the Claude apps can connect without a pasted key. OauthClient: an app that
+// registered itself (RFC 7591); OauthCode: the one-time, five-minute code handed back after the person approves (only its hash is kept); OauthGrant: one connected
+// app for one person, with the hashes of its current access and refresh tokens (rotated on every refresh) so it can be listed and disconnected.
+model OauthClient {
+  id           String   @id // the client_id (ecc_...)
+  name         String
+  redirectUris Json     @map("redirect_uris")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("oauth_clients")
+}
+
+model OauthCode {
+  hash          String    @id
+  clientId      String    @map("client_id")
+  userId        String    @map("user_id")
+  redirectUri   String    @map("redirect_uri")
+  codeChallenge String    @map("code_challenge")
+  expiresAt     DateTime  @map("expires_at")
+  usedAt        DateTime? @map("used_at")
+  grantId       String?   @map("grant_id") // the grant made from this code: revoked if the code is ever replayed
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("oauth_codes")
+}
+
+model OauthGrant {
+  id               String    @id @default(cuid())
+  clientId         String    @map("client_id")
+  userId           String    @map("user_id")
+  accessHash       String    @unique @map("access_hash")
+  refreshHash      String    @unique @map("refresh_hash")
+  prevRefreshHash  String?   @map("prev_refresh_hash") // the refresh token just replaced: presenting it again means it leaked, and the grant is revoked
+  accessExpiresAt  DateTime  @map("access_expires_at")
+  refreshExpiresAt DateTime  @map("refresh_expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  lastUsedAt       DateTime? @map("last_used_at")
+  revokedAt        DateTime? @map("revoked_at")
+
+  @@index([userId])
+  @@index([clientId])
+  @@map("oauth_grants")
+}
