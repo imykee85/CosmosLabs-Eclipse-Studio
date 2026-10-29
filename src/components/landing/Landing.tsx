@@ -242,7 +242,7 @@ export default function Landing() {
             </div>
           ))}
         </div>
-        <div className="section-cta"><Cta /></div>
+        <div className="section-cta audience-cta"><div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta /></div></div>
       </section>
 
       <AtlasWorkflow cta={<Cta dark>Create your first piece</Cta>} />
@@ -283,7 +283,7 @@ export default function Landing() {
           </div>
           <div className="results-fade" aria-hidden="true" />
         </div>
-        <div className="results-more"><Cta dark>Create Yours</Cta></div>
+        <div className="results-more"><div className="center-cta"><span>ALL CREATED WITH ECLIPSE.</span><Cta dark>Create Yours</Cta></div></div>
       </section>
 
       <section className="try-section try-cta section-pad">
