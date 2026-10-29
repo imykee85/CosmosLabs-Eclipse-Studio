@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 // RFC 7591 dynamic client registration: an app (Claude) registers itself and its redirect addresses, then sends the person to /oauth/authorize. Public clients only (no secret).
 export async function POST(req: Request) {
-  if (!(await underLimit(`ip:${clientIp(req)}`, "oauth-register", 30, 3600_000))) return oauthError("temporarily_unavailable", "Too many registrations from this address. Try again later.", 429);
+  if (!(await underLimit(`ip:${clientIp(req)}`, "oauth-register", 300, 3600_000))) { console.error("oauth register rate limit hit", clientIp(req)); return oauthError("temporarily_unavailable", "Too many registrations from this address. Try again later.", 429); }
   const b = await req.json().catch(() => null);
   if (!b || typeof b !== "object") return oauthError("invalid_client_metadata", "Send the client metadata as JSON.");
   const r = await registerClient(b as Record<string, unknown>);
