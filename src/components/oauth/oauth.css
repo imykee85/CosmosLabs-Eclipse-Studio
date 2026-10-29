@@ -1,0 +1,13 @@
+.oa-page { min-height: 100dvh; display: grid; place-items: center; padding: 20px; background: #000; color: #f5f5f7; font-family: inherit; }
+.oa-card { width: min(440px, 100%); padding: 30px 26px 24px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 22px; background: #141414; }
+.oa-card h1 { margin: 0 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.oa-card p { margin: 0 0 14px; color: #bdb9b2; font-size: 15px; line-height: 1.5; }
+.oa-card b { color: #f5f5f7; font-weight: 600; word-break: break-all; }
+.oa-card ul { margin: 0 0 14px; padding-left: 22px; list-style: disc; color: #e7e3dd; font-size: 15px; line-height: 1.6; }
+.oa-sub { font-size: 13.5px !important; }
+.oa-err { color: #ff8a80 !important; }
+.oa-go { display: block; width: 100%; padding: 13px 20px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 16px; font-weight: 500; text-align: center; text-decoration: none; cursor: pointer; }
+.oa-go:hover:not(:disabled) { background: #d90b0b; }
+.oa-go:disabled, .oa-no:disabled { opacity: .6; cursor: default; }
+.oa-no { display: block; width: 100%; margin-top: 8px; padding: 12px 20px; border: 0; background: transparent; color: #bdb9b2; font: inherit; font-size: 15px; cursor: pointer; }
+.oa-no:hover:not(:disabled) { color: #f5f5f7; }

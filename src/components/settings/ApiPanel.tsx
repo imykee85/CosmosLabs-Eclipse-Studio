@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 
 type Key = { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null };
+type App = { id: string; name: string; connectedAt: string; lastUsedAt: string | null };
 
 // API keys and the MCP endpoint: make a key (its full value is shown once), see and revoke the live ones, and copy the commands that
 // connect an MCP client and the REST API. Everything acts as this account and spends its regular credits.
@@ -43,6 +44,23 @@ export default function ApiPanel() {
     } catch { setError("Could not load your keys."); setKeys([]); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // Apps connected through "Sign in with Eclipse" (Claude's connectors): listed here and disconnected here.
+  const [apps, setApps] = useState<App[] | null>(null);
+  const [appConfirm, setAppConfirm] = useState<string | null>(null);
+  const loadApps = useCallback(async () => {
+    try {
+      const r = await fetch("/api/oauth/grants", { cache: "no-store" });
+      const d = await r.json().catch(() => ({}));
+      setApps(r.ok && Array.isArray(d.apps) ? d.apps : []);
+    } catch { setApps([]); }
+  }, []);
+  useEffect(() => { void loadApps(); }, [loadApps]);
+  async function disconnect(id: string) {
+    setAppConfirm(null);
+    const r = await fetch(`/api/oauth/grants/${id}`, { method: "DELETE" });
+    if (!r.ok) setError("Could not disconnect that app.");
+    await loadApps();
+  }
 
   async function create() {
     if (busy) return;
@@ -96,6 +114,21 @@ export default function ApiPanel() {
         </ul>
       )}
 
+      <h3 className="st-h3 st-gap">Connect from Claude</h3>
+      <p className="st-hint">In Claude, open Settings, Connectors, add a custom connector, and enter {origin}/api/mcp. Claude asks you to sign in to Eclipse and allow it. No key is needed. This works in the Claude apps on your phone too, once you have added it.</p>
+      {apps && apps.length > 0 && (
+        <ul className="st-keylist">
+          {apps.map((a) => (
+            <li key={a.id}>
+              <KeyRound size={16} aria-hidden="true" />
+              <span><b>{a.name}</b><small>Connected {when(a.connectedAt)} · last used {when(a.lastUsedAt)}</small></span>
+              {appConfirm === a.id
+                ? <button type="button" className="st-ghost st-danger" onClick={() => void disconnect(a.id)}>Disconnect</button>
+                : <button type="button" className="st-iconbtn" aria-label={`Disconnect ${a.name}`} title="Disconnect" onClick={() => setAppConfirm(a.id)}><Trash2 size={15} /></button>}
+            </li>
+          ))}
+        </ul>
+      )}
       <h3 className="st-h3 st-gap">Connect from the command line</h3>
       <CodeBlock id="st-code" text={claude} />
       <h3 className="st-h3 st-gap">Other MCP clients</h3>

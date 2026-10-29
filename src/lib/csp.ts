@@ -47,7 +47,7 @@ export function buildCsp(nonce: string): string {
 
 /** Pages get the policy; API routes, share links and the mini-tool frame (which sets its own strict rules) do not. */
 export function wantsCsp(pathname: string): boolean {
-  return !(pathname.startsWith("/api/") || pathname.startsWith("/s/") || pathname.startsWith("/_next/"));
+  return !(pathname.startsWith("/api/") || pathname.startsWith("/s/") || pathname.startsWith("/_next/") || pathname.startsWith("/.well-known/") || /^\/oauth\/(token|register|revoke)$/.test(pathname));
 }
 
 export function cspHeaders(nonce: string, mode: CspMode = cspMode()): { name: string; value: string }[] {
