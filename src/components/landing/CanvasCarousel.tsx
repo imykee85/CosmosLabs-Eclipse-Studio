@@ -13,7 +13,8 @@ const WOW_IMAGE: Record<string, string> = {
   FOOD: "/landing/wow-food.jpg",
   ART: "/landing/wow-art.jpg",
   PRODUCT: "/landing/wow-product.jpg",
-  PORTRAIT: "/landing/wow-portrait.jpg",
+  PORTRAIT: "/landing/wow-portrait-2.jpg",
+  BEAUTY: "/landing/wow-portrait.jpg",
 };
 
 // Starts the clip by script as well as by attribute: iPhone Safari ignores the muted and autoplay props unless the element is muted and asked to play.
