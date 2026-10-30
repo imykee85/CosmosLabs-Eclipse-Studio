@@ -268,7 +268,7 @@ export default function DashboardView() {
         <div className="nm-backdrop" role="dialog" aria-modal="true" aria-label="Empty bin" onMouseDown={() => !emptyBusy && setEmptying(false)}>
           <div className="nm-card" onMouseDown={(e) => e.stopPropagation()}>
             <h2>Empty the bin?</h2>
-            <p>This deletes every project, picture, video and sound in the bin for good. It can't be undone.</p>
+            <p>This deletes every project, picture, video and sound in the bin for good. It cannot be undone.</p>
             <div className="db-bin-actions">
               <button type="button" disabled={emptyBusy} onClick={() => setEmptying(false)}>Cancel</button>
               <button type="button" className="is-danger" disabled={emptyBusy} onClick={emptyBin}><Trash2 size={14} /> Empty bin</button>
