@@ -84,6 +84,7 @@ test.describe("signed-in app (demo mode)", () => {
     await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto("/create");
     const side = page.locator(".ws-sidebar");
+    await expect(side.locator(".ws-section-head").first()).toBeVisible();
     expect((await side.locator(".ws-section-head").allInnerTexts()).map((t) => t.trim())).toEqual(["PLAN", "CREATE", "FILES", "UTILITIES"]);
     const rows = async (el: typeof side) => (await el.locator(".ws-item-text b").allInnerTexts()).map((t) => t.trim());
     expect(await rows(side)).toEqual(["Treatment", "Prompts", "Image Studio", "Video Studio", "Audio Studio", "Library", "Gallery", "Assets", "Ingredients", "Core", "Agents", "Canvas"]);
