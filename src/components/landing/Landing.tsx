@@ -170,6 +170,20 @@ export default function Landing() {
   const [openFaq, setOpenFaq] = useState(0);
 
   const close = () => setMobileOpen(false);
+  // In-page links scroll without writing #section into the address, so a reload starts at the hero.
+  const go = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    close();
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+  // A reload (or a #section left in the address) always starts at the hero, not where the browser last was.
+  useEffect(() => {
+    const prev = history.scrollRestoration;
+    history.scrollRestoration = "manual";
+    if (window.location.hash) history.replaceState(null, "", window.location.pathname + window.location.search);
+    window.scrollTo(0, 0);
+    return () => { history.scrollRestoration = prev; };
+  }, []);
 
   return (
     <main className="site-shell">
@@ -178,9 +192,9 @@ export default function Landing() {
         <Wordmark />
         <nav className={mobileOpen ? "nav-links mobile-visible" : "nav-links"}>
           <LanguageMenu nav />
-          <a href="#how-it-works" onClick={close}>How it Works</a>
-          <a href="#pricing" onClick={close}>Pricing</a>
-          <a href="#faq" onClick={close}>FAQ</a>
+          <a href="#how-it-works" onClick={go("how-it-works")}>How it Works</a>
+          <a href="#pricing" onClick={go("pricing")}>Pricing</a>
+          <a href="#faq" onClick={go("faq")}>FAQ</a>
         </nav>
         <div className="nav-actions">
           <SignedOut>
@@ -214,7 +228,7 @@ export default function Landing() {
           <Cta glint />
           <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
         </div>
-        <IndustryStrip above={<a className="hero-why" href="#how-it-works"><Play size={16} fill="currentColor" strokeWidth={0} aria-hidden="true" />Why Eclipse?</a>} />
+        <IndustryStrip above={<a className="hero-why" href="#how-it-works" onClick={go("how-it-works")}><Play size={16} fill="currentColor" strokeWidth={0} aria-hidden="true" />Why Eclipse?</a>} />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
       </section>
 
