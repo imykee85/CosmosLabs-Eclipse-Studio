@@ -11,3 +11,4 @@ To use one, copy it into `public/` and wire it in.
 - The astronaut-in-orbit clip is the landing hero again (`public/hero/hero.mp4`, `.webm`, `hero-poster.jpg`, no sound).
 - `hero/hero-silhouette-light-1.jpg`: the first silhouette-in-light hero still (2026-10-30), replaced the same day by a version with a sharper crowd and a ring halo.
 - `hero/hero-silhouette-light-2.jpg`: the second silhouette-in-light hero still (served as `public/hero/hero-2.jpg` on 2026-10-30), replaced the same day when the astronaut clip came back as the hero.
+- The typed-line overlay ('Step into a world of endless possibilities', component TypedLine.tsx) was tried over the video on 2026-10-30 and replaced by the Welcome screen over the video; it is in git history (commit 1da257b).

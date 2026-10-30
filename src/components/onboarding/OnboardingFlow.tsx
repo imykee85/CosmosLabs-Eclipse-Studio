@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/Logo";
-import TypedLine from "./TypedLine";
 import { questions, type QuestionId } from "@/lib/onboarding";
 import "./onboarding.css";
 
@@ -66,13 +65,7 @@ export default function OnboardingFlow() {
     <main className="ob-page">
       {stage === "video" && (
         <div className="ob-video" role="dialog" aria-label="Welcome to Eclipse">
-          {videoFailed ? (
-            <div className="ob-welcome">
-              <LogoMark size={96} />
-              <h2>Welcome to Eclipse</h2>
-              <p>Setting up your studio…</p>
-            </div>
-          ) : (
+          {!videoFailed && (
             <>
               <video
                 className="ob-video-el"
@@ -83,14 +76,18 @@ export default function OnboardingFlow() {
                 onEnded={goToDashboard}
                 onError={(e) => { if (e.target === e.currentTarget) setVideoFailed(true); }}
               >
-                {/* A browser that cannot play the first source moves on to the next; only when the last one fails too is the welcome card shown instead. */}
+                {/* A browser that cannot play the first source moves on to the next; only when the last one fails too is the plain black screen shown. */}
                 <source src="/onboarding/welcome.mp4" type="video/mp4" />
                 <source src="/onboarding/welcome.webm" type="video/webm" onError={() => setVideoFailed(true)} />
               </video>
               <div className="ob-scrim" aria-hidden="true" />
-              <TypedLine text="Step into a world of endless possibilities" />
             </>
           )}
+          <div className="ob-welcome">
+            <LogoMark size={96} />
+            <h2>Welcome to Eclipse</h2>
+            <p>Setting up your studio…</p>
+          </div>
           <button type="button" className="ob-skip" onClick={goToDashboard}>Skip</button>
         </div>
       )}
