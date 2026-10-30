@@ -86,16 +86,10 @@ html[data-app-theme="light"] .ob-back { border-color: rgba(0,0,0,.25); color: #1
 html[data-app-theme="light"] .ob-back:hover:not(:disabled) { border-color: rgba(0,0,0,.6); }
 html[data-app-theme="light"] .ob-next:disabled { background: #dcd7cf; color: #7a756e; }
 
-/* The welcome video: a soft dark fade at the bottom and the typed line over it (white, centred, caret blinking). */
-.ob-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.72)); pointer-events: none; }
-.ob-typed { position: absolute; left: 50%; bottom: 17%; width: min(900px, 100% - 48px); margin: 0; transform: translateX(-50%); text-align: center; color: #fff; font-size: clamp(26px, 4.4vw, 52px); font-weight: 600; line-height: 1.15; letter-spacing: -.03em; text-shadow: 0 2px 24px rgba(0,0,0,.6); min-height: 2.3em; }
-.ob-typed i { display: inline-block; width: .07em; height: .95em; margin-left: .08em; vertical-align: -.1em; background: #c00707; animation: ob-caret 1s steps(1) infinite; }
-.ob-typed i.is-idle { animation: ob-caret 1s steps(1) infinite; }
-@keyframes ob-caret { 50% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .ob-typed i { animation: none; } }
-@media (max-width: 600px) { .ob-typed { bottom: 21%; font-size: 30px; } }
-/* On a wide screen the tall clip is shown whole, centred between black bars, with the line kept inside the picture. */
-@media (min-aspect-ratio: 1/1) {
-  .ob-video-el { object-fit: contain; }
-  .ob-typed { width: min(500px, 100% - 48px); bottom: 16%; font-size: clamp(24px, 2.8vw, 38px); }
-}
+/* The welcome screen sits over the video: a soft dark veil (darker behind the card) keeps the logo and text readable. */
+.ob-scrim { position: absolute; inset: 0; background: radial-gradient(closest-side at 50% 50%, rgba(0,0,0,.62), rgba(0,0,0,.3) 100%); pointer-events: none; }
+.ob-video .ob-welcome { position: relative; z-index: 1; align-self: start; margin-top: 11vh; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
+.ob-video .ob-welcome h2 { color: #fff; }
+.ob-video .ob-welcome p { color: #d6d1ca; }
+/* On a wide screen the tall clip is shown whole, centred between black bars. */
+@media (min-aspect-ratio: 1/1) { .ob-video-el { object-fit: contain; } }
