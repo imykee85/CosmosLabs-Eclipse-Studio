@@ -3,7 +3,8 @@
 import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NodeResizer, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { ArrowUp, Check, Coins, Loader2 } from "lucide-react";
+import { ArrowUp, Check, Loader2 } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import { GROUP_COLORS, type CanvasNodeData, type CNode } from "@/lib/canvas";
 import { composePrompt, inputsOf, listLines, picturesOf } from "@/lib/canvas-flow";
 import { creditsText, fmtCredits } from "@/lib/credit-units";
@@ -268,7 +269,7 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
             onChange={(e) => updateNodeData(id, { prompt: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
         )}
         <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={() => void run()}>
-          {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Working</> : price != null ? <>{verb} <span className="cv-cost" title={creditsText(price)}><Coins size={13} />{fmtCredits(price)}</span></> : <>{verb} <ArrowUp size={15} /></>}
+          {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Working</> : price != null ? <>{verb} <span className="cv-cost" title={creditsText(price)}><CoinIcon size={13} />{fmtCredits(price)}</span></> : <>{verb} <ArrowUp size={15} /></>}
         </button>
         {!pics.length && <p className="cv-nhint">Plug a picture into Ingredients (an Image node or another generator).</p>}
         {models && !model && <p className="cv-error" role="alert">No picture-editing model is available on this account.</p>}

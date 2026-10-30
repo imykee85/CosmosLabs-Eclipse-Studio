@@ -6,7 +6,8 @@ import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Coins, Image as ImageIcon, Film, Layers, Loader2, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import MotionMenu, { type MotionMode } from "./MotionMenu";
@@ -566,7 +567,7 @@ export default function VideoStudio() {
               <button type="button" className={`cr-chip vs-gear ${settingsInUse ? "is-on" : ""}`} aria-label="Settings" aria-haspopup="dialog" title="Seed, leave out and prompt strength" onClick={(e) => setSettingsAnchor(e.currentTarget.getBoundingClientRect())}><Settings size={16} />{settingsInUse && <i className="vs-dot" />}</button>
             </div>
             <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad || (mc && mcEngine === "eclone")}>
-              {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate {price != null ? <span className="cr-cost" title={creditsText(price)}><Coins size={14} />{fmtCredits(price)}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
+              {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate {price != null ? <span className="cr-cost" title={creditsText(price)}><CoinIcon size={14} />{fmtCredits(price)}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
             </button>
           </div>
         </form>

@@ -8,9 +8,9 @@ import { useEffect } from "react";
 // the file to show it. Nothing here touches text, links, buttons or forms.
 const MEDIA = "img, video, picture, .tile, .card-collage, .wow-carousel, .results-wall, .audience-card, .hero-video, .strip-logo";
 
-export default function ProtectMedia() {
+export default function ProtectMedia({ rootSelector = "main.site-shell" }: { rootSelector?: string } = {}) {
   useEffect(() => {
-    const root = document.querySelector("main.site-shell");
+    const root = document.querySelector(rootSelector);
     if (!root) return;
     const block = (e: Event) => {
       const t = e.target as Element | null;
@@ -19,6 +19,6 @@ export default function ProtectMedia() {
     root.addEventListener("contextmenu", block);
     root.addEventListener("dragstart", block);
     return () => { root.removeEventListener("contextmenu", block); root.removeEventListener("dragstart", block); };
-  }, []);
+  }, [rootSelector]);
   return null;
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Coins, Users } from "lucide-react";
+import { Users } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import { useOrganization } from "@clerk/nextjs";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { useEffect, useState } from "react";
@@ -44,7 +45,7 @@ export default function CreditsPill({ className, text = false }: { className: st
     <>
       <TeamChip className={className} text={text} />
       <Link href="/settings?tab=billing" className={`${className} credit-pill`} title={title}>
-        <Coins size={text ? 15 : 14} /> {n && (text ? `${n} credits` : n)}
+        <CoinIcon size={text ? 15 : 14} /> {n && (text ? `${n} credits` : n)}
       </Link>
     </>
   );

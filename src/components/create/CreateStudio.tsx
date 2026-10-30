@@ -5,7 +5,8 @@ import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUp, Camera, ScanFace, ChevronLeft, ChevronRight, Coins, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
+import { ArrowRight, ArrowUp, Camera, ScanFace, ChevronLeft, ChevronRight, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { imageCost, MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
 import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
@@ -502,7 +503,7 @@ export default function CreateStudio() {
             </div>
           )}
           <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : imgCost != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${creditsText(imgCost)}${model && model.batch > 1 ? ` (up to ${model.batch} images for one price)` : ""}`}><Coins size={14} />{fmtCredits(imgCost)}</span>}</> : <>Generate <ArrowUp size={16} /></>}
+            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : imgCost != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${creditsText(imgCost)}${model && model.batch > 1 ? ` (up to ${model.batch} images for one price)` : ""}`}><CoinIcon size={14} />{fmtCredits(imgCost)}</span>}</> : <>Generate <ArrowUp size={16} /></>}
           </button>
         </div>
       </form>

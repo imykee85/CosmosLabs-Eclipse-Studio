@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Coins, Loader2, Mic, Pause, Play, Plus, X } from "lucide-react";
+import { Loader2, Mic, Pause, Play, Plus, X } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import { cloneVoiceRequest, designVoiceRequest, saveDesignRequest, type DesignPreview, type OwnVoice, type VoiceCosts, type VoiceModel } from "@/lib/use-voice";
 import { orbStyle } from "./look";
 
@@ -158,7 +159,7 @@ export default function VoiceCreator({ models, provider, costs, consentText, onC
           <button type="button" className="vc-new-go" disabled={busy} onClick={() => void (mode === "clone" ? createClone() : makeDesign())}>
             {busy ? <Loader2 size={16} className="vc-spin" /> : null}
             {mode === "clone" ? "Create voice" : previews ? "Design again" : "Design voice"}
-            {cost != null && <span className="vc-cost"><Coins size={11} />{fmtCredits(cost)}</span>}
+            {cost != null && <span className="vc-cost"><CoinIcon size={11} />{fmtCredits(cost)}</span>}
           </button>
         </div>
       </div>

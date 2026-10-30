@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Coins, Loader2, Scissors, X } from "lucide-react";
+import { Loader2, Scissors, X } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import SheetPortal from "../voice/SheetPortal";
 import type { Render } from "@/lib/use-renders";
 import { findVideoModel, videoPrice } from "@/lib/video-models";
@@ -73,7 +74,7 @@ export default function EditVideoDialog({ video, onClose, onStarted }: { video: 
             {error && <p className="vc-error" role="alert">{error}</p>}
             <button type="button" className="vc-as-go" onClick={() => void go()} disabled={busy || !prompt.trim()}>
               {busy && <Loader2 size={16} className="vc-spin" />} {mode === "edit" ? "Edit with Seedance 2.5" : "Extend with Seedance 2.5"}
-              {price != null && <span className="vc-cost"><Coins size={12} />{fmtCredits(price)}</span>}
+              {price != null && <span className="vc-cost"><CoinIcon size={12} />{fmtCredits(price)}</span>}
             </button>
           </>
         )}
