@@ -48,7 +48,12 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img key={i} className="hf-pic" src={`/dashboard/${n === "Portraits" ? "portrait" : n === "Interiors" ? "interior" : "product"}-${i}.jpg`} alt="" loading="lazy" draggable={false} />
                   ))
-                  : <><Empty /><Empty /><Empty /><Empty /></>}
+                  : n === "Product shots"
+                    ? [1, 2, 3, 4].map((i) => (i === 2
+                      ? <Empty key={i} />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img key={i} className="hf-pic" src={`/dashboard/productshot-${i}.jpg`} alt="" loading="lazy" draggable={false} />))
+                    : <><Empty /><Empty /><Empty /><Empty /></>}
               </div>
               <div className="hf-col-meta"><b>{n}</b><MoreVertical size={16} aria-hidden="true" /></div>
             </li>
@@ -65,11 +70,12 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           <li className="hf-wide">
             <div className="hf-wide-link"><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Filmmaking</span></div>
           </li>
-          {["Influencer Marketing", "Social Media Content"].map((n) => (
-            <li key={n} className="hf-wide">
-              <div className="hf-wide-link"><Empty className="hf-fill" /><span className="hf-label">{n}</span></div>
-            </li>
-          ))}
+          <li className="hf-wide">
+            <div className="hf-wide-link"><div className="hf-collage">{[1, 2, 3].map((n) => (<div key={n} className="hf-cell"><LoopVideo className="hf-video" src={`/landing/influencer-${n}.mp4`} webm={`/landing/influencer-${n}.webm`} poster={`/landing/influencer-${n}-poster.jpg`} /></div>))}</div><span className="hf-label hf-label-on-video">Influencer Marketing</span></div>
+          </li>
+          <li className="hf-wide">
+            <div className="hf-wide-link"><Empty className="hf-fill" /><span className="hf-label">Social Media Content</span></div>
+          </li>
         </ul>
       </div>
 
