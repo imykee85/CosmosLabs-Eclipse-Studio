@@ -35,6 +35,8 @@ export type Render = {
 
 const POLL_MS = 3000;
 const VIDEO_POLL_MS = 5000; // a video runs for minutes: ask the provider every few seconds, not every 3
+// Each server answer costs compute, so waiting gets gentler the longer a render runs (3 s, then slower up to 8 s; videos 5 s up to 10 s), and a hidden tab only looks every 20 s.
+const pollDelay = (base: number, n: number) => (typeof document !== "undefined" && document.visibilityState === "hidden" ? 20_000 : Math.min(base + n * 1000, base + 5000));
 
 // The signed-in user's renders, newest first (one project's when projectId is given; the ones in the Bin when bin is true). While any render is still
 // running the list is fetched again every few seconds, so a render finishes on screen without a refresh, and one
@@ -45,6 +47,8 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false, 
   const live = useRef(true);
   const tries = useRef(0);
   const loadedAt = useRef(0);
+  const polls = useRef(0);
+  const anyPending = useRef(false);
 
   const load = useCallback(async () => {
     if (projectId === null) { setRenders([]); return; }
@@ -70,13 +74,15 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false, 
     loadedAt.current = Date.now();
     setRenders(items);
     const videos = items?.filter((g) => g.status === "pending" && g.kind === "video") ?? [];
+    anyPending.current = !!items?.some((g) => g.status === "pending");
+    if (anyPending.current) polls.current += 1; else polls.current = 0;
     if (videos.length) {
       // A running video is finished by its own route (the list never starts a long copy): ask it about each running video, then reload the list.
       timer.current = setTimeout(async () => {
         await Promise.all(videos.map((v) => fetch(`/api/generations/${v.id}/status`).catch(() => null)));
         if (live.current) load();
-      }, VIDEO_POLL_MS);
-    } else if (items?.some((g) => g.status === "pending")) timer.current = setTimeout(load, POLL_MS);
+      }, pollDelay(VIDEO_POLL_MS, polls.current));
+    } else if (anyPending.current) timer.current = setTimeout(load, pollDelay(POLL_MS, polls.current));
   }, [projectId, limit, bin]);
 
   useEffect(() => {
@@ -85,7 +91,7 @@ export function useRenders(projectId?: string | null, limit = 100, bin = false, 
     // Picture links are signed and stop working after 10 minutes: fetch the list again before they do, and when the tab comes back after a while, so tiles never go blank.
     const refresh = () => { if (Date.now() - loadedAt.current > 4 * 60_000) load(); };
     const every = setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 60_000);
-    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    const onVisible = () => { if (document.visibilityState === "visible") { if (anyPending.current) { polls.current = 0; load(); } else refresh(); } };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
     return () => { live.current = false; clearTimeout(timer.current); clearInterval(every); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", onVisible); };

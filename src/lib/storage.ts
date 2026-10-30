@@ -184,8 +184,19 @@ export async function saveImageBytes(userId: string, original: Uint8Array, type:
 }
 
 /** The address to show for a generation: a fresh signed link when the file is in our storage, else the provider's link. */
+// Signing a link is real compute and the Library asks for the same ones every few seconds while a render runs, so a link made in the last 4 minutes is reused (a picture link lives 10 minutes, a video link an hour).
+const REUSE_MS = 4 * 60_000;
+const signed = new Map<string, { url: string; at: number }>();
 export async function displayUrl(generation: { imageUrl: string; storageKey: string | null; kind?: string }): Promise<string> {
-  if (generation.storageKey && storageEnabled) return generation.kind === "video" ? signedMediaUrl(generation.storageKey, { ttlSeconds: 3600 }) : signedGetUrl(generation.storageKey);
+  if (generation.storageKey && storageEnabled) {
+    const key = `${generation.kind === "video" ? "v" : "i"}:${generation.storageKey}`;
+    const hit = signed.get(key);
+    if (hit && Date.now() - hit.at < REUSE_MS) return hit.url;
+    const url = generation.kind === "video" ? await signedMediaUrl(generation.storageKey, { ttlSeconds: 3600 }) : await signedGetUrl(generation.storageKey);
+    if (signed.size > 2000) signed.clear();
+    signed.set(key, { url, at: Date.now() });
+    return url;
+  }
   return generation.imageUrl;
 }
 

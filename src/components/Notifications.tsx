@@ -24,7 +24,7 @@ export default function NotificationsButton({ className, up = false, label }: { 
     let live = true;
     const load = () => { if (document.visibilityState === "hidden") return; fetch("/api/notifications", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => { if (live && Array.isArray(d.items)) setItems(d.items); }).catch(() => {}); };
     load();
-    const t = setInterval(load, 60_000);
+    const t = setInterval(load, 180_000);
     return () => { live = false; clearInterval(t); };
   }, []);
   const unread = items.filter((i) => Date.parse(i.at) > seen).length + invites.length; // an invitation stays "new" until it is answered
