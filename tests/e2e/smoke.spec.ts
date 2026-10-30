@@ -37,6 +37,14 @@ test.describe("public site", () => {
     }
   });
 
+  test("the Why Eclipse? button on the homepage opens the About page", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: /Why Eclipse\?/ }).click();
+    await expect(page).toHaveURL(/\/about$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("One studio for everything you make");
+    await expect(page.getByRole("heading", { name: "Image Studio" })).toBeVisible();
+  });
+
   test("search and sharing files are public and sensible", async ({ request }) => {
     const robots = await request.get("/robots.txt");
     expect(robots.status()).toBe(200);

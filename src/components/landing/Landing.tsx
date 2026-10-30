@@ -248,7 +248,7 @@ export default function Landing() {
           <Cta glint />
           <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
         </div>
-        <IndustryStrip above={<a className="hero-why" href="#how-it-works" onClick={go("how-it-works")}><Play size={16} fill="currentColor" strokeWidth={0} aria-hidden="true" />Why Eclipse?</a>} />
+        <IndustryStrip above={<Link className="hero-why" href="/about"><Play size={16} fill="currentColor" strokeWidth={0} aria-hidden="true" />Why Eclipse?</Link>} />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
       </section>
 
