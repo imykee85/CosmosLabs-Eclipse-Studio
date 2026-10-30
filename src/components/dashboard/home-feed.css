@@ -77,3 +77,10 @@
 .hf-tool-title { top: 18px; left: 18px; right: 18px; font-size: 18px; }
 .hf-tool .hf-try { left: 18px; bottom: 18px; height: 40px; padding: 0 17px; }
 @media (min-width: 900px) { .hf-tool { flex-basis: calc((100% - 32px) / 3); } }
+
+/* "Influencer Marketing": the three AI Influencer clips side by side (the same ones as the homepage card). Each clip is clipped by itself, so only the card's outer corners are rounded. */
+.hf-collage { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.hf-cell { position: relative; overflow: hidden; }
+.hf-cell .hf-video, .hf-cell img.hf-video { border-radius: 0; clip-path: none; }
+.hf-cell:first-child .hf-video, .hf-cell:first-child img.hf-video { clip-path: inset(0 round 20px 0 0 20px); }
+.hf-cell:last-child .hf-video, .hf-cell:last-child img.hf-video { clip-path: inset(0 round 0 20px 20px 0); }
