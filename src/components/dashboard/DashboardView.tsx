@@ -185,10 +185,6 @@ export default function DashboardView() {
           <Rail className={`db-grid ${view === "grid" ? "is-compact" : ""}`} n={shown.length}>
             {shown.map((p) => (
               <li key={p.id} className={`db-card ${tab === "bin" ? "is-bin" : ""}`}>
-                <div className="db-thumb">
-                  <span className="db-badge">{tab === "bin" ? "In bin" : "Draft"}</span>
-                  <b aria-hidden="true">{p.name.trim().slice(0, 3).toLowerCase()}</b>
-                </div>
                 <div className="db-card-body">
                   <div className="db-card-row">
                     {tab === "bin" ? (
@@ -227,7 +223,6 @@ export default function DashboardView() {
                   <button type="button" className="db-empty-plus" aria-label="New project" onClick={() => setCreating(true)}><Plus size={22} /></button>
                   <h2>No projects yet</h2>
                   <p>Create your first project to get started.</p>
-                  {newBtn()}
                 </>
               )
             ) : (
