@@ -9,6 +9,7 @@ import { workspaceSession } from "@/lib/workspace";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 100;
+const lastPurge = new Map<string, number>();
 const FINISH_WAIT_MS = 3500; // checking on a running render asks the provider; one slow answer must not hold up the whole list (the row is shown as it is and the check carries on)
 
 // The signed-in user's renders, newest first. With ?projectId= only that project's (the Gallery); without it all of them (the Library). Images in the Bin are left out unless ?bin=1 asks for exactly those. Each imageUrl is a fresh short-lived signed link, so fetch the list again rather than keeping the links.
@@ -33,7 +34,8 @@ export async function GET(req: Request) {
   const notUploaded = { OR: [{ kind: { not: "video" } }, { params: { equals: Prisma.DbNull } }, { params: { equals: Prisma.JsonNull } }, { params: { path: ["uploaded"], equals: Prisma.DbNull } }, { params: { path: ["uploaded"], not: true } }] };
   const uploadedOnly = uploadedParam === "1" ? isUploaded : uploadedParam === "all" ? {} : notUploaded;
   try {
-    await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err));
+    // Clearing failed renders is housekeeping: once a minute per person is plenty (the list is asked for every few seconds while a render runs).
+    if (Date.now() - (lastPurge.get(userId) ?? 0) > 60_000) { lastPurge.set(userId, Date.now()); if (lastPurge.size > 5000) lastPurge.clear(); await purgeFailed(userId).catch((err) => console.error("clearing failed renders failed", err)); }
     const rows = await db.generation.findMany({ where: { userId, ...(projectId ? { projectId } : {}), ...uploadedOnly, deletedAt: inBin ? { not: null } : null }, orderBy: inBin ? { deletedAt: "desc" } : { createdAt: "desc" }, take });
     // Renders still running are checked on here, so coming back later (or from another device) finds them finished.
     // Videos we stopped waiting for are asked about again in the background (a late finish turns the row into the video on the next load).

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/Logo";
+import TypedLine from "./TypedLine";
 import { questions, type QuestionId } from "@/lib/onboarding";
 import "./onboarding.css";
 
@@ -72,16 +73,23 @@ export default function OnboardingFlow() {
               <p>Setting up your studio…</p>
             </div>
           ) : (
-            <video
-              className="ob-video-el"
-              src="/onboarding/welcome.mp4"
-              autoPlay
-              muted
-              playsInline
-              preload="auto"
-              onEnded={goToDashboard}
-              onError={() => setVideoFailed(true)}
-            />
+            <>
+              <video
+                className="ob-video-el"
+                autoPlay
+                muted
+                playsInline
+                preload="auto"
+                onEnded={goToDashboard}
+                onError={(e) => { if (e.target === e.currentTarget) setVideoFailed(true); }}
+              >
+                {/* A browser that cannot play the first source moves on to the next; only when the last one fails too is the welcome card shown instead. */}
+                <source src="/onboarding/welcome.mp4" type="video/mp4" />
+                <source src="/onboarding/welcome.webm" type="video/webm" onError={() => setVideoFailed(true)} />
+              </video>
+              <div className="ob-scrim" aria-hidden="true" />
+              <TypedLine text="Step into a world of endless possibilities" />
+            </>
           )}
           <button type="button" className="ob-skip" onClick={goToDashboard}>Skip</button>
         </div>
