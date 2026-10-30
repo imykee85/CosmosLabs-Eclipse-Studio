@@ -170,6 +170,12 @@ const SLOT_LABEL: Record<string, string> = {
   "2-2": "Advertising",
   "3-0": "Social Media",
   "3-2": "Advertising",
+  "0-1": "Products",
+  "0-2": "Interiors",
+  "1-1": "Advertising",
+  "2-0": "Travel",
+  "2-2w": "Film",
+  "2-3": "Jewelry",
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
