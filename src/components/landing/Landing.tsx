@@ -166,7 +166,7 @@ const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> 
 const SLOT_LABEL: Record<string, string> = {
   "0-0": "AI Influencer",
   "1-0": "Fashion",
-  "1-0w": "Art",
+  "1-0w": "Design",
   "1-3": "Campaign",
   "1-2": "Product",
   "2-1": "Jewelry",
