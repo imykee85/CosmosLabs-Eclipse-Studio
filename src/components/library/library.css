@@ -114,3 +114,15 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
 .ex-tile video { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--a-line2); border-radius: 20px; background: transparent; clip-path: inset(0 round 20px); }
 .ex-tile.is-picked img, .ex-tile.is-picked video { border-color: #c00707; box-shadow: 0 0 0 2px #c00707; }
 .ex-check { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #c00707; color: #fff; }
+
+/* Phones: smaller thumbnails, four to a line (owner 2026-10-30). Library, Gallery and Bin share this grid. */
+@media (max-width: 800px) {
+  .lib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 16px; }
+  .lib-tile { gap: 4px; font-size: 11px; }
+  .lib-tile img, .lib-video, .lib-video video, .lib-wait { border-radius: 10px; }
+  .lib-video video { clip-path: inset(0 round 10px); }
+  .lib-wait { padding: 6px; }
+  .lib-wait p { font-size: 10px; }
+  .lib-video em { right: 5px; bottom: 5px; padding: 1px 5px; font-size: 10px; }
+  .lib-tile .lib-sub { font-size: 10px; }
+}
