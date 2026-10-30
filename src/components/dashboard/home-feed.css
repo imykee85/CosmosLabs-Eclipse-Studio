@@ -71,3 +71,9 @@
 
 /* The "Generate a video" tool card plays a clip: its title gets a stronger shadow to stay readable on the bright sky (no overlay layer over the video, so no light rim at the rounded corners). */
 .hf-tool-video .hf-tool-title { text-shadow: 0 1px 16px rgba(0,0,0,.75), 0 0 4px rgba(0,0,0,.45); }
+
+/* "Tools to skyrocket your creative freedom": the cards are one step smaller (owner 2026-10-30): three fit across on desktop, and on phones each card is narrower so the next one peeks in. */
+.hf-tool { flex-basis: min(280px, 58%); }
+.hf-tool-title { top: 18px; left: 18px; right: 18px; font-size: 18px; }
+.hf-tool .hf-try { left: 18px; bottom: 18px; height: 40px; padding: 0 17px; }
+@media (min-width: 900px) { .hf-tool { flex-basis: calc((100% - 32px) / 3); } }
