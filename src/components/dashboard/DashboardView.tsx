@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { deleteRenderForever } from "@/lib/render-actions";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Clock, FolderOpen, Info, LayoutGrid, Rows3, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
@@ -62,7 +63,10 @@ export default function DashboardView() {
   const [creating, setCreating] = useState(false);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState("");
-  const [binSection, setBinSection] = useState<"projects" | "images" | "audio">("projects");
+  const [binSection, setBinSection] = useState<"projects" | "media">("projects");
+  const [emptying, setEmptying] = useState(false);
+  const [emptyBusy, setEmptyBusy] = useState(false);
+  const [binKey, setBinKey] = useState(0);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ project: Project; top: number; right: number } | null>(null);
   const [renaming, setRenaming] = useState<Project | null>(null);
@@ -75,7 +79,7 @@ export default function DashboardView() {
   // A Gallery's "Recently deleted" link arrives as /dashboard?bin=images&project=<id>.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    if (q.get("bin")) { setTab("bin"); setBinSection(q.get("bin") === "images" ? "images" : "projects"); setProjectFilter(q.get("project")); }
+    if (q.get("bin")) { setTab("bin"); setBinSection(q.get("bin") === "images" ? "media" : "projects"); setProjectFilter(q.get("project")); }
   }, []);
 
   // Close the project menu on Escape, on a click elsewhere, or when the page moves under it.
@@ -104,6 +108,29 @@ export default function DashboardView() {
 
   async function act(fn: () => Promise<unknown>) {
     try { await fn(); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong."); }
+  }
+
+  // Deletes everything in the Bin for good: projects, then every deleted picture, video and sound.
+  async function emptyBin() {
+    setEmptyBusy(true); setError("");
+    try {
+      for (const p of (projects ?? []).filter((x) => x.deletedAt)) await deleteProjectForever(p.id);
+      for (let i = 0; i < 30; i++) {
+        const r = await fetch("/api/generations?bin=1&limit=100", { cache: "no-store" });
+        const items: { id: string }[] = r.ok ? (await r.json()).items ?? [] : [];
+        if (!items.length) break;
+        for (const g of items) await deleteRenderForever(g.id);
+      }
+      for (let i = 0; i < 30; i++) {
+        const r = await fetch("/api/audio?bin=1", { cache: "no-store" });
+        const items: { id: string }[] = r.ok ? (await r.json()).items ?? [] : [];
+        if (!items.length) break;
+        for (const a of items) await fetch(`/api/audio/${a.id}?forever=1`, { method: "DELETE" });
+      }
+      setBinKey((k) => k + 1);
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong."); }
+    setEmptyBusy(false); setEmptying(false);
   }
 
   function open(p: Project) {
@@ -170,15 +197,16 @@ export default function DashboardView() {
         {tab === "bin" && (
           <div className="db-subtabs" role="tablist" aria-label="Bin sections">
             <button role="tab" aria-selected={binSection === "projects"} className={binSection === "projects" ? "is-active" : ""} onClick={() => setBinSection("projects")}>Projects</button>
-            <button role="tab" aria-selected={binSection === "images"} className={binSection === "images" ? "is-active" : ""} onClick={() => setBinSection("images")}>Images</button>
-            <button role="tab" aria-selected={binSection === "audio"} className={binSection === "audio" ? "is-active" : ""} onClick={() => setBinSection("audio")}>Audio</button>
+            <button role="tab" aria-selected={binSection === "media"} className={binSection === "media" ? "is-active" : ""} onClick={() => setBinSection("media")}>Media</button>
+            <button type="button" className="db-empty-bin" onClick={() => setEmptying(true)}><Trash2 size={14} /> Empty bin</button>
           </div>
         )}
 
-        {tab === "bin" && binSection === "audio" ? (
-          <BinAudio query={query} />
-        ) : tab === "bin" && binSection === "images" ? (
-          <BinImages projects={projects ?? []} projectFilter={projectFilter} query={query} onClearFilter={() => setProjectFilter(null)} />
+        {tab === "bin" && binSection === "media" ? (
+          <div key={binKey}>
+            <BinImages projects={projects ?? []} projectFilter={projectFilter} query={query} onClearFilter={() => setProjectFilter(null)} />
+            <BinAudio query={query} quiet />
+          </div>
         ) : projects === null ? (
           <p className="db-loading" aria-live="polite">Loading your projects…</p>
         ) : shown.length > 0 ? (
@@ -236,6 +264,18 @@ export default function DashboardView() {
         </div>
         {tab === "projects" && projects !== null && !query.trim() && <HomeFeed onGo={goTo} />}
       </main>
+      {emptying && (
+        <div className="nm-backdrop" role="dialog" aria-modal="true" aria-label="Empty bin" onMouseDown={() => !emptyBusy && setEmptying(false)}>
+          <div className="nm-card" onMouseDown={(e) => e.stopPropagation()}>
+            <h2>Empty the bin?</h2>
+            <p>This deletes every project, picture, video and sound in the bin for good. It can't be undone.</p>
+            <div className="db-bin-actions">
+              <button type="button" disabled={emptyBusy} onClick={() => setEmptying(false)}>Cancel</button>
+              <button type="button" className="is-danger" disabled={emptyBusy} onClick={emptyBin}><Trash2 size={14} /> Empty bin</button>
+            </div>
+          </div>
+        </div>
+      )}
       {menu && (
         <>
           <div className="pm-scrim" onMouseDown={() => setMenu(null)} />

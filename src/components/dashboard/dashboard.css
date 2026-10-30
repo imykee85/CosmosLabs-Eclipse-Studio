@@ -193,3 +193,5 @@
 .db-grid.is-compact .db-card-body { padding: 18px 8px 10px 14px; }
 .db-empty-plus { background: #c00707 !important; color: #fff !important; border-color: #c00707 !important; }
 .db-empty-plus:hover { background: #d90b0b !important; }
+.db-subtabs .db-empty-bin { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; border-color: rgba(255,107,107,.4); color: var(--a-danger); }
+.db-subtabs .db-empty-bin:hover { border-color: var(--a-danger); color: var(--a-danger); }
