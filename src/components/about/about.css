@@ -1,0 +1,52 @@
+.ab { position: relative; min-height: 100vh; overflow: hidden; background: #000; color: #e9e6e1; font-size: 17px; line-height: 1.6; }
+.ab-glow { position: absolute; top: -260px; left: 50%; width: 1100px; height: 700px; margin-left: -550px; background: radial-gradient(closest-side, rgba(192,7,7,.38), rgba(192,7,7,.08) 60%, transparent); filter: blur(30px); pointer-events: none; animation: ab-drift 14s ease-in-out infinite alternate; }
+@keyframes ab-drift { from { transform: translateX(-70px) scale(1); } to { transform: translateX(70px) scale(1.12); } }
+.ab-top, .ab-hero, .ab-sec, .ab-final, .ab-foot { position: relative; width: min(1040px, 100% - 48px); margin: 0 auto; }
+.ab-top { display: flex; align-items: center; justify-content: space-between; padding: 30px 0; }
+.ab-top-actions { display: flex; align-items: center; gap: 22px; }
+.ab-back { color: #a3a3a3; font-size: 15px; font-weight: 500; transition: color .18s; }
+.ab-back:hover { color: #fff; }
+.ab-btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; background: #c00707; color: #fff; font-size: 16px; font-weight: 500; line-height: 24px; transition: background .18s, transform .18s; }
+.ab-btn:hover { background: #d90b0b; transform: translateY(-1px); }
+.ab-eyebrow { margin: 0 0 16px; color: #c00707; font-size: 14px; font-weight: 600; letter-spacing: .16em; }
+.ab-hero { padding: 110px 0 120px; text-align: center; }
+.ab-hero h1 { margin: 0 auto 26px; max-width: 880px; color: #fff; font-size: clamp(40px, 7vw, 76px); font-weight: 700; line-height: 1.04; letter-spacing: -.035em; }
+.ab-lead { margin: 0 auto 34px; max-width: 660px; color: #b9b5ae; font-size: 20px; line-height: 1.55; }
+.ab-sec { padding: 70px 0; border-top: 1px solid rgba(255,255,255,.1); }
+.ab-sec h2, .ab-final h2 { margin: 0 0 22px; max-width: 760px; color: #fff; font-size: clamp(28px, 4vw, 44px); font-weight: 700; line-height: 1.1; letter-spacing: -.03em; }
+.ab-body { margin: 0; max-width: 720px; color: #b9b5ae; font-size: 19px; line-height: 1.65; }
+.ab-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 36px; }
+.ab-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ab-card { padding: 28px 26px 30px; border: 1px solid rgba(255,255,255,.12); border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); transition: border-color .25s, transform .25s; }
+.ab-card:hover { border-color: rgba(192,7,7,.7); transform: translateY(-3px); }
+.ab-card h3 { margin: 0 0 10px; color: #fff; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.ab-card p { margin: 0; color: #b9b5ae; font-size: 16px; line-height: 1.6; }
+.ab-steps { display: grid; gap: 0; margin: 36px 0 0; padding: 0; list-style: none; }
+.ab-steps li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 20px; padding: 28px 0; border-top: 1px solid rgba(255,255,255,.1); }
+.ab-steps li:last-child { border-bottom: 1px solid rgba(255,255,255,.1); }
+.ab-num { color: #c00707; font-size: 15px; font-weight: 600; letter-spacing: .14em; padding-top: 8px; }
+.ab-steps h3 { margin: 0 0 8px; color: #fff; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+.ab-steps p { margin: 0; max-width: 640px; color: #b9b5ae; font-size: 17px; line-height: 1.6; }
+.ab-final { padding: 90px 0 100px; text-align: center; border-top: 1px solid rgba(255,255,255,.1); }
+.ab-final h2 { margin-left: auto; margin-right: auto; }
+.ab-foot { display: flex; gap: 22px; padding: 0 0 50px; color: #8a8a8a; font-size: 14px; }
+.ab-foot a:hover { color: #fff; }
+
+/* Entrance: each line of the hero fades up in turn; the cards fade up as the page loads. Nothing moves under reduced motion. */
+.ab-in { opacity: 0; transform: translateY(18px); animation: ab-up .8s cubic-bezier(.2,.7,.2,1) forwards; animation-delay: var(--d, 0ms); }
+.ab-card { opacity: 0; transform: translateY(18px); animation: ab-up .8s cubic-bezier(.2,.7,.2,1) forwards; animation-delay: calc(300ms + var(--i, 0) * 90ms); }
+@keyframes ab-up { to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ab-glow { animation: none; } .ab-in, .ab-card { opacity: 1; transform: none; animation: none; } }
+
+@media (max-width: 800px) {
+  .ab { font-size: 16px; }
+  .ab-top { padding: 20px 0; }
+  .ab-top-actions { gap: 14px; }
+  .ab-back { display: none; }
+  .ab-hero { padding: 60px 0 70px; }
+  .ab-lead { font-size: 18px; }
+  .ab-sec { padding: 52px 0; }
+  .ab-grid, .ab-grid-3 { grid-template-columns: 1fr; }
+  .ab-steps li { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; }
+  .ab-final { padding: 64px 0 72px; }
+}
