@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, MoreVertical, Plus } from "lucide-react";
+import ProtectMedia from "@/components/landing/ProtectMedia";
 import { ClipCard } from "@/components/landing/ClipCard";
 import "./home-feed.css";
 
@@ -37,6 +38,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
   const [open, setOpen] = useState<number | null>(null);
   return (
     <section className="hf" aria-label="Home">
+      <ProtectMedia rootSelector=".hf" />
       <div className="hf-sec">
         <button type="button" className="hf-pill">Explore collections</button>
         <ul className="hf-row">

@@ -84,3 +84,6 @@
 .hf-cell .hf-video, .hf-cell img.hf-video { border-radius: 0; clip-path: none; }
 .hf-cell:first-child .hf-video, .hf-cell:first-child img.hf-video { clip-path: inset(0 round 20px 0 0 20px); }
 .hf-cell:last-child .hf-video, .hf-cell:last-child img.hf-video { clip-path: inset(0 round 0 20px 20px 0); }
+
+/* The home feed's pictures and clips are Eclipse's own: no long-press save sheet, no dragging them out, no pointer on the file itself (links around them still work). */
+.hf img, .hf video, .hf picture { -webkit-user-drag: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; pointer-events: none; }
