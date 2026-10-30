@@ -817,3 +817,7 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 /* Homepage pictures and clips are not saveable by the usual routes: no drag, no iPhone long-press save sheet, and they ignore the pointer, so a right-click lands on the page and not on the file. */
 .site-shell img, .site-shell video, .site-shell picture { -webkit-user-drag: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; pointer-events: none; }
 .site-shell .tile, .site-shell .card-collage, .site-shell .wow-carousel, .site-shell .results-wall { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* Labels on the results tiles: small white text bottom left over a soft dark fade so it reads on bright pictures. */
+.results-col article .rt-label { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 34px 14px 12px; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.55)); color: #fff; font-weight: 500; font-size: 15px; line-height: 1.2; letter-spacing: 0; text-align: left; pointer-events: none; }
+@media (max-width: 800px) { .results-col article .rt-label { padding: 22px 9px 8px; font-size: 12px; } }
