@@ -177,3 +177,37 @@
 .wo-icon { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; background: #c00707; color: #fff; }
 .wo-card h2, .wo-card p { text-align: center; }
 .wo-card .nm-create { padding-left: 34px; padding-right: 34px; }
+
+/* Projects are the owner's folder picture with the details on its front panel */
+.db-grid { padding-top: 4px; }
+.db-card { overflow: visible; border: 0; border-radius: 0; background: url(/dashboard/folder.webp) center / 100% 100% no-repeat; color: #0b2a44; aspect-ratio: 452 / 384; min-height: 0; display: block; }
+.db-card:not(.is-bin):hover { border: 0; transform: translateY(-3px); filter: brightness(1.04); }
+.db-card::before { content: none; }
+.db-card .db-card-body { position: absolute; left: 6%; right: 6%; top: 34%; bottom: 8%; padding: 0; display: flex; flex-direction: column; justify-content: center; }
+.db-card h2, .db-card .db-open { color: #0b2a44; }
+.db-card .db-meta { margin-top: 8px; padding-top: 8px; border-top-color: rgba(11,42,68,.22); color: rgba(11,42,68,.8); }
+.db-card .db-card-btn { color: #0b2a44; } .db-card .db-card-btn:hover { background: rgba(11,42,68,.12); color: #0b2a44; }
+.db-card .db-bin-actions { margin-top: 6px; gap: 6px; }
+.db-card .db-bin-actions button { padding: 4px 9px; font-size: 11px; color: #0b2a44; border-color: rgba(11,42,68,.35); }
+.db-card .db-bin-actions .is-danger { color: #8a1212; border-color: rgba(138,18,18,.5); }
+.db-grid.is-compact .db-card { border-radius: 0; min-height: 0; }
+.db-grid.is-compact .db-card-body { padding: 0; }
+.db-grid.is-compact h2 { font-size: 14px; }
+.db-grid.is-compact .db-meta { font-size: 11px; margin-top: 4px; padding-top: 5px; }
+.db-empty-plus { background: #c00707 !important; color: #fff !important; border-color: #c00707 !important; }
+.db-empty-plus:hover { background: #d90b0b !important; }
+.db-subtabs .db-empty-bin { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; border-color: rgba(255,107,107,.4); color: var(--a-danger); }
+.db-subtabs .db-empty-bin:hover { border-color: var(--a-danger); color: var(--a-danger); }
+/* Folders a little smaller, close to the old project card's footprint */
+.db-grid > .db-card { width: 84%; }
+.db-grid:not(.is-compact) > .db-card { width: 90%; }
+.db-grid.is-compact h2 { font-size: 13px; }
+.db-grid.is-compact .db-meta { font-size: 10.5px; }
+/* Pressed-in (debossed) look: tone-on-tone blue with a light edge below and a faint dark edge above */
+.db-card h2, .db-card .db-open, .db-card .db-meta, .db-card .db-card-btn { color: #2f84bf; text-shadow: 0 1px 0 rgba(255,255,255,.65), 0 -1px 0 rgba(10,60,110,.28); }
+.db-card .db-meta { opacity: 1; border-top: 1px solid rgba(10,60,110,.22); box-shadow: 0 -1px 0 rgba(255,255,255,.55) inset; }
+.db-card .db-card-btn svg, .db-card .db-meta svg { filter: drop-shadow(0 1px 0 rgba(255,255,255,.65)) drop-shadow(0 -1px 0 rgba(10,60,110,.28)); }
+.db-card .db-card-btn:hover { background: rgba(255,255,255,.18); color: #2a78b0; }
+/* Dark text kept, with the pressed-in edge */
+.db-card h2, .db-card .db-open, .db-card .db-meta, .db-card .db-card-btn { color: #0b2a44; }
+.db-card .db-card-btn:hover { color: #0b2a44; background: rgba(11,42,68,.12); }

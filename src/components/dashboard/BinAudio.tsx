@@ -6,7 +6,7 @@ import { timeAgo } from "@/lib/projects";
 import type { AudioItem } from "@/lib/audio/jobs";
 
 // Voice takes, sound effects and music moved to the Bin from Audio Studio. Restoring puts one back in the list; deleting forever removes the file.
-export default function BinAudio({ query }: { query: string }) {
+export default function BinAudio({ query, quiet }: { query: string; quiet?: boolean }) {
   const [items, setItems] = useState<AudioItem[] | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -24,7 +24,7 @@ export default function BinAudio({ query }: { query: string }) {
     setConfirm(null); await load();
   }
 
-  if (items === null) return <p className="db-loading" aria-live="polite">Loading…</p>;
+  if (items === null) return quiet ? null : <p className="db-loading" aria-live="polite">Loading…</p>;
   return (
     <>
       {error && <p className="db-error" role="alert">{error}</p>}
@@ -47,7 +47,7 @@ export default function BinAudio({ query }: { query: string }) {
             </li>
           ))}
         </ul>
-      ) : (
+      ) : quiet ? null : (
         <section className="db-empty" aria-live="polite">
           <h1>{q ? "No matches" : "No deleted audio"}</h1>
           <p>{q ? "Nothing in the bin matches your search." : "Voices, sound effects and music you delete in Audio Studio show up here."}</p>
