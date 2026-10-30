@@ -160,6 +160,24 @@ const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> 
   "0-2": { src: "/landing/real-estate-card.mp4", webm: "/landing/real-estate-card.webm", poster: "/landing/real-estate-card-poster.jpg" },
 };
 
+// Labels on the results wall, by slot ("column-row"); the key with "w" is the wide card under that tile. Tiles without a label have none.
+const SLOT_LABEL: Record<string, string> = {
+  "0-0": "AI Influencer",
+  "1-0": "Fashion",
+  "1-0w": "Art",
+  "1-3": "Campaign",
+  "2-1": "Jewelry",
+  "2-2": "Advertising",
+  "3-0": "Social Media",
+  "3-2": "Advertising",
+  "0-1": "Products",
+  "0-2": "Interiors",
+  "1-1": "Advertising",
+  "2-0": "Travel",
+  "2-2w": "Film",
+  "2-3": "Jewelry",
+};
+
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {
   return <ClipCard src={src} webm={webm} poster={poster} className="card-video" />;
 }
@@ -290,8 +308,9 @@ export default function Landing() {
                   <Fragment key={name}>
                   <article className={`rt-${c}-${j}`} aria-label={name}>
                     {SLOT_IMAGE[`${c}-${j}`] ? <img src={SLOT_IMAGE[`${c}-${j}`]} alt="" /> : SLOT_VIDEO[`${c}-${j}`] ? <CardVideo {...SLOT_VIDEO[`${c}-${j}`]} /> : RESULT_VIDEO[name] ? <CardVideo {...RESULT_VIDEO[name]} /> : <div className={`tile tone-${(c + j * 4) % 10}`} />}
+                    {SLOT_LABEL[`${c}-${j}`] && <span className="rt-label">{SLOT_LABEL[`${c}-${j}`]}</span>}
                   </article>
-                  {WIDE_AFTER[`${c}-${j}`] != null && <article className="rt-wide" aria-hidden="true">{WIDE_IMAGE[`${c}-${j}`] ? <img src={WIDE_IMAGE[`${c}-${j}`]} alt="" /> : <div className={`tile tone-${WIDE_AFTER[`${c}-${j}`]}`} />}</article>}
+                  {WIDE_AFTER[`${c}-${j}`] != null && <article className="rt-wide" aria-hidden="true">{WIDE_IMAGE[`${c}-${j}`] ? <img src={WIDE_IMAGE[`${c}-${j}`]} alt="" /> : <div className={`tile tone-${WIDE_AFTER[`${c}-${j}`]}`} />}{SLOT_LABEL[`${c}-${j}w`] && <span className="rt-label">{SLOT_LABEL[`${c}-${j}w`]}</span>}</article>}
                   </Fragment>
                 ))}
                 {/* One more card under every column so each runs past the bottom edge of the wall and no gap shows. */}
