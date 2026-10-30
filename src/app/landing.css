@@ -777,7 +777,7 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* The results wall clip: the video is clipped to its own rounded corners (Safari does not clip a playing video to its parent). */
 .results-col article > video.card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; clip-path: inset(0 round 8px); }
 .audience-card > .card-slides { position: absolute; inset: 0; z-index: 0; }
-.audience-card > .card-slides .card-slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; opacity: 0; transition: opacity .9s ease; }
+.audience-card > .card-slides .card-slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 13%; opacity: 0; transition: opacity .9s ease; }
 .audience-card > .card-slides .card-slide.is-on { opacity: 1; }
 .audience-card:has(> .card-slides):after { display: none; }
 /* A carousel card that plays a clip: the video itself is clipped to the card's rounded corners and has no tint, like the other video cards. */
@@ -820,5 +820,5 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 
 /* Hero still (silhouette in light): on desktop windows the wide crop would put the figure behind the buttons, so the picture sits higher and the figure stands below the heading block. */
 @media (min-width: 801px) and (hover: hover) and (pointer: fine) {
-  .hero-video-still { object-position: 50% 20%; }
+  .hero-video-still { object-position: 50% 13%; }
 }

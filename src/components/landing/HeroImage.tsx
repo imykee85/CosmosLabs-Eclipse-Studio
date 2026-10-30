@@ -1,4 +1,4 @@
-// Full-bleed background picture for the landing hero (public/hero/hero.jpg, the owner's silhouette-in-light still). The dark wash keeps the headline readable.
+// Full-bleed background picture for the landing hero (public/hero/hero.jpg, the owner's silhouette-in-light still (second version)). The dark wash keeps the headline readable.
 export default function HeroImage() {
   return (
     <div className="hero-video" aria-hidden="true">
