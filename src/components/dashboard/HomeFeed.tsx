@@ -93,8 +93,8 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
             <span className="hf-tool-title">Generate an image</span>
             <button type="button" className="hf-try" onClick={() => onGo("/create")}>Try it <ArrowRight size={15} /></button>
           </li>
-          <li className="hf-tool">
-            <Empty className="hf-fill" />
+          <li className="hf-tool hf-tool-video">
+            <LoopVideo className="hf-fill hf-video" src="/dashboard/generate-card.mp4" webm="/dashboard/generate-card.webm" poster="/dashboard/generate-card-poster.jpg" />
             <span className="hf-tool-title">Generate a video</span>
             <button type="button" className="hf-try" onClick={() => onGo("/generate")}>Try it <ArrowRight size={15} /></button>
           </li>
