@@ -198,3 +198,8 @@
 .db-empty-plus:hover { background: #d90b0b !important; }
 .db-subtabs .db-empty-bin { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; border-color: rgba(255,107,107,.4); color: var(--a-danger); }
 .db-subtabs .db-empty-bin:hover { border-color: var(--a-danger); color: var(--a-danger); }
+/* Folders a little smaller, close to the old project card's footprint */
+.db-grid > .db-card { width: 84%; }
+.db-grid:not(.is-compact) > .db-card { width: 90%; }
+.db-grid.is-compact h2 { font-size: 13px; }
+.db-grid.is-compact .db-meta { font-size: 10.5px; }
