@@ -208,3 +208,6 @@
 .db-card .db-meta { opacity: 1; border-top: 1px solid rgba(10,60,110,.22); box-shadow: 0 -1px 0 rgba(255,255,255,.55) inset; }
 .db-card .db-card-btn svg, .db-card .db-meta svg { filter: drop-shadow(0 1px 0 rgba(255,255,255,.65)) drop-shadow(0 -1px 0 rgba(10,60,110,.28)); }
 .db-card .db-card-btn:hover { background: rgba(255,255,255,.18); color: #2a78b0; }
+/* Dark text kept, with the pressed-in edge */
+.db-card h2, .db-card .db-open, .db-card .db-meta, .db-card .db-card-btn { color: #0b2a44; }
+.db-card .db-card-btn:hover { color: #0b2a44; background: rgba(11,42,68,.12); }
