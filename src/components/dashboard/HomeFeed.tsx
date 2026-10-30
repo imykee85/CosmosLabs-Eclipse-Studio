@@ -70,11 +70,12 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           <li className="hf-wide">
             <div className="hf-wide-link"><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Filmmaking</span></div>
           </li>
-          {["Influencer Marketing", "Social Media Content"].map((n) => (
-            <li key={n} className="hf-wide">
-              <div className="hf-wide-link"><Empty className="hf-fill" /><span className="hf-label">{n}</span></div>
-            </li>
-          ))}
+          <li className="hf-wide">
+            <div className="hf-wide-link"><LoopVideo className="hf-fill hf-video" src="/dashboard/influencer-card.mp4" webm="/dashboard/influencer-card.webm" poster="/dashboard/influencer-card-poster.jpg" /><span className="hf-label hf-label-on-video">Influencer Marketing</span></div>
+          </li>
+          <li className="hf-wide">
+            <div className="hf-wide-link"><Empty className="hf-fill" /><span className="hf-label">Social Media Content</span></div>
+          </li>
         </ul>
       </div>
 
