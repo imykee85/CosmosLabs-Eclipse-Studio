@@ -178,19 +178,22 @@
 .wo-card h2, .wo-card p { text-align: center; }
 .wo-card .nm-create { padding-left: 34px; padding-right: 34px; }
 
-/* Projects are blue folders with their details on the front */
-.db-grid { padding-top: 16px; }
-.db-card { overflow: visible; border: 0; border-radius: 6px 18px 18px 18px; background: linear-gradient(180deg, #66c9fe, #3fb2f5); color: #0b2a44; min-height: 120px; display: flex; }
+/* Projects are the owner's folder picture with the details on its front panel */
+.db-grid { padding-top: 4px; }
+.db-card { overflow: visible; border: 0; border-radius: 0; background: url(/dashboard/folder.webp) center / 100% 100% no-repeat; color: #0b2a44; aspect-ratio: 452 / 384; min-height: 0; display: block; }
 .db-card:not(.is-bin):hover { border: 0; transform: translateY(-3px); filter: brightness(1.04); }
-.db-card::before { content: ''; position: absolute; left: 0; top: -14px; width: 44%; height: 26px; border-radius: 12px 12px 0 0; background: #3a9fd8; clip-path: polygon(0 0, 78% 0, 100% 100%, 0 100%); }
-.db-card .db-card-body { position: relative; width: 100%; padding: 22px 16px 14px; }
+.db-card::before { content: none; }
+.db-card .db-card-body { position: absolute; left: 6%; right: 6%; top: 34%; bottom: 8%; padding: 0; display: flex; flex-direction: column; justify-content: center; }
 .db-card h2, .db-card .db-open { color: #0b2a44; }
-.db-card .db-meta { border-top-color: rgba(11,42,68,.2); color: rgba(11,42,68,.75); }
+.db-card .db-meta { margin-top: 8px; padding-top: 8px; border-top-color: rgba(11,42,68,.22); color: rgba(11,42,68,.8); }
 .db-card .db-card-btn { color: #0b2a44; } .db-card .db-card-btn:hover { background: rgba(11,42,68,.12); color: #0b2a44; }
-.db-card .db-bin-actions button { color: #0b2a44; border-color: rgba(11,42,68,.35); }
+.db-card .db-bin-actions { margin-top: 6px; gap: 6px; }
+.db-card .db-bin-actions button { padding: 4px 9px; font-size: 11px; color: #0b2a44; border-color: rgba(11,42,68,.35); }
 .db-card .db-bin-actions .is-danger { color: #8a1212; border-color: rgba(138,18,18,.5); }
-.db-grid.is-compact .db-card { min-height: 104px; border-radius: 5px 14px 14px 14px; }
-.db-grid.is-compact .db-card-body { padding: 18px 8px 10px 14px; }
+.db-grid.is-compact .db-card { border-radius: 0; min-height: 0; }
+.db-grid.is-compact .db-card-body { padding: 0; }
+.db-grid.is-compact h2 { font-size: 14px; }
+.db-grid.is-compact .db-meta { font-size: 11px; margin-top: 4px; padding-top: 5px; }
 .db-empty-plus { background: #c00707 !important; color: #fff !important; border-color: #c00707 !important; }
 .db-empty-plus:hover { background: #d90b0b !important; }
 .db-subtabs .db-empty-bin { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; border-color: rgba(255,107,107,.4); color: var(--a-danger); }
