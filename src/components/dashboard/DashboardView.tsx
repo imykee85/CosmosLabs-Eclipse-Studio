@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import FolderArt from "./FolderArt";
 import { deleteRenderForever } from "@/lib/render-actions";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -214,7 +213,6 @@ export default function DashboardView() {
           <Rail className={`db-grid ${view === "grid" ? "is-compact" : ""}`} n={shown.length}>
             {shown.map((p) => (
               <li key={p.id} className={`db-card ${tab === "bin" ? "is-bin" : ""}`}>
-                <FolderArt projectId={p.id} sheets={tab === "projects"} />
                 <div className="db-card-body">
                   <div className="db-card-row">
                     {tab === "bin" ? (
