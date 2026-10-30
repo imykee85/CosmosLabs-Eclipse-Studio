@@ -2,7 +2,8 @@
 
 import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Coins, Loader2, Mic, Plus, Repeat, Square, Users } from "lucide-react";
+import { Loader2, Mic, Plus, Repeat, Square, Users } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import { estimateSeconds } from "@/lib/audio/pricing-client";
 import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
 
@@ -54,7 +55,7 @@ function Go({ label, busy, disabled, price, onClick }: { label: string; busy: bo
     <button type="button" className="vc-go" aria-label={label} disabled={disabled || busy} onClick={onClick} title={price != null ? `About ${fmtCredits(price)} credits` : label}>
       {busy ? <Loader2 size={18} className="vc-spin" /> : null}
       <span>{label}</span>
-      {price != null && <span className="vc-cost"><Coins size={13} />{fmtCredits(price)}</span>}
+      {price != null && <span className="vc-cost"><CoinIcon size={13} />{fmtCredits(price)}</span>}
     </button>
   );
 }

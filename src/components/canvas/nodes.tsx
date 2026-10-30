@@ -4,7 +4,8 @@ import GrowArea from "@/components/GrowArea";
 import AgentIcon from "@/components/AgentIcon";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { ArrowUp, AudioLines, Check, Clapperboard, ChevronDown, Coins, Film, ListOrdered, MessageSquareText, Music2, Mic, ZoomIn, Eraser, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shirt, Sprout, StickyNote, Trash2, Type, User, Volume2, VolumeX, Wand2, X } from "lucide-react";
+import { ArrowUp, AudioLines, Check, Clapperboard, ChevronDown, Film, ListOrdered, MessageSquareText, Music2, Mic, ZoomIn, Eraser, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shirt, Sprout, StickyNote, Trash2, Type, User, Volume2, VolumeX, Wand2, X } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import { AUTO } from "@/components/create/ModelPicker";
 import { refFileUrl, STYLES, type CanvasNodeData, type CNode, type NodeKind } from "@/lib/canvas";
 import { composePrompt, inPortsOf, inputsOf, isGen, MAX_LIST, outLabelOf, OUT_HANDLE, picturesOf, takesInputs, TITLES, type Input } from "@/lib/canvas-flow";
@@ -454,7 +455,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
             </div>
           )}
           <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={run}>
-            {submitting ? <><Loader2 size={15} className="cv-spin" /> Generating</> : busy ? <><Loader2 size={15} className="cv-spin" /> Creating {pending.length === 1 ? "your image" : `${pending.length} images`}</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><Coins size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
+            {submitting ? <><Loader2 size={15} className="cv-spin" /> Generating</> : busy ? <><Loader2 size={15} className="cv-spin" /> Creating {pending.length === 1 ? "your image" : `${pending.length} images`}</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><CoinIcon size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
           </button>
           <button type="button" className="cv-send-toggle nodrag" aria-expanded={showSend} onClick={() => setShowSend((v) => !v)}>What will be sent <ChevronDown size={12} className={showSend ? "is-up" : ""} /></button>
           {showSend && (
@@ -658,7 +659,7 @@ function VideoGenNode({ id, data, selected }: NodeProps<CNode>) {
             <button type="button" className="cv-chip" disabled={!caps.audio} aria-pressed={sound} aria-label={sound ? "Sound on" : "Sound off"} title={caps.audio ? (sound ? "Sound on" : "Sound off") : "This model makes no sound"} onClick={() => updateNodeData(id, { sound: !sound })}>{sound ? <Volume2 size={13} /> : <VolumeX size={13} />}</button>
           </div>
           <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={() => void run()}>
-            {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Making your video</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><Coins size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
+            {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Making your video</> : price != null ? <>Generate <span className="cv-cost" title={creditsText(price)}><CoinIcon size={13} />{fmtCredits(price)}</span></> : <>Generate <ArrowUp size={15} /></>}
           </button>
           {startUnusable && <p className="cv-nhint">{model.label} can&rsquo;t take a start frame. Choose another model or unplug the picture.</p>}
           {tooManyRefs && <p className="cv-error" role="alert">{model.label} takes up to {caps.refMax} reference {caps.refMax === 1 ? "picture" : "pictures"}, {caps.refVideoMax} {caps.refVideoMax === 1 ? "clip" : "clips"} and {caps.refAudioMax} {caps.refAudioMax === 1 ? "sound" : "sounds"}.</p>}

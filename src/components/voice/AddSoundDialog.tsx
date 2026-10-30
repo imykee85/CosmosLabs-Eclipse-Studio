@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Coins, Loader2, Volume2, X } from "lucide-react";
+import { Loader2, Volume2, X } from "lucide-react";
+import CoinIcon from "@/components/CoinIcon";
 import type { Render } from "@/lib/use-renders";
 import { fetchAudioItem, quoteSound, startVoice, useVoiceModels, type AudioItem } from "@/lib/use-voice";
 import SheetPortal from "./SheetPortal";
@@ -82,7 +83,7 @@ export default function AddSoundDialog({ video, onClose }: { video: Render; onCl
             {error && <p className="vc-error" role="alert">{error}</p>}
             <button type="button" className="vc-as-go" onClick={() => void go()} disabled={busy || !model}>
               {busy ? <Loader2 size={16} className="vc-spin" /> : null} Add sound
-              {price != null && <span className="vc-cost"><Coins size={12} />{fmtCredits(price)}</span>}
+              {price != null && <span className="vc-cost"><CoinIcon size={12} />{fmtCredits(price)}</span>}
             </button>
           </>
         ) : item.status === "pending" ? (
