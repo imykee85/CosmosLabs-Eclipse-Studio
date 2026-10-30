@@ -817,3 +817,8 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 /* Homepage pictures and clips are not saveable by the usual routes: no drag, no iPhone long-press save sheet, and they ignore the pointer, so a right-click lands on the page and not on the file. */
 .site-shell img, .site-shell video, .site-shell picture { -webkit-user-drag: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; pointer-events: none; }
 .site-shell .tile, .site-shell .card-collage, .site-shell .wow-carousel, .site-shell .results-wall { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* Hero still (silhouette in light): on desktop windows the wide crop would put the figure behind the buttons, so the picture sits higher and the figure stands below the heading block. */
+@media (min-width: 801px) and (hover: hover) and (pointer: fine) {
+  .hero-video-still { object-position: 50% 20%; }
+}
