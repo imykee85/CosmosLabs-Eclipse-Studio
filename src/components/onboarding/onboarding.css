@@ -33,7 +33,7 @@
 .ob-stage { display: grid; justify-items: center; gap: 24px; margin: auto; width: 100%; transition: opacity .6s ease; }
 .ob-stage.is-leaving { opacity: 0; pointer-events: none; }
 .ob-video { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; opacity: 0; animation: ob-fade-in .9s .35s ease forwards; }
-.ob-video-el { width: 100%; height: 100%; object-fit: cover; }
+.ob-video-el { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ob-welcome { display: grid; justify-items: center; gap: 14px; text-align: center; animation: ob-rise 1s .6s ease both; }
 .ob-welcome h2 { margin: 12px 0 0; font-size: 36px; font-weight: 700; letter-spacing: -.02em; }
 .ob-welcome p { margin: 0; color: #a09b94; font-size: 16px; }
@@ -85,3 +85,17 @@ html[data-app-theme="light"] .ob-error { color: #c62828; }
 html[data-app-theme="light"] .ob-back { border-color: rgba(0,0,0,.25); color: #141414; }
 html[data-app-theme="light"] .ob-back:hover:not(:disabled) { border-color: rgba(0,0,0,.6); }
 html[data-app-theme="light"] .ob-next:disabled { background: #dcd7cf; color: #7a756e; }
+
+/* The welcome video: a soft dark fade at the bottom and the typed line over it (white, centred, caret blinking). */
+.ob-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.72)); pointer-events: none; }
+.ob-typed { position: absolute; left: 50%; bottom: 17%; width: min(900px, 100% - 48px); margin: 0; transform: translateX(-50%); text-align: center; color: #fff; font-size: clamp(26px, 4.4vw, 52px); font-weight: 600; line-height: 1.15; letter-spacing: -.03em; text-shadow: 0 2px 24px rgba(0,0,0,.6); min-height: 2.3em; }
+.ob-typed i { display: inline-block; width: .07em; height: .95em; margin-left: .08em; vertical-align: -.1em; background: #c00707; animation: ob-caret 1s steps(1) infinite; }
+.ob-typed i.is-idle { animation: ob-caret 1s steps(1) infinite; }
+@keyframes ob-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ob-typed i { animation: none; } }
+@media (max-width: 600px) { .ob-typed { bottom: 21%; font-size: 30px; } }
+/* On a wide screen the tall clip is shown whole, centred between black bars, with the line kept inside the picture. */
+@media (min-aspect-ratio: 1/1) {
+  .ob-video-el { object-fit: contain; }
+  .ob-typed { width: min(500px, 100% - 48px); bottom: 16%; font-size: clamp(24px, 2.8vw, 38px); }
+}
