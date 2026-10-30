@@ -211,3 +211,14 @@
 /* Dark text kept, with the pressed-in edge */
 .db-card h2, .db-card .db-open, .db-card .db-meta, .db-card .db-card-btn { color: #0b2a44; }
 .db-card .db-card-btn:hover { color: #0b2a44; background: rgba(11,42,68,.12); }
+/* No stray white line under the details: the light edge sits right under the divider instead */
+.db-card .db-meta { box-shadow: none; background: linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,0)) top / 100% 1px no-repeat; padding-top: 9px; }
+/* Peeking sheets: the folder is drawn in layers (back, sheets, front) */
+.db-card { background: none; }
+.db-grid { padding-top: 14px; }
+.db-card .fa-back, .db-card .fa-front { position: absolute; left: 0; width: 100%; display: block; pointer-events: none; user-select: none; }
+.db-card .fa-back { top: 0; height: 100%; z-index: 0; }
+.db-card .fa-front { bottom: 0; height: 82.03%; z-index: 2; }
+.db-card .fa-sheet { position: absolute; width: 72%; height: 62%; padding: 3%; border-radius: 4px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.28); transform-origin: 50% 100%; z-index: 1; overflow: hidden; pointer-events: none; }
+.db-card .fa-sheet img, .db-card .fa-sheet video { width: 100%; height: 100%; object-fit: cover; border-radius: 2px; display: block; }
+.db-card .db-card-body { z-index: 3; }
