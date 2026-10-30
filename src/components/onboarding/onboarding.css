@@ -88,7 +88,7 @@ html[data-app-theme="light"] .ob-next:disabled { background: #dcd7cf; color: #7a
 
 /* The welcome screen sits over the video: a soft dark veil (darker behind the card) keeps the logo and text readable. */
 .ob-scrim { position: absolute; inset: 0; background: radial-gradient(closest-side at 50% 50%, rgba(0,0,0,.62), rgba(0,0,0,.3) 100%); pointer-events: none; }
-.ob-video .ob-welcome { position: relative; z-index: 1; align-self: start; margin-top: 11vh; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
+.ob-video .ob-welcome { position: relative; z-index: 1; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
 .ob-video .ob-welcome h2 { color: #fff; }
 .ob-video .ob-welcome p { color: #d6d1ca; }
 /* On a wide screen the tall clip is shown whole, centred between black bars. */
