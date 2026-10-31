@@ -302,7 +302,7 @@ export default function Landing() {
         <div className="results-head">
           <div>
             <h2>Made to look <em>like you meant it.</em></h2>
-            <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
+            <p>From a rough thought to a finished visual. Every category, one sentence away.</p>
           </div>
         </div>
         {/* Four columns of tiles in different heights; the last row fades into the page under one button (after the owner's reference). */}
