@@ -246,8 +246,8 @@ export default function Landing() {
           <h1>Eclipse Studio</h1>
           <h2 className="hero-sub">AI Creative Suite</h2>
           <p className="hero-deck">
-            Turn any idea into premium content, <br className="desktop-only" />
-            from a single prompt to finished work, all in one place.
+            Turn your ideas into premium content, <br className="desktop-only" />
+            from a simple thought to finished work, all in one place.
           </p>
           <Cta glint />
           <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
