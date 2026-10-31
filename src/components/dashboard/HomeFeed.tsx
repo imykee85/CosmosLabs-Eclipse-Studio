@@ -87,7 +87,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
               <b>{n}</b>
-              <div className="hf-dots">{Array.from({ length: 12 }, (_, i) => <Empty key={i} className="hf-dot" />)}</div>
+              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => <Empty key={i} className="hf-dot" />)}</div>
             </li>
           ))}
         </ul>
