@@ -19,6 +19,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
   const right = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const introRow = useRef<HTMLDivElement>(null);
+  const subRef = useRef<HTMLParagraphElement>(null);
 
   // Side by side, the right column starts level with the strengths list (its first rule on the list's top rule) and Atlas's typed lines stretch across
   // the empty space above it to the right edge, like the owner's reference; stacked, both just follow.
@@ -28,8 +29,11 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
       if (!r || !l) return;
       r.style.marginTop = "0px";
       if (t) t.style.width = "";
+      if (subRef.current) subRef.current.style.width = "";
       if (r.getBoundingClientRect().left <= l.getBoundingClientRect().left + 40) return;
       if (t) t.style.width = `${Math.round(r.getBoundingClientRect().right - t.getBoundingClientRect().left)}px`;
+      // The subtext stretches across the card too, so it is not packed into the narrow left column.
+      if (subRef.current) subRef.current.style.width = `${Math.round(r.getBoundingClientRect().right - subRef.current.getBoundingClientRect().left)}px`;
       r.style.marginTop = `${Math.max(0, Math.round(l.getBoundingClientRect().top - r.getBoundingClientRect().top))}px`;
     };
     align();
@@ -73,7 +77,7 @@ export default function AtlasWorkflow({ cta }: { cta: React.ReactNode }) {
       <div className="atl-left">
         <div className="eyebrow">INTRODUCING</div>
         <h2>Meet <em>Atlas</em></h2>
-        <p className="atl-sub">Your agentic creative partner, equipped with world-class art direction and taste.</p>
+        <p className="atl-sub" ref={subRef}>Your agentic creative partner with professional art direction and taste.</p>
         {/* Atlas, drawn like the agent in the app (the eyes turn round the ball in 3D), only bigger. Beside him, his art direction types out as if live. */}
         <div className="atl-intro" ref={introRow}>
         <div className={`atl-bot${intro ? " is-intro" : ""}`} ref={bot} role="img" aria-label="Atlas, the Eclipse agent">

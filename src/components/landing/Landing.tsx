@@ -246,8 +246,8 @@ export default function Landing() {
           <h1>Eclipse Studio</h1>
           <h2 className="hero-sub">AI Creative Suite</h2>
           <p className="hero-deck">
-            Turn any idea into premium content, <br className="desktop-only" />
-            from a single prompt to finished work, all in one place.
+            Turn your ideas into premium content, <br className="desktop-only" />
+            from a simple thought to finished work, all in one place.
           </p>
           <Cta glint />
           <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
@@ -267,7 +267,7 @@ export default function Landing() {
         <div className="section-heading-row">
           <div>
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
-            <h2>what do you want<br /><em>to create?</em></h2>
+            <h2>pick a model,<br /><em>make anything.</em></h2>
             <p className="audience-sub">Discover the frontier of generative AI at the cheapest prices.</p>
           </div>
         </div>
@@ -292,9 +292,9 @@ export default function Landing() {
       <CtaPromptCard
         id="try-it"
         eyebrow="TURN A THOUGHT INTO A STARTING POINT"
-        line1="have an idea?" line2="try it."
+        line1="describe it." line2="see it."
         placeholder={"What do you want to create?\n\nDescribe your idea…"}
-        button="Create my idea" icon={<Lightbulb size={17} />}
+        button="Generate" icon={<Lightbulb size={17} />}
         onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}
       />
 
@@ -302,7 +302,7 @@ export default function Landing() {
         <div className="results-head">
           <div>
             <h2>Made to look <em>like you meant it.</em></h2>
-            <p>From a rough thought to a finished visual. Every category, one prompt away.</p>
+            <p>From a rough thought to a finished visual. Every category, one sentence away.</p>
           </div>
         </div>
         {/* Four columns of tiles in different heights; the last row fades into the page under one button (after the owner's reference). */}
