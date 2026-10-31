@@ -24,6 +24,7 @@ import ScrollReveal from "./ScrollReveal";
 import StudioFlow from "./StudioFlow";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
+import { priceList } from "./price-list";
 import "@/app/landing.css";
 
 function Cta({ dark = false, glint = false, children = "Start Creating" }: { dark?: boolean; glint?: boolean; children?: React.ReactNode }) {
@@ -380,6 +381,24 @@ export default function Landing() {
           ))}
         </div>
         <p className="plan-rule">Plan credits renew monthly and do not roll over. Top-up credits last 90 days and can be used while you are subscribed.</p>
+        <div className="price-list">
+          <div className="eyebrow">0% MARKUP</div>
+          <h3>We charge what it costs.</h3>
+          <p className="pl-sub">No markup on model prices. A few of the most used:</p>
+          <dl>
+            {priceList.map((g) => (
+              <div className="pl-group" key={g.name}>
+                <dt>{g.name}</dt>
+                <dd>
+                  {g.lines.map((l) => (
+                    <div className="pl-line" key={l.label}><span>{l.label}</span><b>{l.price}</b></div>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="pl-note">Shown at $0.10 per credit. Plans lower the cost of a credit.</p>
+        </div>
       </section>
 
       <section id="faq" className="faq-section section-pad">
