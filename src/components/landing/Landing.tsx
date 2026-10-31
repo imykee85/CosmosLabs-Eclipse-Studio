@@ -292,7 +292,7 @@ export default function Landing() {
       <CtaPromptCard
         id="try-it"
         eyebrow="TURN A THOUGHT INTO A STARTING POINT"
-        line1="have an idea?" line2="try it."
+        line1="describe it." line2="see it."
         placeholder={"What do you want to create?\n\nDescribe your idea…"}
         button="Create my idea" icon={<Lightbulb size={17} />}
         onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}
