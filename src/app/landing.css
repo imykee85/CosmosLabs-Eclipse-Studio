@@ -829,3 +829,4 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 /* Each bar's length (how far the stripes run sideways): the part to the left of the owner's mark, 170 of 265 of the column, same for all three. */
 .sf-bar { width: 64.2%; }
 .sf-bar { margin-left: auto; margin-right: auto; } /* bars centred over their numbers */
+.sf-bar i { border-radius: 999px; } /* round-edged bars */
