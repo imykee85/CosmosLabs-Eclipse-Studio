@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { BRAND_RULE } from "@/lib/brand";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
   const meter = new ChatMeter();
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
-    const res = await client.messages.create({ model: connectModels.find((m) => m.id === "claude-haiku-5-5")!.api, max_tokens: 400, system: SYSTEM(target), messages: [{ role: "user", content: text }] });
+    const res = await client.messages.create({ model: connectModels.find((m) => m.id === "claude-haiku-5-5")!.api, max_tokens: 400, system: `${SYSTEM(target)}\n\n${BRAND_RULE}`, messages: [{ role: "user", content: text }] });
     meter.add(res.model, res.usage);
     const out = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ").trim().replace(/^["“]|["”]$/g, "");
     if (!out) return NextResponse.json({ error: "The prompt could not be polished. Please try again." }, { status: 502 });
