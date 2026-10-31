@@ -160,6 +160,7 @@ const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> 
   "2-2": { src: "/landing/results-clip3.mp4", webm: "/landing/results-clip3.webm", poster: "/landing/results-clip3-poster.jpg" },
   "2-3": { src: "/landing/results-clip2.mp4", webm: "/landing/results-clip2.webm", poster: "/landing/results-clip2-poster.jpg" },
   "2-0": { src: "/landing/results-clip5.mp4", webm: "/landing/results-clip5.webm", poster: "/landing/results-clip5-poster.jpg" },
+  "0-3": { src: "/landing/results-campaign.mp4", webm: "/landing/results-campaign.webm", poster: "/landing/results-campaign-poster.jpg" },
   "0-2": { src: "/landing/real-estate-card.mp4", webm: "/landing/real-estate-card.webm", poster: "/landing/real-estate-card-poster.jpg" },
 };
 
@@ -180,6 +181,7 @@ const SLOT_LABEL: Record<string, string> = {
   "2-0": "Travel",
   "2-2w": "Film",
   "2-3": "Jewelry",
+  "0-3": "Campaign",
   "3-1": "Entertainment",
   "3-3": "Interior design",
 };
