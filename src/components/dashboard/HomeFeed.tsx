@@ -51,10 +51,9 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
                     <img key={i} className="hf-pic" src={`/dashboard/${n === "Portraits" ? "portrait" : n === "Interiors" ? "interior" : "product"}-${i}.jpg`} alt="" loading="lazy" draggable={false} />
                   ))
                   : n === "Product shots"
-                    ? [1, 2, 3, 4].map((i) => (i === 2
-                      ? <Empty key={i} />
+                    ? [1, 2, 3, 4].map((i) => (
                       // eslint-disable-next-line @next/next/no-img-element
-                      : <img key={i} className="hf-pic" src={`/dashboard/productshot-${i}.jpg`} alt="" loading="lazy" draggable={false} />))
+                      <img key={i} className="hf-pic" src={`/dashboard/productshot-${i}.jpg`} alt="" loading="lazy" draggable={false} />))
                     : n === "Beauty shots"
                       // The carousel's Beauty picture is the first tile.
                       // eslint-disable-next-line @next/next/no-img-element
@@ -91,9 +90,9 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
               <b>{n}</b>
-              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => n === "Photography" && i === 4
+              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => n === "Photography" && (i === 1 || i === 4)
                 // eslint-disable-next-line @next/next/no-img-element
-                ? <img key={i} className="hf-dot hf-pic" src="/dashboard/look-photography-5.jpg" alt="" loading="lazy" draggable={false} />
+                ? <img key={i} className="hf-dot hf-pic" src={`/dashboard/look-photography-${i + 1}.jpg`} style={i === 1 ? { objectPosition: "50% 38%" } : undefined} alt="" loading="lazy" draggable={false} />
                 : <Empty key={i} className="hf-dot" />)}</div>
             </li>
           ))}
