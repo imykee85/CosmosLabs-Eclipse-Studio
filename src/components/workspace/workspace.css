@@ -100,7 +100,8 @@ a.ws-card .ws-card-cta { color: var(--a-redtext); }
 
   .mb-top { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; align-items: center; height: calc(58px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 10px 0; background: var(--a-bg); }
   /* No hard line under the top bar or over the tab bar: the page fades softly under each of them, like the logo strip on the home page. */
-  .mb-top::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; background: linear-gradient(to bottom, var(--a-bg), color-mix(in srgb, var(--a-bg) 90%, transparent) 20%, color-mix(in srgb, var(--a-bg) 65%, transparent) 40%, color-mix(in srgb, var(--a-bg) 35%, transparent) 60%, color-mix(in srgb, var(--a-bg) 10%, transparent) 80%, transparent); pointer-events: none; }
+  /* no fade under the top bar either (owner 2026-10-31) */
+  .mb-top::after { content: none; }
   /* no fade above the tab bar (owner 2026-10-31) */
   .mb-tabs::before { content: none; }
   .mb-top .mb-icon { justify-self: start; }
