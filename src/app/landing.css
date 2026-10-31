@@ -834,3 +834,20 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 .sf { grid-template-columns: repeat(3, 200px); justify-content: center; gap: 88px; }
 .sf-bar { width: 180px; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .sf { grid-template-columns: repeat(3, 160px); gap: 54px; } .sf-bar { width: 142px; } }
+
+/* Start creating card heading on one line (owner 2026-10-31) */
+.try-cta h2, .try-cta h2 em { white-space: nowrap; display: inline; }
+.try-cta h2 { display: block; }
+/* Start creating card sized like the idea card (owner 2026-10-31) */
+.try-cta .try-inner { max-width: none; }
+.try-section.try-cta { padding-top: 70px; padding-bottom: 70px; }
+.try-cta .sf { margin-bottom: 56px; }
+.try-cta .sf-plot { height: 180px; }
+.try-cta .sf-eyebrow { margin-bottom: 28px; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) {
+  .try-section.try-cta { padding-top: 56px; padding-bottom: 56px; }
+  .try-cta .sf { margin-bottom: 36px; }
+  .try-cta .sf-plot { height: 110px; }
+  .try-cta .sf-eyebrow { margin-bottom: 24px; }
+  .try-cta .sf-col b { margin-top: 14px; }
+}
