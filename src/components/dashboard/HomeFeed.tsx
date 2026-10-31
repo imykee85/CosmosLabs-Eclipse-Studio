@@ -55,7 +55,11 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
                       ? <Empty key={i} />
                       // eslint-disable-next-line @next/next/no-img-element
                       : <img key={i} className="hf-pic" src={`/dashboard/productshot-${i}.jpg`} alt="" loading="lazy" draggable={false} />))
-                    : <><Empty /><Empty /><Empty /><Empty /></>}
+                    : n === "Beauty shots"
+                      // The carousel's Beauty picture is the first tile.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <><img className="hf-pic" src="/landing/wow-portrait.jpg" alt="" loading="lazy" draggable={false} /><Empty /><Empty /><Empty /></>
+                      : <><Empty /><Empty /><Empty /><Empty /></>}
               </div>
               <div className="hf-col-meta"><b>{n}</b><MoreVertical size={16} aria-hidden="true" /></div>
             </li>
@@ -87,7 +91,10 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
               <b>{n}</b>
-              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => <Empty key={i} className="hf-dot" />)}</div>
+              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => n === "Photography" && i === 4
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img key={i} className="hf-dot hf-pic" src="/dashboard/look-photography-5.jpg" alt="" loading="lazy" draggable={false} />
+                : <Empty key={i} className="hf-dot" />)}</div>
             </li>
           ))}
         </ul>
