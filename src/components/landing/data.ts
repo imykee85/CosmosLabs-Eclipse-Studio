@@ -26,9 +26,9 @@ export const results = ["Fashion", "Automotive", "Products", "Real Estate", "Peo
 // The black "Start creating with Eclipse." card: three white striped bars, each with a number under it that runs up as the bar rises.
 // Categories are the owner's (2026-10-17). The numbers are the owner's (2026-10-17). [value, suffix, caption, bar height in stripes]
 export const studioStats = [
-  [3, "k+", "Creators", 10],
+  [3, "k+", "Creators", 7],
   [100, "k+", "Creations", 10],
-  [50, "+", "Countries", 10],
+  [50, "+", "Countries", 8],
 ] as const;
 
 // Lines Atlas "types" beside himself on the homepage: examples of his art direction.
