@@ -904,13 +904,12 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
   .plan-grid.has-free {
     display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(320px, 78vw);
     gap: 18px; max-width: none; margin-left: 0; margin-right: 0; padding: 36px 24px 40px;
-    overflow-x: auto; scroll-snap-type: x proximity; touch-action: pan-x pan-y; scroll-padding: 0 24px;
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; align-items: stretch;
   }
   .plan-grid.has-free::-webkit-scrollbar { display: none; }
-  .plan-grid.has-free > .plan-card { scroll-snap-align: center; grid-column: auto; order: 0; }
+  .plan-grid.has-free > .plan-card { grid-column: auto; order: 0; }
   .plan-card.plan-popular { transform: none; padding: 52px 28px 44px; box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 30px -14px rgba(192,7,7,.5); }
-  .plan-grid.has-free > .plan-card { scroll-snap-stop: normal; }
 }
 
 /* Markup list: small and quiet (owner 2026-10-31) */
