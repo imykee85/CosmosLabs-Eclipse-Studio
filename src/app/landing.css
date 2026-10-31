@@ -842,12 +842,17 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 .try-cta .try-inner { max-width: none; }
 .try-section.try-cta { padding-top: 70px; padding-bottom: 70px; }
 .try-cta .sf { margin-bottom: 56px; }
-.try-cta .sf-plot { height: 180px; }
+.try-cta .sf-plot { height: 157px; }
 .try-cta .sf-eyebrow { margin-bottom: 28px; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) {
   .try-section.try-cta { padding-top: 56px; padding-bottom: 56px; }
   .try-cta .sf { margin-bottom: 36px; }
-  .try-cta .sf-plot { height: 110px; }
+  .try-cta .sf-plot { height: 87px; }
   .try-cta .sf-eyebrow { margin-bottom: 24px; }
   .try-cta .sf-col b { margin-top: 14px; }
 }
+/* Both black cards (idea card, Start creating card) share one height (owner 2026-10-31, measured on the real phone layout) */
+.try-section { display: flex; flex-direction: column; justify-content: center; min-height: 724px; box-sizing: border-box; }
+.try-section .try-inner { width: 100%; }
+@media (pointer: coarse) and (max-width: 1100px) { .try-section { min-height: 670px; } }
+@media (max-width: 800px) { .try-section { min-height: 541px; } }
