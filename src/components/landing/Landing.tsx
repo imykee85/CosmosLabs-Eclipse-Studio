@@ -141,6 +141,7 @@ const SLOT_IMAGE: Record<string, string> = {
   "0-1": "/landing/results-bags.jpg",
   "3-1": "/landing/results-entertainment.jpg",
   "3-3": "/landing/results-interior-design.jpg",
+  "0-3": "/landing/results-film.jpg",
 };
 
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
@@ -182,6 +183,7 @@ const SLOT_LABEL: Record<string, string> = {
   "2-3": "Jewelry",
   "3-1": "Entertainment",
   "3-3": "Interior design",
+  "0-3": "Film",
 };
 
 function CardVideo({ src, webm, poster }: { src: string; webm: string; poster: string }) {

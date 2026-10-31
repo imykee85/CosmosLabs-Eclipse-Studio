@@ -12,6 +12,7 @@ const WOW_VIDEO: Record<string, { src: string; webm: string; poster: string }> =
 
 // Carousel cards that show a picture instead of the gradient tile.
 const WOW_IMAGE: Record<string, string> = {
+  FILM: "/landing/results-film.jpg",
   FOOD: "/landing/wow-food.jpg",
   ART: "/landing/wow-art.jpg",
   CAMPAIGN: "/landing/wow-product.jpg",
