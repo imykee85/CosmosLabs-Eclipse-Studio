@@ -15,7 +15,7 @@ export const FEATURE_MIN: Record<Feature, PlanId> = {
   portfolio: "starter",
   api: "starter",          // API and MCP keys
   teams: "starter",
-  atlas: "growth",
+  atlas: "starter",        // Starter has a daily allowance (ATLAS_DAILY_STARTER below); Growth and Scale have no limit
   canvas: "growth",
   agents: "growth",        // your own agents
   core: "growth",          // chat, skills, tools, memory, connectors
@@ -41,6 +41,9 @@ export function plansFor(feature: Feature): string {
 /** The sentence shown in the upgrade pop-up. */
 export const upgradeText = (feature: Feature): string => `${FEATURE_LABEL[feature]} ${feature === "agents" || feature === "builds" || feature === "studios" ? "are" : "is"} included in ${plansFor(feature)}.`;
 
+/** Starter's daily Atlas messages (Config value ATLAS_DAILY_MESSAGES_STARTER can change it); Growth and Scale have none. */
+export const ATLAS_DAILY_STARTER_DEFAULT = 30;
+
 /** Growth's daily Core messages (Config value CORE_DAILY_MESSAGES_GROWTH can change it); Scale has none. */
 export const CORE_DAILY_GROWTH_DEFAULT = 150;
 
@@ -48,16 +51,20 @@ export const CORE_DAILY_GROWTH_DEFAULT = 150;
 export type Benefit = { label: string; min: PlanId; soon?: boolean };
 export const BENEFITS: Benefit[] = [
   { label: "Image, Video and Audio Studios", min: "starter" },
+  { label: "Lower-cost video models", min: "starter" },
   { label: "Treatment and Prompts", min: "starter" },
   { label: "Certificates and Portfolio", min: "starter" },
   { label: "Academy", min: "starter" },
   { label: "Top up credits", min: "starter" },
   { label: "API and MCP access", min: "starter" },
   { label: "Teams", min: "starter" },
-  { label: "Atlas, your creative agent", min: "growth" },
+  { label: "Atlas, your creative agent (30 messages a day)", min: "starter" },
+  { label: "No daily limit on Atlas", min: "growth" },
+  { label: "Mid-priced video models, Seedance 2.5 at 720p", min: "growth" },
   { label: "Canvas", min: "growth" },
   { label: "Your own agents", min: "growth" },
   { label: "Core: chat, skills, tools and memory", min: "growth" },
+  { label: "Every video model, 1080p and 4K", min: "scale" },
   { label: "No daily limit on Core", min: "scale" },
   { label: "Build your own tools with Core", min: "scale" },
   { label: "Automated workflows", min: "scale", soon: true },

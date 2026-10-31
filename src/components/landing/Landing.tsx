@@ -397,7 +397,7 @@ export default function Landing() {
               </div>
             ))}
           </dl>
-          <p className="pl-note">Shown at $0.10 per credit. Plans lower the cost of a credit.</p>
+          <p className="pl-note">Each generation costs the model maker’s own price, rounded up to the next cent. Plans include the studio, Atlas and Core.</p>
         </div>
       </section>
 

@@ -29,7 +29,7 @@ test("every image price is held exactly, released on failure and never overdraws
     for (const key of Object.keys(m.usd)) {
       const resolution = key === "default" ? undefined : key;
       const cost = models.chargeFor(m, resolution);
-      assert.ok(cost && cost > 0 && cost % 10 === 0, `${m.id} ${key}: a whole number of credits`);
+      assert.ok(cost && cost > 0 && Number.isInteger(cost), `${m.id} ${key}: a whole number of ledger units (tenths of a credit)`);
       const before = await res.freeCredits(U);
       const made = await res.createGenerationHeld(U, cost, { userId: U, status: "pending", prompt: "p", model: m.id, kind: "image", resolution: resolution ?? null, creditsHeld: cost });
       assert.ok("row" in made, `${m.id} ${key}`);
@@ -42,14 +42,14 @@ test("every image price is held exactly, released on failure and never overdraws
   assert.ok(n > 50, `checked ${n} image prices`);
 });
 
-test("every connected video price (5 s and 4 s, sound on and off, both routes) is a whole number of credits that holds and releases", { skip }, async () => {
+test("every connected video price (5 s and 4 s, sound on and off, both routes) is a whole number of tenths of a credit that holds and releases", { skip }, async () => {
   let n = 0;
   for (const m of video.VIDEO_MODELS) {
     if (!m.live) continue;
     const resolutions = Object.keys(m.live.price.usd).map((k) => (k === "default" ? undefined : k));
     for (const resolution of resolutions) for (const seconds of [4, 5]) for (const sound of [false, true]) for (const route of ["higgsfield", "direct"] as const) {
       const price = video.videoPrice(m, resolution, seconds, sound, route);
-      assert.ok(price && price > 0 && price % 10 === 0, `${m.id} ${resolution} ${seconds}s ${route}`);
+      assert.ok(price && price > 0 && Number.isInteger(price), `${m.id} ${resolution} ${seconds}s ${route}`);
       const before = await res.freeCredits(U);
       const made = await res.createGenerationHeld(U, price, { userId: U, status: "pending", prompt: "p", model: m.id, kind: "video", creditsHeld: price });
       assert.ok("row" in made);

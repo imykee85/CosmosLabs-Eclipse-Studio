@@ -22,6 +22,9 @@ import OrderedRefs, { type RefItem } from "./OrderedRefs";
 import StyleLibrary from "./StyleLibrary";
 import SoonTag from "../SoonTag";
 import VideoModelPicker from "./VideoModelPicker";
+import { videoTierFor } from "@/lib/video-tier";
+import { PLAN_NAME } from "@/lib/access-table";
+import { useAccess } from "@/lib/use-access";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
@@ -290,6 +293,9 @@ export default function VideoStudio() {
   const shotSum = shotList ? shotList.reduce((a, x) => a + x.duration, 0) : 0;
   const shotsBad = !!shotList && (shotList.some((x) => !x.prompt.trim()) || !caps.durations.includes(shotSum));
   const priceSeconds = mc ? (clipSec != null ? Math.min(Math.ceil(clipSec), 30) : null) : shotList ? shotSum : duration;
+  // A quality the plan does not include shows which plan unlocks it ("720p · Growth"); the server refuses it with the upgrade pop-up.
+  const { below } = useAccess();
+  const qLabel = (q: string) => { const need = videoTierFor(model, q); return below(need) ? `${q} · ${PLAN_NAME[need]}` : q; };
   const price = live && config?.creditsOn && priceSeconds != null ? videoPrice(model, caps.qualities.length ? quality : undefined, priceSeconds, mc ? false : hasSound, config?.direct?.includes(routeIdOf(model)) ? "direct" : "higgsfield") : null;
   const motionReady = !mc || (!!start && vrefs.length === 1);
   const canGo = (!!prompt.trim() || (live && !caps.promptRequired)) && motionReady && !shotsBad;
@@ -532,7 +538,7 @@ export default function VideoStudio() {
               </label>
               <label className="cr-chip cr-select" title={caps.qualities.length ? "Video quality" : "This model has one fixed quality"}><span className="sr-only">Quality</span>
                 <select value={quality} onChange={(e) => setQuality(e.target.value)} aria-label="Video quality" disabled={!caps.qualities.length}>
-                  {caps.qualities.length ? caps.qualities.map((q) => <option key={q} value={q}>{q}</option>) : <option value="">Fixed</option>}
+                  {caps.qualities.length ? caps.qualities.map((q) => <option key={q} value={q}>{qLabel(q)}</option>) : <option value="">Fixed</option>}
                 </select>
               </label>
               <button type="button" className="cr-chip cr-modelbtn vs-model" aria-label="Video model" aria-haspopup="dialog" disabled={mc} title={mc ? "Motion uses its own engine: change it in the Motion panel" : pickerModel.blurb} onClick={() => setPickingModel(true)}>
@@ -545,7 +551,7 @@ export default function VideoStudio() {
               {mc ? (
                 <label className="cr-chip cr-select" title="Quality of the result"><span className="sr-only">Quality</span>
                   {mcEngine === "genjutsu" ? (
-                    <select value={quality} onChange={(e) => setQuality(e.target.value)} aria-label="Video quality">{caps.qualities.map((q) => <option key={q} value={q}>{q}</option>)}</select>
+                    <select value={quality} onChange={(e) => setQuality(e.target.value)} aria-label="Video quality">{caps.qualities.map((q) => <option key={q} value={q}>{qLabel(q)}</option>)}</select>
                   ) : (
                     <select value={mcTier} onChange={(e) => setMcTier(e.target.value as "pro" | "std")} aria-label="Video quality"><option value="pro">Pro</option><option value="std">Standard</option></select>
                   )}

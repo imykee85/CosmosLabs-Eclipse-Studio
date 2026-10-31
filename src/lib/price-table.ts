@@ -36,7 +36,7 @@ export function imageRows(): PriceRow[] {
   for (const m of allImageModels()) {
     for (const [key, usd] of Object.entries(m.usd)) {
       const res = key === "default" ? undefined : key;
-      const batch = m.batch ?? 1;
+      const batch = 1; // every image pays its own price now (Soul's shared 4-image price is gone)
       const credits = imageCredits(m, res, "higgsfield")!;
       rows.push({ kind: "image", model: m.id, label: m.label, setting: key === "default" ? "any" : key, route: "higgsfield", usd: usd * batch, credits, estimate: Boolean(m.estimate?.includes(key)), margin: margins(usd * batch, credits), note: batch > 1 ? `${batch} images for one credit` : m.enabled ? undefined : "switched off" });
       if (m.directUsd?.[key] != null) {

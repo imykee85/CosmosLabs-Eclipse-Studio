@@ -557,11 +557,11 @@ test.describe("Audio Studio", () => {
 test("paid plan cards list every benefit, the missing ones locked, with See more", async ({ page }) => {
   await page.goto("/");
   const starter = page.locator(".plan-card").nth(1);
-  await expect(starter.locator(".pb-list li")).toHaveCount(7);
+  await expect(starter.locator(".pb-list li")).toHaveCount(9);
   await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(0);
   await starter.getByRole("button", { name: /See more/ }).click();
-  await expect(starter.locator(".pb-list li")).toHaveCount(13);
-  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(6); // Atlas, Canvas, own agents, Core, no Core limit, builds
+  await expect(starter.locator(".pb-list li")).toHaveCount(17);
+  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(8); // no Atlas limit, mid-priced video, Canvas, own agents, Core, every video model, no Core limit, builds
   await expect(starter.locator(".pb-list li.is-soon")).toHaveCount(0); // automated workflows is listed on the Scale card only
   const scale = page.locator(".plan-card").nth(3);
   await scale.getByRole("button", { name: /See more/ }).click();
@@ -569,7 +569,7 @@ test("paid plan cards list every benefit, the missing ones locked, with See more
   await expect(scale.locator(".pb-list li.is-soon")).toHaveCount(1);
   await expect(page.locator(".plan-card").first().locator(".pb-list")).toHaveCount(0); // the free card is left as it is
   await starter.getByRole("button", { name: /See less/ }).click();
-  await expect(starter.locator(".pb-list li")).toHaveCount(7);
+  await expect(starter.locator(".pb-list li")).toHaveCount(9);
 });
 
 test.describe("plan locks", () => {
@@ -582,14 +582,14 @@ test.describe("plan locks", () => {
     await page.route("**/api/access", (r) => r.fulfill({ json: { plan, features, admin: false, gating: true } }));
   };
 
-  test("on Starter, switching Atlas on opens the upgrade pop-up at once and the switch stays off", async ({ page }) => {
-    await seed(page, "starter", ["plan_tools", "certificates", "portfolio", "api", "teams"]);
+  test("on Free, switching Atlas on opens the upgrade pop-up at once and the switch stays off", async ({ page }) => {
+    await seed(page, "free", []);
     await page.goto("/create");
     const toggle = page.locator('button[role="switch"][aria-label="Let the agent help with this prompt"]').first();
     await expect(toggle).toBeVisible();
     await toggle.click();
     const dlg = page.getByRole("alertdialog");
-    await expect(dlg).toContainText("Atlas is included in the Growth and Scale plans.");
+    await expect(dlg).toContainText("Atlas is included in every paid plan.");
     await expect(dlg.getByRole("link", { name: "See plans" })).toHaveAttribute("href", "/settings?tab=billing");
     await expect(toggle).toHaveAttribute("aria-checked", "false");
   });

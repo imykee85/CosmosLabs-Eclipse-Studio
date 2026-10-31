@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, Search, X } from "lucide-react";
+import { Check, ChevronDown, Lock, Search, X } from "lucide-react";
 import { ModelIcon } from "../create/ModelPicker";
 import SoonTag from "../SoonTag";
+import { videoMinTier } from "@/lib/video-tier";
+import { PLAN_NAME } from "@/lib/access-table";
+import { useAccess } from "@/lib/use-access";
 import { PICKER_MODELS as VIDEO_MODELS, isLive, routeIdOf, videoPrice, type VideoModel } from "@/lib/video-models";
 import { creditsText } from "@/lib/credit-units";
 
@@ -33,6 +36,7 @@ export default function VideoModelPicker({ value, onPick, onClose, creditsOn = f
   }, [onClose]);
   const popular = useMemo(() => POPULAR.map((id) => VIDEO_MODELS.find((m) => m.id === id)).filter((m): m is VideoModel => !!m), []);
   const makers = useMemo(() => [...new Set(VIDEO_MODELS.map((m) => m.maker))], []);
+  const { below } = useAccess();
   const term = q.trim().toLowerCase();
   const found = term ? VIDEO_MODELS.filter((m) => `${m.label} ${m.maker} ${m.blurb}`.toLowerCase().includes(term)) : [];
 
@@ -41,6 +45,7 @@ export default function VideoModelPicker({ value, onPick, onClose, creditsOn = f
       <ModelIcon name={m.maker} />
       <span className="mp-name">{m.label}<small>{m.blurb} {range(m)}</small></span>
       {!isLive(m) && <SoonTag className="mp-tag" />}
+      {isLive(m) && below(videoMinTier(m)) && <span className="mp-price" title={`Included in ${PLAN_NAME[videoMinTier(m)]} and above`}><Lock size={13} aria-hidden /> {PLAN_NAME[videoMinTier(m)]}</span>}
       {creditsOn && fromPrice(m, direct) && <span className="mp-price">{fromPrice(m, direct)}</span>}
       {value === m.id && <Check size={16} />}
     </button>

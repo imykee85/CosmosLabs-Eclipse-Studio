@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { currentPlanName } from "@/lib/subscription";
 import { workspaceSession } from "@/lib/workspace";
-import { CORE_DAILY_GROWTH_DEFAULT, FEATURE_MIN, PLAN_NAME, planAllows, upgradeText, type Feature, type PlanId } from "@/lib/access-table";
+import { ATLAS_DAILY_STARTER_DEFAULT, CORE_DAILY_GROWTH_DEFAULT, FEATURE_MIN, PLAN_NAME, planAllows, upgradeText, type Feature, type PlanId } from "@/lib/access-table";
 
 // The server side of who can use what (table in access-table.ts). A workspace's plan comes from its own ledger (the latest recent plan payment), so a team
 // uses the team's plan. The owner (ADMIN_EMAILS) is always treated as Scale, and the owner can give any account a plan by hand (BillingSettings.planOverride,
@@ -72,6 +72,13 @@ export function coreDailyLimit(a: Access): number | null {
   if (a.admin || a.plan === "scale") return null;
   const n = Number(process.env.CORE_DAILY_MESSAGES_GROWTH);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : CORE_DAILY_GROWTH_DEFAULT;
+}
+
+/** Daily Atlas messages for a plan: only Starter has a limit (Config ATLAS_DAILY_MESSAGES_STARTER, 30 by default); null = no limit. */
+export function atlasDailyLimit(a: Access): number | null {
+  if (a.admin || a.plan !== "starter") return null;
+  const n = Number(process.env.ATLAS_DAILY_MESSAGES_STARTER);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : ATLAS_DAILY_STARTER_DEFAULT;
 }
 
 export const planLabel = (p: PlanId) => PLAN_NAME[p];

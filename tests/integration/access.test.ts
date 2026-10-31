@@ -21,9 +21,9 @@ const pay = (plan: string, daysAgo = 0) => lib.credits.grantCredits(A, 2000, { r
 
 test("no payment means Free, and Free has none of the plan features", { skip }, async () => {
   assert.equal(await lib.access.planOf(A), "free");
-  const g = await lib.access.gateFeatureFor(A, "atlas");
+  const g = await lib.access.gateFeatureFor(A, "canvas");
   assert.equal(g.ok, false); assert.equal(g.status, 402); assert.equal(g.body.code, "UPGRADE"); assert.equal(g.body.need, "growth");
-  assert.match(g.body.error, /Atlas is included in the Growth and Scale plans/);
+  assert.match(g.body.error, /Canvas is included in the Growth and Scale plans/);
 });
 
 test("the plan is the latest recent plan payment", { skip }, async () => {

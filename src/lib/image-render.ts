@@ -8,13 +8,12 @@ import { creditsText } from "@/lib/credit-units";
 export const TIERS = [{ id: "1k", label: "1K" }, { id: "1.5k", label: "1.5K" }, { id: "2k", label: "2K" }, { id: "4k", label: "4K" }];
 export const MAX_QTY = 4;
 
-/** The short price shown on a model row: "from 4 credits", or "4 images · 1 credit" for a batch model. Null while credits are off. */
+/** The short price shown on a model row: "from 4 credits". Null while credits are off. (Soul used to be "4 images for 1 credit"; at-cost pricing charges every image its own price.) */
 export function priceLabel(model: PublicModel): string | null {
   const t = model.prices;
   if (!t) return null;
   const units = Math.min(...Object.values(t));
   if (!Number.isFinite(units)) return null;
-  if (model.batch > 1) return `${model.batch} images · ${creditsText(units)}`;
   return `from ${creditsText(units)}`;
 }
 
@@ -26,7 +25,7 @@ export function imageCost(model: PublicModel | undefined, resolution: string | u
   const key = resolution && t[resolution] != null ? resolution : t.default != null ? "default" : model.defaultResolution && t[model.defaultResolution] != null ? model.defaultResolution : Object.keys(t)[0];
   const each = key ? t[key] : undefined;
   if (each == null) return null;
-  return each * (model.batch > 1 ? Math.ceil(qty / model.batch) : qty);
+  return each * qty; // every image pays its own price (at cost); Soul's old shared batch price is gone
 }
 
 export function tierResolution(resolutions: string[], tier: string): string | undefined {

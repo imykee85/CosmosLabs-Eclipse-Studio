@@ -99,8 +99,8 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   // Credits are held when the render row is created (see createGenerationHeld) and charged when the render finishes, at the price of the resolution actually sent.
   // The price is saved on the row (creditsHeld, in ledger units), so what is held, shown and charged is one number.
   const cost = chargeFor(model, resolution ?? model.defaultResolution);
-  // Soul 2 and Soul Cinema: one credit pays for a batch of up to 4 images made in one Generate (the browser names the batch; the first request pays, see createGenerationHeld).
-  const batch = model.batch && typeof input.batchId === "string" && /^[A-Za-z0-9-]{8,64}$/.test(input.batchId) ? { id: input.batchId, size: model.batch } : undefined;
+  // Soul 2 and Soul Cinema used to share one price for up to 4 images made in one Generate. Every image now pays its own price at cost (owner 2026-10-31), so there is no batch.
+  const batch = undefined as { id: string; size: number } | undefined;
 
   const resolved = await resolveReferences(userId, refs);
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };

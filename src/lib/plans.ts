@@ -1,26 +1,28 @@
 import { fmtCredits } from "./credit-units";
-// Plans, packs and the welcome grant. `credits` everywhere in this file is in LEDGER units (tenths of a credit, see credit-units.ts): Starter's 2,000 is
-// shown to people as 200 credits. One credit is worth $0.10 to the customer and pays for $0.04 of provider cost (a 2.5x markup, owner decision 2026-10-20).
+// Plans, packs and the welcome grant. `credits` everywhere in this file is in LEDGER units (tenths of a credit, see credit-units.ts): Starter's 1,500 is
+// shown to people as 150 credits. One credit pays for $0.10 of the model maker's own cost (images and video are charged at cost, owner decision 2026-10-31):
+// the plan price keeps the studio fee (Starter $19 for $15 of credits, Growth $49 for $40, Scale $199 for $150).
 // The free trial is 2 free image renders (src/lib/free-renders.ts), not credits.
 export const freePlan = { id: "free", name: "Free", price: 0 } as const;
 
 export type Plan = { id: string; name: string; price: number; credits: number; seats: number };
 
 export const plans: Plan[] = [
-  { id: "starter", name: "Starter", price: 19, credits: 2000, seats: 1 },
-  { id: "growth", name: "Growth", price: 49, credits: 6000, seats: 3 },
-  { id: "scale", name: "Scale", price: 199, credits: 25000, seats: 10 },
+  { id: "starter", name: "Starter", price: 19, credits: 1500, seats: 1 },
+  { id: "growth", name: "Growth", price: 49, credits: 4000, seats: 3 },
+  { id: "scale", name: "Scale", price: 199, credits: 15000, seats: 10 },
 ];
 
-// Pay-as-you-go top-ups: one-time packs for subscribers whose credits run out before the plan renews, priced above any plan per credit (emergency use).
+// Pay-as-you-go top-ups: one-time packs for subscribers whose credits run out before the plan renews, priced ABOVE every plan per credit (about $0.14 to $0.15 against
+// $0.12 to $0.13 in the plans, and a bigger pack is always cheaper per credit, so a top-up is never a cheaper way to buy credits than upgrading; owner decision 2026-10-31 with the at-cost model prices).
 // The ids map to the payment provider's own one-time plans (Whop: WHOP_PLAN_TOPUP_500 and so on), whose price there must match this file.
 export type CreditPack = { id: string; name: string; price: number; credits: number };
 
 export const creditPacks: CreditPack[] = [
-  { id: "topup_500", name: "50 credits", price: 6, credits: 500 },
-  { id: "topup_2000", name: "200 credits", price: 22, credits: 2000 },
-  { id: "topup_6000", name: "600 credits", price: 60, credits: 6000 },
-  { id: "topup_10000", name: "1,000 credits", price: 100, credits: 10000 },
+  { id: "topup_500", name: "40 credits", price: 6, credits: 400 },
+  { id: "topup_2000", name: "155 credits", price: 22, credits: 1550 },
+  { id: "topup_6000", name: "430 credits", price: 60, credits: 4300 },
+  { id: "topup_10000", name: "730 credits", price: 100, credits: 7300 },
 ];
 
 // "Your own amount": the person picks how many credits, we work out the price. The price line runs through the three packs (so a custom amount never

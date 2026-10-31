@@ -12,13 +12,13 @@ export async function POST(req: Request) {
   const gated = await gateFeature("studios");
   if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = await workspaceSession();
+  const { workspaceId: userId, personId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const b = await req.json().catch(() => null);
   const result = await startVideoRender({
-    userId, prompt: b?.prompt, model: b?.model, duration: b?.duration, resolution: b?.resolution, aspectRatio: b?.aspectRatio, audio: b?.audio, seed: b?.seed, lockSeed: b?.lockSeed,
+    userId, personId, prompt: b?.prompt, model: b?.model, duration: b?.duration, resolution: b?.resolution, aspectRatio: b?.aspectRatio, audio: b?.audio, seed: b?.seed, lockSeed: b?.lockSeed,
     negativePrompt: b?.negativePrompt, cfgScale: b?.cfgScale, start: b?.start, end: b?.end, refs: b?.refs, videoRefs: b?.videoRefs, audioRefs: b?.audioRefs, shots: b?.shots, motion: b?.motion, confirm: b?.confirm, projectId: b?.projectId, draft: b?.draft,
   });
-  if (!result.ok) return NextResponse.json({ error: result.error, ...(result.code ? { code: result.code } : {}), ...(result.needsConfirm ? { needsConfirm: true, cost: result.cost } : {}) }, { status: result.status });
+  if (!result.ok) return NextResponse.json({ error: result.error, ...(result.code ? { code: result.code } : {}), ...(result.need ? { need: result.need } : {}), ...(result.needsConfirm ? { needsConfirm: true, cost: result.cost } : {}) }, { status: result.status });
   return NextResponse.json(result.seedNote ? { ...result.item, seedNote: result.seedNote } : result.item);
 }
