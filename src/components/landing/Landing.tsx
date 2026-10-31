@@ -247,7 +247,7 @@ export default function Landing() {
           <h2 className="hero-sub">AI Creative Suite</h2>
           <p className="hero-deck">
             Turn your ideas into premium content, <br className="desktop-only" />
-            from a simple thought to finished work, all in one place.
+            from a simple thought to finished work, with control over every detail, all in one place.
           </p>
           <Cta glint />
           <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
