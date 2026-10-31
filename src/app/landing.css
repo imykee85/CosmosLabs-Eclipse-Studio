@@ -897,3 +897,4 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 }
 @media (max-width: 800px) { .plan-card.plan-popular { padding: 40px 28px 36px; } }
 .plan-grid.has-free { padding: 24px 0; }
+.plan-grid.has-free { align-items: stretch; }
