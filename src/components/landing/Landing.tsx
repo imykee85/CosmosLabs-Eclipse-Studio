@@ -141,7 +141,6 @@ const SLOT_IMAGE: Record<string, string> = {
   "0-1": "/landing/results-bags.jpg",
   "3-1": "/landing/results-entertainment.jpg",
   "3-3": "/landing/results-interior-design.jpg",
-  "0-3": "/landing/results-film.jpg",
 };
 
 // The results wall tile that plays a clip (the owner's marked tile, the second in the second column).
@@ -161,6 +160,7 @@ const SLOT_VIDEO: Record<string, { src: string; webm: string; poster: string }> 
   "2-2": { src: "/landing/results-clip3.mp4", webm: "/landing/results-clip3.webm", poster: "/landing/results-clip3-poster.jpg" },
   "2-3": { src: "/landing/results-clip2.mp4", webm: "/landing/results-clip2.webm", poster: "/landing/results-clip2-poster.jpg" },
   "2-0": { src: "/landing/results-clip5.mp4", webm: "/landing/results-clip5.webm", poster: "/landing/results-clip5-poster.jpg" },
+  "0-3": { src: "/landing/wow-film.mp4", webm: "/landing/wow-film.webm", poster: "/landing/wow-film-poster.jpg" },
   "0-2": { src: "/landing/real-estate-card.mp4", webm: "/landing/real-estate-card.webm", poster: "/landing/real-estate-card-poster.jpg" },
 };
 
