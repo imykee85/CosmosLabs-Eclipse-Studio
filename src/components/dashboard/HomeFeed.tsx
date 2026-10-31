@@ -87,7 +87,10 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
               <b>{n}</b>
-              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => <Empty key={i} className="hf-dot" />)}</div>
+              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => n === "Photography" && i === 4
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img key={i} className="hf-dot hf-pic" src="/dashboard/look-photography-5.jpg" alt="" loading="lazy" draggable={false} />
+                : <Empty key={i} className="hf-dot" />)}</div>
             </li>
           ))}
         </ul>
