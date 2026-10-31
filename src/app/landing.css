@@ -831,6 +831,6 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 .sf-bar { margin-left: auto; margin-right: auto; } /* bars centred over their numbers */
 .sf-bar i { border-radius: 999px; } /* round-edged bars */
 /* Chart: the three columns sit closer together. Bars keep the same length as before (180 px desktop, 142 px phones), only the space between them shrinks. */
-.sf { grid-template-columns: repeat(3, 200px); justify-content: center; gap: 56px; }
+.sf { grid-template-columns: repeat(3, 200px); justify-content: center; gap: 88px; }
 .sf-bar { width: 180px; }
-@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .sf { grid-template-columns: repeat(3, 160px); gap: 34px; } .sf-bar { width: 142px; } }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .sf { grid-template-columns: repeat(3, 160px); gap: 54px; } .sf-bar { width: 142px; } }
