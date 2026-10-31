@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { SignedIn, SignedOut } from "@/components/auth";
-import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Play, Plus, Lightbulb, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronUp, Menu, Play, Plus, X } from "lucide-react";
 import { audience, faqs, results } from "./data";
 import { plans } from "@/lib/plans";
 import PriceBadge from "@/components/i18n/PriceBadge";
@@ -294,7 +294,7 @@ export default function Landing() {
         eyebrow="TURN A THOUGHT INTO A STARTING POINT"
         line1="got an idea?" line2="give it a go."
         placeholder={"What do you want to create?\n\nDescribe your idea…"}
-        button="Generate" icon={<Lightbulb size={17} />}
+        button="Generate" icon={null}
         onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}
       />
 

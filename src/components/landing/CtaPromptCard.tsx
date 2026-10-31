@@ -25,7 +25,7 @@ export default function CtaPromptCard({ id, className = "", eyebrow, line1, line
         <h2>{line1}<br /><em>{line2}</em></h2>
         <div className="idea-box">
           <GrowArea rows={3} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => lock(true)} onBlur={() => lock(false)} placeholder={placeholder} />
-          <button className="create-btn" onClick={() => onSubmit(text)}>{icon} {button}</button>
+          <button className="create-btn" onClick={() => onSubmit(text)}>{icon}{button}</button>
         </div>
         {caption && <p className="try-caption">{caption}</p>}
       </div>
