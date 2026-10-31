@@ -55,7 +55,11 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
                       ? <Empty key={i} />
                       // eslint-disable-next-line @next/next/no-img-element
                       : <img key={i} className="hf-pic" src={`/dashboard/productshot-${i}.jpg`} alt="" loading="lazy" draggable={false} />))
-                    : <><Empty /><Empty /><Empty /><Empty /></>}
+                    : n === "Beauty shots"
+                      // The carousel's Beauty picture is the first tile.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <><img className="hf-pic" src="/landing/wow-portrait.jpg" alt="" loading="lazy" draggable={false} /><Empty /><Empty /><Empty /></>
+                      : <><Empty /><Empty /><Empty /><Empty /></>}
               </div>
               <div className="hf-col-meta"><b>{n}</b><MoreVertical size={16} aria-hidden="true" /></div>
             </li>
