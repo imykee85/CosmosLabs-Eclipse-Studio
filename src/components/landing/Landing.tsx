@@ -267,7 +267,7 @@ export default function Landing() {
         <div className="section-heading-row">
           <div>
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
-            <h2>what do you want<br /><em>to create?</em></h2>
+            <h2>pick a model,<br /><em>make anything.</em></h2>
             <p className="audience-sub">Discover the frontier of generative AI at the cheapest prices.</p>
           </div>
         </div>
