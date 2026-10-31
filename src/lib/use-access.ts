@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FEATURE_MIN, planAllows, upgradeText, type Feature, type PlanId } from "@/lib/access-table";
+import { FEATURE_MIN, PLAN_RANK, planAllows, upgradeText, type Feature, type PlanId } from "@/lib/access-table";
 import { UPGRADE_EVENT } from "@/components/SubscribeAlert";
 
 // The plan of the current workspace, fetched once and shared by everything that shows a lock (Atlas's switch, the Team tab, the billing card). The server
@@ -48,6 +48,8 @@ export function useAccess() {
   return {
     plan: info?.plan ?? null,
     known: !!info,
+    /** True when the plan is known and is below `need` (a video model or quality the plan does not include). */
+    below: (need: PlanId) => !!info && !info.admin && PLAN_RANK[info.plan] < PLAN_RANK[need],
     can: (feature: Feature) => !info || info.features.includes(feature) || planAllows(info.plan, feature),
   };
 }

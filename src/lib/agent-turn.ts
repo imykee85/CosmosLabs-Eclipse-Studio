@@ -8,6 +8,7 @@ import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
 import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
 import { claimUsage } from "@/lib/usage";
+import { accessFor, atlasDailyLimit } from "@/lib/access";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
@@ -87,6 +88,12 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
     const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
     if (!(await claimUsage(personId ?? userId, "agent", limit, 24 * 3600 * 1000))) return { status: 429, json: { error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` } };
+
+    // Starter includes a small daily Atlas allowance (access.ts atlasDailyLimit); Growth and Scale have none.
+    const starterLimit = atlasDailyLimit(await accessFor(userId, personId ?? null));
+    if (starterLimit != null && !(await claimUsage(personId ?? userId, "atlas_starter", starterLimit, 24 * 3600 * 1000))) {
+      return { status: 402, json: { error: `Your Starter plan includes ${starterLimit} Atlas messages a day. Upgrade to Growth for no daily limit.`, code: "UPGRADE", need: "growth" } };
+    }
 
     // Paid in Eclipse credits from what the reply really used (every model call, video frames included), charged once when it ends.
     const meter = new ChatMeter();

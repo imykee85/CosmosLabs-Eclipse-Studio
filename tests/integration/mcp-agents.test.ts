@@ -84,12 +84,12 @@ test("ask_core answers, returns a chat id, and continues the same chat", { skip 
   assert.ok(rows >= 4, "two user messages and two answers are in one chat");
 });
 
-test("Atlas and Core are locked below the Growth plan, with the upgrade answer", { skip }, async () => {
-  for (const tool of ["ask_atlas", "ask_core"]) {
-    const r = await call(keyS, tool, { message: "hi" });
-    assert.equal(r.result.isError, true, tool);
-    assert.match(r.result.content[0].text, /UPGRADE/, tool);
-  }
+test("Core is locked below the Growth plan, with the upgrade answer; Atlas is open to Starter (with a daily allowance)", { skip }, async () => {
+  const r = await call(keyS, "ask_core", { message: "hi" });
+  assert.equal(r.result.isError, true, "ask_core");
+  assert.match(r.result.content[0].text, /UPGRADE/, "ask_core");
+  const a = await call(keyS, "ask_atlas", { message: "hi" });
+  assert.doesNotMatch(JSON.stringify(a.result), /UPGRADE/, "Starter can use Atlas");
 });
 
 test("empty messages are refused before anything runs", { skip }, async () => {

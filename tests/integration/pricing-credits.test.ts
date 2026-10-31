@@ -47,12 +47,12 @@ test("a 2k render holds the 2k price, and an old row without a price is held at 
   await credits.grantCredits(id, 1000, { reason: "GRANT", provider: "test", externalId: `h-${id}` });
   const gpt = models.getModelById("gpt_image_2");
   const cost2k = models.chargeFor(gpt, "2k");
-  assert.equal(cost2k, 50);
+  assert.equal(cost2k, 20, "gpt_image_2 at 2k: $0.20 at cost = 2 credits = 20 ledger units");
   const made = await res.createGenerationHeld(id, cost2k, base(id, { model: "gpt_image_2", resolution: "2k", creditsHeld: cost2k }));
   assert.ok("row" in made);
-  assert.equal(await res.freeCredits(id), 1000 - 50);
+  assert.equal(await res.freeCredits(id), 1000 - 20);
   await db.generation.create({ data: base(id, { model: "gpt_image_2", resolution: "1k" }) }); // an older row: no creditsHeld saved
-  assert.equal(await res.freeCredits(id), 1000 - 50 - 20, "priced by its model and resolution");
+  assert.equal(await res.freeCredits(id), 1000 - 20 - 6, "priced by its model and resolution (1k = $0.06 = 0.6 credits = 6 ledger units)");
 });
 
 test("a render that costs more than the balance is refused, in credits", { skip }, async () => {

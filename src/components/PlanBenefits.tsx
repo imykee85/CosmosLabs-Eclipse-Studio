@@ -7,7 +7,7 @@ import "./plan-benefits.css";
 
 // The benefits on a paid plan card (owner 2026-10-21): EVERY benefit is listed on every paid card, the ones this plan does not include are greyed with a
 // lock, and a "See more" button opens the long list (the short view shows what Starter has, so it is the same on every card). The table is src/lib/access-table.ts.
-const SHORT = 7;
+const SHORT = 9; // Starter's own benefits
 
 export default function PlanBenefits({ planId }: { planId: PlanId }) {
   const [open, setOpen] = useState(false);

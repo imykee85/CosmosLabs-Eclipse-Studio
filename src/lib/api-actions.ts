@@ -34,9 +34,9 @@ export async function createImage(userId: string, b: Record<string, unknown>): P
 
 export async function createVideo(userId: string, b: Record<string, unknown>): Promise<ApiResult> {
   const one = (v: unknown) => (v && typeof v === "object" ? { type: (v as { type?: unknown }).type, id: (v as { id?: unknown }).id } : undefined);
-  const r = await startVideoRender({ userId, prompt: b.prompt, model: b.model, duration: b.duration, resolution: b.resolution, aspectRatio: b.aspect_ratio, audio: b.sound, seed: b.seed, lockSeed: b.seed != null ? true : undefined,
+  const r = await startVideoRender({ userId, personId: userId, prompt: b.prompt, model: b.model, duration: b.duration, resolution: b.resolution, aspectRatio: b.aspect_ratio, audio: b.sound, seed: b.seed, lockSeed: b.seed != null ? true : undefined,
     negativePrompt: b.negative_prompt, start: one(b.start_frame), end: one(b.end_frame), refs: refList(b.reference_images), videoRefs: Array.isArray(b.reference_videos) ? b.reference_videos.map((id) => ({ id })) : undefined, confirm: b.confirm === true, projectId: b.project_id });
-  if (!r.ok) return { ok: false, status: r.status, error: r.error, extra: r.needsConfirm ? { needs_confirm: true, cost: r.cost } : undefined };
+  if (!r.ok) return { ok: false, status: r.status, error: r.error, extra: r.needsConfirm ? { needs_confirm: true, cost: r.cost } : r.code ? { code: r.code, need: r.need } : undefined };
   return { ok: true, data: publicRender(r.item) };
 }
 

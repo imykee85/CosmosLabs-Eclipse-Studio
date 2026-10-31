@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const gated = await gateFeature("studios");
   if (gated) return gated;
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const { workspaceId: userId } = await workspaceSession();
+  const { workspaceId: userId, personId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const b = await req.json().catch(() => null);
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     throw err;
   }
 
-  const result = await startVideoRender({
+  const result = await startVideoRender({ personId,
     userId,
     prompt: edit.prompt,
     model: "seedance_2_5",

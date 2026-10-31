@@ -16,14 +16,15 @@ test("price list: Seedance 2.5 at the provider's own per-second cost", () => {
   assert.equal(find("Seedance 2.5", "1080p"), d(p["1080p"], "second"));
 });
 
-test("price list: Kling 3.0 at the video price per second (no sound)", () => {
+test("price list: Kling 3.0 at the maker's cost per second (no sound)", () => {
   const per = (id: string) => videoModelById(id).live!.price.usd.default * videoMargin();
   assert.equal(find("Kling 3.0", "Standard"), d(per("kling_3_std"), "second"));
   assert.equal(find("Kling 3.0", "Pro"), d(per("kling_3_pro"), "second"));
   assert.equal(videoCreditUsd(), 0.1);
+  assert.equal(videoMargin(), 1); // video is charged at cost
 });
 
-test("price list: images at credits x $0.10", () => {
+test("price list: images at the maker's cost rounded up to the cent (credits x $0.10)", () => {
   assert.equal(find("Nano Banana Pro", "1K and 2K"), d(imageUsd("nano_banana_pro", "1k"), "image"));
   assert.equal(imageUsd("nano_banana_pro", "1k"), imageUsd("nano_banana_pro", "2k"));
   assert.equal(find("Nano Banana Pro", "4K"), d(imageUsd("nano_banana_pro", "4k"), "image"));

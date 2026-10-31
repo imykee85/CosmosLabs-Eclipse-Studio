@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getAdmin } from "@/lib/admin";
 import { HiggsfieldError } from "@/lib/higgsfield";
+import { videoTierGate } from "@/lib/video-gate";
 import { NeedsMoreCredits, PriceChanged, submitRouted, videoRouteNow } from "@/lib/video-submit";
 import { ArkError } from "@/lib/providers/byteplus-video";
 import { toItem, type RenderItem } from "@/lib/generation-jobs";
@@ -25,8 +26,8 @@ export type EditMode = "edit" | "extend";
 const ENDPOINT: Record<EditMode, string> = { edit: "bytedance/seedance-2.5/video-edit", extend: "bytedance/seedance-2.5/video-extend" };
 const RES = ["480p", "720p", "1080p"];
 
-export type EditInput = { userId: string; sourceId: unknown; mode: unknown; prompt: unknown; duration?: unknown; resolution?: unknown; audio?: unknown; refs?: unknown; projectId?: unknown; confirm?: unknown; model?: unknown };
-export type EditResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string };
+export type EditInput = { userId: string; personId?: string | null; sourceId: unknown; mode: unknown; prompt: unknown; duration?: unknown; resolution?: unknown; audio?: unknown; refs?: unknown; projectId?: unknown; confirm?: unknown; model?: unknown };
+export type EditResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string; need?: string };
 
 export async function startVideoEdit(input: EditInput): Promise<EditResult> {
   const { userId } = input;
@@ -58,6 +59,7 @@ export async function startVideoEdit(input: EditInput): Promise<EditResult> {
 
   const model = findVideoModel(modelId);
   if (!model?.live) return { ok: false, status: 503, error: `${v2 ? "Seedance 2.0" : "Seedance 2.5"} is not connected.` };
+  { const refused = await videoTierGate(input.userId, input.personId, model, resolution); if (refused) return { ok: false, ...refused }; }
   const srcSec = Math.max(1, Math.ceil(source.durationSec ?? 5));
   const billedSec = mode === "edit" ? srcSec : ext;
   // The source clip goes in as the input video: BytePlus bills it by its length (Edit keeps the length, so the output is as long as the source).

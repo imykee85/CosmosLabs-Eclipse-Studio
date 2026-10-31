@@ -8,7 +8,7 @@ import { USER_TABLES } from "../../src/lib/account-delete";
 test("a payment is for a plan or a top-up pack, and nothing else", () => {
   assert.equal(productById("starter")?.kind, "plan");
   assert.equal(productById("topup_500")?.kind, "pack");
-  assert.equal(productById("topup_500")?.credits, 500);
+  assert.equal(productById("topup_500")?.credits, 400);
   assert.equal(productById("nope"), null);
   assert.equal(productById(undefined), null);
   const ids = [...plans.map((p) => p.id), ...creditPacks.map((p) => p.id)];

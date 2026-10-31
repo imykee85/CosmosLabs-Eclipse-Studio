@@ -1,4 +1,6 @@
 import { finalizeVideo } from "@/lib/video-jobs";
+import { videoTierGate } from "@/lib/video-gate";
+import type { PlanId } from "@/lib/access-table";
 import { startRefusalText } from "@/lib/video-submit";
 import { outOfCredits } from "@/lib/credit-message";
 import { refusal } from "@/lib/subscribe-alert";
@@ -32,10 +34,10 @@ export const videoSettings = () => ({
 });
 
 export type StartVideoInput = {
-  userId: string; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
+  userId: string; personId?: string | null; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
   seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; audioRefs?: unknown; shots?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown; draft?: unknown;
 };
-export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string };
+export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string; need?: PlanId };
 
 const oneRef = (v: unknown): ReferenceRef | null | undefined => {
   if (v == null) return undefined;
@@ -164,6 +166,10 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   if (!probe.ok) return { ok: false, status: 400, error: probe.error };
 
   const resolutionUsed = typeof probe.body.resolution === "string" ? probe.body.resolution : undefined;
+
+  // Which plan can use this model at this quality (video-tier.ts: Starter up to $0.15 a second of the maker's cost, Growth up to $0.40, Scale everything).
+  const refused = await videoTierGate(userId, input.personId, model, resolutionUsed ?? caps.defaultQuality);
+  if (refused) return { ok: false, ...refused };
   const audioCfg = caps.audio ? (audio ?? caps.audioDefault) : false;
   const audioUsed = motion ? motion.kind === "kling" && keepSound : audioCfg;
   // The price follows the route the render really uses (routes.ts: the direct routes have no adapter yet, so this is the Higgsfield price today).
