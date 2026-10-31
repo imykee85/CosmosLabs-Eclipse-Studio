@@ -694,13 +694,13 @@ html[data-app-theme="light"] .login-icon { color: #e9e3d9; }
 /* "Start creating with Eclipse." card: three white striped bars, each with its running number and category underneath (StudioFlow.tsx, owner 2026-10-17). No boxes. */
 .sf { max-width: 900px; margin: 0 auto 84px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 28px; }
 .sf-col { display: flex; flex-direction: column; align-items: stretch; text-align: center; }
-.sf-plot { height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
+.sf-plot { height: 217px; display: flex; flex-direction: column; justify-content: flex-end; }
 .sf-bar { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; }
 .sf-bar i { display: block; flex: 1 1 0; min-height: 4px; border-radius: 1px; background: #f4f1ed; opacity: 0; transform: scaleX(.5); transform-origin: left; transition: opacity .2s ease, transform .3s cubic-bezier(.23,1,.32,1); }
 .sf-bar i.on { opacity: 1; transform: none; }
 .sf-col b { display: block; margin-top: 26px; color: #fff; font-size: 64px; font-weight: 700; letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sf-col span { margin-top: 10px; color: rgba(240,237,232,.6); font-size: 17px; font-weight: 500; }
-@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .sf { margin-bottom: 64px; gap: 18px; } .sf-plot { height: 220px; } .sf-col b { font-size: 52px; margin-top: 22px; } .sf-col span { font-size: 16px; } .sf-bar { gap: 5px; } }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .sf { margin-bottom: 64px; gap: 18px; } .sf-plot { height: 183px; } .sf-col b { font-size: 52px; margin-top: 22px; } .sf-col span { font-size: 16px; } .sf-bar { gap: 5px; } }
 @media (prefers-reduced-motion: reduce) { .sf-bar i { transition: none; } }
 .sf-eyebrow { margin-bottom: 44px; }
 /* Hero heading two steps bigger (owner 2026-10-17): 48 -> 64 on phones, 60 -> 76 on desktop */
@@ -822,6 +822,6 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 .results-col article .rt-label { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 34px 14px 12px; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.55)); color: #fff; font-weight: 500; font-size: 15px; line-height: 1.2; letter-spacing: 0; text-align: left; pointer-events: none; }
 @media (max-width: 800px) { .results-col article .rt-label { padding: 22px 9px 8px; font-size: 12px; } }
 
-/* Idea card: rounded Generate button, and a prompt box whose text is already at the zoom-proof size, so tapping it neither zooms the page nor makes the placeholder jump bigger. */
+/* Idea card: rounded Generate button; the prompt box keeps its own text size when tapped (no enlargement), the page zoom is blocked by the focus lock in CtaPromptCard. */
 .idea-box .create-btn { border-radius: 999px; }
-.idea-box textarea, .idea-box textarea::placeholder { font-size: var(--in-fs, 16px); }
+html[data-fz] .idea-box textarea:focus { font-size: 15px !important; }
