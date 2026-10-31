@@ -25,6 +25,7 @@ import StudioFlow from "./StudioFlow";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
 import { priceList } from "./price-list";
+import PlanDeck from "./PlanDeck";
 import "@/app/landing.css";
 
 function Cta({ dark = false, glint = false, children = "Start Creating" }: { dark?: boolean; glint?: boolean; children?: React.ReactNode }) {
@@ -346,7 +347,7 @@ export default function Landing() {
       <section id="pricing" className="pricing-section section-pad">
         <div className="eyebrow">SIMPLE PRICING</div>
         <h2 className="plans-title">pick the plan<br /><em>that fits.</em></h2>
-        <div className="plan-grid has-free">
+        <PlanDeck>
           <article className="plan-card plan-free">
             <h3>Trial</h3>
             <p className="plan-price">$0</p>
@@ -379,7 +380,7 @@ export default function Landing() {
               <SignedIn><Link className="pill-btn" href="/settings">Choose plan</Link></SignedIn>
             </article>
           ))}
-        </div>
+        </PlanDeck>
         <p className="plan-rule">Plan credits renew monthly and do not roll over. Top-up credits last 90 days and can be used while you are subscribed.</p>
         <div className="price-list">
           <div className="eyebrow">0% MARKUP</div>

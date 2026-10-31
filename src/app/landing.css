@@ -899,17 +899,22 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 .plan-grid.has-free { padding: 24px 0; }
 .plan-grid.has-free { align-items: stretch; }
 
-/* Phones and tablets: the desktop layout in a sideways swipe row (2026-10-31) */
+/* Phones and tablets: a carousel (PlanDeck): swipe, arrows, dots */
+.plan-nav { display: none; }
 @media (max-width: 1100px) {
-  .plan-grid.has-free {
-    display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(320px, 78vw);
-    gap: 18px; max-width: none; margin-left: 0; margin-right: 0; padding: 36px 24px 40px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none; align-items: stretch;
+  .plan-deck { overflow: hidden; touch-action: pan-y; padding: 36px 0 8px; margin-top: 20px; }
+  .plan-deck .plan-grid.has-free {
+    display: flex; grid-template-columns: none; gap: 18px; max-width: none; margin: 0; padding: 0;
+    align-items: stretch; will-change: transform;
   }
-  .plan-grid.has-free::-webkit-scrollbar { display: none; }
-  .plan-grid.has-free > .plan-card { grid-column: auto; order: 0; }
+  .plan-deck .plan-grid.has-free > .plan-card { flex: 0 0 min(320px, 78vw); grid-column: auto; order: 0; }
   .plan-card.plan-popular { transform: none; padding: 52px 28px 44px; box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 30px -14px rgba(192,7,7,.5); }
+  .plan-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 24px; }
+  .plan-nav > button { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); color: #fff; cursor: pointer; padding: 0; }
+  .plan-nav > button:disabled { opacity: .3; cursor: default; }
+  .plan-dots { display: flex; gap: 8px; }
+  .plan-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.28); cursor: pointer; }
+  .plan-dots button.on { background: #c00707; width: 22px; border-radius: 8px; }
 }
 
 /* Markup list: small and quiet (owner 2026-10-31) */
