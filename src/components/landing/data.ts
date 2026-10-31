@@ -26,8 +26,8 @@ export const results = ["Fashion", "Automotive", "Products", "Real Estate", "Peo
 // The black "Start creating with Eclipse." card: three white striped bars, each with a number under it that runs up as the bar rises.
 // Categories are the owner's (2026-10-17). The numbers are the owner's (2026-10-17). [value, suffix, caption, bar height in stripes]
 export const studioStats = [
-  [3, "k+", "Creators", 10],
-  [100, "k+", "Creations", 10],
+  [3, "k+", "Creators", 8],
+  [100, "k+", "Creations", 12],
   [50, "+", "Countries", 10],
 ] as const;
 
