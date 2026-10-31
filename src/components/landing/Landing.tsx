@@ -267,7 +267,7 @@ export default function Landing() {
         <div className="section-heading-row">
           <div>
             <div className="eyebrow">MADE FOR YOUR NEXT IDEA</div>
-            <h2>pick a model,<br /><em>make anything.</em></h2>
+            <h2>what would you like<br /><em>to make?</em></h2>
             <p className="audience-sub">Discover the frontier of generative AI at the cheapest prices.</p>
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function Landing() {
       <CtaPromptCard
         id="try-it"
         eyebrow="TURN A THOUGHT INTO A STARTING POINT"
-        line1="describe it." line2="see it."
+        line1="got an idea?" line2="give it a go."
         placeholder={"What do you want to create?\n\nDescribe your idea…"}
         button="Generate" icon={<Lightbulb size={17} />}
         onSubmit={(t) => router.push(t.trim() ? `/create?prompt=${encodeURIComponent(t.trim())}` : "/create")}

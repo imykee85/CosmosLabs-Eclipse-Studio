@@ -822,6 +822,6 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 .results-col article .rt-label { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 34px 14px 12px; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.55)); color: #fff; font-weight: 500; font-size: 15px; line-height: 1.2; letter-spacing: 0; text-align: left; pointer-events: none; }
 @media (max-width: 800px) { .results-col article .rt-label { padding: 22px 9px 8px; font-size: 12px; } }
 
-/* Idea card: rounded Generate button, and a prompt box whose text is already at the zoom-proof size, so tapping it neither zooms the page nor makes the placeholder jump bigger. */
+/* Idea card: rounded Generate button; the prompt box keeps its own text size when tapped (no enlargement), the page zoom is blocked by the focus lock in CtaPromptCard. */
 .idea-box .create-btn { border-radius: 999px; }
-.idea-box textarea, .idea-box textarea::placeholder { font-size: var(--in-fs, 16px); }
+html[data-fz] .idea-box textarea:focus { font-size: 15px !important; }
