@@ -959,3 +959,4 @@ html[data-app-theme="light"] .auth-accept a { color: #141414; }
 /* About 924 px wide touch layouts: the models section is 1588 px tall; match it */
 @media (pointer: coarse) and (min-width: 801px) and (max-width: 1100px) { .pricing-section { min-height: 1588px; } }
 .price-list .pl-group { align-content: start; } .price-list dd { align-content: start; }
+.price-list .pl-group { border: 0; border-top: 0; }
