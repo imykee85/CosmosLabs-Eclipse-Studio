@@ -3,8 +3,8 @@
 import { Children, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// Desktop: the plain grid. Phones and tablets (<= 1100px): a carousel with swipe, arrows and dots.
-export default function PlanDeck({ children, start = 2 }: { children: ReactNode; start?: number }) {
+// Desktop: the plain grid. Phones and tablets (<= 1100px): a carousel with swipe, arrows and dots, starting on the first plan.
+export default function PlanDeck({ children, start = 0 }: { children: ReactNode; start?: number }) {
   const count = Children.count(children);
   const [index, setIndex] = useState(Math.min(start, count - 1));
   const deck = useRef<HTMLDivElement>(null);
@@ -18,7 +18,10 @@ export default function PlanDeck({ children, start = 2 }: { children: ReactNode;
     const card = t.children[0] as HTMLElement | undefined;
     if (!card) return;
     const gap = parseFloat(getComputedStyle(t).columnGap) || 18;
-    const x = (d.clientWidth - card.offsetWidth) / 2 - i * (card.offsetWidth + gap) + extra;
+    // Cards line up from the left edge: the first is flush with the page margin, the next one peeks in.
+    const pad = 24, w = card.offsetWidth;
+    const minX = Math.min(pad, d.clientWidth - pad - (t.children.length * w + (t.children.length - 1) * gap));
+    const x = Math.max(minX, pad - i * (w + gap)) + extra;
     t.style.transition = animate ? "transform .38s cubic-bezier(.22,.8,.3,1)" : "none";
     t.style.transform = `translate3d(${x}px,0,0)`;
   }, []);
