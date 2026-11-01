@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import AuthShell from "@/components/AuthShell";
 import AcceptTerms from "@/components/auth/AcceptTerms";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { safeNext } from "@/lib/safe-next";
@@ -13,5 +14,5 @@ export default async function AcceptTermsPage({ searchParams }: { searchParams: 
     const { userId } = await auth.protect();
     if (await hasAcceptedTerms(userId).catch(() => false)) redirect(next);
   }
-  return <AcceptTerms next={next} />;
+  return <AuthShell><AcceptTerms next={next} /></AuthShell>;
 }

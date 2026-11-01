@@ -4,7 +4,7 @@ import { Children, useCallback, useEffect, useRef, useState, type ReactNode } fr
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Desktop: the plain grid. Phones and tablets (<= 1100px): a carousel with swipe, arrows and dots, starting on the first plan.
-export default function PlanDeck({ children, start = 0 }: { children: ReactNode; start?: number }) {
+export default function PlanDeck({ children, note, start = 0 }: { children: ReactNode; note?: ReactNode; start?: number }) {
   const count = Children.count(children);
   const [index, setIndex] = useState(Math.min(start, count - 1));
   const deck = useRef<HTMLDivElement>(null);
@@ -52,6 +52,7 @@ export default function PlanDeck({ children, start = 0 }: { children: ReactNode;
       onTouchCancel={() => { drag.current = null; place(index); }}
     >
       <div className="plan-grid has-free" ref={track}>{children}</div>
+      {note}
       <div className="plan-nav">
         <button type="button" aria-label="Previous plan" onClick={() => go(index - 1)} disabled={index === 0}><ChevronLeft size={18} /></button>
         <div className="plan-dots">
