@@ -345,30 +345,8 @@ export default function Landing() {
       <AtlasOrbitSection />
 
       <section id="pricing" className="pricing-section section-pad">
-        <div className="pricing-top">
-          <div className="pricing-title">
-          <div className="eyebrow">SIMPLE PRICING</div>
-          <h2 className="plans-title">pick the plan<br /><em>that fits.</em></h2>
-          </div>
-          <div className="price-list">
-            <div className="eyebrow">0% MARKUP</div>
-            <h3>We charge what it costs.</h3>
-            <p className="pl-sub">No markup on model prices. A few of the most used:</p>
-            <dl>
-              {priceList.map((g) => (
-                <div className="pl-group" key={g.name}>
-                  <dt>{g.name}</dt>
-                  <dd>
-                    {g.lines.map((l) => (
-                      <div className="pl-line" key={l.label}><span>{l.label}</span><b>{l.price}</b></div>
-                    ))}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <p className="pl-note">Each generation costs the model maker’s own price, rounded up to the next cent. Plans include the studio, Atlas and Core.</p>
-          </div>
-        </div>
+        <div className="eyebrow">SIMPLE PRICING</div>
+        <h2 className="plans-title">pick the plan<br /><em>that fits.</em></h2>
         <PlanDeck>
           <article className="plan-card plan-free">
             <h3>Trial</h3>
@@ -404,6 +382,23 @@ export default function Landing() {
           ))}
         </PlanDeck>
         <p className="plan-rule">Plan credits renew monthly and do not roll over. Top-up credits last 90 days and can be used while you are subscribed.</p>
+        <div className="price-list">
+          <div className="eyebrow">0% MARKUP</div>
+          <p className="pl-sub">No markup on model prices. A few of the most used:</p>
+          <dl>
+            {priceList.map((g) => (
+              <div className="pl-group" key={g.name}>
+                <dt>{g.name}</dt>
+                <dd>
+                  {g.lines.map((l) => (
+                    <div className="pl-line" key={l.label}><span>{l.label}</span><b>{l.price}</b></div>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="pl-note">Each generation costs the model maker’s own price, rounded up to the next cent. Plans include the studio, Atlas and Core.</p>
+        </div>
       </section>
 
       <section id="faq" className="faq-section section-pad">
