@@ -52,9 +52,9 @@ test.describe("public site", () => {
     const sitemap = await request.get("/sitemap.xml");
     expect(sitemap.status()).toBe(200);
     expect(await sitemap.text()).toContain("/terms");
-    const og = await request.get("/opengraph-image");
+    const og = await request.get("/opengraph-image.jpg");
     expect(og.status()).toBe(200);
-    expect(og.headers()["content-type"]).toContain("image/png");
+    expect(og.headers()["content-type"]).toContain("image/jpeg");
     const manifest = await request.get("/manifest.webmanifest");
     expect(manifest.status()).toBe(200);
   });
