@@ -237,6 +237,41 @@ test.describe("Atlas chat attachments", () => {
   });
 });
 
+test.describe("Atlas panel", () => {
+  test("opens as a panel, shows a proposal, and Apply fills the prompt box", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+      localStorage.setItem("eclipse-agent", "Atlas");
+      localStorage.setItem("eclipse-agent-on", "1");
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
+    await page.route("**/api/agent/chat", (r) => r.fulfill({ json: { runId: "r1" } }));
+    await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE"
+      ? r.fulfill({ json: { ok: true } })
+      : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is a stronger version.", actions: [{ kind: "use_prompt", label: "Use this prompt", prompt: "A lone motorcycle on a red desert road, low camera, long shadows" }], controls: { ratio: "4:5" } } } } }));
+    await page.goto("/create");
+    await page.fill("form.cr-box textarea", "A motorcycle on a road");
+    await page.click(".aw-btn");
+    await expect(page.locator(".aw-panel")).toBeVisible();
+    await expect(page.locator(".aw-btn")).toHaveCount(0); // the floating ball makes way for the panel
+    await expect(page.locator(".aw-chips button")).toHaveCount(3); // improve, help me start, moodier (no reference attached)
+    await page.click(".aw-chips button >> text=Improve my prompt");
+    const card = page.locator(".aw-prop");
+    await expect(card).toBeVisible({ timeout: 20000 });
+    await expect(card.locator(".aw-prop-old")).toHaveText("A motorcycle on a road");
+    await expect(card.locator("mark").first()).toBeVisible();
+    await expect(page.locator("form.cr-box textarea")).toHaveValue("A motorcycle on a road"); // nothing changes until a button is pressed
+    await card.locator(".aw-prop-apply").click();
+    await expect(page.locator("form.cr-box textarea")).toHaveValue("A lone motorcycle on a red desert road, low camera, long shadows");
+    await expect(card.locator(".aw-prop-apply")).toHaveText(/Applied/);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".aw-panel")).toHaveCount(0);
+    await expect(page.locator(".aw-btn")).toBeVisible();
+  });
+});
+
 test.describe("prompt box drafts", () => {
   const seed = async (page: import("@playwright/test").Page) => {
     await page.addInitScript(() => {

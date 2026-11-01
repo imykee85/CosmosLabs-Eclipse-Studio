@@ -5,7 +5,8 @@ import { thumbOf, fallbackTo } from "@/lib/thumb-url";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Pencil, Plus, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
-import { canUseFrame, useAgentChat, type Attach, type AttachedDoc } from "@/lib/agent-chat";
+import { canUseFrame, hostPage, readHostContext, useAgentChat, type Attach, type AttachedDoc } from "@/lib/agent-chat";
+import { diffWords, thinkingLines, type Proposal } from "@/lib/agent-proposal";
 import { attachKind, readDocument } from "@/lib/attach-file";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
@@ -61,6 +62,48 @@ function Bot() {
   );
 }
 
+// What shows while Atlas works: short creative lines that change every couple of seconds (more of them for the studio he is in).
+function Thinking() {
+  const lines = thinkingLines(hostPage());
+  const [i, setI] = useState(() => Math.floor(Math.random() * lines.length));
+  useEffect(() => { const id = window.setInterval(() => setI((n) => n + 1), 2200); return () => window.clearInterval(id); }, []);
+  return <p className="aw-typing"><Loader2 size={13} className="cr-spin" /> {lines[i % lines.length]}…</p>;
+}
+
+// Atlas's proposal as one card: the old prompt struck through, the new one with the added words marked, the settings it would change, and two buttons.
+function ProposalCard({ p, busy, onApply }: { p: Proposal; busy: boolean; onApply: (andGenerate: boolean) => void }) {
+  const done = !!p.applied;
+  const pieces = p.prompt ? diffWords(p.before, p.prompt) : [];
+  return (
+    <div className="aw-prop">
+      {p.prompt && (
+        <div className="aw-prop-box">
+          <span className="aw-prop-lab">Prompt</span>
+          {p.before.trim() && <span className="aw-prop-old">{p.before}</span>}
+          <span className="aw-prop-new">{pieces.map((x, i) => (x.added && p.before.trim() ? <mark key={i}>{x.text}</mark> : <span key={i}>{x.text}</span>))}</span>
+        </div>
+      )}
+      {p.settings.length > 0 && (
+        <div className="aw-prop-set">
+          {p.settings.map((l) => (<div key={l.label}><span>{l.label}</span><span>{l.from ? <s>{l.from}</s> : null} {l.to}</span></div>))}
+        </div>
+      )}
+      <div className="aw-prop-btns">
+        <button type="button" className="aw-prop-apply" disabled={done || busy} onClick={() => onApply(false)}>{p.applied === "apply" ? "Applied \u2713" : "Apply"}</button>
+        <button type="button" className="aw-prop-gen" disabled={done || busy} onClick={() => onApply(true)}>{p.applied === "generate" ? "Applied \u2713" : "Apply and generate"}</button>
+      </div>
+    </div>
+  );
+}
+
+// The panel's quick chips (shown while the chat is empty): each one sends a plain message Atlas can act on.
+const CHIPS: { label: string; text: string; needsRef?: boolean }[] = [
+  { label: "Improve my prompt", text: "Improve my prompt." },
+  { label: "Help me start", text: "Help me start. Ask me a few short questions, one at a time, then write the prompt." },
+  { label: "Match my reference", text: "Match the look of the reference picture in my prompt box.", needsRef: true },
+  { label: "Make it moodier", text: "Make my prompt moodier." },
+];
+
 // A floating agent button that appears while the agent switch is on. Drag it anywhere on the screen (it stays where you
 // leave it, remembered in this browser); tap it to open a small card about the agent.
 export default function AgentWidget({ name, watch }: { name: string; watch?: string | null }) {
@@ -86,6 +129,9 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const lastAgent = chat.messages.reduce((n, m, i) => (m.role === "agent" && !m.note ? i : n), -1);
   const list = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
+  const hbot = useRef<HTMLSpanElement>(null);
+  const [nod, setNod] = useState(false);
+  const [refs, setRefs] = useState<{ type: "upload" | "render"; id: string; role?: string }[]>([]);
   const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
 
   const baseX = useRef(0); // the sidebar's edge the position was last measured against
@@ -127,14 +173,15 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   watching.current = watch ?? null;
   useEffect(() => {
     const look = (e: PointerEvent) => {
-      const el = btn.current;
-      if (!el || watching.current) return;
-      const r = el.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-      const d = Math.hypot(dx, dy) || 1;
-      const k = Math.min(1, d / 160);
-      el.style.setProperty("--lx", String((dx / d) * k));
-      el.style.setProperty("--ly", String((dy / d) * k));
+      for (const el of [btn.current, hbot.current]) {
+        if (!el || (el === btn.current && watching.current)) continue;
+        const r = el.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+        const d = Math.hypot(dx, dy) || 1;
+        const k = Math.min(1, d / 160);
+        el.style.setProperty("--lx", String((dx / d) * k));
+        el.style.setProperty("--ly", String((dy / d) * k));
+      }
     };
     window.addEventListener("pointermove", look);
     window.addEventListener("pointerdown", look);
@@ -174,6 +221,20 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     else { setBounce(true); window.setTimeout(() => setBounce(false), 700); }
   }, [cue, name, pos]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const o = () => setOpen(true); window.addEventListener("eclipse-agent-open", o); return () => window.removeEventListener("eclipse-agent-open", o); }, []);
+  useEffect(() => { const o = () => { setNod(true); window.setTimeout(() => setNod(false), 750); }; window.addEventListener("eclipse-agent-nod", o); return () => window.removeEventListener("eclipse-agent-nod", o); }, []);
+  // While the panel is open it shows the pictures that are in the prompt box right now (numbered like the box), and closes on Escape.
+  useEffect(() => {
+    if (!open) return;
+    const read = () => {
+      const pics = readHostContext()?.pictures ?? [];
+      setRefs((cur) => (JSON.stringify(cur) === JSON.stringify(pics) ? cur : pics.slice(0, 8)));
+    };
+    read();
+    const id = window.setInterval(read, 800);
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", esc);
+    return () => { window.clearInterval(id); window.removeEventListener("keydown", esc); };
+  }, [open]);
   useEffect(() => { const el = list.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.messages.length, chat.busy, open, big]);
   useEffect(() => { if (!open) { setBig(false); setShowPast(false); } }, [open]);
 
@@ -243,9 +304,6 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     else setOpen(true); // tapping opens the card; the spin is for switching the agent on (see the cue effect)
   }
 
-  // The card always opens below the agent.
-  const cardLeft = Math.min(Math.max(8, pos.x + SIZE / 2 - 130), window.innerWidth - 268);
-  const cardTop = pos.y + SIZE + 8;
   return (
     <>
       {viewing && (
@@ -256,9 +314,11 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             : <img className="aw-view-media" src={`/api/uploads/${viewing.id}/file`} alt={viewing.name} onClick={(e) => e.stopPropagation()} />}
         </div>
       )}
+      {open && <div className="aw-dim" onClick={() => setOpen(false)} />}
       {open && (
-        <div className={`aw-card ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={big ? undefined : { left: cardLeft, top: cardTop }}>
-          <div className="aw-head"><AgentIcon size={16} /><b>{name}</b>
+        <div className={`aw-card aw-panel ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={{ ["--aw-top" as string]: `${headerBottom() + 8}px` }}>
+          <div className="aw-grab" aria-hidden="true" />
+          <div className="aw-head"><span ref={hbot} className={`aw-hbot ${chat.busy ? "is-thinking" : ""} ${nod ? "is-nod" : ""}`} aria-hidden="true"><Bot /></span><b>{name}</b>
             <button type="button" aria-label="Chat history" title="Chat history" className={showPast ? "is-on" : ""} onClick={() => setShowPast((v) => !v)}><History size={15} /></button>
             <button type="button" aria-label="New chat" title="New chat" disabled={chat.busy} onClick={() => { chat.newChat(); setShowPast(false); }}><SquarePen size={14} /></button>
             <button type="button" aria-label={big ? "Make smaller" : "Expand"} title={big ? "Make smaller" : "Expand"} onClick={() => setBig((b) => !b)}>{big ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
@@ -274,8 +334,27 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
               ))}
             </div>
           ) : (
+          <>
+          {(
+            <div className="aw-refs">
+              <span className="aw-refs-lab">Using</span>
+              {refs.map((r, i) => (
+                <span key={r.id + i} className="aw-ref" title={r.role ? `${i + 1}. ${r.role}` : `${i + 1}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={thumbOf(r.type, r.id)} alt="" draggable={false} onError={fallbackTo(r.type === "upload" ? `/api/uploads/${r.id}/file` : `/api/generations/${r.id}/file`)} />
+                  <i>{i + 1}</i>
+                </span>
+              ))}
+              <button type="button" className="aw-ref-add" aria-label="Add a picture or video" title="Add a picture or video" disabled={chat.busy || atts.length + docs.length >= 8} onClick={() => fileIn.current?.click()}><Plus size={16} /></button>
+            </div>
+          )}
           <div className="aw-msgs" ref={list} aria-live="polite">
             {chat.messages.length === 0 && <p className="aw-empty">Say hello, or tell me what you want to make.</p>}
+            {chat.messages.length === 0 && (
+              <div className="aw-chips">
+                {CHIPS.filter((c) => !c.needsRef || refs.length > 0).map((c) => (<button key={c.label} type="button" disabled={chat.busy} onClick={() => void chat.send(c.text)}>{c.label}</button>))}
+              </div>
+            )}
             {chat.messages.map((m, at) => (
               <div key={m.id} className={`aw-msg is-${m.role} ${m.error ? "is-error" : ""} ${m.note ? "is-note" : ""} ${editing?.id === m.id ? "is-editing" : ""}`}>
                 {m.attach && m.attach.length > 0 && <div className="aw-attached">{m.attach.map((a, i) => (a.id ? <button key={a.id + i} type="button" className="aw-open" aria-label={`Open ${a.name}`} title="Open" onClick={() => setViewing({ kind: a.kind, id: a.id!, name: a.name })}><Thumb kind={a.kind} id={a.id} name={a.name} big /></button> : <span key={a.name + i} className="aw-att-name">{a.name}</span>))}</div>}
@@ -306,6 +385,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                     ))}
                   </div>
                 )}
+                {m.proposal && <ProposalCard p={m.proposal} busy={chat.busy} onApply={(g) => void chat.applyProposal(m.id, g)} />}
                 {m.actions && m.actions.length > 0 && (
                   <div className="aw-acts">
                     {m.actions.map((a) => (
@@ -319,8 +399,9 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                   : <div className="aw-msg-acts"><button type="button" aria-label="Copy" title="Copy" onClick={() => void navigator.clipboard?.writeText(m.text).catch(() => {})}><Copy size={13} /></button>{(m.error || at === lastAgent) && <button type="button" aria-label="Try again" title="Try again" onClick={() => void chat.retry(m.id)}><RotateCcw size={13} /></button>}</div>)}
               </div>
             ))}
-            {chat.busy && <div className="aw-msg is-agent"><p className="aw-typing"><Loader2 size={13} className="cr-spin" /> Thinking…</p></div>}
+            {chat.busy && <div className="aw-msg is-agent"><Thinking /></div>}
           </div>
+          </>
           )}
           {(atts.length > 0 || uploading !== null || attErr) && (
             <div className="aw-atts">
@@ -342,10 +423,10 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           </form>
         </div>
       )}
-      <button ref={btn} type="button" className={`aw-btn ${dragging ? "is-drag" : ""} ${hop ? "is-hop" : ""} ${bounce ? "is-bounce" : ""}`} aria-label={`${name} agent. Drag to move, tap to talk.`} style={{ left: pos.x, top: pos.y }}
+      {!open && <button ref={btn} type="button" className={`aw-btn ${dragging ? "is-drag" : ""} ${hop ? "is-hop" : ""} ${bounce ? "is-bounce" : ""}`} aria-label={`${name} agent. Drag to move, tap to talk.`} style={{ left: pos.x, top: pos.y }}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { drag.current = null; setDragging(false); }}>
         <Bot />
-      </button>
+      </button>}
     </>
   );
 }
