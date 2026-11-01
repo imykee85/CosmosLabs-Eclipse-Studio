@@ -6,6 +6,7 @@ import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
+import { FASHION_DIRECTOR, wantsFashion } from "@/lib/fashion-knowledge";
 import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
 import { claimUsage } from "@/lib/usage";
 import { accessFor, atlasDailyLimit } from "@/lib/access";
@@ -106,7 +107,9 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const hasMedia = parsePictures(c.pictures).length > 0 || (Array.isArray(c.clips) && c.clips.length > 0);
       const scene = isAtlas && wantsSceneDirector(messages, hasMedia) ? `\n\n${SCENE_DIRECTOR}` : "";
       // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
-      const system = cachedSystem(`${persona.system}${director}${scene}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      // The Fashion Campaign Director (owner's skill, about 11,000 tokens) rides along only while the talk is about fashion, a campaign, an editorial, a lookbook or a shoot.
+      const fashion = isAtlas && wantsFashion(messages, ctx) ? `\n\n${FASHION_DIRECTOR}` : "";
+      const system = cachedSystem(`${persona.system}${director}${scene}${fashion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const tools = isAtlas ? [...base, ...VIDEO_TOOLS] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
