@@ -78,9 +78,6 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           <li className="hf-wide">
             <div className="hf-wide-link"><div className="hf-collage">{[1, 2, 3].map((n) => (<div key={n} className="hf-cell"><LoopVideo className="hf-video" src={`/landing/influencer-${n}.mp4`} webm={`/landing/influencer-${n}.webm`} poster={`/landing/influencer-${n}-poster.jpg`} /></div>))}</div><span className="hf-label hf-label-on-video">Influencer Marketing</span></div>
           </li>
-          <li className="hf-wide">
-            <div className="hf-wide-link"><Empty className="hf-fill" /><span className="hf-label">Social Media Content</span></div>
-          </li>
         </ul>
       </div>
 
