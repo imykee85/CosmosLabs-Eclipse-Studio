@@ -78,9 +78,6 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           <li className="hf-wide">
             <div className="hf-wide-link"><div className="hf-collage">{[1, 2, 3].map((n) => (<div key={n} className="hf-cell"><LoopVideo className="hf-video" src={`/landing/influencer-${n}.mp4`} webm={`/landing/influencer-${n}.webm`} poster={`/landing/influencer-${n}-poster.jpg`} /></div>))}</div><span className="hf-label hf-label-on-video">Influencer Marketing</span></div>
           </li>
-          <li className="hf-wide">
-            <div className="hf-wide-link"><Empty className="hf-fill" /><span className="hf-label">Social Media Content</span></div>
-          </li>
         </ul>
       </div>
 
@@ -90,7 +87,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
               <b>{n}</b>
-              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [1, 3, 4, 5, 7] : [4]).includes(i)
+              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [1, 3, 4, 5, 7] : [0, 2, 4, 7]).includes(i)
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img key={i} className="hf-dot hf-pic" src={`/dashboard/look-${n.toLowerCase()}-${i + 1}.jpg`} style={i === 1 ? { objectPosition: "50% 38%" } : undefined} alt="" loading="lazy" draggable={false} />
                 : <Empty key={i} className="hf-dot" />)}</div>
