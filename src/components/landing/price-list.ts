@@ -4,16 +4,8 @@
 export type PriceLine = { label: string; price: string };
 export type PriceGroup = { name: string; lines: PriceLine[] };
 
+// Image models first, then video models.
 export const priceList: PriceGroup[] = [
-  { name: "Seedance 2.5", lines: [
-    { label: "480p", price: "$0.11 / second" },
-    { label: "720p", price: "$0.23 / second" },
-    { label: "1080p", price: "$0.57 / second" },
-  ] },
-  { name: "Kling 3.0", lines: [
-    { label: "Standard", price: "$0.08 / second" },
-    { label: "Pro", price: "$0.11 / second" },
-  ] },
   { name: "Nano Banana Pro", lines: [
     { label: "1K and 2K", price: "$0.14 / image" },
     { label: "4K", price: "$0.24 / image" },
@@ -25,5 +17,14 @@ export const priceList: PriceGroup[] = [
   { name: "Seedream 5.0 Pro", lines: [
     { label: "1K", price: "$0.07 / image" },
     { label: "2K", price: "$0.10 / image" },
+  ] },
+  { name: "Seedance 2.5", lines: [
+    { label: "480p", price: "$0.11 / second" },
+    { label: "720p", price: "$0.23 / second" },
+    { label: "1080p", price: "$0.57 / second" },
+  ] },
+  { name: "Kling 3.0", lines: [
+    { label: "Standard", price: "$0.08 / second" },
+    { label: "Pro", price: "$0.11 / second" },
   ] },
 ];
