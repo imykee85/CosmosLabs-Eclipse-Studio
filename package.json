@@ -26,7 +26,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1147.0",
     "@clerk/nextjs": "6.39.7",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^7.10.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.0.0",
     "@vercel/sandbox": "3.8.0",
