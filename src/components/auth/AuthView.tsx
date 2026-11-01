@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff, MailCheck, Send } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
+import { TERMS_FLAG, TERMS_VERSION } from "@/lib/terms";
 
 export type Mode = "signin" | "signup";
 export type Step = "credentials" | "verify" | "forgot" | "reset";
@@ -205,7 +206,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
 
         {needsAccept && (
           <label className="auth-accept">
-            <input type="checkbox" checked={accepted} onChange={(e) => { setAccepted(e.target.checked); setError(""); }} required />
+            <input type="checkbox" checked={accepted} onChange={(e) => { setAccepted(e.target.checked); setError(""); try { if (e.target.checked) sessionStorage.setItem(TERMS_FLAG, TERMS_VERSION); else sessionStorage.removeItem(TERMS_FLAG); } catch { /* private mode */ } }} required />
             <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Use</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span>
           </label>
         )}

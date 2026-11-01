@@ -746,3 +746,18 @@ model PendingSend {
   @@index([userId, status, createdAt(sort: Desc)])
   @@map("pending_sends")
 }
+
+// Proof that a person accepted the Terms of Use and Privacy Policy: who, which version, when, from where. One row per person and version.
+model TermsAcceptance {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  version    String
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  source     String   // "sign-up" (checkbox on the sign-up page) or "gate" (the accept page)
+
+  @@unique([userId, version])
+  @@index([userId])
+  @@map("terms_acceptances")
+}
