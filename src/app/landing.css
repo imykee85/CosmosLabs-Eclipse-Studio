@@ -930,3 +930,11 @@ video.card-video::-webkit-media-controls-start-playback-button, video.wow-video:
 .price-list .pl-line { font-size: 13px; }
 .price-list .pl-note { margin-top: 14px; font-size: 12px; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1100px) { .price-list .pl-group { grid-template-columns: 1fr; gap: 6px; } }
+
+/* Sign-up: required terms checkbox */
+.auth-accept { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 0; color: #b8b3ac; font-size: 13px; line-height: 1.45; text-align: left; cursor: pointer; }
+.auth-accept input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: #c00707; cursor: pointer; }
+.auth-accept a { color: #e6e3de; text-decoration: underline; text-underline-offset: 2px; }
+html[data-app-theme="light"] .auth-accept { color: #55504a; }
+html[data-app-theme="light"] .auth-accept a { color: #141414; }
+.auth-submit:disabled { opacity: .55; cursor: not-allowed; }

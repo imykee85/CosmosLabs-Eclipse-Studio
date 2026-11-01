@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff, MailCheck, Send } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
+import { TERMS_FLAG, TERMS_VERSION } from "@/lib/terms";
 
 export type Mode = "signin" | "signup";
 export type Step = "credentials" | "verify" | "forgot" | "reset";
@@ -44,6 +45,8 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const needsAccept = mode === "signup" && step === "credentials";
 
   async function run(fn: () => Promise<Result>) {
     setBusy(true);
@@ -66,6 +69,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (needsAccept && !accepted) { setError("Please accept the Terms of Use and Privacy Policy to create an account."); return; }
     if (step === "credentials") run(() => handlers.credentials(email, password));
     else if (step === "verify") run(() => handlers.verify(code));
     else if (step === "forgot") run(() => handlers.forgot(email));
@@ -136,7 +140,7 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
 
       {step === "credentials" && (
         <>
-          <button className="auth-google" type="button" disabled={busy} onClick={() => run(handlers.google)}>
+          <button className="auth-google" type="button" disabled={busy || (mode === "signup" && !accepted)} onClick={() => run(handlers.google)}>
             <GoogleG /> Continue with Google
           </button>
           <div className="auth-divider"><span>or continue with email</span></div>
@@ -200,10 +204,16 @@ export default function AuthView({ mode, handlers, demo }: { mode: Mode; handler
           <button type="button" className="auth-link" disabled={busy} onClick={() => run(handlers.resend)}>Send the code again</button>
         )}
 
-        <button className="auth-submit" type="submit" disabled={busy}>
+        {needsAccept && (
+          <label className="auth-accept">
+            <input type="checkbox" checked={accepted} onChange={(e) => { setAccepted(e.target.checked); setError(""); try { if (e.target.checked) sessionStorage.setItem(TERMS_FLAG, TERMS_VERSION); else sessionStorage.removeItem(TERMS_FLAG); } catch { /* private mode */ } }} required />
+            <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Use</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span>
+          </label>
+        )}
+
+        <button className="auth-submit" type="submit" disabled={busy || (needsAccept && !accepted)}>
           {busy ? "Please wait…" : step === "credentials" ? c.submit : step === "verify" ? (mode === "signup" ? "Verify email" : "Continue") : step === "forgot" ? "Send code" : "Reset password"}
         </button>
-        {mode === "signup" && step === "credentials" && <p className="auth-terms">By creating an account you agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Use</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</p>}
       </form>
 
       {step === "verify" && mode === "signup" && (

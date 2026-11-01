@@ -15,7 +15,7 @@ export type DeleteResult = { ok: true; notes: string[] } | { ok: false; status: 
 export const USER_TABLES = [
   "generation", "onboarding", "project", "canvasState", "canvas", "creditLedger", "connectChat", "memory", "userSkill", "userAgent", "connectorLink",
   "upload", "usageEvent", "audioJob", "userVoice", "sandboxRun", "sandboxAudit", "skillSetting", "portfolio", "certificate", "sandboxJob", "coreTool",
-  "apiKey", "oauthGrant", "oauthCode", "soulId", "billingSettings", "freeRender", "chatSpend", "agentRun", "canvasTemplate", "canvasComment", "chatState", "pendingSend",
+  "apiKey", "oauthGrant", "oauthCode", "soulId", "billingSettings", "freeRender", "chatSpend", "agentRun", "canvasTemplate", "canvasComment", "chatState", "pendingSend", "termsAcceptance",
 ] as const;
 
 /** Something still running for this person (a render, a voice take, a sandbox job, Soul ID training). */
