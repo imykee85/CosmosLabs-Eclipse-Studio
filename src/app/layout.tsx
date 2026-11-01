@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   title: { default: "Eclipse Studio: your AI creative suite", template: "%s | Eclipse Studio" },
   description,
   applicationName: "Eclipse",
-  openGraph: { type: "website", siteName: "Eclipse Studio", title: "Eclipse Studio: your AI creative suite", description }, // the picture comes from opengraph-image.tsx
+  openGraph: { type: "website", siteName: "Eclipse Studio", title: "Eclipse Studio: your AI creative suite", description }, // the picture comes from opengraph-image.jpg
   twitter: { card: "summary_large_image", title: "Eclipse Studio: your AI creative suite", description },
   // iPhone "Add to Home Screen": the name under the icon (the icon is src/app/apple-icon.png).
   appleWebApp: { capable: true, title: "Eclipse" }, // the status bar style is set by the script below, so it can follow the theme
