@@ -34,9 +34,8 @@ export default function AcceptTerms({ next }: { next: string }) {
     try { await send("gate"); router.replace(next); } catch (e) { setError((e as Error).message); setBusy(false); }
   }
 
-  if (auto) return <main className="login-shell"><section className="login-card auth-card"><p className="login-intro">One moment…</p></section></main>;
+  if (auto) return <section className="login-card auth-card"><p className="login-intro">One moment…</p></section>;
   return (
-    <main className="login-shell">
       <section className="login-card auth-card" aria-labelledby="terms-title">
         <span className="auth-logo"><LogoMark size={56} /></span>
         <h1 id="terms-title">before you continue</h1>
@@ -48,6 +47,5 @@ export default function AcceptTerms({ next }: { next: string }) {
         {error && <p className="auth-error" role="alert">{error}</p>}
         <button className="auth-submit" type="button" disabled={!checked || busy} onClick={accept}>Continue</button>
       </section>
-    </main>
   );
 }

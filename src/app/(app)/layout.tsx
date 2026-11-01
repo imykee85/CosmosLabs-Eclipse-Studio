@@ -4,14 +4,12 @@ import ProjectGate from "@/components/workspace/ProjectGate";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
-import { requireTerms } from "@/lib/terms-db";
 
 // App screens only: stops iPhone Safari zooming the page in when a text box is tapped (it also pushed the prompt box out of view). The marketing site keeps pinch zoom.
 export const viewport = { viewportFit: "cover" } as const;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // New accounts answer the onboarding questions first; if the database can't be reached, let them in.
-  await requireTerms("/dashboard");
   if (clerkEnabled) {
     const { userId } = await auth();
     if (userId) {
