@@ -965,3 +965,4 @@ html[data-app-theme="light"] .auth-accept a { color: #141414; }
 @media (min-width: 1101px) { .pricing-section { padding-top: 40px; padding-bottom: 30px; } .pricing-section .price-list .pl-group { padding: 3px 0; } .pricing-section .price-list dd { gap: 0; } .pricing-section .price-list .pl-line { line-height: 1.3; } .pricing-section .price-list .pl-note { margin-top: 8px; } .pricing-section .price-list { margin-top: 10px; } }
 @media (min-width: 1101px) { .pricing-section { padding-bottom: 33px; } }
 @media (min-width: 1101px) { .pricing-section .price-list dl { row-gap: 10px; } .pricing-section { padding-bottom: 23px; } }
+.price-list .eyebrow, .price-list .pl-sub { text-align: center; }
