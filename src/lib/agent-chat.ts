@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PERSONAS } from "./agent-personas";
 import { refreshCredits } from "@/lib/use-credits";
+import { buildProposal, type Proposal } from "./agent-proposal";
 
 // The conversation between the user and a studio agent. One chat per agent, kept in this browser and shared live by everything that shows it
 // (the floating agent's card, the Image Studio prompt box, a canvas generator). The agent only PROPOSES: its replies carry buttons, and the screen the
@@ -13,7 +14,7 @@ export type Frame = { id: string; label: string; sec: number; used?: string };
 // A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
 export type Attach = { kind: "picture" | "video"; id: string; name: string };
 export type AttachedDoc = { name: string; text?: string; pdf?: string };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; proposal?: Proposal; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
 
 // What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
 export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
@@ -120,17 +121,13 @@ function addTo(agent: string, m: Omit<Msg, "id">) { write(agent, [...read(agent)
 function showReply(agent: string, page: string, status: number, body: Record<string, unknown>) {
   if (status !== 200) { addTo(agent, { role: "agent", text: typeof body.error === "string" ? body.error : "The agent couldn't answer. Please try again.", error: true }); return; }
   const data = body as { text?: string; actions?: Omit<Act, "id">[]; frames?: Frame[]; controls?: ControlPatch };
-  const actions: Act[] = Array.isArray(data.actions) ? data.actions.map((a) => ({ ...a, id: uid() })) : [];
+  const all: Act[] = Array.isArray(data.actions) ? data.actions.map((a) => ({ ...a, id: uid() })) : [];
   const frames: Frame[] = Array.isArray(data.frames) ? data.frames.filter((f) => f && typeof f.id === "string").slice(0, 8).map((f) => ({ id: f.id, label: String(f.label ?? "Frame"), sec: Number(f.sec) || 0 })) : [];
-  addTo(agent, { role: "agent", text: String(data.text ?? ""), actions, ...(frames.length ? { frames } : {}) });
-  // Settings Atlas chose for the box are applied at once (free) when that screen is still open; otherwise they are said plainly.
-  if (data.controls && typeof data.controls === "object" && Object.keys(data.controls).length) {
-    if (host?.controls && host.page === page) {
-      const { set, refused } = host.controls.apply(data.controls);
-      if (set.length) addTo(agent, { role: "agent", text: `Set in your prompt box: ${set.join(" · ")}.`, note: true });
-      if (refused.length) addTo(agent, { role: "agent", text: `I couldn't set: ${refused.join(" ")}`, note: true, error: true });
-    } else addTo(agent, { role: "agent", text: "Open that studio to have me set its controls.", note: true });
-  }
+  // A new prompt and/or new box settings become ONE proposal card (Apply, Apply and generate); nothing is changed until the person presses a button.
+  const ctx = host?.page === page ? host.context() : { prompt: "" };
+  const proposal = buildProposal(page, data.controls as Record<string, unknown> | undefined, all, ctx);
+  const actions = proposal ? all.filter((a) => a.kind === "reply") : all;
+  addTo(agent, { role: "agent", text: String(data.text ?? ""), actions, ...(proposal ? { proposal } : {}), ...(frames.length ? { frames } : {}) });
 }
 
 // Waits for a reply started on the server and shows it when it is ready. Safe to call again for a reply already being followed.
@@ -261,6 +258,26 @@ export function useAgentChat(agent: string | null) {
     add({ role: "agent", text: why ? `I couldn't start it: ${why}` : host.page === "core" ? "Sent to Core." : "It's rendering. Watch the preview; it keeps going if you leave.", note: true, error: !!why });
   }, [agent, add, send]);
 
+  // The user pressed Apply (or Apply and generate) on a proposal: the prompt and settings go into the box; the second button then starts the render too.
+  const applyProposal = useCallback(async (msgId: string, andGenerate: boolean) => {
+    if (!agent) return;
+    const msg = read(agent).find((m) => m.id === msgId);
+    const p = msg?.proposal;
+    if (!msg || !p || p.applied) return;
+    if (!host || host.page !== p.page) { add({ role: "agent", text: "Open that studio and I can apply this there.", note: true }); return; }
+    const patch: ControlPatch = { ...(p.controls as ControlPatch), ...(p.prompt ? { prompt: p.prompt } : {}) };
+    let refused: string[] = [];
+    if (Object.keys(p.controls).length && host.controls) refused = host.controls.apply(patch).refused;
+    else if (p.prompt) host.setPrompt(p.prompt);
+    write(agent, read(agent).map((m) => (m.id === msgId ? { ...m, proposal: { ...p, applied: andGenerate ? "generate" : "apply" } } : m)));
+    window.dispatchEvent(new CustomEvent("eclipse-agent-nod"));
+    if (refused.length) add({ role: "agent", text: `I couldn't set: ${refused.join(" ")}`, note: true, error: true });
+    if (!andGenerate) { add({ role: "agent", text: host.page === "core" ? "Applied. It's in your message box." : "Applied to your prompt box.", note: true }); return; }
+    await new Promise((r) => setTimeout(r, 250)); // let the screen take the new settings before it reads them
+    const why = await host.generate({ prompt: p.prompt, count: p.count });
+    add({ role: "agent", text: why ? `Applied, but I couldn't start it: ${why}` : host.page === "core" ? "Applied and sent to Core." : "Applied. It's rendering. Watch the preview; it keeps going if you leave.", note: true, error: !!why });
+  }, [agent, add]);
+
   // The user pressed "Use as start frame" / "Use as ingredient" under a captured frame.
   const useFrame = useCallback(async (msgId: string, frameId: string, as: "start" | "ingredient") => {
     if (!agent || !host?.useFrame) return;
@@ -285,8 +302,12 @@ export function useAgentChat(agent: string | null) {
     write(agent, hit.messages);
   }, [agent]);
   const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
-  return { messages, busy, send, retry, resend, run, useFrame, introduce, clear, past, newChat, openPast, deletePast };
+  return { messages, busy, send, retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
 }
 
 /** True when the screen the user is on can take a captured frame into its prompt box. */
 export const canUseFrame = () => !!host?.useFrame;
+
+/** What the open screen has in its prompt box right now (null when none is open), and which screen it is. */
+export const readHostContext = () => (host ? host.context() : null);
+export const hostPage = () => host?.page;
