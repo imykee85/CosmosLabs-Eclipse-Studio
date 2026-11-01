@@ -55,9 +55,9 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img key={i} className="hf-pic" src={`/dashboard/productshot-${i}.jpg`} alt="" loading="lazy" draggable={false} />))
                     : n === "Beauty shots"
-                      // The carousel's Beauty picture, cropped to the tile shape, is the first tile.
+                      // The carousel's Portrait picture (the red glitter liner), cropped to the tile shape, is the first tile.
                       // eslint-disable-next-line @next/next/no-img-element
-                      ? <><img className="hf-pic" src="/dashboard/beauty-1.jpg" alt="" loading="lazy" draggable={false} /><Empty /><Empty /><Empty /></>
+                      ? <><img className="hf-pic" src="/dashboard/beauty-portrait.jpg" alt="" loading="lazy" draggable={false} /><Empty /><Empty /><Empty /></>
                       : <><Empty /><Empty /><Empty /><Empty /></>}
               </div>
               <div className="hf-col-meta"><b>{n}</b><MoreVertical size={16} aria-hidden="true" /></div>
