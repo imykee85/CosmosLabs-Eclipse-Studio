@@ -54,12 +54,13 @@ export default function CanvasCarousel() {
     const box = root.current;
     if (!box) return;
     const cards = Array.from(box.querySelectorAll<HTMLElement>(".wow-slide"));
-    let R = 1, stepDeg = 20, stepPx = 1;
+    let R = 1, stepDeg = 20, stepPx = 1, lastW = 0;
     let pos = START_POS, vel = 0, down = false, lastX = 0, lastT = 0, hover = false, raf = 0, prev = 0, visible = true;
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const measure = () => {
-      const W = Math.min(box.clientWidth, MAX_W);
+      lastW = box.clientWidth;
+      const W = Math.min(lastW, MAX_W);
       const w = W * CARD_W, h = W * CARD_H;
       R = W * CAMERA;
       stepDeg = (2 * Math.atan(w / 2 / R) * 180) / Math.PI + GAP_DEG;
@@ -107,6 +108,8 @@ export default function CanvasCarousel() {
     const tick = (t: number) => {
       const dt = Math.min(0.05, (t - (prev || t)) / 1000);
       prev = t;
+      // Instagram's built-in browser (and some phones) settle the page width after the first paint without announcing it: measure again whenever the width has changed.
+      if (box.clientWidth !== lastW) measure();
       if (!down && visible) {
         if (Math.abs(vel) > 0.02) { pos += vel * dt; vel *= Math.pow(0.04, dt); }   // a flick glides to a stop
         else if (!hover && !still) pos += (DRIFT_PX_S / stepPx) * dt;
@@ -130,6 +133,10 @@ export default function CanvasCarousel() {
     const enter = () => { hover = true; }, leave = () => { hover = false; };
     const io = new IntersectionObserver(([en]) => { visible = en.isIntersecting; }, { threshold: 0 });
     const resize = () => { measure(); paint(); };
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => { if (box.clientWidth !== lastW) resize(); }) : null;
+    ro?.observe(box);
+    window.addEventListener("load", resize);
+    window.visualViewport?.addEventListener("resize", resize);
 
     measure(); paint();
     io.observe(box);
@@ -142,7 +149,8 @@ export default function CanvasCarousel() {
     box.addEventListener("mouseleave", leave);
     raf = requestAnimationFrame(tick);
     return () => {
-      cancelAnimationFrame(raf); io.disconnect();
+      cancelAnimationFrame(raf); io.disconnect(); ro?.disconnect();
+      window.removeEventListener("load", resize); window.visualViewport?.removeEventListener("resize", resize);
       overlays.forEach((o) => o?.remove());
       window.removeEventListener("resize", resize);
       box.removeEventListener("pointerdown", onDown); box.removeEventListener("pointermove", onMove);
