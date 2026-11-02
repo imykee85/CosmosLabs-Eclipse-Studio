@@ -10,7 +10,7 @@
 .hf-empty { display: block; border-radius: 14px; background: var(--a-card); border: 1px solid var(--a-line); }
 
 /* collections: a 2 x 2 grid of empty tiles with a name under it */
-.hf-col { flex: 0 0 min(240px, 62%); }
+.hf-col { position: relative; flex: 0 0 min(240px, 62%); }
 .hf-quad { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 3px; aspect-ratio: 1 / .95; border-radius: 18px; overflow: hidden; }
 .hf-quad .hf-empty { border-radius: 0; height: 100%; }
 .hf-pic { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -37,7 +37,7 @@
 .hf-label { position: absolute; left: 18px; bottom: 16px; font-size: 15px; font-weight: 500; }
 
 /* looks: a card with a title and a grid of empty circles */
-.hf-looks { flex: 0 0 min(330px, 66%); padding: 24px; border-radius: 20px; background: var(--a-card); border: 1px solid var(--a-line); }
+.hf-looks { position: relative; flex: 0 0 min(330px, 66%); padding: 24px; border-radius: 20px; background: var(--a-card); border: 1px solid var(--a-line); }
 .hf-looks b { font-size: 20px; font-weight: 500; }
 .hf-dots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 22px; }
 .hf-dot { aspect-ratio: 1; border-radius: 16px; background: var(--a-input); }
@@ -87,3 +87,8 @@
 
 /* The home feed's pictures and clips are Eclipse's own: no long-press save sheet, no dragging them out, no pointer on the file itself (links around them still work). */
 .hf img, .hf video, .hf picture { -webkit-user-drag: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; pointer-events: none; }
+
+/* Small gold crown in the top right corner of the discovery cards. */
+.hf-crown { position: absolute; top: 10px; right: 10px; z-index: 3; color: #e8b923; fill: #f4c430; pointer-events: none; filter: drop-shadow(0 1px 3px rgba(0,0,0,.45)); }
+.hf-looks .hf-crown { top: 14px; right: 14px; }
+.hf-cover { position: absolute; inset: 0; z-index: 2; border-radius: 20px; }

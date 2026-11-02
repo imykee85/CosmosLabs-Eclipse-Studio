@@ -1,0 +1,3 @@
+.pc-crown { color: #e8b923; fill: #f4c430; vertical-align: -2px; }
+.pc-lock { display: grid; justify-items: start; gap: 10px; padding: 18px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-card); }
+.pc-lock p { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--a-muted); font-size: 14px; line-height: 1.5; }

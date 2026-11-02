@@ -7,7 +7,7 @@ import { BENEFITS, FEATURE_MIN, PLAN_RANK, planAllows, plansFor, upgradeText, ty
 const MATRIX: Record<Feature, PlanId> = {
   studios: "starter",
   plan_tools: "starter", certificates: "starter", portfolio: "starter", api: "starter", teams: "starter",
-  atlas: "starter", canvas: "growth", agents: "growth", core: "growth", builds: "scale", workflows: "scale",
+  atlas: "starter", canvas: "growth", agents: "growth", core: "growth", builds: "scale", workflows: "scale", premium: "growth",
 };
 
 test("the feature table is the owner's", () => { assert.deepEqual(FEATURE_MIN, MATRIX); });
