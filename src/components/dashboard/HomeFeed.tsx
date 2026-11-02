@@ -70,13 +70,13 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" onButton={() => onGo("/motion")} />
         <ul className="hf-row hf-row-2">
           <li className="hf-wide">
-            <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
-          </li>
-          <li className="hf-wide">
             <div className="hf-wide-link"><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Filmmaking</span></div>
           </li>
           <li className="hf-wide">
             <div className="hf-wide-link"><div className="hf-collage">{[1, 2, 3].map((n) => (<div key={n} className="hf-cell"><LoopVideo className="hf-video" src={`/landing/influencer-${n}.mp4`} webm={`/landing/influencer-${n}.webm`} poster={`/landing/influencer-${n}-poster.jpg`} /></div>))}</div><span className="hf-label hf-label-on-video">Influencer Marketing</span></div>
+          </li>
+          <li className="hf-wide">
+            <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
           </li>
         </ul>
       </div>
@@ -87,7 +87,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
               <b>{n}</b>
-              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [1, 3, 4, 5, 7] : [0, 2, 4, 7]).includes(i)
+              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [0, 1, 2, 3, 4, 5, 6, 7, 8] : [0, 1, 2, 4, 7]).includes(i)
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img key={i} className="hf-dot hf-pic" src={`/dashboard/look-${n.toLowerCase()}-${i + 1}.jpg`} style={i === 1 ? { objectPosition: "50% 38%" } : undefined} alt="" loading="lazy" draggable={false} />
                 : <Empty key={i} className="hf-dot" />)}</div>
