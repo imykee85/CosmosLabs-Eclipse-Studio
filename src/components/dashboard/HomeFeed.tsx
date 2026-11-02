@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, MoreVertical, Plus } from "lucide-react";
+import { ArrowRight, Crown, MoreVertical, Plus } from "lucide-react";
 import ProtectMedia from "@/components/landing/ProtectMedia";
 import { ClipCard } from "@/components/landing/ClipCard";
 import "./home-feed.css";
@@ -21,6 +21,8 @@ const FAQ: [string, string][] = [
 function LoopVideo({ src, webm, poster, className = "" }: { src: string; webm: string; poster: string; className?: string }) {
   return <ClipCard src={src} webm={webm} poster={poster} className={className} />;
 }
+
+const Gold = () => <Crown className="hf-crown" size={18} aria-hidden="true" />;
 
 const Empty = ({ className = "" }: { className?: string }) => <span className={`hf-empty ${className}`} />;
 
@@ -44,6 +46,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <ul className="hf-row">
           {["Art Direction", "Portraits", "Interiors", "Product shots", "Beauty shots"].map((n) => (
             <li key={n} className="hf-col">
+              <Gold />
               <div className="hf-quad">
                 {n === "Art Direction" || n === "Portraits" || n === "Interiors"
                   ? [1, 2, 3, 4].map((i) => (
@@ -70,12 +73,15 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <Head title="A video library for every idea" sub="Find footage, templates and motion to power up your projects." button="Discover all videos" onButton={() => onGo("/motion")} />
         <ul className="hf-row hf-row-2">
           <li className="hf-wide">
+              <Gold />
             <div className="hf-wide-link"><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Filmmaking</span></div>
           </li>
           <li className="hf-wide">
+              <Gold />
             <div className="hf-wide-link"><div className="hf-collage">{[1, 2, 3].map((n) => (<div key={n} className="hf-cell"><LoopVideo className="hf-video" src={`/landing/influencer-${n}.mp4`} webm={`/landing/influencer-${n}.webm`} poster={`/landing/influencer-${n}-poster.jpg`} /></div>))}</div><span className="hf-label hf-label-on-video">Influencer Marketing</span></div>
           </li>
           <li className="hf-wide">
+              <Gold />
             <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
           </li>
         </ul>
@@ -86,6 +92,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <ul className="hf-row hf-row-2">
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
+              <Gold />
               <b>{n}</b>
               <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [0, 1, 2, 3, 4, 5, 6, 7, 8] : [0, 1, 2, 4, 7]).includes(i)
                 // eslint-disable-next-line @next/next/no-img-element
