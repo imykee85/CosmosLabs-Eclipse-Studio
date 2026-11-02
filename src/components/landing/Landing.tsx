@@ -24,7 +24,6 @@ import ScrollReveal from "./ScrollReveal";
 import StudioFlow from "./StudioFlow";
 import IndustryStrip from "./IndustryStrip";
 import Logo from "@/components/Logo";
-import { priceList } from "./price-list";
 import PlanDeck from "./PlanDeck";
 import "@/app/landing.css";
 
@@ -383,20 +382,7 @@ export default function Landing() {
         </PlanDeck>
         <div className="price-list">
           <div className="eyebrow">0% MARKUP</div>
-          <p className="pl-sub">No markup on model prices. A few of the most used:</p>
-          <dl>
-            {priceList.map((g) => (
-              <div className="pl-group" key={g.name}>
-                <dt>{g.name}</dt>
-                <dd>
-                  {g.lines.map((l) => (
-                    <div className="pl-line" key={l.label}><span>{l.label}</span><b>{l.price}</b></div>
-                  ))}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="pl-note">Each generation costs the model maker’s own price, rounded up to the next cent. Plans include the studio, Atlas and Core.</p>
+          <p className="pl-sub">No markup on model prices.</p>
         </div>
       </section>
 
