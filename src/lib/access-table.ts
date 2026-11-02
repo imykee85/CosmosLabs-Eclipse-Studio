@@ -5,7 +5,7 @@ export type PlanId = "free" | "starter" | "growth" | "scale";
 export const PLAN_RANK: Record<PlanId, number> = { free: 0, starter: 1, growth: 2, scale: 3 };
 export const PLAN_NAME: Record<PlanId, string> = { free: "Free", starter: "Starter", growth: "Growth", scale: "Scale" };
 
-export type Feature = "studios" | "plan_tools" | "certificates" | "portfolio" | "api" | "teams" | "atlas" | "canvas" | "agents" | "core" | "builds" | "workflows";
+export type Feature = "studios" | "plan_tools" | "certificates" | "portfolio" | "api" | "teams" | "atlas" | "canvas" | "agents" | "core" | "builds" | "workflows" | "premium";
 
 /** The cheapest plan that includes each feature. */
 export const FEATURE_MIN: Record<Feature, PlanId> = {
@@ -21,12 +21,13 @@ export const FEATURE_MIN: Record<Feature, PlanId> = {
   core: "growth",          // chat, skills, tools, memory, connectors
   builds: "scale",         // build-with-Core (cloud computer)
   workflows: "scale",      // automated workflows: NOT built yet, shown as Soon
+  premium: "growth",       // the crowned collections on the dashboard: the owner's pictures, videos and the prompts behind them
 };
 
 export const FEATURE_LABEL: Record<Feature, string> = {
   studios: "Video and Audio Studios",
   plan_tools: "Treatment and Prompts", certificates: "Certificates", portfolio: "Portfolio", api: "API and MCP access", teams: "Teams",
-  atlas: "Atlas", canvas: "Canvas", agents: "Your own agents", core: "Core", builds: "Building tools with Core", workflows: "Automated workflows",
+  atlas: "Atlas", canvas: "Canvas", agents: "Your own agents", core: "Core", builds: "Building tools with Core", workflows: "Automated workflows", premium: "Premium collections",
 };
 
 export const planAllows = (plan: PlanId, feature: Feature): boolean => PLAN_RANK[plan] >= PLAN_RANK[FEATURE_MIN[feature]];
@@ -39,7 +40,7 @@ export function plansFor(feature: Feature): string {
 }
 
 /** The sentence shown in the upgrade pop-up. */
-export const upgradeText = (feature: Feature): string => `${FEATURE_LABEL[feature]} ${feature === "agents" || feature === "builds" || feature === "studios" ? "are" : "is"} included in ${plansFor(feature)}.`;
+export const upgradeText = (feature: Feature): string => `${FEATURE_LABEL[feature]} ${feature === "agents" || feature === "builds" || feature === "studios" || feature === "premium" ? "are" : "is"} included in ${plansFor(feature)}.`;
 
 /** Starter's daily Atlas messages (Config value ATLAS_DAILY_MESSAGES_STARTER can change it); Growth and Scale have none. */
 export const ATLAS_DAILY_STARTER_DEFAULT = 30;
