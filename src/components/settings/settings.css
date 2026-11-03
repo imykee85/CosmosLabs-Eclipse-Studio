@@ -178,3 +178,12 @@
 .st-planSave { padding: 3px 10px; border-radius: 999px; background: rgba(229, 72, 77, .16); color: #e5484d; font-size: 12px; font-weight: 600; }
 .st-cancel { display: grid; gap: 12px; margin-top: 18px; justify-items: start; }
 .st-cancel-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* Plan cards in Billing follow the homepage pricing cards: the name as a heading, a large price, the value line and a check list. */
+.st-planCard .st-planHead { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.st-planCard .st-price { margin: 0; font-size: 48px; line-height: 1; letter-spacing: -.03em; }
+.st-planCard .st-price small { margin-left: 4px; font-size: 15px; }
+.st-planCard .st-planValue { margin: 0; color: var(--a-fg2); font-size: 15px; font-weight: 500; }
+.st-planList { display: grid; gap: 10px; margin: 2px 0 0; padding: 0; list-style: none; color: var(--a-fg2); font-size: 15px; }
+.st-planList li { display: flex; align-items: center; gap: 10px; }
+.st-planList svg { flex: none; color: #ff5a5a; }

@@ -1,6 +1,6 @@
 import { fmtCredits } from "@/lib/credit-units";
 import { planSaving, planValue } from "@/lib/plan-copy";
-import { CreditCard, Inbox, Zap } from "lucide-react";
+import { Check, CreditCard, Inbox, Zap } from "lucide-react";
 import UpgradeButton from "./UpgradeButton";
 import CurrentPlan from "./CurrentPlan";
 import PlanBenefits from "@/components/PlanBenefits";
@@ -44,11 +44,14 @@ export default function BillingPanel() {
         <div className="st-plans">
           {plans.map((p) => (
             <article key={p.name} className="st-planCard">
-              <div className="st-planHead"><span className="st-pill">{p.name}</span>{planSaving(p) > 0 && <span className="st-planSave">Save {planSaving(p)}%</span>}</div>
-              <p className="st-price">${p.price}<small>/mo</small></p>
+              <h4 className="st-planHead">{p.name}{planSaving(p) > 0 && <span className="st-planSave">Save {planSaving(p)}%</span>}</h4>
+              <p className="st-price">${p.price}<small>/month</small></p>
               <PriceBadge usd={p.price} className="badge-row" />
-              <p className="st-meta">{fmtCredits(p.credits)} credits/mo · {p.seats} seat{p.seats === 1 ? "" : "s"}</p>
-              <p className="st-meta st-value">{planValue(p)}</p>
+              <p className="st-planValue">{planValue(p)}</p>
+              <ul className="st-planList">
+                <li><Check size={15} /> {fmtCredits(p.credits)} credits every month</li>
+                <li><Check size={15} /> {p.seats} seat{p.seats === 1 ? "" : "s"}</li>
+              </ul>
               <PlanBenefits planId={p.id as "starter" | "growth" | "scale"} />
               <UpgradeButton planId={p.id} />
             </article>
