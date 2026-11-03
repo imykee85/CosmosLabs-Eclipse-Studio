@@ -235,9 +235,9 @@ export const whop: PaymentProvider = {
       }),
     });
     if (!res.ok) throw new Error(`Whop card setup failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
-    const body = (await res.json()) as { purchase_url?: string };
+    const body = (await res.json()) as { id?: string; purchase_url?: string };
     if (!body.purchase_url) throw new Error("Whop did not return a card page address");
-    return { url: body.purchase_url };
+    return ownPage(body, undefined, returnUrl); // the same embedded page as purchases (WHOP_EMBED=off goes back to Whop's own page)
   },
 
   async cancelMembership(membershipId: string, opts?: { atPeriodEnd?: boolean }) {
