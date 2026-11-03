@@ -33,7 +33,12 @@ export default function ThreeLight({ thumb, lights, sel, onSelect, onMove, onFai
         if (disposed || !el) return;
         const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: "low-power" });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        renderer.setClearColor(0x0d0d10, 1);
+        // the scene takes the app theme: the stage colour is read from the page, and the floor grid is drawn lighter or darker to match
+        const stage = getComputedStyle(el).getPropertyValue("--a-input").trim() || "#0d0d10";
+        let bg = new T.Color(0x0d0d10);
+        try { bg = new T.Color(stage); } catch { /* keep the dark default */ }
+        const dark = bg.r * 0.299 + bg.g * 0.587 + bg.b * 0.114 < 0.5;
+        renderer.setClearColor(bg, 1);
         el.appendChild(renderer.domElement);
         renderer.domElement.style.cssText = "display:block;width:100%;height:100%;touch-action:none;";
 
@@ -41,7 +46,7 @@ export default function ThreeLight({ thumb, lights, sel, onSelect, onMove, onFai
         const camera = new T.PerspectiveCamera(38, 1.25, 0.1, 60);
         scene.add(new T.AmbientLight(0xffffff, 0.35));
 
-        const grid = new T.GridHelper(10, 20, 0x4a5080, 0x2a2e4a);
+        const grid = new T.GridHelper(10, 20, dark ? 0x4a5080 : 0x9a9aa8, dark ? 0x2a2e4a : 0xc4c4cf);
         (grid.material as import("three").Material).transparent = true;
         (grid.material as import("three").Material).opacity = 0.6;
         scene.add(grid);

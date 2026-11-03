@@ -394,7 +394,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 
 /* The overlay used by the Variations and Change Camera panels */
 .cr-var-back { position: fixed; inset: 0; z-index: 260; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
-.cr-var { width: min(520px, 100%); max-height: 92dvh; overflow-y: auto; background: var(--a-card); color: inherit; border-radius: 22px 22px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+.cr-var { width: min(520px, 100%); max-height: 92dvh; overflow-y: auto; background: var(--a-card); color: var(--a-fg); border-radius: 22px 22px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
 @media (min-width: 801px) { .cr-var-back { align-items: center; } .cr-var { border-radius: 22px; } }
 .cr-var-head { display: flex; align-items: center; gap: 12px; }
 .cr-var-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
@@ -466,3 +466,22 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-light-opts label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
 .cr-light-opts select { width: 100%; background: var(--a-input); color: inherit; border: 1px solid var(--a-line); border-radius: 12px; padding: 11px 12px; font: inherit; font-size: 15px; }
 @media (min-width: 801px) { .cr-var.cr-light > .cr-cam-stage .cr-cam-3d { height: min(34dvh, 300px); } }
+
+/* Relight, laid out like the reference but in Eclipse's own colours (they follow light and dark) */
+.cr-light-label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .65; margin-top: 4px; }
+.cr-light-quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cr-light-quick button { border: 1px solid var(--a-line); background: var(--a-input); color: inherit; font: inherit; font-size: 15px; padding: 12px 8px; border-radius: 999px; cursor: pointer; }
+.cr-light-quick button.is-on { border-color: #c00707; box-shadow: inset 0 0 0 1px #c00707; }
+.cr-bar { position: relative; height: 46px; border-radius: 12px; background: var(--a-input); overflow: hidden; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 14px; font-weight: 500; }
+.cr-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, #c00707 22%, transparent); pointer-events: none; }
+.cr-bar-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #c00707; pointer-events: none; }
+.cr-bar label, .cr-bar output { position: relative; pointer-events: none; }
+.cr-bar output { opacity: .75; font-weight: 400; }
+.cr-bar input[type=range] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: ew-resize; }
+.cr-light .cr-light-opts { display: flex; gap: 8px; }
+.cr-light-chip { position: relative; display: flex; align-items: center; gap: 8px; flex: 1; background: var(--a-input); border-radius: 12px; padding: 0 12px; height: 46px; }
+.cr-light-chip.is-count { flex: none; min-width: 96px; }
+.cr-light-chip select { appearance: none; background: transparent; border: 0; color: inherit; font: inherit; font-size: 15px; font-weight: 500; flex: 1; height: 100%; cursor: pointer; }
+.cr-light-chip select:focus { outline: none; }
+.cr-light .cr-cam-stage { background: var(--a-input); }
+@media (min-width: 801px) { .cr-var.cr-light { width: min(560px, calc(100% - 48px)); display: flex; flex-direction: column; align-items: stretch; } .cr-var.cr-light > * { margin-inline: 0; } .cr-var.cr-light > .cr-cam-stage { border-radius: 14px; } .cr-var.cr-light > .cr-cam-stage .cr-cam-3d { height: min(36dvh, 320px); } }

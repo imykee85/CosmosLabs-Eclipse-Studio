@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp, Loader2, Plus, X } from "lucide-react";
+import { ArrowUp, Images, Loader2, Maximize2, Plus, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import ThreeLight from "./ThreeLight";
 import { COLORS, DEFAULT_LIGHT, ELEV_MAX, ELEV_MIN, FEATURE_NAME, INTENSITY_MAX, MAX_LIGHTS, QUICK, clean, type Light } from "@/lib/relight/prompt";
@@ -39,14 +39,22 @@ export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose
           <button type="button" className="cr-var-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
 
+        <div className="cr-light-label">Light preview</div>
         <div className="cr-cam-stage">
           {!flat && <ThreeLight thumb={thumb} lights={lights} sel={sel} onSelect={setSel} onMove={(i, p) => setLights((l) => l.map((x, k) => (k === i ? clean({ ...x, ...p }) : x)))} onFail={() => setFlat(true)} />}
           {flat && <div className="cr-light-flat">The 3D preview isn&apos;t available on this device. Use the controls below.</div>}
         </div>
 
-        <div className="cr-cam-chips" role="group" aria-label="Quick select">
-          {QUICK.map((q) => <button key={q.id} type="button" onClick={() => change(q.patch(light))}>{q.label}</button>)}
+        <div className="cr-light-label">Quick select</div>
+        <div className="cr-light-quick" role="group" aria-label="Quick select">
+          {QUICK.map((q) => {
+            const want = q.patch(light);
+            const on = want.rotate === light.rotate && want.elevation === light.elevation;
+            return <button key={q.id} type="button" className={on ? "is-on" : ""} onClick={() => change(q.patch(light))}>{q.label}</button>;
+          })}
         </div>
+
+        <div className="cr-light-label">Light settings</div>
 
         <div className="cr-light-row">
           <div className="cr-light-tabs" role="tablist" aria-label="Lights">
@@ -64,13 +72,13 @@ export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose
           </div>
         </div>
 
-        <div className="cr-cam-slider"><label htmlFor="cr-l-r">Rotate</label><input id="cr-l-r" type="range" min={0} max={359} value={light.rotate} onChange={(e) => change({ rotate: Number(e.target.value) })} /><output>{light.rotate}°</output></div>
-        <div className="cr-cam-slider"><label htmlFor="cr-l-e">Elevation</label><input id="cr-l-e" type="range" min={ELEV_MIN} max={ELEV_MAX} value={light.elevation} onChange={(e) => change({ elevation: Number(e.target.value) })} /><output>{light.elevation}°</output></div>
-        <div className="cr-cam-slider"><label htmlFor="cr-l-i">Intensity</label><input id="cr-l-i" type="range" min={0} max={INTENSITY_MAX} value={light.intensity} onChange={(e) => change({ intensity: Number(e.target.value) })} /><output>{light.intensity}</output></div>
+        <Bar id="cr-l-r" label="Rotate" min={0} max={359} value={light.rotate} unit="°" onChange={(v) => change({ rotate: v })} />
+        <Bar id="cr-l-e" label="Elevation" min={ELEV_MIN} max={ELEV_MAX} value={light.elevation} unit="°" onChange={(v) => change({ elevation: v })} />
+        <Bar id="cr-l-i" label="Intensity" min={0} max={INTENSITY_MAX} value={light.intensity} unit="" onChange={(v) => change({ intensity: v })} />
 
         <div className="cr-light-opts">
-          <label>Quality<select value={tier} onChange={(e) => setTier(e.target.value)}>{tiers.map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}</select></label>
-          <label>Images<select value={count} onChange={(e) => setCount(Number(e.target.value))}>{[1, 2, 3, 4].map((n) => <option key={n} value={n}>x{n}</option>)}</select></label>
+          <label className="cr-light-chip" aria-label="Quality"><Maximize2 size={14} /><select value={tier} onChange={(e) => setTier(e.target.value)}>{tiers.map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}</select></label>
+          <label className="cr-light-chip is-count" aria-label="Images"><Images size={14} /><select value={count} onChange={(e) => setCount(Number(e.target.value))}>{[1, 2, 3, 4].map((n) => <option key={n} value={n}>x{n}</option>)}</select></label>
         </div>
 
         <GrowArea className="cr-var-text" rows={1} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional), for example: soft shadows" />
@@ -81,6 +89,20 @@ export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** A slider drawn as a filled bar with its name on the left and its value on the right. */
+function Bar({ id, label, min, max, value, unit, onChange }: { id: string; label: string; min: number; max: number; value: number; unit: string; onChange: (v: number) => void }) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="cr-bar">
+      <div className="cr-bar-fill" style={{ width: `${pct}%` }} />
+      <span className="cr-bar-line" style={{ left: `${pct}%` }} />
+      <label htmlFor={id}>{label}</label>
+      <output>{value}{unit && ` ${unit}`}</output>
+      <input id={id} type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label={label} />
     </div>
   );
 }
