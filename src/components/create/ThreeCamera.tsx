@@ -70,10 +70,10 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
         });
 
         // the guides: the ring on the floor and the arc of the chosen camera
-        const ring = new T.Mesh(new T.TorusGeometry(R, 0.012, 8, 96), new T.MeshBasicMaterial({ color: 0x4f6bff, transparent: true, opacity: 0.55 }));
+        const ring = new T.Mesh(new T.TorusGeometry(R, 0.045, 12, 96), new T.MeshStandardMaterial({ color: 0x4f6bff, emissive: 0x2a3cff, emissiveIntensity: 0.8 }));
         ring.rotation.x = Math.PI / 2; ring.position.y = 0.03; scene.add(ring);
         const a0 = rad(VERTICAL_MIN), a1 = rad(VERTICAL_MAX);
-        const arc = new T.Mesh(new T.TorusGeometry(R, 0.012, 8, 64, a1 - a0), new T.MeshBasicMaterial({ color: 0x8a5cf5, transparent: true, opacity: 0.55 }));
+        const arc = new T.Mesh(new T.TorusGeometry(R, 0.045, 12, 64, a1 - a0), new T.MeshStandardMaterial({ color: 0x8a5cf5, emissive: 0x6a38e8, emissiveIntensity: 0.8 }));
         arc.rotation.z = a0;
         const arcPivot = new T.Group(); arcPivot.position.set(0, CY, 0); arcPivot.add(arc); scene.add(arcPivot);
 
@@ -110,6 +110,12 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
           (r.view.material as import("three").Material).dispose();
         };
 
+        // the handles: a blue ball on the ring for each camera (turn it round) and a purple ball on the arc of the chosen camera (raise or lower it)
+        const ballGeo = new T.SphereGeometry(0.15, 24, 18);
+        const blues: import("three").Mesh[] = [];
+        const purple = new T.Mesh(new T.SphereGeometry(0.17, 24, 18), new T.MeshStandardMaterial({ color: 0x9a6bff, emissive: 0x5b2fd0, emissiveIntensity: 0.6, roughness: 0.25, metalness: 0.1 }));
+        scene.add(purple);
+
         let goal: Cam[] = [];
         let sel0 = 0;
         const shortest = (from: number, to: number) => ((to - from + 540) % 360) - 180;
@@ -128,10 +134,13 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
           r.view.rotateY(Math.PI / 4);
           (r.view.material as import("three").MeshBasicMaterial).color.set(selected ? 0xd90b0b : 0x4f6bff);
           (r.view.material as import("three").MeshBasicMaterial).opacity = selected ? 0.16 : 0.09;
+          const b = blues[i];
+          if (b) { b.position.set(-R * Math.sin(rad(r.rotate)), 0.06, R * Math.cos(rad(r.rotate))); b.scale.setScalar(selected ? 1.25 : 0.9); (b.material as import("three").MeshStandardMaterial).color.set(selected ? 0xd90b0b : 0x4f6bff); (b.material as import("three").MeshStandardMaterial).emissive.set(selected ? 0x8a0000 : 0x1d2fd6); }
+          if (selected) { const a = rad(r.rotate), v = rad(r.vertical); purple.position.set(-R * Math.sin(a) * Math.cos(v), CY + R * Math.sin(v), R * Math.cos(a) * Math.cos(v)); }
         }
         function sync() {
-          while (rigs.length < goal.length) rigs.push(makeRig());
-          while (rigs.length > goal.length) removeRig(rigs.pop()!);
+          while (rigs.length < goal.length) { rigs.push(makeRig()); const b = new T.Mesh(ballGeo, new T.MeshStandardMaterial({ color: 0x4f6bff, emissive: 0x1d2fd6, emissiveIntensity: 0.5, roughness: 0.25, metalness: 0.1 })); scene.add(b); blues.push(b); }
+          while (rigs.length > goal.length) { removeRig(rigs.pop()!); const b = blues.pop()!; scene.remove(b); (b.material as import("three").Material).dispose(); }
         }
         let raf = 0;
         function frame() {
@@ -175,18 +184,38 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
         const ndc = new T.Vector2();
         const dom = renderer.domElement;
         let drag = -1;
+        let dragKind: "cam" | "ring" | "arc" = "cam";
         const setRay = (e: PointerEvent) => { const r = dom.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); };
         const onDown = (e: PointerEvent) => {
           setRay(e);
-          const hit = ray.intersectObjects(rigs.map((r) => r.hit), false)[0];
+          const hit = ray.intersectObjects([purple, ...blues, ...rigs.map((r) => r.hit)], false)[0];
           if (!hit) return;
           e.preventDefault(); dom.setPointerCapture?.(e.pointerId);
-          drag = rigs.findIndex((r) => r.hit === hit.object);
-          latest.current.onSelect(drag);
+          if (hit.object === purple) { dragKind = "arc"; drag = latest.current.sel; }
+          else if (blues.includes(hit.object as import("three").Mesh)) { dragKind = "ring"; drag = blues.indexOf(hit.object as import("three").Mesh); latest.current.onSelect(drag); }
+          else { dragKind = "cam"; drag = rigs.findIndex((r) => r.hit === hit.object); latest.current.onSelect(drag); }
         };
         const onMovePtr = (e: PointerEvent) => {
           if (drag < 0) return;
           setRay(e);
+          if (dragKind === "ring") {
+            const pr = new T.Vector3();
+            if (ray.ray.intersectPlane(new T.Plane(new T.Vector3(0, 1, 0), -0.06), pr)) latest.current.onMove(drag, { rotate: wrap360((Math.atan2(-pr.x, pr.z) * 180) / Math.PI) });
+            return;
+          }
+          if (dragKind === "arc") {
+            const g = latest.current.cams[drag]; if (!g) return;
+            const a = rad(g.rotate);
+            const dir = new T.Vector3(-Math.sin(a), 0, Math.cos(a));
+            const normal = new T.Vector3(Math.cos(a), 0, Math.sin(a));
+            const pa = new T.Vector3();
+            if (ray.ray.intersectPlane(new T.Plane(normal, -normal.dot(new T.Vector3(0, CY, 0))), pa)) {
+              const along = Math.max(0.05, pa.clone().sub(new T.Vector3(0, CY, 0)).dot(dir));
+              const vv = (Math.atan2(pa.y - CY, along) * 180) / Math.PI;
+              latest.current.onMove(drag, { vertical: Math.round(Math.max(VERTICAL_MIN, Math.min(VERTICAL_MAX, vv))) });
+            }
+            return;
+          }
           const d0 = rigs[drag]?.dist ?? R;
           const sphere = new T.Sphere(new T.Vector3(0, CY, 0), d0);
           const p = new T.Vector3();

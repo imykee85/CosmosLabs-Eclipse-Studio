@@ -20,7 +20,7 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
   const [count, setCount] = useState(1);
   const [cams, setCams] = useState<Cam[]>(() => startCams(1));
   const [sel, setSel] = useState(0);
-  const [locked, setLocked] = useState(true);
+  const [locked, setLocked] = useState(false); // each camera moves on its own unless "Move together" is on
   const [note, setNote] = useState("");
   const [flat, setFlat] = useState(false); // true when the 3D scene cannot run (no WebGL): the drawn version is used instead
   const svg = useRef<SVGSVGElement>(null);
@@ -34,9 +34,16 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
   }, [onClose]);
 
   function setCount2(n: number) {
+    // adding a camera keeps the cameras you already placed and puts the new one on the opposite side, then selects it so the controls move it
+    setSel(n - 1);
     setCount(n);
-    setSel(0);
-    setCams(startCams(n, cams[0] ?? DEFAULT_CAM));
+    setCams((l) => {
+      if (n <= l.length) return l.slice(0, n);
+      const out = [...l];
+      while (out.length < n) { const last = out[out.length - 1] ?? DEFAULT_CAM; out.push(cleanCam({ ...last, rotate: last.rotate + 180 / Math.max(1, out.length) + 90 })); }
+      return out;
+    });
+    if (n <= cams.length) setSel(Math.min(sel, n - 1));
   }
   const change = (patch: Partial<Cam>) => setCams((l) => moveCams(l, Math.min(sel, l.length - 1), cleanCam({ ...(l[sel] ?? DEFAULT_CAM), ...patch }), locked));
   const reset = () => { setCams(startCams(count)); setSel(0); };
@@ -129,6 +136,7 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
         {cams.length > 1 && (
           <div className="cr-cam-pick" role="tablist" aria-label="Cameras">
             {cams.map((_, i) => <button key={i} type="button" role="tab" aria-selected={i === sel} className={i === sel ? "is-on" : ""} onClick={() => setSel(i)}>{i + 1}</button>)}
+            <button type="button" className={`cr-cam-together${locked ? " is-on" : ""}`} aria-pressed={locked} onClick={() => setLocked((v) => !v)}>{locked ? <Lock size={13} /> : <Unlock size={13} />} Move together</button>
           </div>
         )}
 
@@ -141,7 +149,6 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
         <div className="cr-cam-slider"><label htmlFor="cr-cam-z">Zoom</label><input id="cr-cam-z" type="range" min={0} max={ZOOMS.length - 1} step={1} value={zi < 0 ? 0 : zi} onChange={(e) => change({ zoom: ZOOMS[Number(e.target.value)].id })} /><output>{ZOOMS[zi < 0 ? 0 : zi].label}</output></div>
         <div className="cr-cam-slider is-cams">
           <label htmlFor="cr-cam-n">Cameras</label><input id="cr-cam-n" type="range" min={1} max={MAX_CAMERAS} step={1} value={count} onChange={(e) => setCount2(Number(e.target.value))} /><output>{count}</output>
-          <button type="button" className="cr-cam-lock" onClick={() => setLocked((v) => !v)} aria-pressed={locked} aria-label={locked ? "Unlock cameras" : "Lock cameras"} disabled={count < 2}>{locked ? <Lock size={14} /> : <Unlock size={14} />}</button>
         </div>
 
         <GrowArea className="cr-var-text" rows={1} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional), for example: keep the sunglasses on" />
