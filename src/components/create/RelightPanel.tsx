@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowUp, Images, Loader2, Maximize2, Plus, RotateCcw, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import ThreeLight from "./ThreeLight";
+import Bar from "./Bar";
 import { COLORS, DEFAULT_LIGHT, ELEV_MAX, ELEV_MIN, FEATURE_NAME, INTENSITY_MAX, MAX_LIGHTS, QUICK, clean, type Light } from "@/lib/relight/prompt";
 
 export type RelightRun = { lights: Light[]; note: string; tier: string; count: number };
@@ -91,20 +92,6 @@ export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** A slider drawn as a filled bar with its name on the left and its value on the right. */
-function Bar({ id, label, min, max, value, unit, onChange }: { id: string; label: string; min: number; max: number; value: number; unit: string; onChange: (v: number) => void }) {
-  const pct = ((value - min) / (max - min)) * 100;
-  return (
-    <div className="cr-bar">
-      <div className="cr-bar-fill" style={{ width: `${pct}%` }} />
-      <span className="cr-bar-line" style={{ left: `${pct}%` }} />
-      <label htmlFor={id}>{label}</label>
-      <output>{value}{unit && ` ${unit}`}</output>
-      <input id={id} type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label={label} />
     </div>
   );
 }

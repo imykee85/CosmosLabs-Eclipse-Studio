@@ -392,6 +392,8 @@ export default function CreateStudio() {
   }
   // Change Camera: one render per camera, each from the same picture with its own angle (src/lib/camera/prompt.ts).
   const [camOpen, setCamOpen] = useState(false);
+  const camModel = toolModel(models ?? [], "camera");
+  const camTiers = camModel ? ["1k", ...(camModel.resolutions.includes("1080p") ? ["1.5k"] : []), ...(camModel.resolutions.includes("2k") ? ["2k"] : []), ...(camModel.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"];
   const [camError, setCamError] = useState("");
   async function runCamera(run: CameraRun) {
     if (!toolPic || submitting) return;
@@ -402,7 +404,7 @@ export default function CreateStudio() {
       let first: string | undefined;
       let failed = 0, why = "";
       for (const c of run.cams) {
-        const { results } = await startImages({ models: models ?? [], model: m, auto: false, prompt: cameraPrompt(c, run.note), ratio: "auto", tier: toolTier(m, "camera"), qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+        const { results } = await startImages({ models: models ?? [], model: m, auto: false, prompt: cameraPrompt(c, run.note), ratio: "auto", tier: run.tier, qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
         const r = results[0];
         if (r?.ok) first = first ?? r.id; else { failed++; why = r?.error ?? why; }
       }
@@ -608,7 +610,7 @@ export default function CreateStudio() {
       </form>
       </div>
       {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
-      {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
+      {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}

@@ -521,3 +521,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-cam-together { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--a-line); background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
 .cr-cam-pick button.cr-cam-together { width: auto; border-radius: 999px; }
 .cr-cam-together.is-on { border-color: #c00707; box-shadow: inset 0 0 0 1px #c00707; }
+
+.cr-light-quick.is-seven { grid-template-columns: repeat(4, 1fr); }
+.cr-light .cr-cam-together { height: 32px; font-size: 12px; margin-left: 0; }
+.cr-light .cr-light-opts { display: flex; }
