@@ -74,6 +74,15 @@ export function refsFrom(data: Record<string, unknown>): PaymentRefs | undefined
   return refs.memberId || refs.paymentMethodId || refs.membershipId ? refs : undefined;
 }
 
+/** Whop's page would show whop.com in the address bar. Where Whop gave us a plan id, the person is sent to our own /checkout page, which
+ * embeds Whop's checkout, so the address stays on our domain. The Whop address rides along only as a fallback if the embed cannot load. */
+function ownPage(body: { id?: string; purchase_url?: string; plan?: { id?: string } }, planId: string | undefined, returnUrl: string): { url: string } {
+  const url = body.purchase_url as string;
+  if (!body.id || !planId) return { url };
+  const q = new URLSearchParams({ c: body.id, p: planId, r: returnUrl, f: url });
+  return { url: `/checkout?${q.toString()}` };
+}
+
 export const whop: PaymentProvider = {
   name: "whop",
 
@@ -91,9 +100,9 @@ export const whop: PaymentProvider = {
       }),
     });
     if (!res.ok) throw new Error(`Whop checkout failed (${res.status}): ${await res.text()}`);
-    const body = (await res.json()) as { purchase_url?: string };
+    const body = (await res.json()) as { id?: string; purchase_url?: string; plan?: { id?: string } };
     if (!body.purchase_url) throw new Error("Whop did not return a checkout address");
-    return { url: body.purchase_url };
+    return ownPage(body, body.plan?.id ?? (custom ? undefined : whopPlanId(planId)), returnUrl);
   },
 
   async parseWebhook(rawBody: string, headers: Headers): Promise<PaymentEvent | null> {

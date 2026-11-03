@@ -25,14 +25,14 @@ export function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
     // CSP3 browsers: only nonce'd scripts and what they load. Older browsers fall back to the host list and 'unsafe-inline'.
-    `script-src 'nonce-${nonce}' 'strict-dynamic' 'self' 'unsafe-inline' ${CLERK} ${CHALLENGE} https://va.vercel-scripts.com`,
+    `script-src 'nonce-${nonce}' 'strict-dynamic' 'self' 'unsafe-inline' ${CLERK} ${CHALLENGE} https://va.vercel-scripts.com https://js.whop.com https://*.whop.com`,
     // Styles keep 'unsafe-inline': React sets style attributes everywhere, and a style cannot run code.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https://media.prompt-motion.com https://*.r2.cloudflarestorage.com",
-    `connect-src 'self' ${CLERK} https://*.client.protect.clerk.com:8443 https://*.r2.cloudflarestorage.com https://vitals.vercel-insights.com https://va.vercel-scripts.com`,
-    `frame-src 'self' ${CLERK} ${CHALLENGE}`,
+    `connect-src 'self' ${CLERK} https://*.client.protect.clerk.com:8443 https://*.r2.cloudflarestorage.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.whop.com`,
+    `frame-src 'self' ${CLERK} ${CHALLENGE} https://*.whop.com https://whop.com`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",

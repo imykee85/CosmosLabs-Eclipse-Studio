@@ -82,6 +82,17 @@ export async function rememberRefs(userId: string, refs: PaymentRefs | undefined
   await db.billingSettings.upsert({ where: { userId }, create: { userId, ...data }, update: data });
 }
 
+/** A payment's webhook does not always say which card paid. After a plan payment, when no card is saved yet, ask the provider for the
+ * member's cards and keep the first as the default, so top-ups and plan changes need no card details again. */
+async function saveCardAfterPlan(userId: string): Promise<void> {
+  const provider = paymentProvider();
+  if (!provider?.listPaymentMethods) return;
+  const s = await db.billingSettings.findUnique({ where: { userId }, select: { providerMemberId: true, providerPaymentMethod: true } });
+  if (!s?.providerMemberId || s.providerPaymentMethod) return;
+  const cards = await provider.listPaymentMethods(s.providerMemberId);
+  if (cards[0]) await db.billingSettings.update({ where: { userId }, data: { providerPaymentMethod: cards[0].id } });
+}
+
 /** Whose subscription a provider membership id is (a renewal that arrives without our own metadata). */
 async function ownerOfMembership(membershipId: string | undefined): Promise<string | null> {
   if (!membershipId) return null;
@@ -127,6 +138,7 @@ export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Pr
   if (product.kind === "plan") await db.billingSettings.updateMany({ where: { userId }, data: { subscriptionEndedAt: null, cancelRequestedAt: null } }); // paid again: active
   if (product.kind === "plan") await syncTeamSeats(userId, product.id); // a team's member limit follows its plan (no-op for a person)
   await rememberRefs(userId, event.refs, product.kind === "plan").catch((e) => console.error("could not save payment references", e));
+  if (product.kind === "plan") await saveCardAfterPlan(userId).catch((e) => console.error("could not save the card after a plan payment", e));
   return { ok: true, duplicate: !added };
 }
 
