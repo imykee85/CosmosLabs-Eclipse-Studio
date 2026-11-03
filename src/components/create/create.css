@@ -432,3 +432,5 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-cam-tip { margin: 0; font-size: 12px; opacity: .65; }
 .cr-cam-actions { display: flex; gap: 8px; }
 .cr-cam-reset { width: 48px; border-radius: 14px; border: 1px solid var(--a-line); background: transparent; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+
+.cr-cam-3d { width: 100%; aspect-ratio: 300 / 240; }

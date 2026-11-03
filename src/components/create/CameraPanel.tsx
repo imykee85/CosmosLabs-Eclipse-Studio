@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Loader2, Lock, RotateCcw, Unlock, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
+import ThreeCamera from "./ThreeCamera";
 import { DEFAULT_CAM, FEATURE_NAME, MAX_CAMERAS, VERTICAL_MAX, VERTICAL_MIN, ZOOMS, cleanCam, moveCams, startCams, wrap360, type Cam, type ZoomId } from "@/lib/camera/prompt";
 
 export type CameraRun = { cams: Cam[]; note: string };
@@ -21,6 +22,7 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
   const [sel, setSel] = useState(0);
   const [locked, setLocked] = useState(true);
   const [note, setNote] = useState("");
+  const [flat, setFlat] = useState(false); // true when the 3D scene cannot run (no WebGL): the drawn version is used instead
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{ kind: "ring" | "arc"; index: number } | null>(null);
   const cam = cams[sel] ?? DEFAULT_CAM;
@@ -80,6 +82,8 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
         </div>
 
         <div className="cr-cam-stage">
+          {!flat && <ThreeCamera thumb={thumb} cams={cams} sel={sel} onSelect={setSel} onMove={(i, patch) => setCams((l) => moveCams(l, i, cleanCam({ ...l[i], ...patch }), locked))} onFail={() => setFlat(true)} />}
+          {flat && (
           <svg ref={svg} viewBox={`0 0 ${W} ${H}`} onPointerMove={move} onPointerUp={up} onPointerCancel={up} role="img" aria-label="Camera position">
             <defs>
               <radialGradient id="cam-sph-b" cx="35%" cy="30%" r="75%"><stop offset="0" stopColor="#9db1ff" /><stop offset=".55" stopColor="#4f6bff" /><stop offset="1" stopColor="#1f2f9c" /></radialGradient>
@@ -113,6 +117,7 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
               <circle cx={ap.x} cy={ap.y} r={10} fill="url(#cam-sph-p)" className="cr-cam-dot2" />
             </g>
           </svg>
+          )}
           <div className="cr-cam-inset" aria-label="Preview">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={thumb} alt="" style={{ transform: `perspective(180px) rotateY(${-Math.round(cam.rotate > 180 ? cam.rotate - 360 : cam.rotate)}deg) rotateX(${Math.round(cam.vertical * 0.5)}deg) scale(${ZOOM_SCALE[cam.zoom]})` }} />
