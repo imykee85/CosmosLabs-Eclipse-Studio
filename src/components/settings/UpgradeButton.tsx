@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useAccess } from "@/lib/use-access";
 
 // Opens the payment provider's checkout for a plan. Until payments are set up the server answers with a plain reason, shown beside the button.
 export default function UpgradeButton({ planId }: { planId: string }) {
+  const { plan } = useAccess();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function go() {
@@ -18,7 +20,7 @@ export default function UpgradeButton({ planId }: { planId: string }) {
   }
   return (
     <>
-      <button type="button" className="st-upgrade" onClick={go} disabled={busy}>Upgrade</button>
+      <button type="button" className="st-upgrade" onClick={go} disabled={busy || plan === planId}>{plan === planId ? "Current plan" : "Upgrade"}</button>
       {error && <p className="st-meta" role="alert" style={{ color: "#e5484d", marginTop: 8 }}>{error}</p>}
     </>
   );
