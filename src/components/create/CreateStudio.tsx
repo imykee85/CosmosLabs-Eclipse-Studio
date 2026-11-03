@@ -33,6 +33,8 @@ import SoulIdDialog from "./SoulIdDialog";
 import MarkDialog from "./MarkDialog";
 import SheetPortal from "@/components/voice/SheetPortal";
 import CameraPanel, { type CameraRun } from "./CameraPanel";
+import RelightPanel, { type RelightRun } from "./RelightPanel";
+import { relightPrompt } from "@/lib/relight/prompt";
 import { FEATURE_NAME as CAMERA_NAME, cameraPrompt } from "@/lib/camera/prompt";
 
 
@@ -364,6 +366,30 @@ export default function CreateStudio() {
   useEffect(() => { setToolNote(""); setToolMenu(null); }, [toolPic?.id]);
   // A picture tool makes a NEW image from this one (the original stays): the picture is the only ingredient, the instruction is fixed, the model is the best
   // picture-editing model this account has, and "auto" keeps the picture's aspect ratio.
+  // Relight: place up to three lights round the picture; the result is the picture lit that way (one request, up to four images).
+  const [lightOpen, setLightOpen] = useState(false);
+  const [lightError, setLightError] = useState("");
+  const lightModel = toolModel(models ?? [], "relight");
+  const lightTiers = lightModel ? ["1k", ...(lightModel.resolutions.includes("1080p") ? ["1.5k"] : []), ...(lightModel.resolutions.includes("2k") ? ["2k"] : []), ...(lightModel.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"];
+  async function runRelight(run: RelightRun) {
+    if (!toolPic || submitting) return;
+    if (!lightModel) { setLightError("Relight needs a model that edits pictures, and none is connected yet."); return; }
+    setLightError(""); setError(""); setSubmitting(true);
+    try {
+      const { results } = await startImages({ models: models ?? [], model: lightModel, auto: false, prompt: relightPrompt(run.lights, run.note), ratio: "auto", tier: run.tier, qty: run.count, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      const first = results.find((r) => r.ok && r.id)?.id;
+      const bad = results.find((r) => !r.ok);
+      if (!first) throw new Error(bad && !bad.ok ? bad.error : "Something went wrong. Please try again.");
+      setLightOpen(false);
+      if (bad && !bad.ok) setError(`${results.filter((r) => !r.ok).length} of ${run.count} images could not be started: ${bad.error}`);
+      setWatched(first);
+      await reload();
+    } catch (e) {
+      setLightError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
   // Change Camera: one render per camera, each from the same picture with its own angle (src/lib/camera/prompt.ts).
   const [camOpen, setCamOpen] = useState(false);
   const [camError, setCamError] = useState("");
@@ -470,7 +496,7 @@ export default function CreateStudio() {
             <button type="button" tabIndex={toolPic ? 0 : -1} onClick={newVariations} disabled={submitting || !model} title="Make another image from the same prompt"><Shuffle size={14} /> Variations</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("upscale")} title="A sharper, higher-resolution copy of this picture"><ZoomIn size={14} /> Upscale</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("removebg")} title="The subject on a plain white background"><Eraser size={14} /> Remove background</button>
-            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => setToolMenu("relight")} title="Change the lighting"><Sun size={14} /> Relight</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setLightError(""); setLightOpen(true); }} title="Place lights round the picture and change how it is lit"><Sun size={14} /> Relight</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setCamError(""); setCamOpen(true); }} title="See the same moment from another camera position"><Camera size={14} /> Change camera</button>
           </>
         )}
@@ -581,6 +607,7 @@ export default function CreateStudio() {
         </div>
       </form>
       </div>
+      {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
       {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}

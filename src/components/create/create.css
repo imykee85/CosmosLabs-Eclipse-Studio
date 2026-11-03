@@ -450,3 +450,19 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 }
 .cr-cam-3d { width: 100%; aspect-ratio: 300 / 240; }
 @media (min-width: 801px) { .cr-var.cr-cam > .cr-cam-stage .cr-cam-3d { aspect-ratio: auto; height: min(42dvh, 380px); } }
+
+/* Relight panel (shares the Change Camera layout) */
+.cr-light-flat { display: flex; align-items: center; justify-content: center; min-height: 160px; padding: 20px; text-align: center; font-size: 14px; color: #bbb; }
+.cr-light-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cr-light-tabs, .cr-light-colors { display: flex; gap: 6px; align-items: center; }
+.cr-light-tabs button { min-width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--a-line); background: transparent; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; }
+.cr-light-tabs button.is-on { background: var(--a-input); border-color: #c00707; }
+.cr-light-tabs button i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,.5); }
+.cr-light-colors button, .cr-light-custom { width: 30px; height: 30px; border-radius: 9px; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.cr-light-colors button.is-on, .cr-light-custom.is-on { border-color: #fff; box-shadow: 0 0 0 2px #4f6bff; }
+.cr-light-custom { background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); position: relative; overflow: hidden; }
+.cr-light-custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.cr-light-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cr-light-opts label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+.cr-light-opts select { width: 100%; background: var(--a-input); color: inherit; border: 1px solid var(--a-line); border-radius: 12px; padding: 11px 12px; font: inherit; font-size: 15px; }
+@media (min-width: 801px) { .cr-var.cr-light > .cr-cam-stage .cr-cam-3d { height: min(34dvh, 300px); } }
