@@ -78,7 +78,8 @@ export function refsFrom(data: Record<string, unknown>): PaymentRefs | undefined
  * embeds Whop's checkout, so the address stays on our domain. The Whop address rides along only as a fallback if the embed cannot load. */
 function ownPage(body: { id?: string; purchase_url?: string; plan?: { id?: string } }, planId: string | undefined, returnUrl: string): { url: string } {
   const url = body.purchase_url as string;
-  if (!body.id || !planId) return { url };
+  // The embedded page is OFF unless WHOP_EMBED=on (Config value): its first live try showed "checkout no longer available".
+  if (process.env.WHOP_EMBED !== "on" || !body.id || !planId) return { url };
   const q = new URLSearchParams({ c: body.id, p: planId, r: returnUrl, f: url });
   return { url: `/checkout?${q.toString()}` };
 }
