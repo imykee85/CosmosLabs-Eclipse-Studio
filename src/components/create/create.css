@@ -512,3 +512,6 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-light-tabs button { min-width: 28px; height: 28px; font-size: 12px; }
 .cr-light-colors button, .cr-light-custom { width: 22px; height: 22px; border-radius: 7px; }
 .cr-light-label { margin-top: 0; font-size: 11px; }
+
+.cr-cam:not(.cr-light) .cr-cam-3d { aspect-ratio: 1 / 1; }
+@media (min-width: 801px) { .cr-var.cr-cam:not(.cr-light) > .cr-cam-stage .cr-cam-3d { aspect-ratio: auto; height: min(34dvh, 320px); } }
