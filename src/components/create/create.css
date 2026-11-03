@@ -408,13 +408,14 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 /* Change Camera */
 .cr-cam-stage { position: relative; background: #0d0d10; border-radius: 16px; overflow: hidden; }
 .cr-cam-stage svg { display: block; width: 100%; height: auto; touch-action: none; user-select: none; }
-.cr-cam-ring { fill: none; stroke: #4f6bff; stroke-width: 3; }
-.cr-cam-arc { fill: none; stroke: #8a5cf5; stroke-width: 3; stroke-linecap: round; }
-.cr-cam-floor { fill: rgba(255,255,255,.05); }
+.cr-cam-ring { fill: none; stroke: #4f6bff; stroke-width: 4; filter: drop-shadow(0 0 4px rgba(79,107,255,.7)); }
+.cr-cam-ring.is-back { stroke: #2f3f9e; stroke-width: 3; filter: none; }
+.cr-cam-grid { stroke: rgba(150,160,255,.16); stroke-width: 1; }
+.cr-cam-shadow { fill: rgba(0,0,0,.55); }
+.cr-cam-arc { fill: none; stroke: #8a5cf5; stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(138,92,245,.7)); }
 .cr-cam-hit { fill: transparent; cursor: grab; }
-.cr-cam-dot { fill: #4f6bff; stroke: #fff; stroke-width: 2; }
-.cr-cam-h.is-sel .cr-cam-dot { fill: #c00707; }
-.cr-cam-dot2 { fill: #8a5cf5; stroke: #fff; stroke-width: 2; }
+.cr-cam-dot { stroke: rgba(255,255,255,.85); stroke-width: 1.5; }
+.cr-cam-dot2 { stroke: rgba(255,255,255,.85); stroke-width: 1.5; }
 .cr-cam-h text { fill: #fff; font-size: 10px; font-weight: 700; pointer-events: none; }
 .cr-cam-inset { position: absolute; top: 8px; right: 8px; width: 64px; height: 76px; background: #1a1a20; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .cr-cam-inset img { max-width: 70%; max-height: 70%; transition: transform .12s; }
