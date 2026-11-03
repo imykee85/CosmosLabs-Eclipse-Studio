@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp, Images, Loader2, Maximize2, Plus, X } from "lucide-react";
+import { ArrowUp, Images, Loader2, Maximize2, Plus, RotateCcw, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import ThreeLight from "./ThreeLight";
 import { COLORS, DEFAULT_LIGHT, ELEV_MAX, ELEV_MIN, FEATURE_NAME, INTENSITY_MAX, MAX_LIGHTS, QUICK, clean, type Light } from "@/lib/relight/prompt";
@@ -17,6 +17,7 @@ export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose
   const [count, setCount] = useState(1);
   const [flat, setFlat] = useState(false);
   const light = lights[sel] ?? lights[0];
+  const changed = lights.length > 1 || lights.some((l) => JSON.stringify(l) !== JSON.stringify(DEFAULT_LIGHT));
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -42,6 +43,7 @@ export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose
         <div className="cr-light-label">Light preview</div>
         <div className="cr-cam-stage">
           {!flat && <ThreeLight thumb={thumb} lights={lights} sel={sel} onSelect={setSel} onMove={(i, p) => setLights((l) => l.map((x, k) => (k === i ? clean({ ...x, ...p }) : x)))} onFail={() => setFlat(true)} />}
+          {changed && <button type="button" className="cr-light-reset" onClick={() => { setLights([DEFAULT_LIGHT]); setSel(0); }} aria-label="Reset the lights"><RotateCcw size={16} /></button>}
           {flat && <div className="cr-light-flat">The 3D preview isn&apos;t available on this device. Use the controls below.</div>}
         </div>
 

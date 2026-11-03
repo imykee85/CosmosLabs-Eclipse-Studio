@@ -465,7 +465,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-light-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cr-light-opts label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
 .cr-light-opts select { width: 100%; background: var(--a-input); color: inherit; border: 1px solid var(--a-line); border-radius: 12px; padding: 11px 12px; font: inherit; font-size: 15px; }
-@media (min-width: 801px) { .cr-var.cr-light > .cr-cam-stage .cr-cam-3d { height: min(34dvh, 300px); } }
+@media (min-width: 801px) { .cr-var.cr-light > .cr-cam-stage .cr-cam-3d { height: min(30dvh, 280px); } }
 
 /* Relight, laid out like the reference but in Eclipse's own colours (they follow light and dark) */
 .cr-light-label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .65; margin-top: 4px; }
@@ -484,4 +484,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-light-chip select { appearance: none; background: transparent; border: 0; color: inherit; font: inherit; font-size: 15px; font-weight: 500; flex: 1; height: 100%; cursor: pointer; }
 .cr-light-chip select:focus { outline: none; }
 .cr-light .cr-cam-stage { background: var(--a-input); }
-@media (min-width: 801px) { .cr-var.cr-light { width: min(560px, calc(100% - 48px)); display: flex; flex-direction: column; align-items: stretch; } .cr-var.cr-light > * { margin-inline: 0; } .cr-var.cr-light > .cr-cam-stage { border-radius: 14px; } .cr-var.cr-light > .cr-cam-stage .cr-cam-3d { height: min(36dvh, 320px); } }
+@media (min-width: 801px) { .cr-var.cr-light { width: min(560px, calc(100% - 48px)); display: flex; flex-direction: column; align-items: stretch; } .cr-var.cr-light > * { margin-inline: 0; flex-shrink: 0; } .cr-var.cr-light > .cr-cam-stage { border-radius: 14px; } .cr-var.cr-light > .cr-cam-stage .cr-cam-3d { height: min(30dvh, 280px); } }
+
+.cr-light .cr-cam-stage { position: relative; }
+.cr-light-reset { position: absolute; right: 10px; bottom: 10px; z-index: 2; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--a-line); background: var(--a-card); color: inherit; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
