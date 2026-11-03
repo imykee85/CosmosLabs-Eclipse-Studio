@@ -5,7 +5,7 @@ import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUp, Camera, ScanFace, ChevronLeft, ChevronRight, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
+import { ArrowRight, ArrowUp, Brush, Camera, ScanFace, ChevronLeft, ChevronRight, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { imageCost, MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
@@ -30,6 +30,8 @@ import "./create.css";
 import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId, type ToolOption } from "@/lib/picture-tools";
 import SoulIdDialog from "./SoulIdDialog";
+import MarkDialog from "./MarkDialog";
+
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 215, "4:5": 188, "9:16": 134, "16:9": 304 };
@@ -155,6 +157,46 @@ export default function CreateStudio() {
   // The + in the prompt box: pick a picture from this device and attach it right away as an ingredient (it is saved to Assets).
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(0);
+
+  // Tapping a picture in the box opens the marking tool: the marked copy is saved to Assets and sits after the original (or replaces it when the box is full).
+  const [marking, setMarking] = useState<number | null>(null);
+  const isMarked = (r: RefPick) => / \(marked\)$/.test(r.label);
+  async function saveMarked(index: number, f: File) {
+    const orig = refs[index];
+    setMarking(null);
+    if (!orig) return;
+    setError("");
+    setUploading((n) => n + 1);
+    try {
+      const base = orig.label.replace(/ \(marked\)$/, "");
+      const r = await uploadPicture(f, "asset", `${base} (marked)`.slice(0, 80), readCurrentProject()?.id ?? null);
+      if (!r.ok) { setError(r.error); return; }
+      if (!r.item) return;
+      const copy: RefPick = { type: "upload", id: r.item.id, url: r.item.imageUrl, label: r.item.name };
+      const maxRefs = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
+      setRefs((l) => {
+        const at = l.findIndex((x) => x.type === orig.type && x.id === orig.id);
+        if (at < 0) return l;
+        const n = [...l];
+        if (isMarked(orig)) n[at] = copy; // marking a marked copy again replaces it
+        else if (l.length < maxRefs) n.splice(at + 1, 0, copy);
+        else n[at] = copy;
+        return n;
+      });
+    } finally { setUploading((n) => n - 1); }
+  }
+  // What the model is told about marked copies, added when the render starts (never typed into the box).
+  function markNote(list: RefPick[]): string {
+    const lines: string[] = [];
+    list.forEach((r, i) => {
+      if (!isMarked(r)) return;
+      const base = r.label.replace(/ \(marked\)$/, "");
+      const prev = list[i - 1];
+      const of = prev && !isMarked(prev) && prev.label === base ? `a copy of image ${i}` : "a copy of the picture";
+      lines.push(`Image ${i + 1} is ${of} with the parts to change marked in red (drawn lines and numbered pins). Change only the marked parts as the instructions say, remove every mark, and keep everything else exactly as it is.`);
+    });
+    return lines.length ? `\n\n${lines.join(" ")}` : "";
+  }
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setError("");
@@ -188,7 +230,7 @@ export default function CreateStudio() {
     setSubmitting(true);
     try {
       const refList = refs.map((r) => ({ type: r.type, id: r.id }));
-      const { results, seed: firstSeed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt: text, ratio, tier, qty: count, refs: refList, seedOn, seedNum, projectId: readCurrentProject()?.id, soulId: soulVersion ? soul?.id ?? null : null, soulStrength });
+      const { results, seed: firstSeed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt: `${text}${markNote(refs)}`, ratio, tier, qty: count, refs: refList, seedOn, seedNum, projectId: readCurrentProject()?.id, soulId: soulVersion ? soul?.id ?? null : null, soulStrength });
       if (firstSeed != null) putSeed(String(firstSeed));
       const note = results.find((r) => r.note)?.note;
       if (note) setSeedNote(note);
@@ -425,8 +467,9 @@ export default function CreateStudio() {
             {refs.map((r, i) => (
               <span key={`${r.type}-${r.id}`} className="cr-ref" title={`Image ${i + 1}: ${r.label}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.url} alt={r.label} />
+                <img src={r.url} alt={r.label} role="button" tabIndex={0} aria-label={`Mark parts of ${r.label} to change`} onClick={() => setMarking(i)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMarking(i); } }} />
                 <i className="cr-ref-n">{i + 1}</i>
+                {isMarked(r) && <span className="cr-ref-mark" aria-label="Marked" title="Marked parts"><Brush size={10} /></span>}
                 <button type="button" className="cr-ref-x" aria-label={`Remove ${r.label}`} onClick={() => setRefs((l) => l.filter((x) => !(x.type === r.type && x.id === r.id)))}><X size={12} /></button>
                 {refs.length > 1 && (
                   <span className="cr-ref-move">
@@ -508,6 +551,7 @@ export default function CreateStudio() {
         </div>
       </form>
       </div>
+      {marking !== null && refs[marking] && <MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} />}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
