@@ -525,3 +525,8 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-light-quick.is-seven { grid-template-columns: repeat(4, 1fr); }
 .cr-light .cr-cam-together { height: 32px; font-size: 12px; margin-left: 0; }
 .cr-light .cr-light-opts { display: flex; }
+
+/* Skin Enhancer */
+.cr-skin-pic { display: flex; align-items: center; justify-content: center; background: var(--a-input); }
+.cr-skin-pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cr-light-quick.is-three { grid-template-columns: repeat(3, 1fr); }

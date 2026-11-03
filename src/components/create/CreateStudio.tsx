@@ -35,6 +35,8 @@ import SheetPortal from "@/components/voice/SheetPortal";
 import GenerateButton from "@/components/GenerateButton";
 import CameraPanel, { type CameraRun } from "./CameraPanel";
 import RelightPanel, { type RelightRun } from "./RelightPanel";
+import SkinPanel, { type SkinRun } from "./SkinPanel";
+import { skinPrompt } from "@/lib/skin/prompt";
 import { relightPrompt } from "@/lib/relight/prompt";
 import { FEATURE_NAME as CAMERA_NAME, cameraPrompt } from "@/lib/camera/prompt";
 
@@ -374,6 +376,28 @@ export default function CreateStudio() {
   useEffect(() => { setToolNote(""); setToolMenu(null); }, [toolPic?.id]);
   // A picture tool makes a NEW image from this one (the original stays): the picture is the only ingredient, the instruction is fixed, the model is the best
   // picture-editing model this account has, and "auto" keeps the picture's aspect ratio.
+  // Skin Enhancer: one request, the same portrait with natural skin (src/lib/skin/prompt.ts).
+  const [skinOpen, setSkinOpen] = useState(false);
+  const [skinError, setSkinError] = useState("");
+  const skinModel = toolModel(models ?? [], "relight");
+  const skinTiers = skinModel ? ["1k", ...(skinModel.resolutions.includes("1080p") ? ["1.5k"] : []), ...(skinModel.resolutions.includes("2k") ? ["2k"] : []), ...(skinModel.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"];
+  async function runSkin(run: SkinRun) {
+    if (!toolPic || submitting) return;
+    if (!skinModel) { setSkinError("Skin Enhancer needs a model that edits pictures, and none is connected yet."); return; }
+    setSkinError(""); setError(""); setSubmitting(true);
+    try {
+      const { results } = await startImages({ models: models ?? [], model: skinModel, auto: false, prompt: skinPrompt(run.settings, run.note), ratio: "auto", tier: run.tier, qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      const r = results[0];
+      if (!r?.ok) throw new Error(r?.error ?? "Something went wrong. Please try again.");
+      setSkinOpen(false);
+      if (r.id) setWatched(r.id);
+      await reload();
+    } catch (e) {
+      setSkinError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
   // Relight: place up to three lights round the picture; the result is the picture lit that way (one request, up to four images).
   const [lightOpen, setLightOpen] = useState(false);
   const [lightError, setLightError] = useState("");
@@ -506,6 +530,7 @@ export default function CreateStudio() {
             <button type="button" tabIndex={toolPic ? 0 : -1} onClick={newVariations} disabled={submitting || !model} title="Make another image from the same prompt"><Shuffle size={14} /> Variations</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setLightError(""); setLightOpen(true); }} title="Place lights round the picture and change how it is lit"><Sun size={14} /> Relight</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setCamError(""); setCamOpen(true); }} title="See the same moment from another camera position"><Camera size={14} /> Change camera</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setSkinError(""); setSkinOpen(true); }} title="Natural, realistic skin on a portrait"><ScanFace size={14} /> Skin enhancer</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("upscale")} title="A sharper, higher-resolution copy of this picture"><ZoomIn size={14} /> Upscale</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("removebg")} title="The subject on a plain white background"><Eraser size={14} /> Remove background</button>
           </>
@@ -615,6 +640,7 @@ export default function CreateStudio() {
         </div>
       </form>
       </div>
+      {skinOpen && toolPic?.imageUrl && <SheetPortal><SkinPanel thumb={thumbOf("render", toolPic.id)} tiers={skinTiers} unit={(t) => (skinModel ? imageCost(skinModel, skinModel.resolutions.length ? tierResolution(skinModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={skinError} onRun={(r) => void runSkin(r)} onClose={() => setSkinOpen(false)} /></SheetPortal>}
       {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} unit={(t) => (lightModel ? imageCost(lightModel, lightModel.resolutions.length ? tierResolution(lightModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
       {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} unit={(t) => (camModel ? imageCost(camModel, camModel.resolutions.length ? tierResolution(camModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
