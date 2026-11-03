@@ -110,7 +110,10 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
 
         let raf = 0;
         function render() { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderer.render(scene, camera); }); }
-        const size = () => { const w = el.clientWidth || 300, h = el.clientHeight || 240; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); render(); };
+        const size = () => { const w = el.clientWidth || 300, h = el.clientHeight || 240; renderer.setSize(w, h, false); camera.aspect = w / h;
+          const wide = camera.aspect > 1.8; // a wide, short stage: come in a little closer so the scene fills it
+          camera.position.set(0.3, wide ? 2.5 : 2.9, wide ? 5.9 : 6.7); camera.lookAt(0, 0.6, 0);
+          camera.updateProjectionMatrix(); render(); };
         const ro = new ResizeObserver(size); ro.observe(el); size();
 
         // dragging
