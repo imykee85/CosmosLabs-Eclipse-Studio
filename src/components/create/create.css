@@ -437,18 +437,16 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-cam-chips::-webkit-scrollbar { display: none; }
 .cr-cam-chips button { flex: none; border: 1px solid var(--a-line); background: var(--a-input); color: inherit; font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
 
-/* Change Camera spans the whole width of the screen, docked to the bottom (not a card hanging in the middle) */
+/* Change Camera: on a phone a sheet side to side at the bottom; on desktop a panel in the middle of the screen, the view on top and the controls below it */
 .cr-var-back:has(.cr-cam) { align-items: flex-end; }
 .cr-var.cr-cam { width: 100%; max-width: none; border-radius: 22px 22px 0 0; }
 @media (min-width: 801px) {
-  /* the view on top, the controls below it (like the preview above the prompt box) */
-  .cr-var.cr-cam { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; row-gap: 12px; align-items: center; padding: 18px 0 calc(20px + env(safe-area-inset-bottom)); }
-  .cr-var.cr-cam > * { grid-column: 1 / -1; margin-inline: 28px; }
-  .cr-var.cr-cam > .cr-cam-stage { margin-inline: 0; border-radius: 0; }
+  .cr-var-back:has(.cr-cam) { align-items: center; }
+  .cr-var.cr-cam { width: min(780px, calc(100% - 48px)); border-radius: 22px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; row-gap: 12px; align-items: center; padding: 18px 24px 22px; }
+  .cr-var.cr-cam > * { grid-column: 1 / -1; }
   .cr-var.cr-cam > .cr-cam-slider { grid-column: auto; }
-  .cr-var.cr-cam > .cr-cam-stage { display: block; }
-  .cr-var.cr-cam > .cr-cam-stage svg { width: 100%; height: min(46dvh, 420px); }
+  .cr-var.cr-cam > .cr-cam-stage { display: block; border-radius: 16px; }
+  .cr-var.cr-cam > .cr-cam-stage svg { width: 100%; height: min(42dvh, 380px); }
 }
-
 .cr-cam-3d { width: 100%; aspect-ratio: 300 / 240; }
-@media (min-width: 801px) { .cr-var.cr-cam > .cr-cam-stage .cr-cam-3d { aspect-ratio: auto; height: min(46dvh, 420px); } }
+@media (min-width: 801px) { .cr-var.cr-cam > .cr-cam-stage .cr-cam-3d { aspect-ratio: auto; height: min(42dvh, 380px); } }
