@@ -448,7 +448,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
   .cr-var.cr-cam > .cr-cam-stage { display: block; border-radius: 16px; }
   .cr-var.cr-cam > .cr-cam-stage svg { width: 100%; height: min(42dvh, 380px); }
 }
-.cr-cam-3d { width: 100%; aspect-ratio: 300 / 240; }
+.cr-cam-3d { position: relative; width: 100%; aspect-ratio: 300 / 240; }
 @media (min-width: 801px) { .cr-var.cr-cam > .cr-cam-stage .cr-cam-3d { aspect-ratio: auto; height: min(42dvh, 380px); } }
 
 /* Relight panel (shares the Change Camera layout) */

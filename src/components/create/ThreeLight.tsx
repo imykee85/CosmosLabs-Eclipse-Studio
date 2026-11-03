@@ -43,7 +43,7 @@ export default function ThreeLight({ thumb, lights, sel, onSelect, onMove, onFai
         const dark = bg.r * 0.299 + bg.g * 0.587 + bg.b * 0.114 < 0.5;
         renderer.setClearColor(bg, 1);
         el.appendChild(renderer.domElement);
-        renderer.domElement.style.cssText = "display:block;width:100%;height:100%;touch-action:none;";
+        renderer.domElement.style.cssText = "position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;"; // out of the layout, so the canvas size never decides the height of its box (Safari did that)
 
         const scene = new T.Scene();
         const camera = new T.PerspectiveCamera(38, 1.25, 0.1, 60);
@@ -112,7 +112,7 @@ export default function ThreeLight({ thumb, lights, sel, onSelect, onMove, onFai
           const [x, y, z] = place(l.rotate, l.elevation);
           l.group.position.set(x, y, z);
           l.group.lookAt(0, CY, 0);
-          l.group.scale.setScalar(selected ? 1.15 : 1);
+          l.group.scale.setScalar(selected ? 0.9 : 0.75);
           l.spot.position.set(x, y, z);
           // the beam: a cone from the lamp to the picture's centre
           const len = Math.hypot(x, y - CY, z);
@@ -159,7 +159,7 @@ export default function ThreeLight({ thumb, lights, sel, onSelect, onMove, onFai
           const w = el.clientWidth || 300, h = el.clientHeight || 240;
           renderer.setSize(w, h, false); camera.aspect = w / h;
           const wide = camera.aspect > 1.8;
-          camera.position.set(1.4, wide ? 2.4 : 2.9, wide ? 7.0 : 7.6); camera.lookAt(0, 1.0, 0);
+          camera.position.set(wide ? 0.8 : 0.5, wide ? 2.6 : 3.0, wide ? 7.0 : 7.4); camera.lookAt(0, wide ? 1.1 : 1.45, 0);
           camera.updateProjectionMatrix(); kick();
         };
         const ro = new ResizeObserver(size); ro.observe(el); size();

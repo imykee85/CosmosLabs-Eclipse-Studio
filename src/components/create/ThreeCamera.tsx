@@ -34,7 +34,7 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setClearColor(0x0d0d10, 1);
         el.appendChild(renderer.domElement);
-        renderer.domElement.style.cssText = "display:block;width:100%;height:100%;touch-action:none;";
+        renderer.domElement.style.cssText = "position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;"; // out of the layout, so the canvas size never decides the height of its box (Safari did that)
 
         const scene = new T.Scene();
         const camera = new T.PerspectiveCamera(38, 1.25, 0.1, 50);
