@@ -436,3 +436,14 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-cam-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 .cr-cam-chips::-webkit-scrollbar { display: none; }
 .cr-cam-chips button { flex: none; border: 1px solid var(--a-line); background: var(--a-input); color: inherit; font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+
+/* Change Camera spans the whole width of the screen, docked to the bottom (not a card hanging in the middle) */
+.cr-var-back:has(.cr-cam) { align-items: flex-end; }
+.cr-var.cr-cam { width: 100%; max-width: none; border-radius: 22px 22px 0 0; }
+@media (min-width: 801px) {
+  .cr-var.cr-cam { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); column-gap: 28px; row-gap: 10px; align-items: start; padding: 20px 28px calc(22px + env(safe-area-inset-bottom)); }
+  .cr-var.cr-cam > * { grid-column: 2; }
+  .cr-var.cr-cam > .cr-var-head { grid-column: 1 / -1; }
+  .cr-var.cr-cam > .cr-cam-stage { grid-column: 1; grid-row: 2 / span 20; align-self: stretch; display: flex; }
+  .cr-var.cr-cam > .cr-cam-stage svg { width: 100%; height: 100%; max-height: 62dvh; }
+}
