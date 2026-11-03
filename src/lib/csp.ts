@@ -31,7 +31,7 @@ export function buildCsp(nonce: string): string {
     "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https://media.prompt-motion.com https://*.r2.cloudflarestorage.com",
-    `connect-src 'self' ${CLERK} https://*.r2.cloudflarestorage.com https://vitals.vercel-insights.com https://va.vercel-scripts.com`,
+    `connect-src 'self' ${CLERK} https://*.client.protect.clerk.com:8443 https://*.r2.cloudflarestorage.com https://vitals.vercel-insights.com https://va.vercel-scripts.com`,
     `frame-src 'self' ${CLERK} ${CHALLENGE}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",

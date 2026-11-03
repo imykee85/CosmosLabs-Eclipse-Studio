@@ -35,3 +35,7 @@ test("pages get the policy; API routes, share links and the tool frame do not", 
   assert.equal(wantsCsp("/api/core/tools/abc/frame"), false);
   assert.equal(wantsCsp("/s/token"), false);
 });
+
+test("Clerk's bot protection host on port 8443 is allowed to connect", () => {
+  assert.match(buildCsp("abc"), /connect-src[^;]*https:\/\/\*\.client\.protect\.clerk\.com:8443/);
+});
