@@ -38,3 +38,12 @@ test("cameras spread round the ring and move together when locked", () => {
   assert.equal(startCams(1)[0].rotate, DEFAULT_CAM.rotate);
   assert.equal(startCams(9).length, 4);
 });
+
+test("the quick chips set sensible numbers", async () => {
+  const { PRESETS, cleanCam } = await import("../../src/lib/camera/prompt");
+  const get = (id: string) => PRESETS.find((p) => p.id === id)!.patch;
+  assert.deepEqual(cleanCam({ ...DEFAULT_CAM, ...get("back") }).rotate, 180);
+  assert.equal(cleanCam({ ...DEFAULT_CAM, ...get("low") }).vertical, -30);
+  assert.equal(cleanCam({ ...DEFAULT_CAM, ...get("wide") }).zoom, "far");
+  assert.equal(cleanCam({ ...DEFAULT_CAM, ...get("close") }).zoom, "closer");
+});

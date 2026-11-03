@@ -70,3 +70,14 @@ export function moveCams(cams: Cam[], index: number, next: Cam, locked: boolean)
   const dr = next.rotate - from.rotate, dv = next.vertical - from.vertical;
   return cams.map((c, i) => (i === index ? cleanCam(next) : cleanCam({ ...c, rotate: c.rotate + dr, vertical: c.vertical + dv, zoom: next.zoom })));
 }
+
+/** Quick starting points (the chips): each sets the chosen camera's numbers; the person can still fine-tune them. */
+export const PRESETS: { id: string; label: string; patch: Partial<Cam> }[] = [
+  { id: "close", label: "Close-up", patch: { rotate: 0, vertical: 0, zoom: "closer" } },
+  { id: "wide", label: "Wide shot", patch: { rotate: 0, vertical: 0, zoom: "far" } },
+  { id: "low", label: "Low angle", patch: { vertical: -30 } },
+  { id: "high", label: "High angle", patch: { vertical: 35 } },
+  { id: "top", label: "Top-down", patch: { vertical: 75 } },
+  { id: "side", label: "Side profile", patch: { rotate: 90, vertical: 0 } },
+  { id: "back", label: "From behind", patch: { rotate: 180, vertical: 0 } },
+];

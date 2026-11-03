@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Loader2, Lock, RotateCcw, Unlock, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
-import { DEFAULT_CAM, FEATURE_NAME, MAX_CAMERAS, VERTICAL_MAX, VERTICAL_MIN, ZOOMS, cleanCam, moveCams, startCams, wrap360, type Cam, type ZoomId } from "@/lib/camera/prompt";
+import { DEFAULT_CAM, FEATURE_NAME, MAX_CAMERAS, PRESETS, VERTICAL_MAX, VERTICAL_MIN, ZOOMS, cleanCam, moveCams, startCams, wrap360, type Cam, type ZoomId } from "@/lib/camera/prompt";
 
 export type CameraRun = { cams: Cam[]; note: string };
 
@@ -125,6 +125,10 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
             {cams.map((_, i) => <button key={i} type="button" role="tab" aria-selected={i === sel} className={i === sel ? "is-on" : ""} onClick={() => setSel(i)}>{i + 1}</button>)}
           </div>
         )}
+
+        <div className="cr-cam-chips" role="group" aria-label="Quick angles">
+          {PRESETS.map((p) => <button key={p.id} type="button" onClick={() => change(p.patch)}>{p.label}</button>)}
+        </div>
 
         <div className="cr-cam-slider"><label htmlFor="cr-cam-r">Rotate</label><input id="cr-cam-r" type="range" min={0} max={359} value={cam.rotate} onChange={(e) => change({ rotate: Number(e.target.value) })} /><output>{cam.rotate}°</output></div>
         <div className="cr-cam-slider"><label htmlFor="cr-cam-v">Vertical</label><input id="cr-cam-v" type="range" min={VERTICAL_MIN} max={VERTICAL_MAX} value={cam.vertical} onChange={(e) => change({ vertical: Number(e.target.value) })} /><output>{cam.vertical}°</output></div>
