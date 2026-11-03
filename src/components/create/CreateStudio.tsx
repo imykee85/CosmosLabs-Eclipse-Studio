@@ -31,6 +31,7 @@ import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId, type ToolOption } from "@/lib/picture-tools";
 import SoulIdDialog from "./SoulIdDialog";
 import MarkDialog from "./MarkDialog";
+import SheetPortal from "@/components/voice/SheetPortal";
 import CameraPanel, { type CameraRun } from "./CameraPanel";
 import { FEATURE_NAME as CAMERA_NAME, cameraPrompt } from "@/lib/camera/prompt";
 
@@ -580,8 +581,8 @@ export default function CreateStudio() {
         </div>
       </form>
       </div>
-      {camOpen && toolPic?.imageUrl && <CameraPanel thumb={thumbOf("render", toolPic.id)} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} />}
-      {marking !== null && refs[marking] && <MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} />}
+      {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
+      {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
