@@ -442,8 +442,9 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-var.cr-cam { width: 100%; max-width: none; border-radius: 22px 22px 0 0; }
 @media (min-width: 801px) {
   /* the view on top, the controls below it (like the preview above the prompt box) */
-  .cr-var.cr-cam { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; row-gap: 12px; align-items: center; padding: 18px 28px calc(20px + env(safe-area-inset-bottom)); }
-  .cr-var.cr-cam > * { grid-column: 1 / -1; }
+  .cr-var.cr-cam { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; row-gap: 12px; align-items: center; padding: 18px 0 calc(20px + env(safe-area-inset-bottom)); }
+  .cr-var.cr-cam > * { grid-column: 1 / -1; margin-inline: 28px; }
+  .cr-var.cr-cam > .cr-cam-stage { margin-inline: 0; border-radius: 0; }
   .cr-var.cr-cam > .cr-cam-slider { grid-column: auto; }
   .cr-var.cr-cam > .cr-cam-stage { display: block; }
   .cr-var.cr-cam > .cr-cam-stage svg { width: 100%; height: min(46dvh, 420px); }
