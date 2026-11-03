@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { clipBlocks } from "@/lib/agent-video";
 import { db } from "@/lib/db";
-import { BRAND_RULE } from "@/lib/brand";
+import { BRAND_RULE, leaked } from "@/lib/brand";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { ChatMeter, chargeChat } from "@/lib/chat-credits";
 import { runTool, toolDefs } from "@/lib/connect-tools";
@@ -134,6 +134,7 @@ export async function runTurn(opts: {
 
   const sdk = client();
   const meter = new ChatMeter();
+  let said = ""; // what was streamed to the person, checked at the end for a repeat of the instructions
   try {
     const useFallback = opts.model !== "claude-haiku-5-5"; // Haiku has no server-side fallback
     for (let step = 0; step < MAX_STEPS; step++) {
@@ -150,7 +151,7 @@ export async function runTurn(opts: {
         messages: cacheLast(trimHistory(messages)) as Param[],
         ...(useFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
       });
-      stream.on("text", (d) => emit({ t: "text", d }));
+      stream.on("text", (d) => { said += d; emit({ t: "text", d }); });
       const msg = await stream.finalMessage();
       meter.add(msg.model, msg.usage);
 
@@ -172,6 +173,8 @@ export async function runTurn(opts: {
       messages.push({ role: "user", content: results });
     }
   } finally {
+    // Streamed words cannot be taken back, so a repeat of the instructions is only logged here for the owner.
+    if (leaked(said)) console.error("LEAK GUARD: a Core reply repeated the assistant's instructions", userId);
     // The reply is paid in Eclipse credits from what it really used, also when it stopped part-way.
     await chargeChat(userId, meter, "Core message");
   }

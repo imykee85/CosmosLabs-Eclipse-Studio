@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { BRAND_RULE } from "@/lib/brand";
+import { BRAND_RULE, guardText } from "@/lib/brand";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     meter.add(res.model, res.usage);
     const out = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ").trim().replace(/^["“]|["”]$/g, "");
     if (!out) return NextResponse.json({ error: "The prompt could not be polished. Please try again." }, { status: 502 });
-    return NextResponse.json({ text: out.slice(0, 2000) });
+    return NextResponse.json({ text: guardText(out, "polish").slice(0, 2000) });
   } catch (err) {
     console.error("polish failed", err);
     const msg = err instanceof Error ? err.message : "";

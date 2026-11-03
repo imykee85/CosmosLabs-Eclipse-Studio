@@ -1,7 +1,7 @@
 import { documentBlocks, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
-import { BRAND_RULE } from "@/lib/brand";
+import { BRAND_RULE, guardText } from "@/lib/brand";
 import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
@@ -147,7 +147,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       }
       const final = buildReply(res.content, res.stop_reason);
       const actions: Action[] = [...earlier, ...final.actions];
-      const text = pieces.join("") + final.text;
+      const text = guardText(pieces.join("") + final.text, "atlas");
       controls = { ...controls, ...final.controls };
       return { status: 200, json: { text, actions, controls, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
     } catch (err) {
