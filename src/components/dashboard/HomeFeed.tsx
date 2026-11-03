@@ -96,7 +96,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
             <li key={n} className="hf-looks">
               <Gold /><Link href={`/collections/${slug(n)}`} className="hf-cover" aria-label={n} />
               <b>{n}</b>
-              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [0, 1, 2, 3, 4, 5, 6, 7, 8] : [0, 1, 2, 3, 4, 5, 6, 7]).includes(i)
+              <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [0, 1, 2, 3, 4, 5, 6, 7, 8] : [0, 1, 2, 3, 4, 5, 6, 7, 8]).includes(i)
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img key={i} className="hf-dot hf-pic" src={`/dashboard/look-${n.toLowerCase()}-${i + 1}.jpg`} style={i === 1 ? { objectPosition: "50% 38%" } : undefined} alt="" loading="lazy" draggable={false} />
                 : <Empty key={i} className="hf-dot" />)}</div>
