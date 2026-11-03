@@ -2,20 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, Bell, Check, Users } from "lucide-react";
+import { Bell, Maximize2 } from "lucide-react";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import TeamInviteFeed, { type TeamInvite } from "./TeamInviteFeed";
+import NotificationsList, { type NotifItem, unreadCount } from "./NotificationsList";
 import "./notifications.css";
 
 // Bell in the headers (or, with `label`, a row with the bell next to a text such as "Notifications" in the phone side menu). Opens a small panel listing what finished or failed
 // in the last 3 days (renders, videos, voice takes); a red dot shows when something ended since the panel was last opened (the time is kept in this browser).
-type Item = { id: string; ok: boolean; title: string; body: string; href: string; at: string };
 const SEEN = "eclipse-notif-seen";
 const readSeen = () => { try { return Number(localStorage.getItem(SEEN)) || 0; } catch { return 0; } };
 export default function NotificationsButton({ className, up = false, label }: { className?: string; up?: boolean; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<NotifItem[]>([]);
   const [seen, setSeen] = useState(0);
   const [invites, setInvites] = useState<TeamInvite[]>([]);
   const [joining, setJoining] = useState("");
@@ -27,7 +27,7 @@ export default function NotificationsButton({ className, up = false, label }: { 
     const t = setInterval(load, 180_000);
     return () => { live = false; clearInterval(t); };
   }, []);
-  const unread = items.filter((i) => Date.parse(i.at) > seen).length + invites.length; // an invitation stays "new" until it is answered
+  const unread = unreadCount(items, invites, seen); // an invitation stays "new" until it is answered
   function toggle() {
     setOpen((o) => {
       if (!o) { const now = Date.now(); try { localStorage.setItem(SEEN, String(now)); } catch {} setTimeout(() => setSeen(now), 1500); } // the dot stays while the list is first read
@@ -59,31 +59,11 @@ export default function NotificationsButton({ className, up = false, label }: { 
       </button>
       {open && (
         <div className={`nt-pop ${up ? "is-up" : ""}`} role="dialog" aria-label="Notifications">
-          <h2>Notifications</h2>
-          {items.length === 0 && invites.length === 0 ? (
-            <div className="nt-empty">
-              <Bell size={30} strokeWidth={1.5} aria-hidden="true" />
-              <p>You&apos;re all caught up</p>
-            </div>
-          ) : (
-            <ul className="nt-list">
-              {invites.map((inv) => (
-                <li key={inv.id} className="nt-invite">
-                  <span className="nt-ico team"><Users size={13} /></span>
-                  <span className="nt-txt"><b>{inv.team} invited you to join their team</b><small>You would join as {inv.role}. Teams share credits, projects and the Library.</small></span>
-                  <button type="button" className="nt-join" disabled={joining === inv.id} onClick={() => void join(inv)}>Join</button>
-                </li>
-              ))}
-              {items.map((i) => (
-                <li key={i.id}>
-                  <Link href={i.href} onClick={() => setOpen(false)} className={Date.parse(i.at) > seen ? "is-new" : ""}>
-                    <span className={`nt-ico ${i.ok ? "ok" : "bad"}`}>{i.ok ? <Check size={13} /> : <AlertCircle size={13} />}</span>
-                    <span className="nt-txt"><b>{i.title}</b><small>{i.body}</small></span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="nt-head">
+            <h2>Notifications</h2>
+            <Link href="/notifications" className="nt-expand" aria-label="Open notifications as a full page" title="Open as a full page" onClick={() => setOpen(false)}><Maximize2 size={15} /></Link>
+          </div>
+          <NotificationsList items={items} invites={invites} seen={seen} joining={joining} onJoin={(inv) => void join(inv)} onNavigate={() => setOpen(false)} />
         </div>
       )}
     </span>
