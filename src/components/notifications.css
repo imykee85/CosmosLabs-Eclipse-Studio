@@ -31,3 +31,25 @@
 .nt-join { flex: none; align-self: center; padding: 6px 14px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .nt-join:hover { background: #d90b0b; }
 .nt-join:disabled { opacity: .6; cursor: default; }
+
+/* Tabs, the expand icon and the full page. */
+.nt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.nt-head h2 { margin: 0; }
+.nt-expand { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: var(--a-muted); }
+.nt-expand:hover { background: var(--a-hover, rgba(127,127,127,.12)); color: var(--a-fg); }
+.nt-tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
+.nt-tabs::-webkit-scrollbar { display: none; }
+.nt-tabs button { flex: none; height: 30px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-muted); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.nt-tabs button:hover { color: var(--a-fg); }
+.nt-tabs button.is-on { border-color: #c00707; background: var(--a-sel, rgba(192,7,7,.12)); color: var(--a-fg); }
+.nt-ico.app { background: #3b6ef5; }
+.nt-plain { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: 12px; }
+.nt-plain.is-new .nt-txt b::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: #c00707; vertical-align: middle; }
+.nt-pop .nt-txt small { white-space: normal; }
+.nt-body.is-full .nt-list { max-height: none; }
+.nt-body.is-full .nt-txt b { font-size: 15px; }
+.nt-body.is-full .nt-txt small { font-size: 14px; }
+.nt-page { max-width: 720px; margin: 0 auto; padding: 8px clamp(16px, 4%, 32px) 80px; color: var(--a-fg); }
+.nt-page h1 { margin: 8px 0 18px; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.nt-page .nt-tabs button { height: 36px; padding: 0 16px; font-size: 14px; }
+.nt-page .nt-list a, .nt-page .nt-plain, .nt-page .nt-invite { padding: 14px 12px; }
