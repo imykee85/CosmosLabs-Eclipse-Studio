@@ -82,6 +82,7 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
         </div>
 
         <div className="cr-cam-stage">
+          <button type="button" className="cr-light-reset" onClick={reset} aria-label="Reset the cameras"><RotateCcw size={14} /></button>
           {!flat && <ThreeCamera thumb={thumb} cams={cams} sel={sel} onSelect={setSel} onMove={(i, patch) => setCams((l) => moveCams(l, i, cleanCam({ ...l[i], ...patch }), locked))} onFail={() => setFlat(true)} />}
           {flat && (
           <svg ref={svg} viewBox={`0 0 ${W} ${H}`} onPointerMove={move} onPointerUp={up} onPointerCancel={up} role="img" aria-label="Camera position">
@@ -147,7 +148,6 @@ export default function CameraPanel({ thumb, busy, error, onRun, onClose }: { th
         <p className="cr-cam-tip">Works best when the subject is on a plain background.</p>
         {error && <div className="cr-var-err">{error}</div>}
         <div className="cr-cam-actions">
-          <button type="button" className="cr-cam-reset" onClick={reset} aria-label="Reset"><RotateCcw size={16} /></button>
           <button type="button" className="cr-var-go" onClick={() => onRun({ cams, note })} disabled={busy}>
             {busy ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate{count > 1 ? ` ${count}` : ""} <ArrowUp size={16} /></>}
           </button>

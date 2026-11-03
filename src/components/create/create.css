@@ -488,3 +488,18 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 
 .cr-light .cr-cam-stage { position: relative; }
 .cr-light-reset { position: absolute; right: 10px; bottom: 10px; z-index: 2; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--a-line); background: var(--a-card); color: inherit; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* compact sizes so the view and the controls fit one screen */
+.cr-light-reset { width: 30px; height: 30px; border-radius: 9px; right: 8px; bottom: 8px; }
+.cr-cam-stage { position: relative; }
+.cr-light .cr-cam-3d { aspect-ratio: 300 / 190; }
+.cr-light-quick { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.cr-light-quick button { font-size: 13px; padding: 8px 2px; }
+.cr-bar { height: 34px; font-size: 13px; padding: 0 12px; border-radius: 10px; }
+.cr-light-chip { height: 36px; border-radius: 10px; }
+.cr-light-chip select { font-size: 14px; }
+.cr-light-tabs button { min-width: 32px; height: 32px; border-radius: 10px; font-size: 13px; }
+.cr-light-colors button, .cr-light-custom { width: 26px; height: 26px; border-radius: 8px; }
+.cr-light .cr-cam-actions { margin-top: 2px; }
+.cr-cam-actions .cr-var-go { padding: 13px; }
+.cr-light-chip select { padding: 0; border: 0; height: 100%; width: 100%; border-radius: 0; }

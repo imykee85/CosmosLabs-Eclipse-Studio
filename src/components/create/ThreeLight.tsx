@@ -159,7 +159,7 @@ export default function ThreeLight({ thumb, lights, sel, onSelect, onMove, onFai
           const w = el.clientWidth || 300, h = el.clientHeight || 240;
           renderer.setSize(w, h, false); camera.aspect = w / h;
           const wide = camera.aspect > 1.8;
-          camera.position.set(1.4, wide ? 2.6 : 3.2, wide ? 7.0 : 9.0); camera.lookAt(0, wide ? 1.15 : 1.3, 0);
+          camera.position.set(1.4, wide ? 2.4 : 3.0, wide ? 7.0 : 8.8); camera.lookAt(0, 1.0, 0);
           camera.updateProjectionMatrix(); kick();
         };
         const ro = new ResizeObserver(size); ro.observe(el); size();
