@@ -1,7 +1,7 @@
 import { documentBlocks, documentText, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
-import { BRAND_RULE } from "@/lib/brand";
+import { BRAND_RULE, guardText } from "@/lib/brand";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { connectModels } from "@/lib/connect-models";
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     text = text.trim();
     if (!text) text = updated ? "I've updated the plan. Tell me what to change, or what to work on next." : "Tell me a bit more.";
     if (res.stop_reason === "max_tokens") text += "\n\n(My answer was cut off. Ask me to continue.)";
-    return NextResponse.json({ text, treatment, linkText: linkText.trim() || undefined });
+    return NextResponse.json({ text: guardText(text, "treatment"), treatment, linkText: linkText.trim() || undefined });
   } catch (err) {
     console.error("treatment chat failed", err);
     const msg = err instanceof Error ? err.message : "";

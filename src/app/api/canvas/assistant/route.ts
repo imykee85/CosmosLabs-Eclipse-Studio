@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
-import { BRAND_RULE } from "@/lib/brand";
+import { BRAND_RULE, guardText } from "@/lib/brand";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { connectModels } from "@/lib/connect-models";
 import { checkPrompt } from "@/lib/moderation";
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     meter.add(res.model, res.usage);
     const out = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
     if (!out) return NextResponse.json({ error: "The Assistant could not answer. Please try again." }, { status: 502 });
-    return NextResponse.json({ text: out.slice(0, 6000) });
+    return NextResponse.json({ text: guardText(out, "canvas-assistant").slice(0, 6000) });
   } catch (err) {
     console.error("canvas assistant failed", err);
     const msg = err instanceof Error ? err.message : "";

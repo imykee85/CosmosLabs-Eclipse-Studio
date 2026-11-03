@@ -1,7 +1,7 @@
 import { documentBlocks, documentText, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
-import { BRAND_RULE } from "@/lib/brand";
+import { BRAND_RULE, guardText } from "@/lib/brand";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { connectModels } from "@/lib/connect-models";
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     const res = await client.messages.create({ model, max_tokens: 8000, system: cachedSystem(`${engine.system}\n\n${BRAND_RULE}`), messages: cacheLast(messages) as typeof messages });
     meter.add(res.model, res.usage);
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
-    return NextResponse.json({ text: text || "I couldn't write a prompt from that. Tell me a little more." });
+    return NextResponse.json({ text: guardText(text, "prompts") || "I couldn't write a prompt from that. Tell me a little more." });
   } catch (err) {
     console.error("prompt engine failed", err);
     const msg = err instanceof Error ? err.message : "";

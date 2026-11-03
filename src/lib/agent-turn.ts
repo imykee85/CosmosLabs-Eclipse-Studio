@@ -1,7 +1,7 @@
 import { documentBlocks, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
-import { BRAND_RULE } from "@/lib/brand";
+import { BRAND_RULE, guardText } from "@/lib/brand";
 import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
@@ -15,7 +15,10 @@ import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
 import { buildMessages, historyPictures, loadHistoryImages, parseTurns } from "@/lib/agent-history";
 import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
-import { VIDEO_TOOLS, isServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
+import { VIDEO_TOOLS, isServerTool as isVideoServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
+import { CORE_TOOLS, CORE_TOOLS_NOTE, isCoreTool, runCoreTool } from "@/lib/agent-core-tools";
+
+const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n);
 
 // One turn of a conversation with a studio agent (Atlas or one of the person's own agents), shared by the app's chat route and the MCP endpoint (src/lib/mcp-agents.ts).
 // prepareAgentTurn checks the request and returns the work to run; the caller decides how to run it (now, or as a background job).
@@ -109,9 +112,10 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
       // The Fashion Campaign Director (owner's skill, about 11,000 tokens) rides along only while the talk is about fashion, a campaign, an editorial, a lookbook or a shoot.
       const fashion = isAtlas && wantsFashion(messages, ctx) ? `\n\n${FASHION_DIRECTOR}` : "";
-      const system = cachedSystem(`${persona.system}${director}${scene}${fashion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}` : "";
+      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
-      const tools = isAtlas ? [...base, ...VIDEO_TOOLS] : base;
+      const tools = isAtlas ? [...base, ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
       const convo: Anthropic.MessageParam[] = messages;
       const earlier: Action[] = [];
@@ -125,8 +129,10 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
         for (const b of res.content) {
           if (b.type !== "tool_use") continue;
           if (isServerTool(b.name)) {
-            const r = await runVideoTool(userId, b.name, (b.input ?? {}) as Record<string, unknown>, state);
-            if (r.frames) frames.push(...r.frames);
+            const input = (b.input ?? {}) as Record<string, unknown>;
+            // the agent's own tools (library, memory) first; the video tools otherwise. Memory is the person's, the Library the workspace's.
+            const r = isCoreTool(b.name) ? await runCoreTool(userId, personId ?? userId, b.name, input) : await runVideoTool(userId, b.name, input, state);
+            if ("frames" in r && Array.isArray(r.frames)) frames.push(...(r.frames as Frame[]));
             results.push({ type: "tool_result", tool_use_id: b.id, content: r.content, is_error: r.isError });
           } else results.push({ type: "tool_result", tool_use_id: b.id, content: "Shown to the user as a button." });
         }
@@ -147,7 +153,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       }
       const final = buildReply(res.content, res.stop_reason);
       const actions: Action[] = [...earlier, ...final.actions];
-      const text = pieces.join("") + final.text;
+      const text = guardText(pieces.join("") + final.text, "atlas");
       controls = { ...controls, ...final.controls };
       return { status: 200, json: { text, actions, controls, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
     } catch (err) {
