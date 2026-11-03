@@ -13,7 +13,7 @@
 .cr-select { padding: 0; }
 .cr-select select { height: 100%; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .cr-select select option { background: var(--a-card); color: var(--a-fg); }
-.cr-go { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: #c00707; color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .2s, transform .18s; }
+.cr-go { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; height: 44px; padding: 0 22px; border: 0; border-radius: 999px; background: #c00707; color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .2s, transform .18s; }
 .cr-go:hover:not(:disabled) { background: #d90b0b; transform: translateY(-1px); }
 .cr-go:disabled { background: var(--a-disabled); color: var(--a-muted2); cursor: not-allowed; }
 .cr-hint { margin: 12px 0 0; text-align: center; color: var(--a-ph); font-size: 12px; }

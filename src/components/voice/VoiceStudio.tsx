@@ -5,6 +5,7 @@ import { getCertificate } from "@/lib/certificate-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Award, Download, FileText, Loader2, Minus, Pause, Play, Plus, Search, Tag, Trash2 } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
+import GenerateButton from "@/components/GenerateButton";
 import Stage from "./Stage";
 import SoundTake from "./SoundTake";
 import TranscriptView from "./Transcript";
@@ -295,11 +296,7 @@ export default function VoiceStudio() {
             </div>
             <span className="vc-count">{chars.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
           </div>
-          <button type="button" className="vc-go" aria-label="Generate" disabled={!canGo} onClick={() => void generate()} title={price != null ? `About ${fmtCredits(price)} credits` : "Generate"}>
-            {submitting ? <Loader2 size={18} className="vc-spin" /> : null}
-            <span>Generate</span>
-            {price != null && <span className="vc-cost"><CoinIcon size={13} />{fmtCredits(price)}</span>}
-          </button>
+          <GenerateButton wide className="vc-go-slot" price={price} busy={submitting} disabled={!canGo} onClick={() => void generate()} />
         </div>}
       </div>
 

@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp, Images, Loader2, Maximize2, Plus, RotateCcw, X } from "lucide-react";
+import { Images, Maximize2, Plus, RotateCcw, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import ThreeLight from "./ThreeLight";
 import Bar from "./Bar";
+import GenerateButton from "@/components/GenerateButton";
 import { COLORS, DEFAULT_LIGHT, ELEV_MAX, ELEV_MIN, FEATURE_NAME, INTENSITY_MAX, MAX_LIGHTS, QUICK, clean, type Light } from "@/lib/relight/prompt";
 
 export type RelightRun = { lights: Light[]; note: string; tier: string; count: number };
 
 /** Relight: place up to three lights round the picture, choose their colour and strength, and make the picture again lit that way. */
-export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose }: { thumb: string; tiers: string[]; busy: boolean; error: string; onRun: (run: RelightRun) => void; onClose: () => void }) {
+export default function RelightPanel({ thumb, tiers, unit, freeLeft, busy, error, onRun, onClose }: { thumb: string; tiers: string[]; unit: (tier: string) => number | null; freeLeft: number; busy: boolean; error: string; onRun: (run: RelightRun) => void; onClose: () => void }) {
   const [lights, setLights] = useState<Light[]>([DEFAULT_LIGHT]);
   const [sel, setSel] = useState(0);
   const [note, setNote] = useState("");
@@ -87,9 +88,7 @@ export default function RelightPanel({ thumb, tiers, busy, error, onRun, onClose
         <GrowArea className="cr-var-text" rows={1} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional), for example: soft shadows" />
         {error && <div className="cr-var-err">{error}</div>}
         <div className="cr-cam-actions">
-          <button type="button" className="cr-var-go" onClick={() => onRun({ lights, note, tier, count })} disabled={busy}>
-            {busy ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate <ArrowUp size={16} /></>}
-          </button>
+          <GenerateButton wide price={unit(tier) != null ? (unit(tier) as number) * count : null} free={freeLeft >= count && unit(tier) != null} busy={busy} onClick={() => onRun({ lights, note, tier, count })} />
         </div>
       </div>
     </div>

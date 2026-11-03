@@ -32,6 +32,7 @@ import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type Tool
 import SoulIdDialog from "./SoulIdDialog";
 import MarkDialog from "./MarkDialog";
 import SheetPortal from "@/components/voice/SheetPortal";
+import GenerateButton from "@/components/GenerateButton";
 import CameraPanel, { type CameraRun } from "./CameraPanel";
 import RelightPanel, { type RelightRun } from "./RelightPanel";
 import { relightPrompt } from "@/lib/relight/prompt";
@@ -86,6 +87,13 @@ export default function CreateStudio() {
   })();
   const { credits: creditInfo } = useCredits();
   const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;
+  // with Auto the model is picked per image: show what the cheapest fitting model would cost
+  const autoFrom = (() => {
+    if (modelId !== AUTO) return null;
+    const fits = (models ?? []).filter((m) => m.autoPick && !m.requiresReference && m.maxReferences >= refs.length && (!m.resolutions.length || !!tierResolution(m.resolutions, tier)));
+    const all = fits.map((m) => imageCost(m, m.resolutions.length ? tierResolution(m.resolutions, tier) : undefined, qty)).filter((x): x is number => x != null);
+    return all.length ? Math.min(...all) : null;
+  })();
   const imgCost = imageCost(model ?? undefined, model?.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, qty); // what Generate will cost, in ledger units
 
   // Fixed seed: the switch (remembered), the number (remembered) and what the chosen model allows. The server always sends a seed to a
@@ -603,14 +611,12 @@ export default function CreateStudio() {
               <button type="button" className="cr-chip" onClick={randomizeSeed}><Shuffle size={14} /> Randomize</button>
             </div>
           )}
-          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : imgCost != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${creditsText(imgCost)}${model && model.batch > 1 ? ` (up to ${model.batch} images for one price)` : ""}`}><CoinIcon size={14} />{fmtCredits(imgCost)}</span>}</> : <>Generate <ArrowUp size={16} /></>}
-          </button>
+          <GenerateButton type="submit" className="cr-go" price={modelId === AUTO ? autoFrom : imgCost} from={modelId === AUTO} free={(creditInfo?.freeImages ?? 0) >= qty && (modelId === AUTO || imgCost != null)} busy={submitting} disabled={!prompt.trim() || !model || needsRef || seedBad} />
         </div>
       </form>
       </div>
-      {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
-      {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
+      {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} unit={(t) => (lightModel ? imageCost(lightModel, lightModel.resolutions.length ? tierResolution(lightModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
+      {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} unit={(t) => (camModel ? imageCost(camModel, camModel.resolutions.length ? tierResolution(camModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}

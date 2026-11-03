@@ -1,0 +1,10 @@
+/* One Generate button for the whole app */
+.gen-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 22px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: background .2s, transform .18s; white-space: nowrap; }
+.gen-btn:hover:not(:disabled) { background: #d90b0b; transform: translateY(-1px); }
+.gen-btn:disabled { background: var(--a-disabled, #3a3a3a); color: var(--a-muted2, #8a857e); cursor: not-allowed; }
+.gen-btn.is-wide { width: 100%; }
+.gen-cost { display: inline-flex; align-items: center; gap: 4px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.4); font-weight: 600; font-variant-numeric: tabular-nums; }
+.gen-btn:disabled .gen-cost { border-left-color: currentColor; opacity: .8; }
+.gen-spin { animation: gen-spin 1s linear infinite; }
+@keyframes gen-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gen-spin { animation: none; } }

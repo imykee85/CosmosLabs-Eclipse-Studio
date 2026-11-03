@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp, Loader2, Lock, Maximize2, Plus, RotateCcw, Unlock, X } from "lucide-react";
+import { Lock, Maximize2, Plus, RotateCcw, Unlock, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import ThreeCamera from "./ThreeCamera";
 import Bar from "./Bar";
+import GenerateButton from "@/components/GenerateButton";
 import { DEFAULT_CAM, FEATURE_NAME, MAX_CAMERAS, PRESETS, VERTICAL_MAX, VERTICAL_MIN, ZOOMS, cleanCam, moveCams, startCams, type Cam, type ZoomId } from "@/lib/camera/prompt";
 
 export type CameraRun = { cams: Cam[]; note: string; tier: string };
 const ZOOM_SCALE: Record<ZoomId, number> = { initial: 1, medium: 1.25, medium_close: 1.5, closer: 1.9, far: 0.7 };
 
 /** Change Camera: place up to four cameras round the picture and make the same picture from each. Laid out like Relight so the two panels feel the same. */
-export default function CameraPanel({ thumb, tiers, busy, error, onRun, onClose }: { thumb: string; tiers: string[]; busy: boolean; error: string; onRun: (run: CameraRun) => void; onClose: () => void }) {
+export default function CameraPanel({ thumb, tiers, unit, freeLeft, busy, error, onRun, onClose }: { thumb: string; tiers: string[]; unit: (tier: string) => number | null; freeLeft: number; busy: boolean; error: string; onRun: (run: CameraRun) => void; onClose: () => void }) {
   const [cams, setCams] = useState<Cam[]>(() => startCams(1));
   const [sel, setSel] = useState(0);
   const [locked, setLocked] = useState(false); // each camera moves on its own unless "Move together" is on
@@ -94,9 +95,7 @@ export default function CameraPanel({ thumb, tiers, busy, error, onRun, onClose 
         <GrowArea className="cr-var-text" rows={1} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional), for example: keep the sunglasses on" />
         {error && <div className="cr-var-err">{error}</div>}
         <div className="cr-cam-actions">
-          <button type="button" className="cr-var-go" onClick={() => onRun({ cams, note, tier })} disabled={busy}>
-            {busy ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate{cams.length > 1 ? ` ${cams.length}` : ""} <ArrowUp size={16} /></>}
-          </button>
+          <GenerateButton wide price={unit(tier) != null ? (unit(tier) as number) * cams.length : null} free={freeLeft >= cams.length && unit(tier) != null} busy={busy} onClick={() => onRun({ cams, note, tier })} />
         </div>
       </div>
     </div>
