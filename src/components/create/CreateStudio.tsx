@@ -31,6 +31,8 @@ import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId, type ToolOption } from "@/lib/picture-tools";
 import SoulIdDialog from "./SoulIdDialog";
 import MarkDialog from "./MarkDialog";
+import CameraPanel, { type CameraRun } from "./CameraPanel";
+import { FEATURE_NAME as CAMERA_NAME, cameraPrompt } from "@/lib/camera/prompt";
 
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
@@ -361,6 +363,33 @@ export default function CreateStudio() {
   useEffect(() => { setToolNote(""); setToolMenu(null); }, [toolPic?.id]);
   // A picture tool makes a NEW image from this one (the original stays): the picture is the only ingredient, the instruction is fixed, the model is the best
   // picture-editing model this account has, and "auto" keeps the picture's aspect ratio.
+  // Change Camera: one render per camera, each from the same picture with its own angle (src/lib/camera/prompt.ts).
+  const [camOpen, setCamOpen] = useState(false);
+  const [camError, setCamError] = useState("");
+  async function runCamera(run: CameraRun) {
+    if (!toolPic || submitting) return;
+    const m = toolModel(models ?? [], "camera");
+    if (!m) { setCamError(`${CAMERA_NAME} needs a model that edits pictures, and none is connected yet.`); return; }
+    setCamError(""); setError(""); setSubmitting(true);
+    try {
+      let first: string | undefined;
+      let failed = 0, why = "";
+      for (const c of run.cams) {
+        const { results } = await startImages({ models: models ?? [], model: m, auto: false, prompt: cameraPrompt(c, run.note), ratio: "auto", tier: toolTier(m, "camera"), qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+        const r = results[0];
+        if (r?.ok) first = first ?? r.id; else { failed++; why = r?.error ?? why; }
+      }
+      if (!first) throw new Error(why || "Something went wrong. Please try again.");
+      setCamOpen(false);
+      if (failed) setError(`${failed} of ${run.cams.length} cameras could not be started: ${why}`);
+      setWatched(first);
+      await reload();
+    } catch (e) {
+      setCamError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
   async function runTool(tool: ToolId, option?: ToolOption) {
     if (!toolPic || submitting) return;
     const m = toolModel(models ?? [], tool);
@@ -441,7 +470,7 @@ export default function CreateStudio() {
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("upscale")} title="A sharper, higher-resolution copy of this picture"><ZoomIn size={14} /> Upscale</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("removebg")} title="The subject on a plain white background"><Eraser size={14} /> Remove background</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => setToolMenu("relight")} title="Change the lighting"><Sun size={14} /> Relight</button>
-            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => setToolMenu("camera")} title="See the same moment from another angle"><Camera size={14} /> Change camera</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setCamError(""); setCamOpen(true); }} title="See the same moment from another camera position"><Camera size={14} /> Change camera</button>
           </>
         )}
       </div>
@@ -551,6 +580,7 @@ export default function CreateStudio() {
         </div>
       </form>
       </div>
+      {camOpen && toolPic?.imageUrl && <CameraPanel thumb={thumbOf("render", toolPic.id)} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} />}
       {marking !== null && refs[marking] && <MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} />}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}

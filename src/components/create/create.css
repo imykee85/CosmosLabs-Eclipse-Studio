@@ -391,3 +391,43 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-mark-err { position: absolute; left: 0; right: 0; bottom: calc(12px + env(safe-area-inset-bottom)); text-align: center; color: #ff6b6b; font-size: 14px; }
 .cr-ref img { cursor: pointer; }
 .cr-ref-mark { position: absolute; left: 3px; bottom: 3px; width: 18px; height: 18px; border-radius: 50%; background: #c00707; color: #fff; display: inline-flex; align-items: center; justify-content: center; border: 0; padding: 0; }
+
+/* The overlay used by the Variations and Change Camera panels */
+.cr-var-back { position: fixed; inset: 0; z-index: 260; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
+.cr-var { width: min(520px, 100%); max-height: 92dvh; overflow-y: auto; background: var(--a-card); color: inherit; border-radius: 22px 22px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 801px) { .cr-var-back { align-items: center; } .cr-var { border-radius: 22px; } }
+.cr-var-head { display: flex; align-items: center; gap: 12px; }
+.cr-var-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.cr-var-head p { margin: 2px 0 0; font-size: 13px; opacity: .7; }
+.cr-var-thumb { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; }
+.cr-var-x { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--a-line); background: transparent; color: inherit; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.cr-var-text { width: 100%; background: var(--a-input); color: inherit; border: 1px solid var(--a-line); border-radius: 12px; padding: 10px 12px; font: inherit; }
+.cr-var-err { color: #e5484d; font-size: 14px; }
+.cr-var-go { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 14px; background: #c00707; color: #fff; font: inherit; font-weight: 500; font-size: 16px; cursor: pointer; }
+.cr-var-go:disabled { opacity: .6; cursor: default; }
+/* Change Camera */
+.cr-cam-stage { position: relative; background: #0d0d10; border-radius: 16px; overflow: hidden; }
+.cr-cam-stage svg { display: block; width: 100%; height: auto; touch-action: none; user-select: none; }
+.cr-cam-ring { fill: none; stroke: #4f6bff; stroke-width: 3; }
+.cr-cam-arc { fill: none; stroke: #8a5cf5; stroke-width: 3; stroke-linecap: round; }
+.cr-cam-floor { fill: rgba(255,255,255,.05); }
+.cr-cam-hit { fill: transparent; cursor: grab; }
+.cr-cam-dot { fill: #4f6bff; stroke: #fff; stroke-width: 2; }
+.cr-cam-h.is-sel .cr-cam-dot { fill: #c00707; }
+.cr-cam-dot2 { fill: #8a5cf5; stroke: #fff; stroke-width: 2; }
+.cr-cam-h text { fill: #fff; font-size: 10px; font-weight: 700; pointer-events: none; }
+.cr-cam-inset { position: absolute; top: 8px; right: 8px; width: 64px; height: 76px; background: #1a1a20; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.cr-cam-inset img { max-width: 70%; max-height: 70%; transition: transform .12s; }
+.cr-cam-inset span { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center; font-size: 9px; color: #bbb; }
+.cr-cam-pick { display: flex; gap: 6px; }
+.cr-cam-pick button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--a-line); background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.cr-cam-pick button.is-on { background: #c00707; border-color: #c00707; color: #fff; }
+.cr-cam-slider { display: grid; grid-template-columns: 70px 1fr 78px; align-items: center; gap: 10px; font-size: 14px; }
+.cr-cam-slider.is-cams { grid-template-columns: 70px 1fr 28px 34px; }
+.cr-cam-slider input[type=range] { width: 100%; accent-color: #c00707; }
+.cr-cam-slider output { text-align: right; opacity: .75; font-size: 13px; }
+.cr-cam-lock { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--a-line); background: transparent; color: inherit; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.cr-cam-lock:disabled { opacity: .35; }
+.cr-cam-tip { margin: 0; font-size: 12px; opacity: .65; }
+.cr-cam-actions { display: flex; gap: 8px; }
+.cr-cam-reset { width: 48px; border-radius: 14px; border: 1px solid var(--a-line); background: transparent; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
