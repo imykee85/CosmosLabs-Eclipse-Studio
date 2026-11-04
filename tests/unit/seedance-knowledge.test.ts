@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { SEEDANCE_DIRECTOR, SEEDANCE_GUIDE, seedanceKnowledge, wantsSeedance } from "../../src/lib/seedance-knowledge";
+import { SEEDANCE_DIRECTOR, SEEDANCE_GUIDE, SEEDANCE_OPTIMIZER, seedanceKnowledge, wantsSeedance } from "../../src/lib/seedance-knowledge";
 
 test("the director in code matches its docs", () => {
   assert.equal(SEEDANCE_DIRECTOR, readFileSync("docs/prompt-engines/knowledge/seedance-director.md", "utf8").trim());
@@ -31,4 +31,14 @@ test("Atlas carries the director only when the talk is about Seedance or a story
   assert.equal(wantsSeedance([{ content: [{ type: "text", text: "Part 2 storyboard please" }] }], ""), true);
   assert.equal(wantsSeedance([{ content: "hi" }], "Model: Seedance 2.5"), true);
   assert.equal(wantsSeedance([{ content: [{ type: "image" }] }], ""), false);
+});
+
+test("the optimizer in code matches its doc, both hosts carry it after the guide, and the Chinese original is kept", () => {
+  assert.equal(SEEDANCE_OPTIMIZER, readFileSync("docs/prompt-engines/knowledge/seedance-optimizer.md", "utf8").trim());
+  assert.ok(readFileSync("docs/prompt-engines/knowledge/original/seedance-optimizer/SKILL.md", "utf8").length > 5000);
+  for (const host of ["prompts", "atlas"] as const) {
+    const k = seedanceKnowledge(host);
+    assert.ok(k.includes("SEEDANCE 2.5 PROMPT OPTIMIZER") && k.includes("Seamless transition") && k.indexOf("PROMPT GUIDE") < k.indexOf("PROMPT OPTIMIZER") && k.indexOf("PROMPT OPTIMIZER") < k.indexOf("YOUR DELIVERY RULES ("));
+  }
+  assert.ok(!/[\u4e00-\u9fff]/.test(SEEDANCE_OPTIMIZER.replace(/【[^】]*】/g, "")), "no Chinese text left except the on-screen-text brackets");
 });

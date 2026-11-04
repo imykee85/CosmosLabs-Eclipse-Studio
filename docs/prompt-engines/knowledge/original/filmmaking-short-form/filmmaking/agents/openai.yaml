@@ -1,0 +1,7 @@
+interface:
+  display_name: "Filmmaking"
+  short_description: "Shape stories through picture, performance, and sound"
+  icon_small: "./assets/filmmaking-small.png"
+  icon_large: "./assets/filmmaking-large.png"
+  brand_color: "#D49A45"
+  default_prompt: "Use $filmmaking to develop or refine my film with deliberate picture, performance, and sound."
