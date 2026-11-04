@@ -21,7 +21,7 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 | 14 | Live checks of built-but-unverified features: Atlas panel, Atlas plans, Core send card (Telegram/Slack), Canvas runs, Soul ID, Seedance edit/extend, Kling multi-shot, reference sounds, newer connectors | Owner |
 | 15 | Higgsfield request pages and prices: Kling O3/Omni, Genjutsu restyle and object swap, Motion scene control, 3D scene, Seedance 1.5 Pro, Cinema Studio 3.0, FLUX 3 Video | Owner, then me |
 | 16 | Voice request pages: Qwen instruct, Qwen and Seed voice cloning, Seed transcription | Owner, then me |
-| 17 | Keys: `DASHSCOPE_API_KEY`, `XAI_API_KEY`, `MIRELO_API_KEY` (plus Mirelo prices), `ROUTE_*=direct` values | Owner |
+| 17 | Key `DASHSCOPE_API_KEY` (Secret) and, if you want Qwen Image direct, `ROUTE_QWEN_IMAGE_3=direct` and `ROUTE_QWEN_IMAGE_3_EDIT=direct` (Config values) | Owner |
 | 18 | BytePlus Seedance: activate resource pack, live draft test; then UI for draft and the 2.0 edit model, asset ids, `.mov` output | Owner, then me |
 | 25 | Annual plan (new Whop plan) and a decision on Scale credits (1,700 would fix price per credit) | Owner |
 | 26 | "Automated workflows" on the Scale card (Soon, nothing built) and the four Soon Academy courses | Me |
