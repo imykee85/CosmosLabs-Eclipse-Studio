@@ -58,8 +58,23 @@ export type VarState = {
   narrative: string; auto: boolean; // storyboard
   people: PeopleId; ethnicities: string[]; gender: GenderId; // people
   custom: string; note?: string;
+  ratio: string; tier: string; // aspect ratio ("auto" follows the reference) and quality
 };
-export const initialState = (): VarState => ({ mode: "reframe", grid: "2x2", perspectives: defaultPerspectives(4), narrative: "", auto: true, people: "expressions", ethnicities: [], gender: "both", custom: "" });
+export const initialState = (): VarState => ({ mode: "reframe", grid: "2x2", perspectives: defaultPerspectives(4), narrative: "", auto: true, people: "expressions", ethnicities: [], gender: "both", custom: "", ratio: "auto", tier: "2k" });
+
+/** The long edge in pixels of each quality tier, to show what a picture will measure. */
+export const TIER_EDGE: Record<string, number> = { "1k": 1024, "1.5k": 1536, "2k": 2048, "4k": 4096 };
+const COMMON = ["1:1", "4:3", "3:4", "5:4", "4:5", "3:2", "2:3", "16:9", "9:16"];
+/** The aspect ratios on offer: Auto (the reference's own) and the usual ones the model can make. */
+export const ratioChoices = (modelRatios: string[]) => ["auto", ...COMMON.filter((r) => modelRatios.includes(r))];
+/** About how big each picture will be, as "2048 x 1365", or "" when the shape follows a picture whose size is not known. */
+export function pixelsFor(tier: string, ratio: string, ref?: { w: number; h: number } | null): string {
+  const edge = TIER_EDGE[tier] ?? 2048;
+  let w: number, h: number;
+  if (ratio === "auto") { if (!ref) return ""; w = ref.w; h = ref.h; } else { const [a, b] = ratio.split(":").map(Number); if (!a || !b) return ""; w = a; h = b; }
+  const k = edge / Math.max(w, h);
+  return `${Math.round(w * k)} x ${Math.round(h * k)}`;
+}
 
 const KEEP = "Keep the subject, its identity and details, the art style, the colours and the overall look exactly the same as the reference picture.";
 const KEEP_SCENE = `${KEEP} Keep the same framing, composition, background, clothing and lighting.`;
@@ -90,7 +105,8 @@ export function cellPrompts(s: VarState): string[] {
   if (s.mode === "reframe") {
     out = s.perspectives.slice(0, n).map((id) => `Show the same subject from ${PERSPECTIVES.find((p) => p.id === id)?.text ?? id}. Change only the camera view. ${KEEP}`);
   } else if (s.mode === "storyboard") {
-    const scenes = s.auto ? cap(BEATS, n) : parseScenes(s.narrative).slice(0, n);
+    const written = parseScenes(s.narrative);
+    const scenes = written.length === n || !s.auto ? written.slice(0, n) : cap(BEATS, n); // Auto with no written story falls back to a fixed run of shot types
     out = scenes.map((t, i) => `Storyboard frame ${i + 1} of ${n}: ${t}. Draw it in the same style as the reference picture, with the same characters and setting. ${KEEP}`);
   } else if (s.mode === "people") {
     if (s.people === "expressions") out = cap(EXPRESSIONS, n).map((e) => `Change only the person's facial expression to ${e}. ${KEEP_SCENE}`);

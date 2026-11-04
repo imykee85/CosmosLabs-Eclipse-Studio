@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors } from "lucide-react";
+import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors, Grid3x3 } from "lucide-react";
 import { getCertificate } from "@/lib/certificate-client";
 import { trashRender } from "@/lib/render-actions";
 import AddSoundDialog from "../voice/AddSoundDialog";
 import EditVideoDialog from "../generate/EditVideoDialog";
+import VariationsTool from "../create/VariationsTool";
 import type { Render } from "@/lib/use-renders";
 import "./library.css";
 
@@ -26,6 +27,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
   const [cert, setCert] = useState<{ busy: boolean; code: string | null }>({ busy: false, code: null });
   const [sound, setSound] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [varying, setVarying] = useState(false);
 
   async function certify() {
     if (cert.code) { window.open(`/c/${cert.code}`, "_blank"); return; }
@@ -118,11 +120,13 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
         <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setSound(true)} aria-label="Add sound" title="Add sound to this video"><Volume2 size={15} /><span className="rd-lbl">Add sound</span></button>}
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setEditing(true)} aria-label="Edit video" title="Edit or extend this video"><Scissors size={15} /><span className="rd-lbl">Edit video</span></button>}
+        {g.kind !== "video" && !collapsible && <button type="button" className="rd-btn" onClick={() => setVarying(true)} aria-label="Variations" title="A set of controlled versions of this picture"><Grid3x3 size={15} /><span className="rd-lbl">Variations</span></button>}
         <button type="button" className="rd-btn" onClick={certify} disabled={cert.busy} aria-label="Certificate" title="Certificate of origin"><Award size={15} /><span className="rd-lbl">{cert.busy ? "Issuing…" : cert.code ? "View certificate" : "Certificate"}</span></button>
         <button type="button" className="rd-btn rd-danger" onClick={remove} title="Move to the bin" aria-label="Delete"><Trash2 size={15} /><span className="rd-lbl">Delete</span></button>
       </div>
       {note && <p className="rd-note" role="status">{note}</p>}
       {sound && <AddSoundDialog video={g} onClose={() => setSound(false)} />}
+      {varying && <VariationsTool reference={{ type: "render", id: g.id }} onClose={() => setVarying(false)} />}
       {editing && <EditVideoDialog video={g} onClose={() => setEditing(false)} />}
       {(!collapsible || info) && <dl className="rd-list">
         {rows.filter((r): r is [string, string] => Boolean(r[1])).map(([k, v]) => (

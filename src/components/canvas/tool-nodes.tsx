@@ -14,6 +14,8 @@ import { readCurrentProject } from "@/lib/projects";
 import { refreshCredits } from "@/lib/use-credits";
 import { useModels } from "@/lib/use-models";
 import { fetchAudioItem, startVoice, useVoiceModels, useVoices } from "@/lib/use-voice";
+import VariationsForm from "@/components/create/VariationsForm";
+import { cellPrompts, gridCount, initialState, parseScenes, problem, ratioChoices, type VarState } from "@/lib/variations/prompt";
 import { useCanvas } from "./CanvasContext";
 import { BIG, Result, Shell } from "./nodes";
 
@@ -281,6 +283,125 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
 }
 export const EditorNode = (p: NodeProps<CNode>) => <PictureTool {...p} tool="editor" />;
 export const UpscalerNode = (p: NodeProps<CNode>) => <PictureTool {...p} tool="upscaler" />;
+
+// ---------- Variations ----------
+// One picture in, a grid of controlled versions out: one render per cell, then one contact sheet. The cells and the sheet are the node's results; the ticked one goes on.
+export function VariationsNode({ id, data, selected }: NodeProps<CNode>) {
+  const { updateNodeData } = useReactFlow();
+  const { ask } = useCanvas();
+  const nodes = useNodes() as CNode[];
+  const edges = useEdges();
+  const models = useModels({ edit: true });
+  const inputs = useMemo(() => inputsOf(nodes, edges, id), [nodes, edges, id]);
+  const pics = useMemo(() => picturesOf(inputs), [inputs]);
+  const waiting = inputs.filter((i) => i.fromResult && !i.ready);
+  const model = useMemo(() => (models ? toolModel(models, "camera") : null), [models]);
+  const tiers = useMemo(() => (model ? ["1k", ...(model.resolutions.includes("1080p") ? ["1.5k"] : []), ...(model.resolutions.includes("2k") ? ["2k"] : []), ...(model.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"]), [model]);
+  const ratios = useMemo(() => ratioChoices(model?.ratios ?? []), [model]);
+  const vars: VarState = useMemo(() => ({ ...initialState(), ...(data.vars ?? {}) }), [data.vars]);
+  const text = inputs.filter((i) => i.port === "description" && i.text).map((i) => i.text).join("\n").trim();
+  // wired text stands in for the Custom prompt or the Storyboard narrative when none is typed on the node
+  const eff: VarState = useMemo(() => {
+    const tier = tiers.includes(vars.tier) ? vars.tier : tiers.includes("2k") ? "2k" : tiers[tiers.length - 1] ?? "1k";
+    return { ...vars, tier, custom: vars.custom.trim() ? vars.custom : text, ...(vars.mode === "storyboard" && !vars.narrative.trim() && text ? { narrative: text, auto: false } : {}) };
+  }, [vars, tiers, text]);
+  const pending = data.pending ?? [];
+  const gens = data.gens ?? [];
+  const busy = pending.length > 0;
+  const [submitting, setSubmitting] = useState(false);
+  const [storyBusy, setStoryBusy] = useState(false);
+  const picked = data.pick && gens.includes(data.pick) ? data.pick : gens[0];
+  const n = gridCount(eff.grid);
+  const issue = problem(eff, !!data.consent);
+  const unit = model ? imageCost(model, model.resolutions.length ? tierResolution(model.resolutions, eff.tier) : undefined, 1) : null;
+  const canGo = !!model && pics.length > 0 && !issue && !busy && !submitting && waiting.length === 0;
+  useFollow(id, pending, imageCheck, 2500);
+  const setVars = (f: (x: VarState) => VarState) => updateNodeData(id, { vars: f(vars) });
+
+  async function story(): Promise<string[] | null> {
+    const first = pics[0]?.pic; if (!first) return null;
+    setStoryBusy(true);
+    try {
+      const res = await fetch("/api/variations/narrative", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ n, hint: "", picture: { type: first.type, id: first.id } }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(d.scenes)) throw new Error(d.error ?? "The story could not be written.");
+      updateNodeData(id, { vars: { ...vars, narrative: (d.scenes as string[]).map((t, i) => `Scene ${i + 1}: ${t}`).join("\n") } });
+      return d.scenes as string[];
+    } catch (e) { updateNodeData(id, { error: e instanceof Error ? e.message : "The story could not be written." }); return null; }
+    finally { setStoryBusy(false); }
+  }
+  async function run() {
+    if (!canGo || !model) return;
+    setSubmitting(true);
+    updateNodeData(id, { error: undefined });
+    try {
+      let state = eff;
+      if (state.mode === "storyboard" && state.auto && parseScenes(state.narrative).length !== n) {
+        const scenes = await story();
+        if (scenes) state = { ...state, narrative: scenes.map((t, i) => `Scene ${i + 1}: ${t}`).join("\n") };
+      }
+      const seedOn = model.seed.supported;
+      const seedNum = seedOn ? model.seed.min + Math.floor(Math.random() * Math.min(model.seed.max - model.seed.min, 999_999)) : null;
+      const ref = { type: pics[0].pic.type, id: pics[0].pic.id };
+      const out = await Promise.all(cellPrompts(state).map(async (prompt) => {
+        try { const { results } = await startImages({ models: models ?? [], model, auto: false, prompt, ratio: state.ratio, tier: state.tier, qty: 1, refs: [ref], seedOn, seedNum, projectId: readCurrentProject()?.id }); return results[0]; }
+        catch (e) { return { ok: false, error: e instanceof Error ? e.message : "Something went wrong.", id: undefined }; }
+      }));
+      const ids = out.flatMap((r) => (r?.ok && r.id ? [r.id] : []));
+      if (!ids.length) throw new Error(out.find((r) => r && !r.ok)?.error ?? "Something went wrong. Please try again.");
+      updateNodeData(id, { pending: ids, gens: [], pick: undefined, sheet: undefined, error: ids.length < out.length ? `${out.length - ids.length} of ${out.length} could not be started: ${out.find((r) => r && !r.ok)?.error ?? ""}` : undefined });
+    } catch (e) { updateNodeData(id, { error: e instanceof Error ? e.message : "Something went wrong. Please try again." }); }
+    finally { setSubmitting(false); refreshCredits(); }
+  }
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    const onRun = (e: Event) => { if ((e as CustomEvent<{ id: string }>).detail?.id === id) void runRef.current(); };
+    window.addEventListener("eclipse-node-run", onRun);
+    return () => window.removeEventListener("eclipse-node-run", onRun);
+  }, [id]);
+  // when every cell is done, make the contact sheet once and keep it last in the results
+  const sheetFor = useRef("");
+  useEffect(() => {
+    const cells = gens.filter((g) => g !== data.sheet);
+    if (busy || cells.length < 2 || data.sheet || sheetFor.current === cells.join(",")) return;
+    sheetFor.current = cells.join(",");
+    (async () => {
+      try {
+        const res = await fetch("/api/variations/sheet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: cells, grid: vars.grid, mode: vars.mode }) });
+        const d = await res.json().catch(() => ({}));
+        if (res.ok && typeof d.id === "string") updateNodeData(id, (cur) => ({ sheet: d.id, gens: [...((cur.data as CanvasNodeData).gens ?? []).filter((g) => g !== d.id), d.id] }));
+      } catch {}
+    })();
+  }, [busy, gens, data.sheet, vars.grid, vars.mode, id, updateNodeData]);
+  const cellsOnly = gens.filter((g) => g !== data.sheet);
+  return (
+    <Shell id={id} kind="variations" selected={selected} className="cv-gen"
+      display={<div className="cv-disp">
+        {busy && gens.length === 0 ? <div className="cv-disp-empty"><Loader2 size={30} className="cv-spin" /><span>Making {pending.length} variations…</span></div>
+          : picked ? <Result gid={picked} ratio="auto" on onOpen={() => ask({ kind: "details", genId: picked })} />
+          : <div className="cv-disp-empty">{BIG.variations}<span>{pics.length ? "Ready" : "Plug in a picture"}</span></div>}
+      </div>}
+      controls={<>
+        {gens.length > 1 && (
+          <div className="cv-thumbs" aria-label="Variations made">
+            {cellsOnly.map((g) => <Result key={g} gid={g} ratio="auto" small on={g === picked} onPick={() => updateNodeData(id, { pick: g })} onOpen={() => ask({ kind: "details", genId: g })} />)}
+            {data.sheet && <Result gid={data.sheet} ratio="auto" small on={data.sheet === picked} onPick={() => updateNodeData(id, { pick: data.sheet })} onOpen={() => ask({ kind: "details", genId: data.sheet as string })} />}
+          </div>
+        )}
+        {gens.length > 1 && <p className="cv-nhint">The ticked picture is the Result the next node receives. The last tile is the whole sheet.</p>}
+        <VariationsForm compact s={eff} setS={setVars} consent={!!data.consent} setConsent={(v) => updateNodeData(id, { consent: v })} tiers={tiers} ratios={ratios} storyBusy={storyBusy} onWriteStory={() => void story()} />
+        <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={() => void run()}>
+          {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Working</> : unit != null ? <>Generate <span className="cv-cost" title={creditsText(unit * n)}><CoinIcon size={13} />{fmtCredits(unit * n)}</span></> : <>Generate <ArrowUp size={15} /></>}
+        </button>
+        {!pics.length && <p className="cv-nhint">Plug a picture into Ingredients (an Image node or another generator).</p>}
+        {pics.length > 0 && issue && <p className="cv-nhint">{issue}</p>}
+        {models && !model && <p className="cv-error" role="alert">No picture-editing model is available on this account.</p>}
+        {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
+        {data.error && <p className="cv-error" role="alert">{data.error}</p>}
+      </>} />
+  );
+}
 
 // ---------- List ----------
 // One item per line. A generator or video generator it feeds runs once per line, after asking to confirm how many.

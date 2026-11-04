@@ -34,7 +34,7 @@ import MarkDialog from "./MarkDialog";
 import SheetPortal from "@/components/voice/SheetPortal";
 import GenerateButton from "@/components/GenerateButton";
 import CameraPanel, { type CameraRun } from "./CameraPanel";
-import VariationsPanel, { type VariationsRun } from "./VariationsPanel";
+import VariationsTool from "./VariationsTool";
 import RelightPanel, { type RelightRun } from "./RelightPanel";
 import SkinPanel, { type SkinRun } from "./SkinPanel";
 import { skinPrompt } from "@/lib/skin/prompt";
@@ -359,33 +359,19 @@ export default function CreateStudio() {
     if (modelId !== AUTO && (model?.maxReferences ?? 0) === 0) setNoRefs(true);
     box.current?.focus();
   }
-  // Variations: one render per cell, each from the same picture with its own instruction (src/lib/variations/prompt.ts).
+  // Variations: its own window (VariationsTool): one render per cell from this picture, then the contact sheet and the results.
   const [varOpen, setVarOpen] = useState(false);
-  const [varError, setVarError] = useState("");
-  const varModel = toolModel(models ?? [], "camera");
-  const varTiers = varModel ? ["1k", ...(varModel.resolutions.includes("1080p") ? ["1.5k"] : []), ...(varModel.resolutions.includes("2k") ? ["2k"] : []), ...(varModel.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"];
-  async function runVariations(run: VariationsRun) {
-    if (!toolPic || submitting) return;
-    if (!varModel) { setVarError("Variations needs a model that edits pictures, and none is connected yet."); return; }
-    setVarError(""); setError(""); setSubmitting(true);
+  async function upscaleId(id: string) {
+    const m = toolModel(models ?? [], "upscale");
+    if (!m || submitting) { setToolNote("Upscale needs a model that edits pictures, and none is connected yet."); return; }
+    setError(""); setSubmitting(true);
     try {
-      let first: string | undefined;
-      let failed = 0, why = "";
-      for (const prompt of run.prompts) {
-        const { results } = await startImages({ models: models ?? [], model: varModel, auto: false, prompt, ratio: "auto", tier: run.tier, qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
-        const r = results[0];
-        if (r?.ok) first = first ?? r.id; else { failed++; why = r?.error ?? why; }
-      }
-      if (!first) throw new Error(why || "Something went wrong. Please try again.");
-      setVarOpen(false);
-      if (failed) setError(`${failed} of ${run.prompts.length} variations could not be started: ${why}`);
-      setWatched(first);
+      const { results } = await startImages({ models: models ?? [], model: m, auto: false, prompt: toolPrompt("upscale"), ratio: "auto", tier: toolTier(m, "upscale"), qty: 1, refs: [{ type: "render", id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      const r = results[0];
+      if (!r?.ok) throw new Error(r?.error ?? "Something went wrong. Please try again.");
+      if (r.id) setWatched(r.id);
       await reload();
-    } catch (e) {
-      setVarError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Please try again."); } finally { setSubmitting(false); }
   }
   // Soul ID (Soul, Soul 2, Soul Cinema only): the chosen trained character and how closely to follow it, remembered per model version.
   const soulVersion = modelId === "soul" ? "v1" : modelId === "soul_v2" ? "v2" : modelId === "soul_cinema" ? "cinema" : null;
@@ -553,7 +539,7 @@ export default function CreateStudio() {
         ) : (
           <>
             <button type="button" tabIndex={toolPic ? 0 : -1} onClick={editPicture} title="Use this picture as an ingredient and describe the change"><Pencil size={14} /> Edit</button>
-            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => { setVarError(""); setVarOpen(true); }} disabled={submitting} title="A set of controlled versions of this picture"><Shuffle size={14} /> Variations</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => setVarOpen(true)} disabled={submitting} title="A set of controlled versions of this picture"><Shuffle size={14} /> Variations</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setLightError(""); setLightOpen(true); }} title="Place lights round the picture and change how it is lit"><Sun size={14} /> Relight</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setCamError(""); setCamOpen(true); }} title="See the same moment from another camera position"><Camera size={14} /> Change camera</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setSkinError(""); setSkinOpen(true); }} title="Natural, realistic skin on a portrait"><ScanFace size={14} /> Skin enhancer</button>
@@ -668,7 +654,7 @@ export default function CreateStudio() {
       </div>
       {skinOpen && toolPic?.imageUrl && <SheetPortal><SkinPanel thumb={thumbOf("render", toolPic.id)} tiers={skinTiers} unit={(t) => (skinModel ? imageCost(skinModel, skinModel.resolutions.length ? tierResolution(skinModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={skinError} onRun={(r) => void runSkin(r)} onClose={() => setSkinOpen(false)} /></SheetPortal>}
       {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} unit={(t) => (lightModel ? imageCost(lightModel, lightModel.resolutions.length ? tierResolution(lightModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
-      {varOpen && toolPic?.imageUrl && <SheetPortal><VariationsPanel thumb={thumbOf("render", toolPic.id)} tiers={varTiers} unit={(t) => (varModel ? imageCost(varModel, varModel.resolutions.length ? tierResolution(varModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={varError} onRun={(r) => void runVariations(r)} onClose={() => setVarOpen(false)} /></SheetPortal>}
+      {varOpen && toolPic?.imageUrl && <VariationsTool reference={{ type: "render", id: toolPic.id }} onClose={() => setVarOpen(false)} onUseAsReference={(id) => { setRefs([{ type: "render", id, url: `/api/generations/${id}/file`, label: "Variation" }]); box.current?.focus(); }} onUpscale={(id) => void upscaleId(id)} />}
       {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} unit={(t) => (camModel ? imageCost(camModel, camModel.resolutions.length ? tierResolution(camModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
