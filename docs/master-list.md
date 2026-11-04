@@ -49,3 +49,8 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 | 21 | Atlas Agent: the Library and memory tools (#304) and server-run plans (#308) are built; the rest of the Atlas Agent plan waits for your "Atlas Agent" go. | Owner |
 
 Built and removed from this list on 2026-11-04: the sign-up tour (`FirstTour.tsx`), the leak guard (#304), team seat release when a plan ends and the deleted-team sweep (`team-sweep` cron), removal of the unlinked `/export` and `/avatars` pages, and the failing integration tests.
+
+## Added 2026-11-04 from the GitHub security sweep (owner)
+| # | Item | Who |
+|---|---|---|
+| 37 | The repository is PUBLIC and holds internal notes (CLAUDE.md, docs/master-list.md, the security audit reports, known gaps). The sweep found no keys, tokens, private keys or database passwords in the files or the last 400 commits, but those notes tell an attacker where the weak spots are. Make the repository private (GitHub, Settings, General, Danger Zone, Change visibility). Also check Settings, Code security: secret scanning, push protection, Dependabot alerts and private vulnerability reporting are ON, and add a branch rule on `main` (pull request and passing `check` before merge). I cannot read or change these from here. | Owner |
