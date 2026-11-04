@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { requireUser } from "@/lib/api-user";
 import { ownTool, toolRunInput, ToolRunError } from "@/lib/core-tools";
+import { editEnabled, editInputFor } from "@/lib/sandbox/kinds/edit";
 import { muxEnabled, muxInputFor } from "@/lib/sandbox/kinds/mux";
 import { JobInputError } from "@/lib/sandbox/kinds/types";
 import { PERSON_KINDS } from "@/lib/sandbox/kinds";
@@ -27,6 +28,9 @@ export async function POST(req: Request) {
     if (kind === "media.mux") {
       if (!muxEnabled()) return NextResponse.json({ error: "Downloading the video with sound is not switched on yet." }, { status: 503 });
       input = await muxInputFor(u.userId, id, b?.input);
+    } else if (kind === "media.edit") {
+      if (!editEnabled()) return NextResponse.json({ error: "Editing videos is not available yet." }, { status: 503 });
+      input = await editInputFor(u.userId, id, b?.input);
     } else {
       const body = (b?.input ?? {}) as { toolId?: unknown; values?: unknown; files?: unknown };
       const tool = typeof body.toolId === "string" ? await ownTool(u.userId, body.toolId) : null;

@@ -21,6 +21,8 @@ const nextConfig = {
   outputFileTracingExcludes: { "**/*": ["./node_modules/@img/sharp-wasm32/**"] },
   outputFileTracingIncludes: {
     ...Object.fromEntries(["/api/agent/chat", "/api/uploads/direct/finish"].map((r) => [r, ["./node_modules/@ffmpeg-installer/ffmpeg/**", "./node_modules/@ffmpeg-installer/linux-x64/**"]])),
+    // The vendored programs a sandbox job copies into its cloud computer (ffmpeg-skill for video editing): read from disk by whatever starts or drives such a job.
+    ...Object.fromEntries(["/api/sandbox/jobs", "/api/sandbox/jobs/[id]", "/api/connect/chat", "/api/cron/finalize-renders", "/api/cron/sandbox-sweeper", "/api/mcp"].map((r) => [r, ["./core/skills/builtin/**"]])),
   },
   async headers() {
     // A person's browser mini tool is shown in a locked-down frame on Eclipse's own pages, so its address is the one page that may be framed

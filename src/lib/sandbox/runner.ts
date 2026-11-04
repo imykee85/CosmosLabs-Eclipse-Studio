@@ -41,8 +41,8 @@ const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 export type EnqueueResult = { ok: true; job: SandboxJob } | { ok: false; status: number; error: string };
 
 /** Which plan feature each kind of job needs (owner 2026-10-21): the video-with-sound download is part of every paid plan, saved tools run on Growth and up, a build session (the cloud computer) is Scale. Config `SANDBOX_REQUIRE_PAID=off` lifts the check (for the owner's own tests). */
-export const KIND_FEATURE: Record<string, Feature> = { "media.mux": "plan_tools", "core.tool.run": "core", "core.exec": "builds" };
-const KIND_LABEL: Record<string, string> = { "media.mux": "Downloading a video with sound", "core.tool.run": "Running your own tools", "core.exec": "Building tools with Core" };
+export const KIND_FEATURE: Record<string, Feature> = { "media.mux": "plan_tools", "media.edit": "core", "core.tool.run": "core", "core.exec": "builds" };
+const KIND_LABEL: Record<string, string> = { "media.mux": "Downloading a video with sound", "media.edit": "Editing a video", "core.tool.run": "Running your own tools", "core.exec": "Building tools with Core" };
 export async function allowedFor(kind: string, userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   if (process.env.SANDBOX_REQUIRE_PAID === "off") return { ok: true };
   const feature = KIND_FEATURE[kind] ?? "builds";
