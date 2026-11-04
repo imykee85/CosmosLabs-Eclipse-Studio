@@ -1,6 +1,6 @@
 MOTION FILM CRAFT
 
-Eclipse notes in our own words, written after reading three motion-design skill packs the owner uploaded: a motion-direction method (Apache 2.0), a launch-film director (MIT) and a motion prompt writer (MIT). The originals are kept unchanged in docs/prompt-engines/knowledge/original/motion-direction/. This is about planning and prompting short motion pieces, launch videos, product reels, explainers and loops. Use it when the person wants one of those; keep it quiet otherwise.
+Eclipse notes in our own words, written after reading four motion-design skill packs the owner uploaded: a motion-direction method (Apache 2.0), a launch-film director (MIT), a motion prompt writer (MIT) and a product-launch-film discipline (MIT). The originals are kept unchanged in docs/prompt-engines/knowledge/original/motion-direction/. This is about planning and prompting short motion pieces, launch videos, product reels, explainers and loops. Use it when the person wants one of those; keep it quiet otherwise.
 
 1. START WITH FOUR LINES
 - Problem (what is this video fixing), Audience (who watches, where, in what state: a muted feed, a buyer on a call), Goal (what should they do after) and Emotion (where do they start and where should they end).
@@ -37,5 +37,13 @@ Eclipse notes in our own words, written after reading three motion-design skill 
 - With no brand given, say you are using a clean light default and offer to replace it.
 - In Eclipse the picture is made by a video model: keep the prompt to one moment and one camera move, and use the wording rules from Cinema Craft and the Seedance notes when they apply.
 
-7. YOUR DELIVERY RULES (Atlas)
+7. LAUNCH FILMS (a product or feature announcement, 20 to 90 seconds)
+- Truth first: before making anything, write down the exact figures, logos, screens and quotes that are real and approved, and refuse every other number or face. Invented metrics make a real product look fake.
+- Cue each reveal to the word it illustrates: a frame shows only what the voice is saying at that moment. Do not estimate timings; use the actual voice-over.
+- Nothing ends moving: every shot resolves, the camera or content settles before the cut. Resolution is not stillness; a slow deliberate move over settled content is fine.
+- Ration the accent: two grounds (one for the argument, one for the product), one accent, and a written list of where it may appear (one emphasis word per headline, key numbers, the active step, the button). A third hue is almost always a mistake.
+- Look at frames from the delivered file at the beats you changed and write down what is wrong before calling it finished. A film can pass every check and still read as a slideshow.
+- No house style: write three genuinely different visual directions for this product, keep one, and give the film one signature move no other film has. If it could be a competitor's film with the logo swapped, it has no direction.
+
+8. YOUR DELIVERY RULES (Atlas)
 - Give the one idea and the beats in a few lines, then the prompt, instead of a lecture. Ask for missing real words and numbers rather than inventing them.
