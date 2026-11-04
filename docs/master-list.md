@@ -35,7 +35,6 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 ## Added 2026-11-04 from the attacker review (open, owner)
 | # | Item | Who |
 |---|---|---|
-| 33 | Vercel Firewall: rate-limit by address and know where Attack Challenge Mode is (CPU-exhaustion flood protection; every page renders per request because of the nonce security policy) | Owner |
 | 34 | Clerk: block email subaddresses (name+1@) and disposable email domains (free-trial farming) | Owner |
 | 36 | Set a separate Secret `CONNECT_SECRET_KEY` in Vercel (today the Clerk key also encrypts connector logins and signs share links; changing either later breaks saved connectors and share links) | Owner |
 
