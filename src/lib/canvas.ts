@@ -42,6 +42,8 @@ export type CanvasNodeData = {
   title?: string;       // group: its title
   color?: string;       // group: its colour name
   option?: string;      // upscaler and image editor: unused for now
+  edOp?: string;        // edit image: which tool (prompt, removebg, relight, camera)
+  edOpt?: string;       // edit image: the chosen relight / camera option
   vars?: VarState;      // variations: the mode, its options, grid, aspect ratio and quality
   consent?: boolean;    // variations, People mode: the picture is the person's own or they agreed
   sheet?: string;       // variations: the contact sheet render (also kept last in `gens`)
@@ -63,7 +65,7 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
   ] },
   { title: "Tools", items: [
     { id: "assistant", kind: "assistant", label: "Assistant", blurb: "Writes or rewrites text for you" },
-    { id: "editor", kind: "editor", label: "Image editor", blurb: "Changes a picture from an instruction" },
+    { id: "editor", kind: "editor", label: "Edit image", blurb: "Changes a picture from an instruction" },
     { id: "upscaler", kind: "upscaler", label: "Upscaler", blurb: "Makes a picture sharper and larger" },
     { id: "variations", kind: "variations", label: "Variations", blurb: "A grid of controlled versions of a picture" },
     { id: "list", kind: "list", label: "List", blurb: "Run a generator once per line" },

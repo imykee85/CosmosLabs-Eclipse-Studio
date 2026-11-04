@@ -325,3 +325,5 @@
 .cv-right { display: flex; gap: 8px; align-items: center; }
 /* React Flow draws a built-in frame around nodes called "group"; ours draws its own */
 .react-flow__node-group { background: none !important; border: 0 !important; padding: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+.cv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cv-chip.is-on { background: var(--a-fg); color: var(--a-bg); border-color: var(--a-fg); }

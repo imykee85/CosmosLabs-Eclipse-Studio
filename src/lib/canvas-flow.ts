@@ -80,7 +80,7 @@ export const portFor = (sourceKind: string | undefined, targetKind: string | und
 export const TITLES: Record<NodeKind, string> = {
   character: "Character", product: "Product", scene: "Scene", text: "Text prompt", style: "Style", note: "Note", fullbody: "Full-body generator", generator: "Image generator",
   sheet: "Character sheet generator", image: "Image", clip: "Video", videogen: "Video generator",
-  assistant: "Assistant", voiceover: "Voiceover", sfx: "Sound effects", music: "Music", editor: "Image editor", upscaler: "Upscaler", variations: "Variations", list: "List", group: "Group",
+  assistant: "Assistant", voiceover: "Voiceover", sfx: "Sound effects", music: "Music", editor: "Edit image", upscaler: "Upscaler", variations: "Variations", list: "List", group: "Group",
 };
 
 // The picture a generator hands on: the one marked, else its first finished render.

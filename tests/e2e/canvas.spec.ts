@@ -76,9 +76,24 @@ test.describe("Canvas on desktop", () => {
   test("the wrapper nodes, List and Group can all be added", async ({ page }) => {
     await seed(page);
     await openNewCanvas(page);
-    for (const label of ["Assistant", "Image editor", "Upscaler", "List", "Voiceover", "Sound effects", "Music"]) await addFromPanel(page, `^${label}$`);
+    for (const label of ["Assistant", "Edit image", "Upscaler", "List", "Voiceover", "Sound effects", "Music"]) await addFromPanel(page, `^${label}$`);
     await expect(page.locator(".react-flow__node")).toHaveCount(7);
-    for (const title of ["Assistant", "Image editor", "Upscaler", "List", "Voiceover", "Sound effects", "Music"]) await expect(page.locator(".cv-n-title", { hasText: new RegExp(`^${title}`) }).first()).toBeVisible();
+    for (const title of ["Assistant", "Edit image", "Upscaler", "List", "Voiceover", "Sound effects", "Music"]) await expect(page.locator(".cv-n-title", { hasText: new RegExp(`^${title}`) }).first()).toBeVisible();
+  });
+
+  test("Edit image has a tool row; Relight and Camera offer their options, Prompt shows the instruction box", async ({ page }) => {
+    await seed(page);
+    await openNewCanvas(page);
+    await addFromPanel(page, "^Edit image$");
+    const node = page.locator(".react-flow__node").first();
+    await expect(node.getByPlaceholder(/What should change/)).toBeVisible();
+    await node.getByRole("button", { name: "Relight", exact: true }).click();
+    await expect(node.getByLabel("Lighting")).toBeVisible();
+    await expect(node.getByPlaceholder(/What should change/)).toHaveCount(0);
+    await node.getByRole("button", { name: "Camera", exact: true }).click();
+    await expect(node.getByLabel("Camera angle")).toBeVisible();
+    await node.getByRole("button", { name: "Remove background" }).click();
+    await expect(node.getByLabel("Camera angle")).toHaveCount(0);
   });
 
   test("the Assistant writes text from an instruction and shows it", async ({ page }) => {
