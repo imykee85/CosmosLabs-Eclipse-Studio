@@ -91,3 +91,58 @@ test("the OpenAI edit request carries the mask next to the pictures", () => {
   const without = openaiRequest({ apiModel: "gpt-image-2", prompt: "x", references: [png], aspectRatio: "1:1", sizing: "custom16", resolution: "1k" });
   assert.equal("mask" in without.body, false);
 });
+
+// A lit sphere on a gradient background with a bright highlight on it: the grower must follow the shading, keep the highlight, and stay inside the outline.
+function sphereScene(w: number, h: number) {
+  const px = new Uint8ClampedArray(w * h * 4);
+  const cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.3;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const o = (y * w + x) * 4; const d = Math.hypot(x - cx, y - cy);
+    let c: [number, number, number];
+    if (d <= r) { const shade = 1 - (d / r) * 0.35; c = [Math.round(200 * shade), Math.round(40 * shade), Math.round(40 * shade)]; if (Math.hypot(x - (cx - r * 0.3), y - (cy - r * 0.3)) < r * 0.12) c = [255, 235, 235]; }
+    else { const g = 60 + Math.round((x / w) * 50); c = [g, g + 20, g + 40]; }
+    px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = 255;
+  }
+  return { px, cx, cy, r };
+}
+test("click select picks a whole shaded object, keeps its highlight and does not leak into the background", () => {
+  const w = 120, h = 120, { px, cx, cy, r } = sphereScene(w, h);
+  const m = wandSelect(px, w, h, cx + r * 0.2, cy + r * 0.2, 32);
+  let inside = 0, total = 0, leaked = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const d = Math.hypot(x - cx, y - cy); if (d <= r - 2) { total++; inside += m[y * w + x]; } else if (d > r + 3 && m[y * w + x]) leaked++; }
+  assert.ok(inside / total > 0.97, `the object is selected (${(inside / total).toFixed(3)})`);
+  assert.equal(leaked, 0, "nothing outside the outline");
+  assert.equal(m[Math.round(cy - r * 0.3) * w + Math.round(cx - r * 0.3)], 1, "the highlight inside is part of it");
+});
+test("click select on the background picks the background, not the object", () => {
+  const w = 120, h = 120, { px, cx, cy, r } = sphereScene(w, h);
+  const m = wandSelect(px, w, h, 5, 5, 32);
+  assert.equal(m[Math.round(cy) * w + Math.round(cx)], 0);
+  assert.equal(m[5 * w + 5], 1);
+});
+
+import { applyAdjust, applyCrop, cleanAdjust, cropBox, isUnchanged } from "../../src/lib/edit/transform";
+test("crop box: the biggest area of the ratio, centred or around a focus, never outside the picture", () => {
+  assert.deepEqual(cropBox(1000, 500, "1:1"), { left: 250, top: 0, width: 500, height: 500 });
+  assert.deepEqual(cropBox(500, 1000, "16:9"), { left: 0, top: 360, width: 500, height: 281 });
+  assert.equal(cropBox(1000, 500, "1:1", { x: 0, y: 0.5 })!.left, 0);
+  assert.equal(cropBox(1000, 500, "1:1", { x: 1, y: 0.5 })!.left, 500);
+  assert.equal(cropBox(1000, 500, "oops"), null);
+});
+test("crop and adjust change the picture the way they say", async () => {
+  const sharp = (await import("sharp")).default;
+  const src = new Uint8Array(await sharp({ create: { width: 200, height: 100, channels: 3, background: { r: 100, g: 100, b: 100 } } }).png().toBuffer());
+  const c = await applyCrop(src, "1:1");
+  assert.deepEqual([c.width, c.height], [100, 100]);
+  const px = async (b: Uint8Array) => Array.from((await sharp(b).raw().toBuffer()).subarray(0, 3));
+  const bright = await px(await applyAdjust(src, { ...cleanAdjust({}), brightness: 50 }));
+  assert.ok(bright[0] > 100, "brighter");
+  const warm = await px(await applyAdjust(src, { ...cleanAdjust({}), warmth: 100 }));
+  assert.ok(warm[0] > warm[2], "warmer: more red than blue");
+  const grey = await px(await applyAdjust(new Uint8Array(await sharp({ create: { width: 4, height: 4, channels: 3, background: { r: 200, g: 50, b: 50 } } }).png().toBuffer()), { ...cleanAdjust({}), saturation: -100 }));
+  assert.ok(Math.abs(grey[0] - grey[1]) < 12, "no saturation: nearly grey");
+});
+test("adjust values are kept in range and 'unchanged' is noticed", () => {
+  assert.deepEqual(cleanAdjust({ brightness: 999, contrast: -999, saturation: "x", warmth: 5, sharpness: -4 }), { brightness: 100, contrast: -100, saturation: 0, warmth: 5, sharpness: 0 });
+  assert.equal(isUnchanged(cleanAdjust(null)), true);
+});

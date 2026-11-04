@@ -10,6 +10,9 @@ import { finalizeVideo } from "./video-jobs";
 import { freeCredits } from "./reservations";
 import { startRender, type StartRenderInput, type StartRenderResult } from "./start-render";
 import { startVideoRender, videoSettings, type StartVideoInput, type StartVideoResult } from "./start-video";
+import { getAudioJob, startAudioJob, type StartAudioInput, type StartAudioResult } from "./audio/jobs";
+import { findAudioModel } from "./audio/registry";
+import { ctxFor, providerFor } from "./audio/providers";
 import { newPlan, type PlanSpec, type PlanState, type PlanStep } from "./agent-plan";
 import { planSetup, quoteWith, type PlanSetup } from "./agent-plan-setup";
 
@@ -22,16 +25,42 @@ const POLL_MS = 4000;
 const DRIVE_MS = 270 * 1000;
 const MAX_RUNNING = 2;
 
-type Run = { setup: PlanSetup; heroId?: string; sceneIds?: string[]; videoId?: string };
+type Run = { setup: PlanSetup; heroId?: string; sceneIds?: string[]; videoId?: string; voiceId?: string; musicId?: string };
 export type PlanDeps = {
   startImage: (i: StartRenderInput) => Promise<StartRenderResult>;
   startVideo: (i: StartVideoInput) => Promise<StartVideoResult>;
-  check: (kind: "image" | "video", id: string, userId: string) => Promise<{ status: "pending" | "completed" | "failed"; error?: string }>;
+  check: (kind: "image" | "video" | "audio", id: string, userId: string) => Promise<{ status: "pending" | "completed" | "failed"; error?: string }>;
+  startAudio: (i: StartAudioInput) => Promise<StartAudioResult>;
+  quoteAudio: (i: StartAudioInput) => Promise<{ ok: true; quote: number | null } | { ok: false; status: number; error: string }>;
+  voice: () => Promise<{ id: string; name: string } | null>; // the voice a plan's voiceover is spoken in
 };
+export const VOICE_MODEL = "eleven_v4";
+export const MUSIC_MODEL = "music_v2_5";
+let voiceCache: { at: number; v: { id: string; name: string } | null } | null = null;
+async function defaultVoice(): Promise<{ id: string; name: string } | null> {
+  if (voiceCache && Date.now() - voiceCache.at < 10 * 60_000) return voiceCache.v;
+  const m = findAudioModel(VOICE_MODEL);
+  const ctx = m ? ctxFor(m) : null;
+  if (!m || !ctx) return null;
+  try {
+    const list = await providerFor(m).listVoices?.(ctx, {});
+    const v = list?.[0] ? { id: list[0].voiceId, name: list[0].name } : null;
+    voiceCache = { at: Date.now(), v };
+    return v;
+  } catch { return null; }
+}
 export const realDeps: PlanDeps = {
   startImage: startRender,
   startVideo: startVideoRender,
+  startAudio: (i) => startAudioJob(i),
+  quoteAudio: (i) => startAudioJob(i, { dryRun: true }),
+  voice: defaultVoice,
   async check(kind, id, userId) {
+    if (kind === "audio") {
+      const j = await getAudioJob(userId, id);
+      if (!j) return { status: "failed", error: "It was removed before it finished." };
+      return j.status === "completed" ? { status: "completed" } : j.status === "failed" ? { status: "failed", error: j.error ?? undefined } : { status: "pending" };
+    }
     const row = await db.generation.findFirst({ where: { id, userId } });
     if (!row) return { status: "failed", error: "It was removed before it finished." };
     const g = kind === "video" ? await finalizeVideo(row) : await finalizeGeneration(row);
@@ -44,8 +73,12 @@ const asSteps = (s: Prisma.JsonValue) => s as unknown as PlanStep[];
 const asSpec = (s: Prisma.JsonValue) => s as unknown as PlanSpec;
 
 /** The plan as the card shows it. */
-export function planView(row: AgentPlan): { id: string; plan: PlanState } {
-  return { id: row.id, plan: { spec: asSpec(row.spec), steps: asSteps(row.steps), status: row.status as PlanState["status"], price: row.price, note: row.note ?? undefined } };
+export function planView(row: AgentPlan): { id: string; createdAt: string; plan: PlanState } {
+  return { id: row.id, createdAt: row.createdAt.toISOString(), plan: { id: row.id, spec: asSpec(row.spec), steps: asSteps(row.steps), status: row.status as PlanState["status"], price: row.price, note: row.note ?? undefined } };
+}
+/** The person's plans, newest first (the history list). */
+export async function listPlans(userId: string, limit = 30) {
+  return (await db.agentPlan.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: limit })).map(planView);
 }
 
 /** The settings the server would run a spec with, and the card's price. Used by the create route. */
@@ -56,10 +89,30 @@ export function quoteOnServer(spec: PlanSpec): { setup: PlanSetup | string; plan
   return { setup, plan: quoteWith(spec, setup, models) };
 }
 
+/** The card's plan with its TOTAL price, the voiceover and music included (their own quotes), or the plain reason the plan cannot run. */
+export async function quoteFull(userId: string, spec: PlanSpec, deps: PlanDeps = realDeps): Promise<{ setup: PlanSetup | string; plan: PlanState }> {
+  const { setup, plan } = quoteOnServer(spec);
+  if (typeof setup === "string") return { setup, plan };
+  let extra = 0, known = plan.price != null;
+  if (plan.spec.voiceover) {
+    const voice = await deps.voice();
+    if (!voice) return { setup: "A voice for the voiceover is not available right now.", plan: { ...plan, note: "A voice for the voiceover is not available right now.", price: null } };
+    const q = await deps.quoteAudio({ userId, kind: "tts", model: VOICE_MODEL, text: plan.spec.voiceover, voiceId: voice.id });
+    if (!q.ok) return { setup: q.error, plan: { ...plan, note: q.error, price: null } };
+    if (q.quote == null) known = false; else extra += q.quote;
+  }
+  if (plan.spec.music) {
+    const q = await deps.quoteAudio({ userId, kind: "music", model: MUSIC_MODEL, text: plan.spec.music, durationSec: Math.max(3, setup.seconds), instrumental: true });
+    if (!q.ok) return { setup: q.error, plan: { ...plan, note: q.error, price: null } };
+    if (q.quote == null) known = false; else extra += q.quote;
+  }
+  return { setup, plan: { ...plan, price: known && plan.price != null ? plan.price + extra : null } };
+}
+
 export type CreateResult = { ok: true; row: AgentPlan } | { ok: false; status: number; error: string };
-export async function createPlan(o: { userId: string; personId: string | null; projectId: string | null; spec: PlanSpec }): Promise<CreateResult> {
+export async function createPlan(o: { userId: string; personId: string | null; projectId: string | null; spec: PlanSpec }, deps: PlanDeps = realDeps): Promise<CreateResult> {
   if ((await db.agentPlan.count({ where: { userId: o.userId, status: "running" } })) >= MAX_RUNNING) return { ok: false, status: 429, error: "You already have plans running. Wait for one to finish." };
-  const { setup, plan } = quoteOnServer(o.spec);
+  const { setup, plan } = await quoteFull(o.userId, o.spec, deps);
   if (typeof setup === "string") return { ok: false, status: 400, error: setup };
   if (plan.price != null && (await freeCredits(o.userId)) < plan.price) return { ok: false, status: 402, error: "You don't have enough credits for the whole plan. Top up in Settings, Billing, then approve it again." };
   const row = await db.agentPlan.create({
@@ -128,10 +181,33 @@ async function step(row: AgentPlan, deps: PlanDeps): Promise<Out> {
     run.videoId = r.item.id;
     steps = setStep(steps, "video", { state: "running", ids: [run.videoId] });
   }
-  const v = await deps.check("video", run.videoId, userId);
-  if (v.status === "failed") return fail("video", v.error ?? "The video could not be made.");
-  if (v.status === "pending") return { steps, run, status: "running" };
-  return { steps: setStep(steps, "video", { state: "done", ids: [run.videoId] }), run, status: "done" };
+  // 4. the sound (optional): made beside the video, from the same moment it starts
+  if (spec.voiceover && !run.voiceId) {
+    const voice = await deps.voice();
+    if (!voice) return fail("voice", "A voice for the voiceover is not available right now.");
+    const r = await deps.startAudio({ userId, kind: "tts", model: VOICE_MODEL, text: spec.voiceover, voiceId: voice.id, voiceName: voice.name, projectId });
+    if (!r.ok) return fail("voice", r.error);
+    run.voiceId = r.item.id;
+    steps = setStep(steps, "voice", { state: "running", ids: [run.voiceId] });
+  }
+  if (spec.music && !run.musicId) {
+    const r = await deps.startAudio({ userId, kind: "music", model: MUSIC_MODEL, text: spec.music, durationSec: Math.max(3, s.seconds), instrumental: true, projectId });
+    if (!r.ok) return fail("music", r.error);
+    run.musicId = r.item.id;
+    steps = setStep(steps, "music", { state: "running", ids: [run.musicId] });
+  }
+
+  // 5. everything started: wait for all of it
+  const waits: { id: string; kind: "video" | "audio"; stepId: string }[] = [{ id: run.videoId, kind: "video", stepId: "video" }, ...(run.voiceId ? [{ id: run.voiceId, kind: "audio" as const, stepId: "voice" }] : []), ...(run.musicId ? [{ id: run.musicId, kind: "audio" as const, stepId: "music" }] : [])];
+  let pending = false;
+  for (const w of waits) {
+    if (steps.find((x) => x.id === w.stepId)?.state === "done") continue;
+    const c = await deps.check(w.kind, w.id, userId);
+    if (c.status === "failed") return fail(w.stepId, c.error ?? (w.kind === "video" ? "The video could not be made." : "The sound could not be made."));
+    if (c.status === "pending") { pending = true; continue; }
+    steps = setStep(steps, w.stepId, { state: "done", ids: [w.id] });
+  }
+  return { steps, run, status: pending ? "running" : "done" };
 }
 
 /** One pass. Safe to call from anywhere at any time: one caller at a time does the work (a lock row), the others just read. */

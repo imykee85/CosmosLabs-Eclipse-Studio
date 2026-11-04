@@ -10,6 +10,7 @@ import { composePrompt, inputsOf, listLines, picturesOf } from "@/lib/canvas-flo
 import { creditsText, fmtCredits } from "@/lib/credit-units";
 import { imageCost, startImages, tierResolution } from "@/lib/image-render";
 import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId } from "@/lib/picture-tools";
+import { CROP_RATIOS } from "@/lib/edit/crop-options";
 import { readCurrentProject } from "@/lib/projects";
 import { refreshCredits } from "@/lib/use-credits";
 import { useModels } from "@/lib/use-models";
@@ -217,6 +218,8 @@ export const MusicNode = (p: NodeProps<CNode>) => <AudioNode {...p} mode="music"
 // ---------- Image editor and Upscaler ----------
 // Both are picture edits: the picture plugged into Ingredients goes in, a new picture comes out (the original is kept). They use the best editing model this
 // account can run, the same way Image Studio's picture tools do, and are priced like any image.
+type EditOp = "prompt" | "crop" | "expand" | "adjust" | ToolId;
+const EXPAND_PROMPT = "Expand image 1 to the new aspect ratio by continuing the scene beyond its edges. Keep everything that is already in the picture exactly as it is (same subject, faces, colours, style, lighting and perspective) and fill the new areas naturally so the extension looks like it was always part of the photograph.";
 function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "editor" | "upscaler" }) {
   const { updateNodeData } = useReactFlow();
   const { ask } = useCanvas();
@@ -227,16 +230,21 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
   const pics = useMemo(() => picturesOf(inputs), [inputs]);
   const waiting = inputs.filter((i) => i.fromResult && !i.ready);
   // Edit image has a tool row (prompt, remove background, relight, change camera); the Upscaler is always an upscale.
-  const op: "prompt" | ToolId = tool === "upscaler" ? "upscale" : ((data.edOp as "prompt" | ToolId | undefined) ?? "prompt");
+  // Crop and Adjust are free and local (no model); Expand asks the editing model to continue the scene into a new aspect ratio.
+  const op: EditOp = tool === "upscaler" ? "upscale" : ((data.edOp as EditOp | undefined) ?? "prompt");
+  const local = op === "crop" || op === "adjust";
   const options = op === "relight" ? RELIGHT : op === "camera" ? CAMERA : null;
   const option = options ? options.find((o) => o.id === data.edOpt) ?? options[0] : undefined;
-  const toolId: ToolId = op === "prompt" ? "relight" : op;
+  const ratioOpt = (CROP_RATIOS as readonly string[]).includes(data.edOpt ?? "") ? (data.edOpt as string) : "16:9";
+  const adj = { brightness: 0, contrast: 0, saturation: 0, warmth: 0, sharpness: 0, ...(data.edAdj ?? {}) };
+  const adjusted = Object.values(adj).some((v) => v !== 0);
+  const toolId: ToolId = op === "prompt" || op === "expand" || local ? "relight" : op;
   const model = useMemo(() => (models ? toolModel(models, toolId) : null), [models, toolId]);
   const tier = model ? toolTier(model, toolId) : "1k";
   const own = (data.prompt ?? "").trim();
   const [editorOpen, setEditorOpen] = useState(false);
   const renderSrc = pics.find((p) => p.pic.type === "render")?.pic.id;
-  const composed = op !== "prompt" ? toolPrompt(op, option) : composePrompt("generator", own, inputs, pics.slice(0, model?.maxReferences ?? 1), Number.POSITIVE_INFINITY);
+  const composed = op === "expand" ? EXPAND_PROMPT : local ? "" : op !== "prompt" ? toolPrompt(op, option) : composePrompt("generator", own, inputs, pics.slice(0, model?.maxReferences ?? 1), Number.POSITIVE_INFINITY);
   const pending = data.pending ?? [];
   const gens = data.gens ?? [];
   const busy = pending.length > 0;
@@ -245,13 +253,22 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
   useFollow(id, pending, imageCheck, 2500);
   const price = model ? imageCost(model, model.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, 1) : null;
   const needText = tool === "editor" && op === "prompt" && !own && !inputs.some((i) => i.port === "description" && i.text);
-  const canGo = !!model && pics.length > 0 && !needText && !busy && !submitting && waiting.length === 0;
+  const canGo = (local ? !!renderSrc && (op === "crop" || adjusted) : !!model) && pics.length > 0 && !needText && !busy && !submitting && waiting.length === 0;
   async function run() {
-    if (!canGo || !model) return;
+    if (!canGo) return;
     setSubmitting(true);
     updateNodeData(id, { error: undefined });
     try {
-      const { results } = await startImages({ models: models ?? [], model, auto: false, prompt: composed, ratio: "auto", tier, qty: 1, refs: pics.slice(0, Math.max(1, model.maxReferences)).map((p) => ({ type: p.pic.type, id: p.pic.id })), seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      if (local) {
+        const res = await fetch("/api/edit/transform", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(op === "crop" ? { sourceId: renderSrc, op: "crop", ratio: ratioOpt } : { sourceId: renderSrc, op: "adjust", adjust: adj }) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || typeof d.id !== "string") throw new Error(typeof d.error === "string" ? d.error : "This edit could not be made. Please try again.");
+        updateNodeData(id, { gens: [d.id], pick: d.id, pending: [] });
+        return;
+      }
+      if (!model) return;
+      if (op === "expand" && !model.ratios.includes(ratioOpt)) throw new Error(`${model.label} cannot make ${ratioOpt}. Choose another aspect ratio.`);
+      const { results } = await startImages({ models: models ?? [], model, auto: false, prompt: composed, ratio: op === "expand" ? ratioOpt : "auto", tier, qty: 1, refs: pics.slice(0, Math.max(1, model.maxReferences)).map((p) => ({ type: p.pic.type, id: p.pic.id })), seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
       const r = results[0];
       if (!r?.ok || !r.id) throw new Error(r?.error ?? "Something went wrong. Please try again.");
       updateNodeData(id, { pending: [r.id], gens: [], pick: undefined });
@@ -265,7 +282,7 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
     window.addEventListener("eclipse-node-run", onRun);
     return () => window.removeEventListener("eclipse-node-run", onRun);
   }, [id]);
-  const verb = tool === "upscaler" ? "Upscale" : op === "prompt" ? "Edit picture" : TOOL_LABEL[op];
+  const verb = tool === "upscaler" ? "Upscale" : op === "prompt" ? "Edit picture" : op === "crop" ? "Crop" : op === "expand" ? "Expand" : op === "adjust" ? "Apply" : TOOL_LABEL[op];
   return (
     <Shell id={id} kind={tool} selected={selected} className="cv-gen"
       display={<div className="cv-disp">
@@ -276,7 +293,7 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
       controls={<>
         {tool === "editor" && (
           <div className="cv-chips nodrag" role="group" aria-label="Edit tool">
-            {([["prompt", "Prompt"], ["removebg", "Remove background"], ["relight", "Relight"], ["camera", "Camera"]] as const).map(([k, label]) => (
+            {([["prompt", "Prompt"], ["removebg", "Remove background"], ["relight", "Relight"], ["camera", "Camera"], ["crop", "Crop"], ["expand", "Expand"], ["adjust", "Adjust"]] as const).map(([k, label]) => (
               <button key={k} type="button" className={`cv-chip${op === k ? " is-on" : ""}`} aria-pressed={op === k} onClick={() => updateNodeData(id, { edOp: k })}>{label}</button>
             ))}
             <button type="button" className="cv-chip" disabled={!renderSrc} aria-label="Open in the full editor" title={renderSrc ? "Open in the full editor" : "Needs a picture made in Eclipse"} onClick={() => setEditorOpen(true)}><Pencil size={13} /></button>
@@ -287,12 +304,24 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
             {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
         )}
+        {(op === "crop" || op === "expand") && (
+          <select className="cv-input nodrag" aria-label="Aspect ratio" value={ratioOpt} onChange={(e) => updateNodeData(id, { edOpt: e.target.value })}>
+            {CROP_RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        )}
+        {op === "adjust" && (
+          <div className="cv-adj nodrag nowheel">
+            {([["brightness", "Brightness"], ["contrast", "Contrast"], ["saturation", "Saturation"], ["warmth", "Warmth"], ["sharpness", "Sharpness"]] as const).map(([k, label]) => (
+              <label key={k}><span>{label}</span><input type="range" min={k === "sharpness" ? 0 : -100} max={100} value={adj[k]} aria-label={label} onChange={(e) => updateNodeData(id, { edAdj: { ...adj, [k]: Number(e.target.value) } })} /></label>
+            ))}
+          </div>
+        )}
         {tool === "editor" && op === "prompt" && (
           <GrowArea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} placeholder="What should change? For example: make the jacket red" aria-label="Instruction"
             onChange={(e) => updateNodeData(id, { prompt: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
         )}
         <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={() => void run()}>
-          {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Working</> : price != null ? <>{verb} <span className="cv-cost" title={creditsText(price)}><CoinIcon size={13} />{fmtCredits(price)}</span></> : <>{verb} <ArrowUp size={15} /></>}
+          {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Working</> : price != null && !local ? <>{verb} <span className="cv-cost" title={creditsText(price)}><CoinIcon size={13} />{fmtCredits(price)}</span></> : <>{verb} <ArrowUp size={15} /></>}
         </button>
         {!pics.length && <p className="cv-nhint">Plug a picture into Ingredients (an Image node or another generator).</p>}
         {models && !model && <p className="cv-error" role="alert">No picture-editing model is available on this account.</p>}

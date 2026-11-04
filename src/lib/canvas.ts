@@ -43,7 +43,8 @@ export type CanvasNodeData = {
   color?: string;       // group: its colour name
   option?: string;      // upscaler and image editor: unused for now
   edOp?: string;        // edit image: which tool (prompt, removebg, relight, camera)
-  edOpt?: string;       // edit image: the chosen relight / camera option
+  edOpt?: string;       // edit image: the chosen relight / camera option, or the aspect ratio for Crop and Expand
+  edAdj?: Record<string, number>; // edit image, Adjust: the slider values
   vars?: VarState;      // variations: the mode, its options, grid, aspect ratio and quality
   consent?: boolean;    // variations, People mode: the picture is the person's own or they agreed
   sheet?: string;       // variations: the contact sheet render (also kept last in `gens`)

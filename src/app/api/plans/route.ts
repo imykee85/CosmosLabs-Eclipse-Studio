@@ -3,7 +3,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { gateFeature } from "@/lib/access";
 import { workspaceSession } from "@/lib/workspace";
 import { cleanSpec } from "@/lib/agent-plan";
-import { createPlan, driveInBackground, planView } from "@/lib/agent-plan-server";
+import { createPlan, driveInBackground, listPlans, planView } from "@/lib/agent-plan-server";
 
 // 300 s: the first stretch of the plan keeps running after the reply (waitUntil); a fresh function takes over for the rest, so closing the app does not stop it.
 export const maxDuration = 300;
@@ -22,4 +22,12 @@ export async function POST(req: Request) {
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   driveInBackground(r.row.id);
   return NextResponse.json(planView(r.row));
+}
+
+// The person's plans, newest first (the history).
+export async function GET() {
+  if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
+  const { workspaceId: userId } = await workspaceSession();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  return NextResponse.json({ plans: await listPlans(userId) });
 }

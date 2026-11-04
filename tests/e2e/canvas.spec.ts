@@ -94,6 +94,13 @@ test.describe("Canvas on desktop", () => {
     await expect(node.getByLabel("Camera angle")).toBeVisible();
     await node.getByRole("button", { name: "Remove background" }).click();
     await expect(node.getByLabel("Camera angle")).toHaveCount(0);
+    await node.getByRole("button", { name: "Crop", exact: true }).click();
+    await expect(node.getByLabel("Aspect ratio")).toBeVisible();
+    await node.getByRole("button", { name: "Adjust", exact: true }).click();
+    await expect(node.getByLabel("Brightness")).toBeVisible();
+    await expect(node.getByLabel("Aspect ratio")).toHaveCount(0);
+    await node.getByRole("button", { name: "Expand", exact: true }).click();
+    await expect(node.getByLabel("Aspect ratio")).toBeVisible();
   });
 
   test("the Assistant writes text from an instruction and shows it", async ({ page }) => {

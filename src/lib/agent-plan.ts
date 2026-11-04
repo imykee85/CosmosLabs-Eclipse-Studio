@@ -8,12 +8,14 @@ export type PlanSpec = {
   video: string;         // the motion prompt for the video
   seconds: number;       // length of the video
   ratio: string;         // aspect ratio of the pictures and the video
+  voiceover?: string;    // a script to speak over the video (optional): made as a voiceover take in Audio Studio
+  music?: string;        // a description of music to go with the video (optional): made as a music take in Audio Studio
   refs?: PlanRef[];      // pictures the person gave Atlas in the conversation, used as references for every picture and the video
 };
 export type PlanRef = { type: "upload" | "render"; id: string };
 export const MAX_PLAN_REFS = 4;
 export type StepState = "waiting" | "running" | "done" | "failed";
-export type PlanStep = { id: string; kind: "hero" | "scenes" | "video"; label: string; state: StepState; ids?: string[]; error?: string };
+export type PlanStep = { id: string; kind: "hero" | "scenes" | "video" | "voice" | "music"; label: string; state: StepState; ids?: string[]; error?: string };
 export type PlanState = {
   id?: string;           // the saved plan on the server, once approved
   spec: PlanSpec;
@@ -50,7 +52,8 @@ export function cleanPlan(i: Record<string, unknown>, pictures: PlanRef[] = []):
   const ratio = typeof i.aspect_ratio === "string" && RATIOS.includes(i.aspect_ratio) ? i.aspect_ratio : "16:9";
   const nums = Array.isArray(i.reference_pictures) ? (i.reference_pictures as unknown[]) : [];
   const refs = cleanRefs(nums.flatMap((n) => (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= pictures.length ? [pictures[(n as number) - 1]] : [])));
-  return { title: clip(i.title, 80) || "Production plan", hero, scenes, video, seconds, ratio, ...(refs.length ? { refs } : {}) };
+  const voiceover = clip(i.voiceover_script, 1500), music = clip(i.music_prompt, 500);
+  return { title: clip(i.title, 80) || "Production plan", hero, scenes, video, seconds, ratio, ...(refs.length ? { refs } : {}), ...(voiceover ? { voiceover } : {}), ...(music ? { music } : {}) };
 }
 
 export function newPlan(spec: PlanSpec, price?: number | null): PlanState {
@@ -60,6 +63,8 @@ export function newPlan(spec: PlanSpec, price?: number | null): PlanState {
       { id: "hero", kind: "hero", label: spec.refs?.length ? `Hero image from your ${spec.refs.length} picture${spec.refs.length === 1 ? "" : "s"}` : "Hero image", state: "waiting" },
       { id: "scenes", kind: "scenes", label: `${spec.scenes.length} more picture${spec.scenes.length === 1 ? "" : "s"} from the hero`, state: "waiting" },
       { id: "video", kind: "video", label: `${spec.seconds}-second video from all ${spec.scenes.length + 1} pictures`, state: "waiting" },
+      ...(spec.voiceover ? [{ id: "voice", kind: "voice" as const, label: "Voiceover", state: "waiting" as const }] : []),
+      ...(spec.music ? [{ id: "music", kind: "music" as const, label: `${spec.seconds}-second music`, state: "waiting" as const }] : []),
     ],
   };
 }
@@ -68,7 +73,7 @@ export function newPlan(spec: PlanSpec, price?: number | null): PlanState {
 export function cleanSpec(v: unknown): PlanSpec | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
-  const spec = cleanPlan({ title: o.title, hero_prompt: o.hero, scenes: o.scenes, video_prompt: o.video, duration_seconds: o.seconds, aspect_ratio: o.ratio });
+  const spec = cleanPlan({ title: o.title, hero_prompt: o.hero, scenes: o.scenes, video_prompt: o.video, duration_seconds: o.seconds, aspect_ratio: o.ratio, voiceover_script: o.voiceover, music_prompt: o.music });
   const refs = cleanRefs(o.refs);
   return spec && refs.length ? { ...spec, refs } : spec;
 }

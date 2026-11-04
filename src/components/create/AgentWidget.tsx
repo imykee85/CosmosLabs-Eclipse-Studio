@@ -9,6 +9,8 @@ import { canUseFrame, hostPage, readHostContext, useAgentChat, type Attach, type
 import { diffWords, thinkingLines, type Proposal } from "@/lib/agent-proposal";
 import type { PlanState } from "@/lib/agent-plan";
 import { creditsText } from "@/lib/credit-units";
+import { listPlansFor, stopPlan } from "@/lib/agent-plan-run";
+import { useAccess } from "@/lib/use-access";
 import { attachKind, readDocument } from "@/lib/attach-file";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
@@ -124,6 +126,32 @@ function PlanCard({ plan, busy, onApprove, onStop }: { plan: PlanState; busy: bo
   );
 }
 
+// Past and running plans (Scale), newest first: the history under the chat history. Opening one shows its card; a running one can be stopped.
+const STATUS_LABEL: Record<string, string> = { running: "Running", done: "Done", failed: "Stopped with a problem", canceled: "Stopped", ready: "Waiting for approval" };
+function PlansHistory() {
+  const [items, setItems] = useState<{ id: string; createdAt: string; plan: PlanState }[] | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    const load = () => void listPlansFor().then((l) => { if (live) setItems(l); });
+    load();
+    const t = setInterval(load, 8000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="aw-plans-hist">
+      <h4 className="aw-plans-title">Your plans</h4>
+      {items.map((p) => (
+        <div key={p.id} className="aw-past-row aw-plan-row">
+          <button type="button" aria-expanded={openId === p.id} onClick={() => setOpenId(openId === p.id ? null : p.id)}><b>{p.plan.spec.title}</b><span>{new Date(p.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {STATUS_LABEL[p.plan.status] ?? p.plan.status}</span></button>
+          {openId === p.id && <PlanCard plan={p.plan} busy={false} onApprove={() => {}} onStop={() => void stopPlan(p.id)} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // The panel's quick chips (shown while the chat is empty): each one sends a plain message Atlas can act on.
 const CHIPS: { label: string; text: string; needsRef?: boolean }[] = [
   { label: "Improve my prompt", text: "Improve my prompt." },
@@ -142,6 +170,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   const [bounce, setBounce] = useState(false);
   const [big, setBig] = useState(false);
   const [showPast, setShowPast] = useState(false);
+  const canPlans = useAccess().can("plans");
   // Pictures and videos added in the chat itself (paperclip): uploaded at once, sent with the next message.
   const [atts, setAtts] = useState<Attach[]>([]);
   const [docs, setDocs] = useState<AttachedDoc[]>([]);
@@ -353,13 +382,14 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
             <button type="button" aria-label="Close" onClick={() => setOpen(false)}><X size={15} /></button></div>
           {showPast ? (
             <div className="aw-msgs aw-past">
-              {chat.past.length === 0 && <p className="aw-empty">No earlier chats yet. Press New chat to keep this one and start another.</p>}
+              {chat.past.length === 0 && !canPlans && <p className="aw-empty">No earlier chats yet. Press New chat to keep this one and start another.</p>}
               {chat.past.map((c) => (
                 <div key={c.id} className="aw-past-row">
                   <button type="button" onClick={() => { chat.openPast(c.id); setShowPast(false); }}><b>{c.title}</b><span>{new Date(c.at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {c.messages.length} messages</span></button>
                   <button type="button" className="aw-past-del" aria-label="Delete this chat" title="Delete this chat" onClick={() => chat.deletePast(c.id)}><Trash2 size={13} /></button>
                 </div>
               ))}
+              {canPlans && <PlansHistory />}
             </div>
           ) : (
           <>
