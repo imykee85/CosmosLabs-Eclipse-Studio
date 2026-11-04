@@ -1,0 +1,3 @@
+# scenario-kinetic-film (vendored)
+
+Copied unchanged from the skill "scenario-kinetic-film" supplied by the Eclipse owner, who confirmed they hold the right to use and redistribute it. The skill package carries no licence file of its own; the sibling skill "scenario-alter" from the same family is MIT, Copyright (c) 2026 Scenario Inc. The bundled fonts keep their own SIL Open Font Licence texts in `engine/fonts/`. Cosmos Labs AI runs it inside Eclipse's cloud sandbox (job kind `media.kinetic`); the Scenario MCP parts of the skill are not used, Eclipse's own audio models make the soundtrack. Do not show the original publisher's name in the product.
