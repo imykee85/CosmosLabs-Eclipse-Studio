@@ -1,3 +1,5 @@
+> SUPERSEDED (2026-11-04): the only open list is `docs/master-list.md`. This file is kept for detail and history; do not track open items here.
+
 # Eclipse (Cosmos Labs AI): only what needs you
 
 Updated 2026-10-13, late evening. Everything that does not depend on you is done. Quickest first. Times are estimates.
