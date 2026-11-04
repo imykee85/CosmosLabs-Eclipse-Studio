@@ -5,6 +5,7 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 ## High priority (risk if not done)
 | # | Item | Who |
 |---|---|---|
+| 7 | Ghana registrations (business and Data Protection Commission): owner has none; ask the lawyer if needed | Owner |
 | 1 | Save a Slack or Discord channel webhook as the Secret `OPS_ALERT_WEBHOOK_URL` in Vercel (alerts stay silent without it) | Owner |
 | 4 | Watch the first real monthly Whop renewal in Payment events on the Production health page (renewal field names never seen live) | Owner, then me |
 | 6 | Watch free-trial signups against real accounts (each free trial costs real provider money) | Owner and me |
@@ -13,7 +14,6 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 ## Not urgent
 | # | Item | Who |
 |---|---|---|
-| 7 | Ghana registrations (business and Data Protection Commission): owner has none; ask the lawyer if needed | Owner |
 | 8 | Academy tutorial videos: the 3 lessons in `src/lib/tutorial.ts` have no video so Watch does nothing; 4 courses are tagged Soon (offered: hide Watch on lessons without a video) | Owner |
 | 10 | Turn on versioning for the R2 bucket | Owner |
 | 12 | Host for the Eclone media worker plus Secrets `MEDIA_WORKER_URL` and `MEDIA_WORKER_SECRET`; then wire the checker, finish step, clips over 30 s and target-frame generation | Owner, then me |
