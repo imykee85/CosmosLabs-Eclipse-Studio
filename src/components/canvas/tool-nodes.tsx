@@ -14,6 +14,7 @@ import { readCurrentProject } from "@/lib/projects";
 import { refreshCredits } from "@/lib/use-credits";
 import { useModels } from "@/lib/use-models";
 import { fetchAudioItem, startVoice, useVoiceModels, useVoices } from "@/lib/use-voice";
+import ImageEditor from "@/components/edit/ImageEditor";
 import VariationsForm from "@/components/create/VariationsForm";
 import { cellPrompts, gridCount, initialState, parseScenes, problem, ratioChoices, type VarState } from "@/lib/variations/prompt";
 import { useCanvas } from "./CanvasContext";
@@ -283,6 +284,34 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
 }
 export const EditorNode = (p: NodeProps<CNode>) => <PictureTool {...p} tool="editor" />;
 export const UpscalerNode = (p: NodeProps<CNode>) => <PictureTool {...p} tool="upscaler" />;
+
+// ---------- Retouch ----------
+// Opens the full editor on the wired-in picture (a render from the Library or a generator). The version the person keeps becomes this node's result.
+export function RetouchNode({ id, data, selected }: NodeProps<CNode>) {
+  const { updateNodeData } = useReactFlow();
+  const { ask } = useCanvas();
+  const nodes = useNodes() as CNode[];
+  const edges = useEdges();
+  const inputs = useMemo(() => inputsOf(nodes, edges, id), [nodes, edges, id]);
+  const pics = useMemo(() => picturesOf(inputs), [inputs]);
+  const src = pics.find((p) => p.pic.type === "render")?.pic.id;
+  const gens = data.gens ?? [];
+  const picked = gens[0];
+  const [open, setOpen] = useState(false);
+  return (
+    <Shell id={id} kind="retouch" selected={selected} className="cv-gen"
+      display={<div className="cv-disp">
+        {picked ? <Result gid={picked} ratio="auto" on onOpen={() => ask({ kind: "details", genId: picked })} />
+          : <div className="cv-disp-empty">{BIG.retouch}<span>{src ? "Ready" : "Plug in a picture"}</span></div>}
+      </div>}
+      controls={<>
+        <button type="button" className="cv-go nodrag" disabled={!src} onClick={() => setOpen(true)}>Open editor</button>
+        {!pics.length && <p className="cv-nhint">Plug a finished picture into Ingredients (an Image node or a generator).</p>}
+        {pics.length > 0 && !src && <p className="cv-nhint">Retouch needs a picture made in Eclipse. Upload it to your Library first.</p>}
+        {open && src && <ImageEditor sourceId={picked ?? src} onKept={(newId) => updateNodeData(id, { gens: [newId], pick: newId })} onClose={() => setOpen(false)} />}
+      </>} />
+  );
+}
 
 // ---------- Variations ----------
 // One picture in, a grid of controlled versions out: one render per cell, then one contact sheet. The cells and the sheet are the node's results; the ticked one goes on.

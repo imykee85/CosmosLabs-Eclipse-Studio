@@ -30,7 +30,7 @@ const file = (id: string, dl = false) => `/api/generations/${id}/file${dl ? "?do
 const OP_LABEL: Record<string, string> = { original: "Original", prompt: "Edit", visual: "Edit (pins)", replace: "Replace", erase: "Erase" };
 
 /** The image editor: Edit (Prompt, Visual) changes a picture with words; Retouch (Replace, Erase) changes only a selected area. Every edit makes variations to choose from. */
-export default function ImageEditor({ sourceId, onClose }: { sourceId: string; onClose: () => void }) {
+export default function ImageEditor({ sourceId, onClose, onKept }: { sourceId: string; onClose: () => void; onKept?: (id: string) => void }) {
   const [cur, setCur] = useState(sourceId);
   const [mode, setMode] = useState<Mode>("edit");
   const [tab, setTab] = useState<"prompt" | "visual">("prompt");
@@ -332,6 +332,7 @@ export default function ImageEditor({ sourceId, onClose }: { sourceId: string; o
       const d = await res.json().catch(() => ({}));
       if (!res.ok || typeof d.id !== "string") throw new Error(d.error ?? "This edit could not be saved.");
       switchTo(d.id);
+      onKept?.(d.id);
     } catch (e) { setError(e instanceof Error ? e.message : "This edit could not be saved."); }
     finally { setKeeping(false); }
   }

@@ -4,7 +4,7 @@ import type { VarState } from "./variations/prompt";
 
 // Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
 export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator" | "sheet" | "image" | "clip" | "videogen"
-  | "assistant" | "voiceover" | "sfx" | "music" | "editor" | "upscaler" | "variations" | "list" | "group";
+  | "assistant" | "voiceover" | "sfx" | "music" | "editor" | "upscaler" | "retouch" | "variations" | "list" | "group";
 
 export type PicRef = { type: "upload" | "render"; id: string; label: string };
 
@@ -63,7 +63,8 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
   ] },
   { title: "Tools", items: [
     { id: "assistant", kind: "assistant", label: "Assistant", blurb: "Writes or rewrites text for you" },
-    { id: "editor", kind: "editor", label: "Image editor", blurb: "Changes a picture from an instruction" },
+    { id: "editor", kind: "editor", label: "Edit image", blurb: "Changes a picture from an instruction" },
+    { id: "retouch", kind: "retouch", label: "Retouch", blurb: "Replace or erase part of a picture in the editor" },
     { id: "upscaler", kind: "upscaler", label: "Upscaler", blurb: "Makes a picture sharper and larger" },
     { id: "variations", kind: "variations", label: "Variations", blurb: "A grid of controlled versions of a picture" },
     { id: "list", kind: "list", label: "List", blurb: "Run a generator once per line" },
