@@ -318,7 +318,7 @@ export function VariationsNode({ id, data, selected }: NodeProps<CNode>) {
   useFollow(id, pending, imageCheck, 2500);
   const setVars = (f: (x: VarState) => VarState) => updateNodeData(id, { vars: f(vars) });
 
-  async function story(): Promise<string[] | null> {
+  async function story(quiet = false): Promise<string[] | null> {
     const first = pics[0]?.pic; if (!first) return null;
     setStoryBusy(true);
     try {
@@ -327,7 +327,7 @@ export function VariationsNode({ id, data, selected }: NodeProps<CNode>) {
       if (!res.ok || !Array.isArray(d.scenes)) throw new Error(d.error ?? "The story could not be written.");
       updateNodeData(id, { vars: { ...vars, narrative: (d.scenes as string[]).map((t, i) => `Scene ${i + 1}: ${t}`).join("\n") } });
       return d.scenes as string[];
-    } catch (e) { updateNodeData(id, { error: e instanceof Error ? e.message : "The story could not be written." }); return null; }
+    } catch (e) { if (!quiet) updateNodeData(id, { error: e instanceof Error ? e.message : "The story could not be written." }); return null; }
     finally { setStoryBusy(false); }
   }
   async function run() {
@@ -337,7 +337,7 @@ export function VariationsNode({ id, data, selected }: NodeProps<CNode>) {
     try {
       let state = eff;
       if (state.mode === "storyboard" && state.auto && parseScenes(state.narrative).length !== n) {
-        const scenes = await story();
+        const scenes = await story(true);
         if (scenes) state = { ...state, narrative: scenes.map((t, i) => `Scene ${i + 1}: ${t}`).join("\n") };
       }
       const seedOn = model.seed.supported;

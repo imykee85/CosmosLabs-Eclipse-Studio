@@ -8,7 +8,7 @@ export type KeepOp = (typeof OPS)[number];
 const MAX_MASK = 400_000;
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 
-export type KeepResult = { ok: true; id: string } | { ok: false; status: number; error: string };
+export type KeepResult = { ok: true; id: string; binned?: number } | { ok: false; status: number; error: string };
 
 /** Keep one variation as a version of the picture it came from. Edit: the render is tagged as a child. Retouch: only the selected area is pasted back onto the original and that picture is saved. */
 export async function keepEdit(userId: string, body: unknown): Promise<KeepResult> {
@@ -17,15 +17,26 @@ export async function keepEdit(userId: string, body: unknown): Promise<KeepResul
   const parentId = typeof b.parentId === "string" && b.parentId.length < 64 ? b.parentId : "";
   const resultId = typeof b.resultId === "string" && b.resultId.length < 64 ? b.resultId : "";
   if (!op || !parentId || !resultId || parentId === resultId) return { ok: false, status: 400, error: "Choose a finished edit to keep." };
+  if (op === "replace" || op === "erase") { // kept before (its raw render is in the Bin by now): the same version again
+    const done = await db.generation.findFirst({ where: { userId, deletedAt: null, params: { path: ["editRaw"], equals: resultId } }, select: { id: true } });
+    if (done) return { ok: true, id: done.id, binned: 0 };
+  }
   const rows = await db.generation.findMany({ where: { id: { in: [parentId, resultId] }, userId, status: "completed", deletedAt: null, kind: "image" } });
   const parent = rows.find((r) => r.id === parentId), result = rows.find((r) => r.id === resultId);
   if (!parent || !result) return { ok: false, status: 409, error: "Those pictures are not finished yet." };
   const userPrompt = typeof b.prompt === "string" ? b.prompt.trim().slice(0, 4000) : "";
   const pins = Array.isArray(b.pins) ? b.pins.slice(0, 20).flatMap((p: unknown) => { const q = obj(p); return typeof q.x === "number" && typeof q.y === "number" ? [{ x: Math.min(1, Math.max(0, q.x)), y: Math.min(1, Math.max(0, q.y)), text: String(q.text ?? "").slice(0, 400) }] : []; }) : undefined;
+  // The variations that were not kept (ids sent by the editor) go to the Bin, restorable like anything else there. Only the person's own finished pictures, never the original or the kept one.
+  const discardIds = Array.isArray(b.discardIds) ? b.discardIds.filter((x: unknown): x is string => typeof x === "string" && x.length < 64 && x !== parentId && x !== resultId).slice(0, 8) : [];
+  const toBin = async (alsoRaw?: string) => {
+    const ids = [...discardIds, ...(alsoRaw ? [alsoRaw] : [])];
+    if (!ids.length) return 0;
+    return (await db.generation.updateMany({ where: { id: { in: ids }, userId, kind: "image", deletedAt: null, status: { in: ["completed", "failed"] } }, data: { deletedAt: new Date() } })).count;
+  };
   const meta = { editOf: parentId, op, ...(userPrompt ? { userPrompt } : {}), ...(pins?.length ? { pins } : {}), aiEdited: true };
   if (op === "prompt" || op === "visual") {
     await db.generation.update({ where: { id: result.id }, data: { params: { ...obj(result.params), ...meta } } });
-    return { ok: true, id: result.id };
+    return { ok: true, id: result.id, binned: await toBin() };
   }
   const maskB64 = typeof b.mask === "string" ? b.mask.replace(/^data:image\/png;base64,/, "") : "";
   if (!maskB64 || maskB64.length > MAX_MASK) return { ok: false, status: 400, error: "The selection is missing or too large." };
@@ -33,14 +44,15 @@ export async function keepEdit(userId: string, body: unknown): Promise<KeepResul
   if (!(mask[0] === 0x89 && mask[1] === 0x50 && mask[2] === 0x4e && mask[3] === 0x47)) return { ok: false, status: 400, error: "The selection is not a valid picture." };
   if (!storageEnabled || !parent.storageKey || !result.storageKey) return { ok: false, status: 503, error: "Retouch needs file storage, which is not set up yet." };
   const same = await db.generation.findFirst({ where: { userId, deletedAt: null, params: { path: ["editRaw"], equals: result.id } }, select: { id: true } });
-  if (same) return { ok: true, id: same.id };
+  if (same) return { ok: true, id: same.id, binned: await toBin() };
   const [original, raw] = await Promise.all([getObjectBytes(parent.storageKey, 40 * 1024 * 1024), getObjectBytes(result.storageKey, 40 * 1024 * 1024)]);
   const out = await composeRetouch({ original, result: raw, mask });
   const saved = await saveImageBytes(userId, out.bytes, "image/png");
   const made = await db.generation.create({
     data: { userId, prompt: result.prompt, imageUrl: "", status: "completed", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, projectId: parent.projectId, model: result.model, provider: result.provider, resolution: result.resolution, aspectRatio: parent.aspectRatio, seed: result.seed, kind: "image", params: { ...meta, editRaw: result.id, mask: maskB64, retouched: true } },
   });
-  return { ok: true, id: made.id };
+  // the raw render the new picture was made from is replaced by it, so it goes to the Bin with the others
+  return { ok: true, id: made.id, binned: await toBin(result.id) };
 }
 
 export type HistoryStep = { id: string; parentId: string | null; op: string; prompt: string; createdAt: string };

@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { composeRetouch } from "../../src/lib/edit/composite";
 import { wandSelect } from "../../src/lib/edit/wand";
+import { openaiMask } from "../../src/lib/edit/mask";
+import { openaiRequest } from "../../src/lib/providers/openai";
 import { promptEdit, visualEdit, retouchEdit, problem } from "../../src/lib/edit/prompt";
 
 async function solid(w: number, h: number, c: [number, number, number], fmt: "png" | "jpeg" = "png") {
@@ -63,4 +65,29 @@ test("what blocks Generate", () => {
   assert.match(problem("erase", "", [], false), /Draw a selection to erase/);
   assert.match(problem("replace", "", [], true), /Describe what should replace/);
   assert.equal(problem("replace", "black", [], true), "");
+});
+
+
+test("OpenAI mask: transparent where the person selected, opaque elsewhere, the picture's own size", async () => {
+  const sharp = (await import("sharp")).default;
+  const picture = await solid(400, 300, [10, 10, 10]);
+  const selection = await squareMask(100, 75, 25, 20, 20); // a small selection picture, a quarter of the size
+  const mask = await openaiMask(selection, picture);
+  const meta = await sharp(Buffer.from(mask)).metadata();
+  assert.equal(meta.width, 400); assert.equal(meta.height, 300); assert.equal(meta.format, "png"); assert.equal(meta.hasAlpha, true);
+  const { data, info } = await sharp(Buffer.from(mask)).raw().toBuffer({ resolveWithObject: true });
+  const a = (x: number, y: number) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(a(140, 110), 0); // inside the selection (25..45 x 20..40 at a quarter scale = 100..180 x 80..160): editable
+  assert.equal(a(10, 10), 255); // outside: kept
+  assert.equal(a(390, 290), 255);
+});
+
+test("the OpenAI edit request carries the mask next to the pictures", () => {
+  const png = { bytes: new Uint8Array([1, 2, 3]), contentType: "image/png" };
+  const withMask = openaiRequest({ apiModel: "gpt-image-2", prompt: "x", references: [png], mask: { bytes: new Uint8Array([9, 9]), contentType: "image/png" }, aspectRatio: "1:1", sizing: "custom16", resolution: "1k" });
+  assert.equal(withMask.path, "/images/edits");
+  assert.equal((withMask.body.images as { image_url: string }[]).length, 1);
+  assert.match((withMask.body.mask as { image_url: string }).image_url, /^data:image\/png;base64,/);
+  const without = openaiRequest({ apiModel: "gpt-image-2", prompt: "x", references: [png], aspectRatio: "1:1", sizing: "custom16", resolution: "1k" });
+  assert.equal("mask" in without.body, false);
 });

@@ -8,6 +8,7 @@ import { claimFreeRender, freeUsedUp, giveBackFreeRender } from "@/lib/free-rend
 import { outOfCredits } from "@/lib/credit-message";
 import { refusal } from "@/lib/subscribe-alert";
 import { db } from "@/lib/db";
+import { openaiMask } from "@/lib/edit/mask";
 import { getAdmin } from "@/lib/admin";
 import { completeFromBytes, failRender, SYNC_MARK, toItem, type RenderItem } from "@/lib/generation-jobs";
 import { HiggsfieldError, startGeneration } from "@/lib/higgsfield";
@@ -25,7 +26,7 @@ import { getObjectBytes, saveImageBytes, storageEnabled } from "@/lib/storage";
 import { sniffImageType } from "@/lib/uploads";
 import type { ReferenceItem } from "@/lib/references";
 
-export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; lockSeed?: unknown; soulId?: unknown; soulStrength?: unknown; batchId?: unknown };
+export type StartRenderInput = { userId: string; prompt: unknown; model: unknown; aspectRatio?: unknown; resolution?: unknown; projectId?: unknown; references?: unknown; seed?: unknown; maskId?: unknown; lockSeed?: unknown; soulId?: unknown; soulStrength?: unknown; batchId?: unknown };
 export type StartRenderResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; code?: string };
 
 // The one place a render is validated and started, used by POST /api/generate and by the Connect agent, so both are
@@ -105,13 +106,22 @@ export async function startRender(input: StartRenderInput): Promise<StartRenderR
   const resolved = await resolveReferences(userId, refs);
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
+  // Retouch with a real mask (OpenAI's picture editor takes one): the person's own upload, checked here; turned into the provider's mask when the render runs.
+  let mask: { storageKey: string } | undefined;
+  if (typeof input.maskId === "string" && input.maskId) {
+    if (model.provider !== "openai" || refs.length === 0) return { ok: false, status: 400, error: `${model.label} does not take a selection.` };
+    const u = await db.upload.findFirst({ where: { id: input.maskId.slice(0, 64), userId }, select: { storageKey: true } });
+    if (!u || !storageEnabled) return { ok: false, status: 400, error: "The selection could not be found. Please draw it again." };
+    mask = { storageKey: u.storageKey };
+  }
+
   // The welcome offer: a new account's first 2 image renders, on any model, cost nothing (claimed here, given back if the render fails).
   const free = cost != null && (await claimFreeRender(userId, cost));
 
   // Google and OpenAI hand the picture back in the reply, so their render runs right here instead of becoming a job to poll. A model on its DIRECT route
   // (cheaper, routes.ts: setting + key + adapter, so far Qwen Image) is the same kind of render; the price was already worked out for that route above.
   const direct = model.provider === "higgsfield" && routeFor(model.id) === "direct" ? directAdapter(model.id) : null;
-  if (model.provider !== "higgsfield" || direct) return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, items: resolved.items, seedNote, cost, batch, free, direct });
+  if (model.provider !== "higgsfield" || direct) return runInline({ model, userId, projectId, prompt, aspectRatio, conform, exact, resolution, refs, mask, items: resolved.items, seedNote, cost, batch, free, direct });
 
   // The row exists (and the price is held) BEFORE the provider is called, so parallel requests cannot all pass the balance check.
   const made = await createGenerationHeld(userId, free ? null : cost, { ...(free ? { creditsHeld: 0 } : cost != null ? { creditsHeld: cost } : {}), userId, projectId, prompt, status: "pending", statusUrl: null, requestId: null, model: model.id, aspectRatio: aspectRatio ?? null, resolution: resolution ?? model.defaultResolution ?? null, costUsd: model.estimatedCostUsd, seed, seedLocked, references: refs.length ? refs : undefined, params: conform || soul.fields || batch || free ? { ...(free ? { free: true } : {}), ...(batch ? { batchId: batch.id } : {}), ...(conform ? { conform } : {}), ...(soul.fields ? { soulId: String(input.soulId), soulStrength: Number(soul.fields.custom_reference_strength) } : {}) } : undefined }, batch);
@@ -151,7 +161,7 @@ async function loadReference(it: ReferenceItem): Promise<ReferenceImage> {
 // A render by a provider that answers in the same call. The row is written BEFORE the provider is called (our own double-submit
 // protection: a retry can see that the job exists, and nothing is re-submitted after a timeout), then the picture is decoded from the
 // reply, copied into private storage and the row completed. A failure marks the row failed with a plain sentence.
-async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; exact: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; items: ReferenceItem[]; seedNote?: string; cost: number | null; batch?: { id: string; size: number }; free: boolean; direct?: { provider: SyncImageProvider; apiModel: string } | null }): Promise<StartRenderResult> {
+async function runInline(a: { model: ImageModel; userId: string; projectId: string | null; prompt: string; aspectRatio?: string; conform: ConformTarget | null; exact: ConformTarget | null; resolution?: string; refs: { type: string; id: string }[]; mask?: { storageKey: string }; items: ReferenceItem[]; seedNote?: string; cost: number | null; batch?: { id: string; size: number }; free: boolean; direct?: { provider: SyncImageProvider; apiModel: string } | null }): Promise<StartRenderResult> {
   const { model, userId } = a;
   const provider = a.direct?.provider ?? syncProvider(model.provider);
   const apiModel = a.direct?.apiModel ?? apiModelOf(model);
@@ -166,7 +176,8 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
   const work = (async () => {
     try {
       const references = await Promise.all(a.items.map(loadReference));
-      const out = await provider.generate({ apiModel, prompt: a.prompt, aspectRatio: a.exact && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.exact) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+      const maskImage = a.mask ? { bytes: await openaiMask(await getObjectBytes(a.mask.storageKey, 8 * 1024 * 1024), references[0].bytes), contentType: "image/png" } : undefined;
+      const out = await provider.generate({ apiModel, prompt: a.prompt, aspectRatio: a.exact && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.exact) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, ...(maskImage ? { mask: maskImage } : {}), sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
       const saved = await saveImageBytes(userId, out.bytes, out.contentType, a.conform);
       await completeFromBytes(row, saved, out.usage);
     } catch (err) {

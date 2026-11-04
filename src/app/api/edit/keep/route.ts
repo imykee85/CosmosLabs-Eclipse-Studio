@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { gateFeature } from "@/lib/access";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { keepEdit } from "@/lib/edit/keep";
 import { claimUsage } from "@/lib/usage";
@@ -10,8 +9,7 @@ export const maxDuration = 60;
 // Keep one variation as a version of the picture it came from (the work is in src/lib/edit/keep.ts).
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const gated = await gateFeature("studios");
-  if (gated) return gated;
+  // No plan check: keeping an edit and making a sheet cost nothing (the renders were paid for or were free-trial images), so free-trial users can finish what they started.
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => null);
