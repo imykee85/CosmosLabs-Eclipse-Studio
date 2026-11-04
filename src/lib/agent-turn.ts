@@ -6,6 +6,8 @@ import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
+import { DIRECTOR_CRAFT, wantsDirector } from "@/lib/director-knowledge";
+import { SHORT_FORM_CRAFT, SCREEN_CRAFT, wantsShortForm, wantsScreenwriting } from "@/lib/story-knowledge";
 import { AD_DIRECTOR, CINEMA_CRAFT, wantsAds, wantsCinema } from "@/lib/craft-knowledge";
 import { FASHION_DIRECTOR, wantsFashion } from "@/lib/fashion-knowledge";
 import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
@@ -122,8 +124,12 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       // Ad Creative Director (about 1,800 tokens) on ad talk; Cinema Craft (about 2,200) on cinematic talk. Atlas only.
       const ads = isAtlas && wantsAds(messages, ctx) ? `\n\n${AD_DIRECTOR}` : "";
       const cinema = isAtlas && wantsCinema(messages, ctx) ? `\n\n${CINEMA_CRAFT}` : "";
+      // Director Craft (about 3,500 tokens) on video-problem talk; short-form craft and screenwriting craft (about 1,200 each) on script and story talk. Atlas only.
+      const directorCraft = isAtlas && wantsDirector(messages, ctx) ? `\n\n${DIRECTOR_CRAFT}` : "";
+      const shortForm = isAtlas && wantsShortForm(messages, ctx) ? `\n\n${SHORT_FORM_CRAFT}` : "";
+      const screenCraft = isAtlas && wantsScreenwriting(messages, ctx) ? `\n\n${SCREEN_CRAFT}` : "";
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}` : "";
-      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${shortForm}${screenCraft}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
       const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
