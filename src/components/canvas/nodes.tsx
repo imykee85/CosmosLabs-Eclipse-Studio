@@ -4,7 +4,7 @@ import GrowArea from "@/components/GrowArea";
 import AgentIcon from "@/components/AgentIcon";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { Brush, ArrowUp, AudioLines, Grid3x3, Check, Clapperboard, ChevronDown, Film, ListOrdered, MessageSquareText, Music2, Mic, ZoomIn, Eraser, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shirt, Sprout, StickyNote, Trash2, Type, User, Volume2, VolumeX, Wand2, X } from "lucide-react";
+import { ArrowUp, AudioLines, Grid3x3, Check, Clapperboard, ChevronDown, Film, ListOrdered, MessageSquareText, Music2, Mic, ZoomIn, Eraser, Image as ImageIcon, Layers, Lightbulb, Loader2, Maximize2, Minus, Mountain, Package, Palette, PersonStanding, Plus, Shirt, Sprout, StickyNote, Trash2, Type, User, Volume2, VolumeX, Wand2, X } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import { AUTO } from "@/components/create/ModelPicker";
 import { refFileUrl, STYLES, type CanvasNodeData, type CNode, type NodeKind } from "@/lib/canvas";
@@ -23,14 +23,14 @@ export const ICONS: Record<NodeKind, React.ReactNode> = {
   character: <User size={15} />, product: <Package size={15} />, scene: <Mountain size={15} />, text: <Type size={15} />, style: <Palette size={15} />,
   note: <StickyNote size={15} />, fullbody: <PersonStanding size={15} />, generator: <ImageIcon size={15} />,
   sheet: <Shirt size={15} />, image: <ImageIcon size={15} />, clip: <Film size={15} />, videogen: <Clapperboard size={15} />,
-  assistant: <MessageSquareText size={15} />, voiceover: <Mic size={15} />, sfx: <AudioLines size={15} />, music: <Music2 size={15} />, editor: <Eraser size={15} />, upscaler: <ZoomIn size={15} />, retouch: <Brush size={15} />, variations: <Grid3x3 size={15} />, list: <ListOrdered size={15} />, group: <Layers size={15} />,
+  assistant: <MessageSquareText size={15} />, voiceover: <Mic size={15} />, sfx: <AudioLines size={15} />, music: <Music2 size={15} />, editor: <Eraser size={15} />, upscaler: <ZoomIn size={15} />, variations: <Grid3x3 size={15} />, list: <ListOrdered size={15} />, group: <Layers size={15} />,
 };
 export const BIG: Record<NodeKind, React.ReactNode> = {
   character: <User size={34} strokeWidth={1.3} />, product: <Package size={34} strokeWidth={1.3} />, scene: <Mountain size={34} strokeWidth={1.3} />, text: <Type size={34} strokeWidth={1.3} />, style: <Palette size={34} strokeWidth={1.3} />,
   note: <StickyNote size={34} strokeWidth={1.3} />, fullbody: <Wand2 size={34} strokeWidth={1.3} />, generator: <Wand2 size={34} strokeWidth={1.3} />,
   sheet: <Shirt size={34} strokeWidth={1.3} />, image: <ImageIcon size={34} strokeWidth={1.3} />, clip: <Film size={34} strokeWidth={1.3} />, videogen: <Clapperboard size={34} strokeWidth={1.3} />,
   assistant: <MessageSquareText size={34} strokeWidth={1.3} />, voiceover: <Mic size={34} strokeWidth={1.3} />, sfx: <AudioLines size={34} strokeWidth={1.3} />, music: <Music2 size={34} strokeWidth={1.3} />,
-  editor: <Eraser size={34} strokeWidth={1.3} />, upscaler: <ZoomIn size={34} strokeWidth={1.3} />, retouch: <Brush size={34} strokeWidth={1.3} />, variations: <Grid3x3 size={34} strokeWidth={1.3} />, list: <ListOrdered size={34} strokeWidth={1.3} />, group: <Layers size={34} strokeWidth={1.3} />,
+  editor: <Eraser size={34} strokeWidth={1.3} />, upscaler: <ZoomIn size={34} strokeWidth={1.3} />, variations: <Grid3x3 size={34} strokeWidth={1.3} />, list: <ListOrdered size={34} strokeWidth={1.3} />, group: <Layers size={34} strokeWidth={1.3} />,
 };
 
 // Ports sit on the edges of the display card, first one near the top, evenly spaced; their labels show when the node is selected.

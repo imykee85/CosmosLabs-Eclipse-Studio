@@ -3,13 +3,13 @@
 import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NodeResizer, useEdges, useNodes, useReactFlow, type NodeProps } from "@xyflow/react";
-import { ArrowUp, Check, Loader2 } from "lucide-react";
+import { ArrowUp, Check, Loader2, Pencil } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import { GROUP_COLORS, type CanvasNodeData, type CNode } from "@/lib/canvas";
 import { composePrompt, inputsOf, listLines, picturesOf } from "@/lib/canvas-flow";
 import { creditsText, fmtCredits } from "@/lib/credit-units";
 import { imageCost, startImages, tierResolution } from "@/lib/image-render";
-import { toolModel, toolPrompt, toolTier } from "@/lib/picture-tools";
+import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId } from "@/lib/picture-tools";
 import { readCurrentProject } from "@/lib/projects";
 import { refreshCredits } from "@/lib/use-credits";
 import { useModels } from "@/lib/use-models";
@@ -226,10 +226,17 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
   const inputs = useMemo(() => inputsOf(nodes, edges, id), [nodes, edges, id]);
   const pics = useMemo(() => picturesOf(inputs), [inputs]);
   const waiting = inputs.filter((i) => i.fromResult && !i.ready);
-  const model = useMemo(() => (models ? toolModel(models, tool === "upscaler" ? "upscale" : "relight") : null), [models, tool]);
-  const tier = model ? toolTier(model, tool === "upscaler" ? "upscale" : "relight") : "1k";
+  // Edit image has a tool row (prompt, remove background, relight, change camera); the Upscaler is always an upscale.
+  const op: "prompt" | ToolId = tool === "upscaler" ? "upscale" : ((data.edOp as "prompt" | ToolId | undefined) ?? "prompt");
+  const options = op === "relight" ? RELIGHT : op === "camera" ? CAMERA : null;
+  const option = options ? options.find((o) => o.id === data.edOpt) ?? options[0] : undefined;
+  const toolId: ToolId = op === "prompt" ? "relight" : op;
+  const model = useMemo(() => (models ? toolModel(models, toolId) : null), [models, toolId]);
+  const tier = model ? toolTier(model, toolId) : "1k";
   const own = (data.prompt ?? "").trim();
-  const composed = tool === "upscaler" ? toolPrompt("upscale") : composePrompt("generator", own, inputs, pics.slice(0, model?.maxReferences ?? 1), Number.POSITIVE_INFINITY);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const renderSrc = pics.find((p) => p.pic.type === "render")?.pic.id;
+  const composed = op !== "prompt" ? toolPrompt(op, option) : composePrompt("generator", own, inputs, pics.slice(0, model?.maxReferences ?? 1), Number.POSITIVE_INFINITY);
   const pending = data.pending ?? [];
   const gens = data.gens ?? [];
   const busy = pending.length > 0;
@@ -237,7 +244,7 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
   const picked = data.pick && gens.includes(data.pick) ? data.pick : gens[0];
   useFollow(id, pending, imageCheck, 2500);
   const price = model ? imageCost(model, model.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, 1) : null;
-  const needText = tool === "editor" && !own && !inputs.some((i) => i.port === "description" && i.text);
+  const needText = tool === "editor" && op === "prompt" && !own && !inputs.some((i) => i.port === "description" && i.text);
   const canGo = !!model && pics.length > 0 && !needText && !busy && !submitting && waiting.length === 0;
   async function run() {
     if (!canGo || !model) return;
@@ -258,7 +265,7 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
     window.addEventListener("eclipse-node-run", onRun);
     return () => window.removeEventListener("eclipse-node-run", onRun);
   }, [id]);
-  const verb = tool === "upscaler" ? "Upscale" : "Edit picture";
+  const verb = tool === "upscaler" ? "Upscale" : op === "prompt" ? "Edit picture" : TOOL_LABEL[op];
   return (
     <Shell id={id} kind={tool} selected={selected} className="cv-gen"
       display={<div className="cv-disp">
@@ -268,6 +275,19 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
       </div>}
       controls={<>
         {tool === "editor" && (
+          <div className="cv-chips nodrag" role="group" aria-label="Edit tool">
+            {([["prompt", "Prompt"], ["removebg", "Remove background"], ["relight", "Relight"], ["camera", "Camera"]] as const).map(([k, label]) => (
+              <button key={k} type="button" className={`cv-chip${op === k ? " is-on" : ""}`} aria-pressed={op === k} onClick={() => updateNodeData(id, { edOp: k })}>{label}</button>
+            ))}
+            <button type="button" className="cv-chip" disabled={!renderSrc} aria-label="Open in the full editor" title={renderSrc ? "Open in the full editor" : "Needs a picture made in Eclipse"} onClick={() => setEditorOpen(true)}><Pencil size={13} /></button>
+          </div>
+        )}
+        {options && (
+          <select className="cv-input nodrag" aria-label={op === "relight" ? "Lighting" : "Camera angle"} value={option?.id} onChange={(e) => updateNodeData(id, { edOpt: e.target.value })}>
+            {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+        )}
+        {tool === "editor" && op === "prompt" && (
           <GrowArea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} placeholder="What should change? For example: make the jacket red" aria-label="Instruction"
             onChange={(e) => updateNodeData(id, { prompt: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
         )}
@@ -279,39 +299,12 @@ function PictureTool({ id, data, selected, tool }: NodeProps<CNode> & { tool: "e
         {needText && pics.length > 0 && <p className="cv-nhint">Say what should change, or plug in a text.</p>}
         {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
         {data.error && <p className="cv-error" role="alert">{data.error}</p>}
+        {editorOpen && renderSrc && <ImageEditor sourceId={picked ?? renderSrc} onKept={(newId) => updateNodeData(id, { gens: [newId], pick: newId, pending: [] })} onClose={() => setEditorOpen(false)} />}
       </>} />
   );
 }
 export const EditorNode = (p: NodeProps<CNode>) => <PictureTool {...p} tool="editor" />;
 export const UpscalerNode = (p: NodeProps<CNode>) => <PictureTool {...p} tool="upscaler" />;
-
-// ---------- Retouch ----------
-// Opens the full editor on the wired-in picture (a render from the Library or a generator). The version the person keeps becomes this node's result.
-export function RetouchNode({ id, data, selected }: NodeProps<CNode>) {
-  const { updateNodeData } = useReactFlow();
-  const { ask } = useCanvas();
-  const nodes = useNodes() as CNode[];
-  const edges = useEdges();
-  const inputs = useMemo(() => inputsOf(nodes, edges, id), [nodes, edges, id]);
-  const pics = useMemo(() => picturesOf(inputs), [inputs]);
-  const src = pics.find((p) => p.pic.type === "render")?.pic.id;
-  const gens = data.gens ?? [];
-  const picked = gens[0];
-  const [open, setOpen] = useState(false);
-  return (
-    <Shell id={id} kind="retouch" selected={selected} className="cv-gen"
-      display={<div className="cv-disp">
-        {picked ? <Result gid={picked} ratio="auto" on onOpen={() => ask({ kind: "details", genId: picked })} />
-          : <div className="cv-disp-empty">{BIG.retouch}<span>{src ? "Ready" : "Plug in a picture"}</span></div>}
-      </div>}
-      controls={<>
-        <button type="button" className="cv-go nodrag" disabled={!src} onClick={() => setOpen(true)}>Open editor</button>
-        {!pics.length && <p className="cv-nhint">Plug a finished picture into Ingredients (an Image node or a generator).</p>}
-        {pics.length > 0 && !src && <p className="cv-nhint">Retouch needs a picture made in Eclipse. Upload it to your Library first.</p>}
-        {open && src && <ImageEditor sourceId={picked ?? src} onKept={(newId) => updateNodeData(id, { gens: [newId], pick: newId })} onClose={() => setOpen(false)} />}
-      </>} />
-  );
-}
 
 // ---------- Variations ----------
 // One picture in, a grid of controlled versions out: one render per cell, then one contact sheet. The cells and the sheet are the node's results; the ticked one goes on.
