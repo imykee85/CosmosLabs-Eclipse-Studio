@@ -98,8 +98,7 @@ test("Seedance is ON by default: with no setting at all the direct route is used
 });
 
 test("BytePlus not activated (404): the person is asked before paying the higher Higgsfield price, and the next video is priced there at once", { skip }, async () => {
-  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
-  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
+  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid"; // the Higgsfield backup is on by default
   const first = await make();
   assert.equal(first.ok, false); assert.equal(first.status, 409); assert.equal(first.needsConfirm, true);
   assert.equal(hfSent.length, 0); assert.equal(await lib.db.generation.count({ where: { userId: A } }), 0, "nothing held or kept");
@@ -111,8 +110,7 @@ test("BytePlus not activated (404): the person is asked before paying the higher
 });
 
 test("confirming the higher price after a refusal goes through on Higgsfield", { skip }, async () => {
-  process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "on"; // these tests are about the automatic Higgsfield fallback, which is off unless switched on
-  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
+  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid"; // the Higgsfield backup is on by default
   const ok = await make({ confirm: true });
   assert.equal(ok.ok, true, ok.error);
   assert.equal(hfSent.length, 1);
@@ -204,7 +202,8 @@ test("jobs with a video input go direct at BytePlus' token price when the clip's
   assert.equal(editRow.creditsHeld, (await import("../../src/lib/price-constants")).videoCreditsForUsd(usd) * 10);
   const c = await make({ videoRefs: [{ id: "bpv-src" }] });
   assert.equal(c.ok, true, c.error);
-  assert.equal(arkSent.length, 2); assert.deepEqual((arkSent[1].body as { content: { role?: string }[] }).content.map((x) => x.role ?? "text"), ["text", "reference_video"]);
+  const posts = arkSent.filter((x) => x.method === "POST");
+  assert.equal(posts.length, 2); assert.deepEqual((posts[1].body as { content: { role?: string }[] }).content.map((x) => x.role ?? "text"), ["text", "reference_video"]);
 });
 
 test("a video whose length was never recorded cannot be priced at BytePlus and stays on Higgsfield", { skip }, async () => {
@@ -298,8 +297,8 @@ test("draft on Higgsfield: when BytePlus refuses, the draft runs in Higgsfield's
   arkMode.kind = "ok"; delete process.env.SEEDANCE_HIGGSFIELD_FALLBACK;
 });
 
-test("fallback OFF (the default): a refusal by BytePlus stops the video, nothing is held and Higgsfield is never asked", { skip }, async () => {
-  delete process.env.ROUTE_SEEDANCE_2_5; arkMode.kind = "forbid";
+test("fallback OFF (SEEDANCE_HIGGSFIELD_FALLBACK=off): a refusal by BytePlus stops the video, nothing is held and Higgsfield is never asked", { skip }, async () => {
+  delete process.env.ROUTE_SEEDANCE_2_5; process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "off"; arkMode.kind = "forbid";
   const a = await make({ confirm: true });
   assert.equal(a.ok, false); assert.equal(hfSent.length, 0); assert.equal(await lib.db.generation.count({ where: { userId: A } }), 0, "nothing held or kept");
   const b = await make({ confirm: true });   // no 10-minute block: BytePlus is asked again, so a fix there shows at once
@@ -307,7 +306,7 @@ test("fallback OFF (the default): a refusal by BytePlus stops the video, nothing
 });
 
 test("fallback OFF: three BytePlus jobs running means the fourth is refused, not sent to Higgsfield", { skip }, async () => {
-  delete process.env.ROUTE_SEEDANCE_2_5;
+  delete process.env.ROUTE_SEEDANCE_2_5; process.env.SEEDANCE_HIGGSFIELD_FALLBACK = "off";
   for (let i = 0; i < 3; i++) assert.equal((await make()).ok, true);
   const fourth = await make();
   assert.equal(fourth.ok, false); assert.equal(fourth.status, 503); assert.equal(hfSent.length, 0);

@@ -214,3 +214,7 @@
 /* No stray white line under the details: the light edge sits right under the divider instead */
 .db-card .db-meta { box-shadow: none; background: linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,0)) top / 100% 1px no-repeat; padding-top: 9px; }
 .db-card { background: url(/dashboard/folder.webp) center / 100% 100% no-repeat; }
+.ft-dots { display: flex; justify-content: center; gap: 6px; margin: 4px 0 16px; }
+.ft-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--a-line3, rgba(128,128,128,.4)); }
+.ft-dots span.is-on { background: #c00707; }
+.ft-skip { display: block; margin: 10px auto 0; background: none; border: 0; color: var(--a-sub, #888); font: inherit; font-size: 14px; cursor: pointer; }

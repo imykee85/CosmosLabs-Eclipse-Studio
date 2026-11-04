@@ -21,6 +21,7 @@ import HomeFeed from "./HomeFeed";
 import ProjectDetailsModal from "./ProjectDetailsModal";
 import RenameProjectModal from "./RenameProjectModal";
 import WelcomeOffer from "./WelcomeOffer";
+import FirstTour from "./FirstTour";
 import "@/components/app-theme.css";
 import "./dashboard.css";
 
@@ -290,6 +291,7 @@ export default function DashboardView() {
       {details && <ProjectDetailsModal project={details} onClose={() => setDetails(null)} />}
       {creating && <NewProjectModal onClose={() => setCreating(false)} />}
       <WelcomeOffer onStart={() => goTo("/create")} />
+      <FirstTour />
     </div>
   );
 }

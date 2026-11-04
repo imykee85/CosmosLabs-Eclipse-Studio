@@ -28,3 +28,17 @@ export async function syncTeamSeats(workspaceId: string, planId: string, client?
     return "failed";
   }
 }
+
+/** A team whose plan ended falls back to one seat, so nobody new can be invited. Clerk keeps the members already in (it may also refuse a limit below the current count: logged, never thrown). */
+export async function releaseTeamSeats(workspaceId: string, client?: SeatClient | null): Promise<"set" | "skipped" | "failed"> {
+  if (!workspaceId.startsWith("org_")) return "skipped";
+  try {
+    const c = client === undefined ? await clerkSeatClient() : client;
+    if (!c) return "skipped";
+    await c.setMaxMembers(workspaceId, 1);
+    return "set";
+  } catch (e) {
+    console.error("TEAM SEATS: could not lower the member limit", workspaceId, e instanceof Error ? e.message : e);
+    return "failed";
+  }
+}

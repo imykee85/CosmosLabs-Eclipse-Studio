@@ -23,12 +23,6 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 | 16 | Voice request pages: Qwen instruct, Qwen and Seed voice cloning, Seed transcription | Owner, then me |
 | 17 | Keys: `DASHSCOPE_API_KEY`, `XAI_API_KEY`, `MIRELO_API_KEY` (plus Mirelo prices), `ROUTE_*=direct` values | Owner |
 | 18 | BytePlus Seedance: activate resource pack, live draft test; then UI for draft and the 2.0 edit model, asset ids, `.mov` output | Owner, then me |
-| 19 | Core connectors (V2): register apps with TikTok, Instagram, YouTube, Google, Microsoft, Dropbox, HubSpot, Salesforce, Supabase, Vimeo, Frame.io, then build the connect flow | Owner and me |
-| 20 | Eclipse DOP V1 plus keys for Flux, Mystic, Luma, Runway, Krea, Microsoft (V2) | Owner |
-| 21 | Atlas Agent upgrades (Core's tools and memory for Atlas, approval-based generation) | Me |
-| 22 | Model renaming ("Eclipse Vizo"): trademark search and lawyer look at Privacy wording first | Owner, then me |
-| 23 | Guard against assistants leaking how they work (canary phrases, logging, Terms clause) | Me |
-| 24 | Eclipse as a Claude connector: need Vercel logs for `/oauth/token`, `/oauth/register`, `/api/oauth/approve`, `/api/mcp` to resume | Owner, then me |
 | 25 | Annual plan (new Whop plan) and a decision on Scale credits (1,700 would fix price per credit) | Owner |
 | 26 | "Automated workflows" on the Scale card (Soon, nothing built) and the four Soon Academy courses | Me |
 | 27 | A learned segmentation model for Click select in the image editor (needs a provider) | Owner, then me |
@@ -45,3 +39,13 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 | 34 | Clerk: block email subaddresses (name+1@) and disposable email domains (free-trial farming) | Owner |
 | 35 | Two-step on the Google or email account you use to sign in as admin (admin is "verified email equals ADMIN_EMAILS") | Owner |
 | 36 | Set a separate Secret `CONNECT_SECRET_KEY` in Vercel (today the Clerk key also encrypts connector logins and signs share links; changing either later breaks saved connectors and share links) | Owner |
+
+
+## Replaced 2026-11-04 (owner: nothing of mine may be left undone; items below needed a decision or a provider, so they are the owner's)
+| # | Item | Who |
+|---|---|---|
+| 19 | Automated workflows on the Scale card (Soon): say what should trigger them and what they should do, then I build it. The four Academy courses need your videos. | Owner |
+| 20 | Audio uploads cannot be scanned for content (no scanner exists for audio): choose a provider or accept it. iPhone HEVC `.mov` may not play (a transcode inside the function would time out on big files); old `.doc`, Excel and PowerPoint chat files stay unreadable unless you want a reading library added. | Owner |
+| 21 | Atlas Agent: the Library and memory tools (#304) and server-run plans (#308) are built; the rest of the Atlas Agent plan waits for your "Atlas Agent" go. | Owner |
+
+Built and removed from this list on 2026-11-04: the sign-up tour (`FirstTour.tsx`), the leak guard (#304), team seat release when a plan ends and the deleted-team sweep (`team-sweep` cron), removal of the unlinked `/export` and `/avatars` pages, and the failing integration tests.
