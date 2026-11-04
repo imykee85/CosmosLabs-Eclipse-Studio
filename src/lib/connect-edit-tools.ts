@@ -3,13 +3,16 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { waitUntil } from "@vercel/functions";
 import { db } from "@/lib/db";
 import { drive, enqueue } from "@/lib/sandbox/runner";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { kineticEnabled, kineticInputFor } from "@/lib/sandbox/kinds/kinetic";
 import { editEnabled, editInputFor, ASPECTS, PLATFORMS, TRANSITIONS } from "@/lib/sandbox/kinds/edit";
 import { JobInputError } from "@/lib/sandbox/kinds/types";
 import { jobView } from "@/lib/sandbox/view";
 
 // Core's video editor: two tools. edit_video starts an edit of the person's OWN finished videos (ffmpeg-skill in a cloud computer, see kinds/edit.ts) and
 // check_edit reports it. The edited video appears in the Library as a new video; the originals are never changed.
-export const editToolNames = new Set(["edit_video", "check_edit"]);
+export const editToolNames = new Set(["edit_video", "check_edit", "kinetic_guide", "make_kinetic_film"]);
 
 export const editDefs: Anthropic.Beta.Messages.BetaTool[] = [
   {
@@ -43,7 +46,20 @@ export const editDefs: Anthropic.Beta.Messages.BetaTool[] = [
     description: "Look up an edit started with edit_video: its status (queued, running, succeeded, failed, canceled) and, when it succeeded, the new video's id (generation_id).",
     input_schema: { type: "object", properties: { job_id: { type: "string" } }, required: ["job_id"] },
   },
+  {
+    name: "kinetic_guide",
+    description: "Read how to write a kinetic-typography film (fast launch films, teasers, trailers: huge words on every beat, whip pans, 3D letters) BEFORE make_kinetic_film. topic: 'method' (how to plan the film), 'blocks' (every block and option you can use, required reading before writing a spec), 'craft' (what makes it feel professional), 'starter' (a complete working 15 s spec to adapt) or 'example' (a longer finished spec).",
+    input_schema: { type: "object", properties: { topic: { type: "string", enum: ["method", "blocks", "craft", "starter", "example"] } }, required: ["topic"] },
+  },
+  {
+    name: "make_kinetic_film",
+    description: "Render a kinetic-typography film (no footage: type, shapes and 3D letters moving on the beat) from a spec you wrote after reading kinetic_guide. spec_js is the whole spec.js file text: it must start from the starter's shape (import { ... } from './blocks.js'; export default { title, bpm, beats, fps, palette, scenes... }), may import only from './blocks.js', and the film may be at most 20 s (beats x 60 / bpm; 10 s at 1080). Optionally put one of the user's finished music takes under it (music_take_id, from the Audio Studio; match bpm to the music if you know it). Costs credits; say the idea and the length first and wait for their go-ahead. Renders 5 to 15 minutes: tell the user, then use check_edit with the job_id. The result is a new video in their Library.",
+    input_schema: { type: "object", properties: { spec_js: { type: "string" }, resolution: { type: "string", enum: ["720", "1080"] }, music_take_id: { type: "string" }, project_id: { type: "string" } }, required: ["spec_js"] },
+  },
 ];
+
+const KIT = path.join(/*turbopackIgnore: true*/ process.cwd(), "core", "skills", "builtin", "scenario-kinetic-film");
+const GUIDE: Record<string, string> = { method: "references/method.md", blocks: "references/blocks.md", craft: "references/craft.md", starter: "examples/starter/spec.js", example: "examples/just-code/spec.js" };
 
 const n = (v: unknown) => (typeof v === "number" ? v : undefined);
 const s = (v: unknown, max = 200) => (typeof v === "string" ? v.slice(0, max) : undefined);
@@ -64,10 +80,26 @@ export function editBodyFromArgs(a: Record<string, unknown>): Record<string, unk
 
 export async function runEditTool(name: string, a: Record<string, unknown>, userId: string, openProject: string | null): Promise<{ text: string; isError?: boolean }> {
   if (name === "check_edit") {
-    const job = await db.sandboxJob.findFirst({ where: { id: s(a.job_id, 60) ?? "", userId, kind: "media.edit" } });
+    const job = await db.sandboxJob.findFirst({ where: { id: s(a.job_id, 60) ?? "", userId, kind: { in: ["media.edit", "media.kinetic"] } } });
     if (!job) return { text: "No edit with that id.", isError: true };
     const v = await jobView(job);
     return { text: JSON.stringify({ job_id: v.id, status: v.status, message: v.message, ...(v.status === "succeeded" ? { generation_id: v.output?.generationId, seconds: v.output?.durationSec, note: "The edited video is in the user's Library." } : {}), ...(v.error ? { problem: v.error.message } : {}) }) };
+  }
+  if (name === "kinetic_guide") {
+    const f = GUIDE[s(a.topic, 12) ?? ""];
+    if (!f) return { text: "Choose method, blocks, craft, starter or example.", isError: true };
+    try { return { text: readFileSync(path.join(/*turbopackIgnore: true*/ KIT, f), "utf8").slice(0, 30_000) }; } catch { return { text: "That guide is not available.", isError: true }; }
+  }
+  if (name === "make_kinetic_film") {
+    if (!kineticEnabled()) return { text: "Making films is not available yet.", isError: true };
+    const kid = `sbx${randomUUID().replace(/-/g, "").slice(0, 21)}`;
+    let kin;
+    try { kin = await kineticInputFor(userId, kid, { spec: s(a.spec_js, 60_000) ?? "", resolution: s(a.resolution, 4), musicTakeId: s(a.music_take_id, 60), projectId: s(a.project_id, 64) ?? openProject ?? undefined }); }
+    catch (err) { if (err instanceof JobInputError) return { text: err.message, isError: true }; throw err; }
+    const kq = await enqueue("media.kinetic", userId, kin, { id: kid });
+    if (!kq.ok) return { text: kq.error, isError: true };
+    waitUntil(drive(kq.job.id, 45_000).catch((e) => console.error("sandbox drive failed", kq.job.id, e)));
+    return { text: JSON.stringify({ job_id: kq.job.id, status: "queued", note: "Rendering, usually 5 to 15 minutes. Use check_edit with this job_id; the film lands in the user's Library." }) };
   }
   if (!editEnabled()) return { text: "Editing videos is not available yet.", isError: true };
   const id = `sbx${randomUUID().replace(/-/g, "").slice(0, 21)}`;
