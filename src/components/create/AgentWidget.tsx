@@ -7,6 +7,8 @@ import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Pencil, Plus, Ro
 import AgentIcon from "../AgentIcon";
 import { canUseFrame, hostPage, readHostContext, useAgentChat, type Attach, type AttachedDoc } from "@/lib/agent-chat";
 import { diffWords, thinkingLines, type Proposal } from "@/lib/agent-proposal";
+import type { PlanState } from "@/lib/agent-plan";
+import { creditsText } from "@/lib/credit-units";
 import { attachKind, readDocument } from "@/lib/attach-file";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
@@ -91,6 +93,32 @@ function ProposalCard({ p, busy, onApply }: { p: Proposal; busy: boolean; onAppl
       <div className="aw-prop-btns">
         <button type="button" className="aw-prop-apply" disabled={done || busy} onClick={() => onApply(false)}>{p.applied === "apply" ? "Applied \u2713" : "Apply"}</button>
         <button type="button" className="aw-prop-gen" disabled={done || busy} onClick={() => onApply(true)}>{p.applied === "generate" ? "Applied \u2713" : "Apply and generate"}</button>
+      </div>
+    </div>
+  );
+}
+
+// A plan Atlas proposed (Scale): the steps, the total price, and one Approve button that runs the whole thing.
+function PlanCard({ plan, busy, onApprove, onStop }: { plan: PlanState; busy: boolean; onApprove: () => void; onStop: () => void }) {
+  const running = plan.status === "running";
+  return (
+    <div className="aw-prop aw-plan">
+      <div className="aw-plan-title">{plan.spec.title}</div>
+      <ol className="aw-plan-steps">
+        {plan.steps.map((s) => (
+          <li key={s.id} className={`is-${s.state}`}>
+            <span className="aw-plan-dot" aria-hidden>{s.state === "done" ? "\u2713" : s.state === "failed" ? "!" : s.state === "running" ? "\u2026" : ""}</span>
+            <span>{s.label}{s.error ? <em className="aw-plan-err"> {s.error}</em> : null}</span>
+          </li>
+        ))}
+      </ol>
+      {plan.price != null && plan.status === "ready" && <div className="aw-plan-price">Total {creditsText(plan.price)}</div>}
+      {plan.note && <p className="aw-plan-note">{plan.note}</p>}
+      <div className="aw-prop-btns">
+        {plan.status === "ready" && <button type="button" className="aw-prop-gen" disabled={busy} onClick={onApprove}>Approve plan</button>}
+        {running && <button type="button" className="aw-prop-apply" onClick={onStop}>Stop after this step</button>}
+        {plan.status === "done" && <span className="aw-plan-done">All done. It is in your Gallery.</span>}
+        {plan.status === "canceled" && <span className="aw-plan-done">Stopped.</span>}
       </div>
     </div>
   );
@@ -385,6 +413,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                     ))}
                   </div>
                 )}
+                {m.plan && <PlanCard plan={m.plan} busy={chat.busy} onApprove={() => void chat.approvePlan(m.id)} onStop={() => chat.cancelPlan(m.id)} />}
                 {m.proposal && <ProposalCard p={m.proposal} busy={chat.busy} onApply={(g) => void chat.applyProposal(m.id, g)} />}
                 {m.actions && m.actions.length > 0 && (
                   <div className="aw-acts">

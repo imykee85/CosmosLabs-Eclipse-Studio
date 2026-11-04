@@ -272,6 +272,45 @@ test.describe("Atlas panel", () => {
   });
 });
 
+test.describe("Atlas plans", () => {
+  test("a plan card shows the steps; Approve runs hero, pictures and one video from all of them", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+      localStorage.setItem("eclipse-agent", "Atlas");
+      localStorage.setItem("eclipse-agent-on", "1");
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [{ id: "nano_banana_pro", label: "Nano", blurb: "x", ratios: ["16:9", "9:16"], resolutions: [], maxBatch: 4, maxPrompt: 2000, verified: true, autoPick: true, seed: { supported: false }, maxReferences: 8, requiresReference: false, credits: null }] } }));
+    await page.route("**/api/video/config", (r) => r.fulfill({ json: { creditsOn: false, direct: [] } }));
+    await page.route("**/api/agent/chat", (r) => r.fulfill({ json: { runId: "r1" } }));
+    await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE"
+      ? r.fulfill({ json: { ok: true } })
+      : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is the plan.", actions: [], plan: { title: "Sneaker ad", hero: "A sneaker on a wet street", scenes: ["Close-up of the laces", "Mid-stride"], video: "Move through image 1 to 3", seconds: 8, ratio: "16:9" } } } } }));
+    const generated: { prompt?: string; references?: unknown[] }[] = [];
+    let n = 0;
+    await page.route("**/api/generate", (r) => { generated.push(r.request().postDataJSON()); return r.fulfill({ json: { id: `g${++n}`, status: "pending" } }); });
+    await page.route(/\/api\/generations\/g\d$/, (r) => r.fulfill({ json: { status: "completed" } }));
+    let video: { refs?: { id: string }[]; model?: string } | null = null;
+    await page.route("**/api/video", (r) => { video = r.request().postDataJSON(); return r.fulfill({ json: { id: "v1" } }); });
+    await page.route("**/api/generations/v1/status", (r) => r.fulfill({ json: { status: "completed" } }));
+    await page.goto("/create");
+    await page.click(".aw-btn");
+    await page.fill(".aw-input textarea", "Make me a sneaker ad");
+    await page.click('.aw-input button[type="submit"]');
+    const card = page.locator(".aw-plan");
+    await expect(card).toBeVisible({ timeout: 20000 });
+    await expect(card.locator("li")).toHaveCount(3);
+    await expect(card.locator("li").nth(1)).toContainText("2 more pictures");
+    expect(generated.length).toBe(0); // nothing is made until Approve
+    await card.getByRole("button", { name: "Approve plan" }).click();
+    await expect(card.getByText(/All done/)).toBeVisible({ timeout: 40000 });
+    expect(generated.length).toBe(3); // the hero and two pictures
+    expect(generated[1].references).toEqual([{ type: "render", id: "g1" }]); // the pictures are made from the hero
+    await expect.poll(() => video?.refs?.map((x) => x.id).join(",")).toBe("g1,g2,g3"); // one video, all pictures in order
+  });
+});
+
 test.describe("prompt box drafts", () => {
   const seed = async (page: import("@playwright/test").Page) => {
     await page.addInitScript(() => {
@@ -595,8 +634,8 @@ test("paid plan cards list every benefit, the missing ones locked, with See more
   await expect(starter.locator(".pb-list li")).toHaveCount(9);
   await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(0);
   await starter.getByRole("button", { name: /See more/ }).click();
-  await expect(starter.locator(".pb-list li")).toHaveCount(17);
-  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(8); // no Atlas limit, mid-priced video, Canvas, own agents, Core, every video model, no Core limit, builds
+  await expect(starter.locator(".pb-list li")).toHaveCount(18);
+  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(9); // no Atlas limit, mid-priced video, Canvas, own agents, Core, every video model, no Core limit, builds, Atlas plans, Atlas plans
   await expect(starter.locator(".pb-list li.is-soon")).toHaveCount(0); // automated workflows is listed on the Scale card only
   const scale = page.locator(".plan-card").nth(3);
   await scale.getByRole("button", { name: /See more/ }).click();

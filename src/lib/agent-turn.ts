@@ -14,6 +14,8 @@ import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { loadPromptImages } from "@/lib/prompt-images";
 import { attachPictures, parsePictures } from "@/lib/agent-pictures";
 import { buildMessages, historyPictures, loadHistoryImages, parseTurns } from "@/lib/agent-history";
+import type { PlanSpec } from "@/lib/agent-plan";
+import { planAllows } from "@/lib/access-table";
 import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool as isVideoServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { CORE_TOOLS, CORE_TOOLS_NOTE, isCoreTool, runCoreTool } from "@/lib/agent-core-tools";
@@ -37,6 +39,9 @@ const TOOLS: Anthropic.Tool[] = [
 
 // Offered only where the screen can apply it (Image Studio, Video Studio, Core): Atlas sets the prompt box for the person. Free and instant; Generate stays their button.
 const SET_BOX: Anthropic.Tool = { name: "set_prompt_box", description: "Set the prompt box's controls for the user: model, aspect ratio, number of results, quality, clip length, sound, fixed seed and the prompt text. It takes effect at once and costs nothing; the user still presses Generate. Use ONLY values listed under 'Controls you can set'. Include only what the user asked for or what clearly helps their idea. When the user is unsure what to pick, choose sensible values and say in one short line why.", input_schema: { type: "object", properties: { model: { type: "string", description: "A model id from the list (or auto)." }, aspect_ratio: { type: "string" }, count: { type: "integer", minimum: 1, maximum: 4, description: "How many images per run." }, quality: { type: "string", description: "A quality from the list." }, duration_seconds: { type: "integer", description: "Clip length in seconds." }, sound: { type: "boolean" }, fixed_seed: { type: "boolean" }, prompt: { type: "string", description: "Fill the prompt box with this text." } } } };
+
+// Scale only (FEATURE_MIN.plans): a whole small production run after ONE approval. Atlas decides how many pictures the video needs.
+const PLAN_TOOL: Anthropic.Tool = { name: "propose_plan", description: "Propose a small production the user approves ONCE: a hero image, then the extra pictures the video needs (you decide how many, 1 to 8, each made from the hero so the look stays the same), then ONE video that uses all of the pictures as references. Use it when the user wants a video or ad built from scratch. Shows one plan card with the total price; nothing is made or charged until the user presses Approve. Write every prompt in full.", input_schema: { type: "object", properties: { title: { type: "string" }, hero_prompt: { type: "string", description: "The hero image prompt." }, scenes: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 8, description: "One prompt per extra picture (a different angle, moment or shot of the same subject and look), in story order." }, video_prompt: { type: "string", description: "The motion prompt: how the video moves through the pictures. Refer to them as image 1, image 2, ... in order (image 1 is the hero)." }, duration_seconds: { type: "integer", minimum: 4, maximum: 30 }, aspect_ratio: { type: "string", description: "16:9, 9:16, 1:1, 4:3, 3:4 or 21:9." } }, required: ["hero_prompt", "scenes", "video_prompt"] } };
 
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 
@@ -94,7 +99,8 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     if (!(await claimUsage(personId ?? userId, "agent", limit, 24 * 3600 * 1000))) return { status: 429, json: { error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` } };
 
     // Starter includes a small daily Atlas allowance (access.ts atlasDailyLimit); Growth and Scale have none.
-    const starterLimit = atlasDailyLimit(await accessFor(userId, personId ?? null));
+    const access = await accessFor(userId, personId ?? null);
+    const starterLimit = atlasDailyLimit(access);
     if (starterLimit != null && !(await claimUsage(personId ?? userId, "atlas_starter", starterLimit, 24 * 3600 * 1000))) {
       return { status: 402, json: { error: `Your Starter plan includes ${starterLimit} Atlas messages a day. Upgrade to Growth for no daily limit.`, code: "UPGRADE", need: "growth" } };
     }
@@ -115,11 +121,13 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}` : "";
       const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
-      const tools = isAtlas ? [...base, ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
+      const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
+      const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
       const convo: Anthropic.MessageParam[] = messages;
       const earlier: Action[] = [];
       let controls: Controls = {};
+      let plan: PlanSpec | undefined;
       const frames: Frame[] = [];
       const state = { captures: 0 };
       let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
@@ -139,6 +147,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
         const so = buildReply(res.content, res.stop_reason);
         earlier.push(...so.actions);
         controls = { ...controls, ...so.controls };
+        plan = so.plan ?? plan;
         convo.push({ role: "assistant", content: res.content }, { role: "user", content: results });
         res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
         meter.add(res.model, res.usage);
@@ -155,7 +164,8 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const actions: Action[] = [...earlier, ...final.actions];
       const text = guardText(pieces.join("") + final.text, "atlas");
       controls = { ...controls, ...final.controls };
-      return { status: 200, json: { text, actions, controls, frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
+      plan = final.plan ?? plan;
+      return { status: 200, json: { text, actions, controls, ...(plan ? { plan } : {}), frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
     } catch (err) {
       console.error("agent chat failed", err);
       const msg = err instanceof Error ? err.message : "";
