@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Gift, X } from "lucide-react";
 import { useCredits } from "@/lib/use-credits";
 import { launchConfetti } from "./confetti";
+import { WELCOME_CLOSED } from "./FirstTour";
 
 const SEEN = "eclipse-welcome-offer";
 
@@ -37,6 +38,7 @@ export default function WelcomeOffer({ onStart }: { onStart: () => void }) {
   function close() {
     setOpen(false);
     try { localStorage.setItem(SEEN, "1"); } catch {}
+    window.dispatchEvent(new Event(WELCOME_CLOSED));
   }
 
   if (!open || left <= 0) return null;

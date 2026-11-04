@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { seatsFor, syncTeamSeats, type SeatClient } from "../../src/lib/team-seats";
+import { releaseTeamSeats, seatsFor, syncTeamSeats, type SeatClient } from "../../src/lib/team-seats";
 
 const fake = () => { const calls: [string, number][] = []; const c: SeatClient = { setMaxMembers: async (o, m) => { calls.push([o, m]); } }; return { c, calls }; };
 
@@ -28,4 +28,14 @@ test("a Clerk failure is reported, never thrown", async () => {
   const bad: SeatClient = { setMaxMembers: async () => { throw new Error("down"); } };
   const keep = console.error; console.error = () => {};
   try { assert.equal(await syncTeamSeats("org_abc", "starter", bad), "failed"); } finally { console.error = keep; }
+});
+
+test("a team whose plan ended falls back to one seat; a person's workspace is untouched; a failure is never thrown", async () => {
+  const { c, calls } = fake();
+  assert.equal(await releaseTeamSeats("org_abc", c), "set");
+  assert.equal(await releaseTeamSeats("user_1", c), "skipped");
+  assert.deepEqual(calls, [["org_abc", 1]]);
+  const bad: SeatClient = { setMaxMembers: async () => { throw new Error("down"); } };
+  const keep = console.error; console.error = () => {};
+  try { assert.equal(await releaseTeamSeats("org_abc", bad), "failed"); } finally { console.error = keep; }
 });

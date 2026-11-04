@@ -1,4 +1,4 @@
-import { syncTeamSeats } from "./team-seats";
+import { syncTeamSeats, releaseTeamSeats } from "./team-seats";
 import { randomUUID } from "node:crypto";
 import type { BillingSettings } from "@prisma/client";
 import { waitUntil } from "@vercel/functions";
@@ -114,7 +114,10 @@ export async function applyPayment(event: PaymentEvent & { auto?: boolean }): Pr
     const owner = await ownerOfMembership(event.refs?.membershipId);
     if (!owner) return { ok: true, duplicate: false };
     const at = event.at ?? new Date();
-    if (event.kind === "deactivated") await db.billingSettings.update({ where: { userId: owner }, data: { subscriptionEndedAt: at, autoEnabled: false } });
+    if (event.kind === "deactivated") {
+      await db.billingSettings.update({ where: { userId: owner }, data: { subscriptionEndedAt: at, autoEnabled: false } });
+      await releaseTeamSeats(owner); // a team's member limit drops to one seat (no-op for a person)
+    }
     // Deliveries can arrive out of order: an "active" update older than the end we recorded does not undo it.
     else await db.billingSettings.updateMany({ where: { userId: owner, subscriptionEndedAt: { lt: at } }, data: { subscriptionEndedAt: null } });
     return { ok: true, duplicate: false };

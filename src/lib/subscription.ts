@@ -18,7 +18,7 @@ export const subscriptionDays = () => { const n = Number(process.env.SUBSCRIPTIO
 export async function currentPlanName(userId: string, client: Client = db): Promise<string | null> {
   // A plan the owner gave by hand (Give a plan in /admin/credits) counts as a subscription: it has no payment behind it, but it is the plan this account is on.
   const given = (await client.billingSettings.findUnique({ where: { userId }, select: { planOverride: true } }))?.planOverride;
-  if (given && given !== "free") return given.charAt(0).toUpperCase() + given.slice(1);
+  if (given && ["starter", "growth", "scale"].includes(given)) return given.charAt(0).toUpperCase() + given.slice(1);
   const row = await client.creditLedger.findFirst({
     where: { userId, reason: "PURCHASE", note: { startsWith: "Plan:" }, createdAt: { gte: new Date(Date.now() - subscriptionDays() * DAY) } },
     orderBy: { createdAt: "desc" },

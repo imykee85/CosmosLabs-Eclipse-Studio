@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
   // AI training and answer crawlers get no access at all (the marketing pages included); search engines keep the public pages.
   const ai = ["GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "Claude-Web", "anthropic-ai", "Google-Extended", "GoogleOther", "PerplexityBot", "Perplexity-User", "CCBot", "Bytespider", "Amazonbot", "Applebot-Extended", "meta-externalagent", "FacebookBot", "cohere-ai", "Diffbot", "ImagesiftBot", "Omgilibot", "YouBot"];
   return {
-    rules: [{ userAgent: ai, disallow: "/" }, { userAgent: "*", allow: ["/", "/terms", "/privacy"], disallow: ["/api/", "/dashboard", "/create", "/generate", "/gallery", "/export", "/library", "/assets", "/ingredients", "/canvas", "/connect", "/memory", "/skills", "/tools", "/agents", "/prompts", "/treatment", "/project", "/settings", "/portfolio", "/certificates", "/avatars", "/admin", "/motion", "/onboarding", "/tutorial", "/sign-in", "/sign-up", "/sso-callback"] }],
+    rules: [{ userAgent: ai, disallow: "/" }, { userAgent: "*", allow: ["/", "/terms", "/privacy"], disallow: ["/api/", "/dashboard", "/create", "/generate", "/gallery", "/library", "/assets", "/ingredients", "/canvas", "/connect", "/memory", "/skills", "/tools", "/agents", "/prompts", "/treatment", "/project", "/settings", "/portfolio", "/certificates", "/admin", "/motion", "/onboarding", "/tutorial", "/sign-in", "/sign-up", "/sso-callback"] }],
     sitemap: `${site}/sitemap.xml`,
   };
 }
