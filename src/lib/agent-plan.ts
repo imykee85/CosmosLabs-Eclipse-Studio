@@ -12,6 +12,7 @@ export type PlanSpec = {
 export type StepState = "waiting" | "running" | "done" | "failed";
 export type PlanStep = { id: string; kind: "hero" | "scenes" | "video"; label: string; state: StepState; ids?: string[]; error?: string };
 export type PlanState = {
+  id?: string;           // the saved plan on the server, once approved
   spec: PlanSpec;
   steps: PlanStep[];
   status: "ready" | "running" | "done" | "failed" | "canceled";
@@ -43,4 +44,11 @@ export function newPlan(spec: PlanSpec, price?: number | null): PlanState {
       { id: "video", kind: "video", label: `${spec.seconds}-second video from all ${spec.scenes.length + 1} pictures`, state: "waiting" },
     ],
   };
+}
+
+/** A plan spec sent by the browser, checked again on the server (the browser's copy is never trusted). */
+export function cleanSpec(v: unknown): PlanSpec | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  return cleanPlan({ title: o.title, hero_prompt: o.hero, scenes: o.scenes, video_prompt: o.video, duration_seconds: o.seconds, aspect_ratio: o.ratio });
 }

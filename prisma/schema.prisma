@@ -747,6 +747,29 @@ model PendingSend {
   @@map("pending_sends")
 }
 
+// An Atlas plan (Scale): a hero image, the pictures the video needs, then one video. The person approves it ONCE and the SERVER runs it step by step, so it carries
+// on when the app is closed (`src/lib/agent-plan-server.ts`). `run` holds the settings chosen at approval and the ids made so far.
+model AgentPlan {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  personId   String?   @map("person_id")
+  projectId  String?   @map("project_id")
+  spec       Json
+  steps      Json
+  run        Json
+  status     String    @default("running") // running | done | failed | canceled
+  price      Int?
+  note       String?
+  lockedAt   DateTime? @map("locked_at")
+  deadlineAt DateTime  @map("deadline_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("agent_plans")
+}
+
 // Proof that a person accepted the Terms of Use and Privacy Policy: who, which version, when, from where. One row per person and version.
 model TermsAcceptance {
   id         String   @id @default(cuid())
