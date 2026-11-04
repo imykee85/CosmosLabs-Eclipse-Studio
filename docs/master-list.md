@@ -9,15 +9,20 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 | 1 | Save a Slack or Discord channel webhook as the Secret `OPS_ALERT_WEBHOOK_URL` in Vercel (alerts stay silent without it) | Owner |
 | 4 | Watch the first real monthly Whop renewal in Payment events on the Production health page (renewal field names never seen live) | Owner, then me |
 | 6 | Watch free-trial signups against real accounts (each free trial costs real provider money) | Owner and me |
+| 9 | Press "Translate every language" in `/admin/translations` (owner's last step) | Owner |
 
 ## Not urgent
 | # | Item | Who |
 |---|---|---|
+| 8 | Academy tutorial videos: the 3 lessons in `src/lib/tutorial.ts` have no video so Watch does nothing; 4 courses are tagged Soon (offered: hide Watch on lessons without a video) | Owner |
 | 10 | Turn on versioning for the R2 bucket | Owner |
 | 12 | Host for the Eclone media worker plus Secrets `MEDIA_WORKER_URL` and `MEDIA_WORKER_SECRET`; then wire the checker, finish step, clips over 30 s and target-frame generation | Owner, then me |
 | 13 | Live test with a Growth-plan account (premium prompt lock) | Owner |
 | 14 | Live checks of built-but-unverified features: Atlas panel, Atlas plans, Core send card (Telegram/Slack), Canvas runs, Soul ID, Seedance edit/extend, Kling multi-shot, reference sounds, newer connectors | Owner |
+| 15 | Higgsfield request pages and prices: Kling O3/Omni, Genjutsu restyle and object swap, Motion scene control, 3D scene, Seedance 1.5 Pro, Cinema Studio 3.0, FLUX 3 Video | Owner, then me |
 | 16 | Voice request pages: Qwen instruct, Qwen and Seed voice cloning, Seed transcription | Owner, then me |
+| 17 | Key `DASHSCOPE_API_KEY` (Secret) and, if you want Qwen Image direct, `ROUTE_QWEN_IMAGE_3=direct` and `ROUTE_QWEN_IMAGE_3_EDIT=direct` (Config values) | Owner |
+| 18 | BytePlus Seedance: activate resource pack, live draft test; then UI for draft and the 2.0 edit model, asset ids, `.mov` output | Owner, then me |
 | 25 | Annual plan (new Whop plan) and a decision on Scale credits (1,700 would fix price per credit) | Owner |
 | 26 | "Automated workflows" on the Scale card (Soon, nothing built) and the four Soon Academy courses | Me |
 | 27 | A learned segmentation model for Click select in the image editor (needs a provider) | Owner, then me |
