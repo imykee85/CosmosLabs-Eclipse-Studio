@@ -26,7 +26,7 @@ function binary(): string {
 
 export function run(args: string[], timeoutMs: number, input?: Uint8Array): Promise<{ code: number; out: Buffer; err: string }> {
   return new Promise((resolve, reject) => {
-    const p = spawn(/*turbopackIgnore: true*/ binary(), args, { stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] });
+    const p = spawn(/*turbopackIgnore: true*/ binary(), ["-protocol_whitelist", "file,pipe,crypto,tls,tcp,https", ...args], { stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] });
     if (input) { p.stdin!.on("error", () => {}); p.stdin!.end(input); }
     const out: Buffer[] = [];
     let err = "";

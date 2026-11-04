@@ -3,6 +3,7 @@
 // are rate-limited, a person has at most MAX_OWN_VOICES, the flat price (credits, from config) is charged only after the provider succeeded, and deleting a voice
 // deletes it at the provider too. Cloned voices are private: there is no sharing.
 import { outOfCredits } from "@/lib/credit-message";
+import { serverSecret } from "@/lib/server-secret";
 import { refusal } from "@/lib/subscribe-alert";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { UserVoice } from "@prisma/client";
@@ -46,7 +47,7 @@ const cleanName = (v: unknown) => (typeof v === "string" ? v.replace(/[\u0000-\u
 const cleanText = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ").trim().slice(0, max) : "");
 
 // A design preview's token is the provider's own id; this signature ties it to the person it was made for, so one person cannot save another's preview.
-function signKey(): string { return process.env.CONNECT_SECRET_KEY || process.env.CLERK_SECRET_KEY || "dev-only-not-secret"; }
+function signKey(): string { return serverSecret(process.env.CONNECT_SECRET_KEY, process.env.CLERK_SECRET_KEY); }
 export const signToken = (userId: string, provider: string, token: string) => createHmac("sha256", signKey()).update(`voice-design:${userId}:${provider}:${token}`).digest("hex").slice(0, 32);
 function sameSig(a: string, b: string) { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); }
 

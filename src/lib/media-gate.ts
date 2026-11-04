@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { serverSecret } from "@/lib/server-secret";
 
 // The homepage pictures and clips (/landing, /hero, /carousel) only load for a browser that has just opened one of our pages. Opening a page hands the browser a signed cookie
 // that lasts a few hours; the media folders refuse a request without a valid one (src/proxy.ts). So a file address copied out of the page stops working for anyone else
@@ -8,7 +9,7 @@ export const MEDIA_COOKIE = "eclipse-media";
 export const MEDIA_TTL = 4 * 3600;
 const RENEW_BELOW = 30 * 60;
 
-const secret = () => process.env.CONNECT_SECRET_KEY || process.env.CLERK_SECRET_KEY || "dev-only-not-secret";
+const secret = () => serverSecret(process.env.CONNECT_SECRET_KEY, process.env.CLERK_SECRET_KEY);
 const mac = (exp: string) => createHmac("sha256", secret()).update(`media:${exp}`).digest("base64url").slice(0, 32);
 
 export const gatedMediaPath = (path: string) => /^\/(landing|hero|carousel)\//.test(path);

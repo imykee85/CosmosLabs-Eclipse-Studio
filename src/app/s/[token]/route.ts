@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { fileNameFor } from "@/lib/generation-jobs";
-import { readShareToken, streamStored } from "@/lib/media-link";
+import { readShareToken, streamStored, publicStreamLimited } from "@/lib/media-link";
 import { storageEnabled } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +8,8 @@ export const maxDuration = 300;
 
 // A shared render, opened by anyone with the link until it expires (see src/lib/media-link.ts). Served from Eclipse's own address.
 export async function GET(req: Request, props: { params: Promise<{ token: string }> }) {
+  const limited = await publicStreamLimited(req);
+  if (limited) return limited;
   const { token } = await props.params;
   const t = readShareToken(token);
   if (!t || !storageEnabled) return new Response("This link has expired or is not valid.", { status: 404 });
