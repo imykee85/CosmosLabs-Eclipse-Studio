@@ -411,7 +411,7 @@ test.describe("Audio Studio", () => {
     await page.keyboard.press("Escape");
     await page.selectOption('select[aria-label="Voice model"]', "seed-audio-1.0");
     await page.fill("#vc-text", "A calm narrator in the rain.");
-    await expect(page.locator(".vc-cost")).toHaveText("5");
+    await expect(page.locator(".gen-btn .gen-cost")).toHaveText("5");
     await page.getByRole("button", { name: "Generate" }).click();
     await expect.poll(() => sent.length).toBe(2);
     expect(sent[1]).toMatchObject({ model: "seed-audio-1.0", voiceId: "" });

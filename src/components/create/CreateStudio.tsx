@@ -35,6 +35,7 @@ import SheetPortal from "@/components/voice/SheetPortal";
 import GenerateButton from "@/components/GenerateButton";
 import CameraPanel, { type CameraRun } from "./CameraPanel";
 import VariationsTool from "./VariationsTool";
+import ImageEditor from "@/components/edit/ImageEditor";
 import RelightPanel, { type RelightRun } from "./RelightPanel";
 import SkinPanel, { type SkinRun } from "./SkinPanel";
 import { skinPrompt } from "@/lib/skin/prompt";
@@ -353,14 +354,9 @@ export default function CreateStudio() {
 
   // The tools for the picture in the preview. They sit tucked behind the prompt box and slide up when a picture is showing.
   const toolPic = busy ? null : latestDone;
-  function editPicture() {
-    if (!toolPic?.imageUrl) return;
-    setRefs([{ type: "render", id: toolPic.id, url: toolPic.imageUrl, label: toolPic.prompt }]);
-    if (modelId !== AUTO && (model?.maxReferences ?? 0) === 0) setNoRefs(true);
-    box.current?.focus();
-  }
   // Variations: its own window (VariationsTool): one render per cell from this picture, then the contact sheet and the results.
   const [varOpen, setVarOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   async function upscaleId(id: string) {
     const m = toolModel(models ?? [], "upscale");
     if (!m || submitting) { setToolNote("Upscale needs a model that edits pictures, and none is connected yet."); return; }
@@ -538,7 +534,7 @@ export default function CreateStudio() {
           </>
         ) : (
           <>
-            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={editPicture} title="Use this picture as an ingredient and describe the change"><Pencil size={14} /> Edit</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => setEditorOpen(true)} title="Edit this picture with words, or retouch a selected area"><Pencil size={14} /> Edit</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => setVarOpen(true)} disabled={submitting} title="A set of controlled versions of this picture"><Shuffle size={14} /> Variations</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setLightError(""); setLightOpen(true); }} title="Place lights round the picture and change how it is lit"><Sun size={14} /> Relight</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setCamError(""); setCamOpen(true); }} title="See the same moment from another camera position"><Camera size={14} /> Change camera</button>
@@ -654,6 +650,7 @@ export default function CreateStudio() {
       </div>
       {skinOpen && toolPic?.imageUrl && <SheetPortal><SkinPanel thumb={thumbOf("render", toolPic.id)} tiers={skinTiers} unit={(t) => (skinModel ? imageCost(skinModel, skinModel.resolutions.length ? tierResolution(skinModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={skinError} onRun={(r) => void runSkin(r)} onClose={() => setSkinOpen(false)} /></SheetPortal>}
       {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} unit={(t) => (lightModel ? imageCost(lightModel, lightModel.resolutions.length ? tierResolution(lightModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
+      {editorOpen && toolPic?.imageUrl && <ImageEditor sourceId={toolPic.id} onClose={() => { setEditorOpen(false); void reload(); }} />}
       {varOpen && toolPic?.imageUrl && <VariationsTool reference={{ type: "render", id: toolPic.id }} onClose={() => setVarOpen(false)} onUseAsReference={(id) => { setRefs([{ type: "render", id, url: `/api/generations/${id}/file`, label: "Variation" }]); box.current?.focus(); }} onUpscale={(id) => void upscaleId(id)} />}
       {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} unit={(t) => (camModel ? imageCost(camModel, camModel.resolutions.length ? tierResolution(camModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
