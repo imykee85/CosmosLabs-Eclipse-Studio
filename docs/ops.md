@@ -15,6 +15,7 @@ Where each setting lives: **Secret** = Vercel Environment Variables, marked Sens
 | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ARK_API_KEY` | Secret | Google, GPT, Seedream models | Models hide while the key is missing |
 | `ARK_MODEL_SEEDREAM_*` | Config | Seedream | Ids from the BytePlus console |
 | `CRON_SECRET` | Secret | Daily finish-renders job | 503 without it |
+| `OPS_ALERT_WEBHOOK_URL` | Secret | Alerts to a Slack or Discord channel (failed or stuck renders, unmatched payments; daily check `/api/cron/health-alert`, plus at once on a bad payment event) | No alerts, nothing breaks |
 | `ADMIN_EMAILS` | Config | `/admin/credits`, `/admin/jobs` | Comma-separated, verified Clerk addresses |
 | `CREDITS_ENABLED` | Config | Charging | Set to `1` after granting credits |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Config | Terms, Privacy | |
