@@ -6,7 +6,7 @@ import { newPlan, type PlanSpec, type PlanState } from "./agent-plan";
 
 // The settings an Atlas plan runs with, worked out ONCE from the models this account can use. Pure, so the browser (the price on the card) and the server (the run) agree.
 const VIDEO_MODEL = "seedance_2_5";
-export type PlanSetup = { modelId: string; tier: string; resolution?: string; ratio: string; vmodelId: string; quality: string; seconds: number; vratio: string; pictures: number; route: "direct" | "higgsfield"; creditsOn: boolean };
+export type PlanSetup = { modelId: string; tier: string; resolution?: string; ratio: string; vmodelId: string; quality: string; seconds: number; vratio: string; pictures: number; refCount: number; route: "direct" | "higgsfield"; creditsOn: boolean };
 
 /** How many scene pictures the video can take beside the hero. */
 export const sceneLimit = (refMax: number, scenes: number) => Math.max(0, Math.min(scenes, refMax - 1));
@@ -19,11 +19,13 @@ export function planSetup(spec: PlanSpec, models: PublicModel[], direct: string[
   const caps = capsFor(vm, workflowFor(vm, false, true));
   if (caps.refMax < 2) return "The video model for plans cannot take reference pictures right now.";
   const tier = toolTier(model, "camera");
+  // the person's own pictures ride with every request: the model must have room for them AND the hero, and the video for them beside the plan's pictures
+  const refCount = Math.min(spec.refs?.length ?? 0, Math.max(0, model.maxReferences - 1), Math.max(0, caps.refMax - 2));
   const quality = caps.qualities.includes("720p") ? "720p" : caps.defaultQuality;
   const seconds = caps.durations.reduce((best, d) => (Math.abs(d - spec.seconds) < Math.abs(best - spec.seconds) ? d : best), caps.durations[0]);
   return {
     modelId: model.id, tier, resolution: model.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, ratio: model.ratios.includes(spec.ratio) ? spec.ratio : "auto",
-    vmodelId: vm.id, quality, seconds, vratio: caps.ratios.includes(spec.ratio) ? spec.ratio : caps.defaultRatio, pictures: 1 + sceneLimit(caps.refMax, spec.scenes.length),
+    vmodelId: vm.id, quality, seconds, vratio: caps.ratios.includes(spec.ratio) ? spec.ratio : caps.defaultRatio, pictures: 1 + sceneLimit(caps.refMax - refCount, spec.scenes.length), refCount,
     route: direct.includes(vm.id) ? "direct" : "higgsfield", creditsOn,
   };
 }
@@ -34,5 +36,5 @@ export function quoteWith(spec: PlanSpec, s: PlanSetup | string, models: PublicM
   const model = models.find((m) => m.id === s.modelId);
   const img = imageCost(model, s.resolution, 1);
   const vid = videoPrice(videoModelById(s.vmodelId)!, s.quality, s.seconds, false, s.route);
-  return newPlan({ ...spec, scenes: spec.scenes.slice(0, s.pictures - 1), seconds: s.seconds, ratio: s.vratio }, s.creditsOn && img != null && vid != null ? img * s.pictures + vid : null);
+  return newPlan({ ...spec, scenes: spec.scenes.slice(0, s.pictures - 1), seconds: s.seconds, ratio: s.vratio, refs: spec.refs?.slice(0, s.refCount) }, s.creditsOn && img != null && vid != null ? img * s.pictures + vid : null);
 }

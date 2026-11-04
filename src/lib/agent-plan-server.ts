@@ -84,7 +84,8 @@ async function step(row: AgentPlan, deps: PlanDeps): Promise<Out> {
 
   // 1. the hero image
   if (!run.heroId) {
-    const r = await deps.startImage({ userId, prompt: spec.hero, model: s.modelId, aspectRatio: s.ratio, resolution: s.resolution, projectId });
+    const mine = spec.refs ?? [];
+    const r = await deps.startImage({ userId, prompt: spec.hero, model: s.modelId, aspectRatio: s.ratio, resolution: s.resolution, projectId, ...(mine.length ? { references: mine } : {}) });
     if (!r.ok) return fail("hero", r.error);
     run.heroId = r.item.id;
     steps = setStep(steps, "hero", { state: "running", ids: [run.heroId] });
@@ -101,7 +102,7 @@ async function step(row: AgentPlan, deps: PlanDeps): Promise<Out> {
     const ids: string[] = [];
     let why = "";
     for (const sc of spec.scenes.slice(0, s.pictures - 1)) {
-      const r = await deps.startImage({ userId, prompt: `Image 1 is the hero image. ${sc} Keep the same subject, identity, look, lighting and style as image 1.`, model: s.modelId, aspectRatio: s.ratio, resolution: s.resolution, projectId, references: [{ type: "render", id: run.heroId }] });
+      const r = await deps.startImage({ userId, prompt: `Image 1 is the hero image${(spec.refs?.length ?? 0) ? ", and the other pictures are the user's own references" : ""}. ${sc} Keep the same subject, identity, look, lighting and style as image 1.`, model: s.modelId, aspectRatio: s.ratio, resolution: s.resolution, projectId, references: [{ type: "render", id: run.heroId }, ...(spec.refs ?? [])] });
       if (!r.ok) { why = r.error; break; }
       ids.push(r.item.id);
     }
@@ -121,7 +122,7 @@ async function step(row: AgentPlan, deps: PlanDeps): Promise<Out> {
   if (!run.videoId) {
     const r = await deps.startVideo({
       userId, personId: row.personId, prompt: spec.video, model: s.vmodelId, duration: s.seconds, resolution: s.quality, aspectRatio: s.vratio, audio: false, projectId,
-      refs: [run.heroId, ...run.sceneIds].map((id) => ({ type: "render", id })),
+      refs: [...[run.heroId, ...run.sceneIds].map((id) => ({ type: "render", id })), ...(spec.refs ?? [])],
     });
     if (!r.ok) return fail("video", r.needsConfirm ? "The video now costs more than the plan showed, so it was not started. The pictures are in your Gallery." : r.error);
     run.videoId = r.item.id;

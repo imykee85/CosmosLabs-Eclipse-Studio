@@ -61,6 +61,18 @@ test("a plan runs hero, then the pictures from the hero, then one video from all
   assert.equal(again.status, "done");
 });
 
+test("the pictures the person gave Atlas go into the hero, every picture and the video", { skip }, async () => {
+  const withRefs = { ...spec, refs: [{ type: "upload", id: "mine1" }, { type: "upload", id: "mine2" }] };
+  const r = await s.createPlan({ userId: U, personId: U, projectId: "p1", spec: withRefs });
+  assert.equal(r.ok, true);
+  const { w, deps } = world();
+  w.done.add("img1"); w.done.add("img2"); w.done.add("img3"); w.done.add("vid1");
+  await s.drive(r.row.id, deps, 20000, false);
+  assert.deepEqual(w.images[0].references, withRefs.refs, "the hero is made from them");
+  assert.deepEqual(w.images[1].references, [{ type: "render", id: "img1" }, ...withRefs.refs], "each picture: the hero first, then theirs");
+  assert.deepEqual(w.videos[0].refs, [{ type: "render", id: "img1" }, { type: "render", id: "img2" }, { type: "render", id: "img3" }, ...withRefs.refs], "the video: hero, pictures, then theirs");
+});
+
 test("a failed step stops the plan and nothing later is started", { skip }, async () => {
   const id = await make();
   const { w, deps } = world();

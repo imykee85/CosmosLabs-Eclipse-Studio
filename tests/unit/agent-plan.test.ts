@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cleanPlan, newPlan, MAX_SCENES } from "../../src/lib/agent-plan";
+import { cleanPlan, cleanSpec, newPlan, MAX_SCENES } from "../../src/lib/agent-plan";
 import { buildReply } from "../../src/lib/agent-reply";
 import { planAllows } from "../../src/lib/access-table";
 
@@ -38,4 +38,17 @@ test("the reply carries the plan from the tool call", () => {
 test("plans are a Scale feature", () => {
   assert.equal(planAllows("scale", "plans"), true);
   for (const p of ["free", "starter", "growth"] as const) assert.equal(planAllows(p, "plans"), false);
+});
+
+test("pictures the person gave Atlas are used by number, and only ones that exist", () => {
+  const pics = [{ type: "upload" as const, id: "u1" }, { type: "render" as const, id: "r2" }, { type: "upload" as const, id: "u3" }];
+  const p = cleanPlan({ ...good, reference_pictures: [2, 1, 2, 9, 0, "x"] }, pics)!;
+  assert.deepEqual(p.refs, [{ type: "render", id: "r2" }, { type: "upload", id: "u1" }], "listed order, no repeats, unknown numbers dropped");
+  assert.equal(cleanPlan({ ...good }, pics)!.refs, undefined, "none unless Atlas names them");
+  assert.equal(cleanPlan({ ...good, reference_pictures: [1, 2, 3, 1] }, [...pics, { type: "upload", id: "u4" }, { type: "upload", id: "u5" }])!.refs!.length, 3);
+  assert.equal(newPlan(p).steps[0].label, "Hero image from your 2 pictures");
+});
+test("a plan from the browser keeps only well-formed references", () => {
+  const spec = cleanSpec({ title: "t", hero: "h", scenes: ["a"], video: "v", seconds: 8, ratio: "16:9", refs: [{ type: "upload", id: "u1" }, { type: "bad", id: "x" }, { id: "y" }, { type: "render", id: "r1" }] })!;
+  assert.deepEqual(spec.refs, [{ type: "upload", id: "u1" }, { type: "render", id: "r1" }]);
 });
