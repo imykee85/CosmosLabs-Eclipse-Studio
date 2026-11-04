@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { gateFeature } from "@/lib/access";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 import { getObjectBytes, saveImageBytes, storageEnabled } from "@/lib/storage";
@@ -14,8 +13,7 @@ export const maxDuration = 60;
 // Saved as one more picture (marked as made by AI) and the cells are tagged with the set. The same cells always give the same sheet (a second ask returns the first).
 export async function POST(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
-  const gated = await gateFeature("studios");
-  if (gated) return gated;
+  // No plan check: keeping an edit and making a sheet cost nothing (the renders were paid for or were free-trial images), so free-trial users can finish what they started.
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => null);

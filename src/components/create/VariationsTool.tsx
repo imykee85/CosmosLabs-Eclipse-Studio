@@ -54,8 +54,8 @@ export default function VariationsTool({ reference, onClose, onUseAsReference, o
     return () => window.removeEventListener("keydown", k);
   }, [onClose, view]);
 
-  async function writeStory(): Promise<string[] | null> {
-    setStoryBusy(true); setError("");
+  async function writeStory(quiet = false): Promise<string[] | null> {
+    setStoryBusy(true); if (!quiet) setError("");
     try {
       const res = await fetch("/api/variations/narrative", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ n, hint: "", picture: reference }) });
       const d = await res.json().catch(() => ({}));
@@ -64,7 +64,7 @@ export default function VariationsTool({ reference, onClose, onUseAsReference, o
       setS((x) => ({ ...x, narrative: text }));
       return d.scenes as string[];
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The story could not be written. Please try again.");
+      if (!quiet) setError(e instanceof Error ? e.message : "The story could not be written. Please try again.");
       return null;
     } finally { setStoryBusy(false); }
   }
@@ -76,7 +76,7 @@ export default function VariationsTool({ reference, onClose, onUseAsReference, o
       let state = { ...s, tier };
       // Storyboard on Auto: write the story first and show it, so the person can edit it next time
       if (state.mode === "storyboard" && state.auto && parseScenes(state.narrative).length !== n) {
-        const scenes = await writeStory();
+        const scenes = await writeStory(true); // if it cannot be written (no chat credits on a free trial), the built-in run of shots is used
         if (scenes) state = { ...state, narrative: scenes.map((t, i) => `Scene ${i + 1}: ${t}`).join("\n") };
       }
       const prompts = cellPrompts(state);
