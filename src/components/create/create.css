@@ -577,3 +577,6 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-plan-price { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
 .aw-plan-note { font-size: 12.5px; margin: 0 0 8px; color: var(--a-fg3, inherit); }
 .aw-plan-done { font-size: 13px; }
+.aw-plans-hist { display: grid; gap: 6px; margin-top: 10px; }
+.aw-plans-title { margin: 6px 0 0; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+.aw-plan-row { display: grid; gap: 6px; }

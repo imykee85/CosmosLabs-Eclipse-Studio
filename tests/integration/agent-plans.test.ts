@@ -11,18 +11,21 @@ const spec = { title: "Ad", hero: "A sneaker on a wet street", scenes: ["Close-u
 
 // A fake world: images and the video finish when `done` says so; every start is recorded.
 function world() {
-  const w = { images: [] as { prompt: unknown; references?: unknown }[], videos: [] as { refs?: unknown; model?: unknown }[], done: new Set<string>(), failed: new Map<string, string>(), failStartAt: -1, n: 0 };
+  const w = { images: [] as { prompt: unknown; references?: unknown }[], videos: [] as { refs?: unknown; model?: unknown }[], audios: [] as { kind?: unknown; voiceId?: unknown; text?: unknown; model?: unknown; durationSec?: unknown }[], noVoice: false, done: new Set<string>(), failed: new Map<string, string>(), failStartAt: -1, n: 0 };
   const deps = {
     startImage: async (i: { prompt: unknown; references?: unknown }) => {
       if (w.failStartAt === w.images.length) { w.images.push(i); return { ok: false, status: 400, error: "That model is busy." }; }
       w.images.push(i); return { ok: true, item: { id: `img${++w.n}` } };
     },
     startVideo: async (i: { refs?: unknown; model?: unknown }) => { w.videos.push(i); return { ok: true, item: { id: "vid1" } }; },
+    startAudio: async (i: { kind?: unknown }) => { w.audios.push(i); return { ok: true, item: { id: `aud${++w.n}` } }; },
+    quoteAudio: async () => ({ ok: true, quote: 25 }),
+    voice: async () => (w.noVoice ? null : { id: "voice1", name: "Voice" }),
     check: async (_k: string, id: string) => (w.failed.has(id) ? { status: "failed", error: w.failed.get(id) } : w.done.has(id) ? { status: "completed" } : { status: "pending" }),
   };
   return { w, deps };
 }
-const make = async (user = U) => { const r = await s.createPlan({ userId: user, personId: user, projectId: "p1", spec }); assert.equal(r.ok, true, JSON.stringify(r)); return r.row.id as string; };
+const make = async (user = U) => { if (user === U) await db.agentPlan.deleteMany({ where: { userId: U } }); const r = await s.createPlan({ userId: user, personId: user, projectId: "p1", spec }); assert.equal(r.ok, true, JSON.stringify(r)); return r.row.id as string; };
 
 before(async () => {
   if (skip) return;
@@ -71,6 +74,33 @@ test("the pictures the person gave Atlas go into the hero, every picture and the
   assert.deepEqual(w.images[0].references, withRefs.refs, "the hero is made from them");
   assert.deepEqual(w.images[1].references, [{ type: "render", id: "img1" }, ...withRefs.refs], "each picture: the hero first, then theirs");
   assert.deepEqual(w.videos[0].refs, [{ type: "render", id: "img1" }, { type: "render", id: "img2" }, { type: "render", id: "img3" }, ...withRefs.refs], "the video: hero, pictures, then theirs");
+});
+
+test("a voiceover and music are made beside the video, and the plan is done only when all of it is", { skip }, async () => {
+  await db.agentPlan.deleteMany({ where: { userId: U } });
+  const withSound = { ...spec, voiceover: "Meet the sneaker built for the city.", music: "Warm, driving synth, mid-tempo" };
+  const r = await s.createPlan({ userId: U, personId: U, projectId: "p1", spec: withSound }, world().deps);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.row.steps.map((x: { id: string }) => x.id), ["hero", "scenes", "video", "voice", "music"]);
+  const { w, deps } = world();
+  w.done.add("img1"); w.done.add("img2"); w.done.add("img3");
+  let row = await s.advancePlan(r.row.id, deps);
+  assert.equal(w.videos.length, 1);
+  assert.equal(w.audios.length, 2, "the voiceover and the music start with the video");
+  assert.equal(w.audios[0].kind, "tts"); assert.equal(w.audios[0].voiceId, "voice1"); assert.equal(w.audios[0].text, withSound.voiceover);
+  assert.equal(w.audios[1].kind, "music"); assert.equal(w.audios[1].model, "music_v2_5");
+  w.done.add("vid1"); row = await s.advancePlan(r.row.id, deps);
+  assert.equal(row.status, "running", "the sound is still being made");
+  assert.equal(row.steps.find((x: { id: string }) => x.id === "video").state, "done");
+  w.done.add("aud4"); w.done.add("aud5"); row = await s.advancePlan(r.row.id, deps);
+  assert.equal(row.status, "done");
+  assert.equal(w.audios.length, 2, "never started twice");
+});
+
+test("a plan with a voiceover and no voice available is refused before anything is paid", { skip }, async () => {
+  const { w, deps } = world(); w.noVoice = true;
+  const r = await s.createPlan({ userId: U, personId: U, projectId: "p1", spec: { ...spec, voiceover: "Hello" } }, deps);
+  assert.equal(r.ok, false); assert.match(r.error, /voice/i);
 });
 
 test("a failed step stops the plan and nothing later is started", { skip }, async () => {

@@ -2,18 +2,28 @@
 
 import { readCurrentProject } from "./projects";
 import { refreshCredits } from "./use-credits";
-import type { PlanSpec, PlanState } from "./agent-plan";
-import { planSetup, quoteWith } from "./agent-plan-setup";
-import type { PublicModel } from "./models";
+import { newPlan, type PlanSpec, type PlanState } from "./agent-plan";
 
 // The browser's part of an Atlas plan: the price on the card, the Approve press and following progress. The plan itself runs on the SERVER (src/lib/agent-plan-server.ts),
 // so it carries on when the app is closed; this file only asks it to start, shows where it is, and asks it to stop.
 
 /** The plan as the card shows it, with its total price worked out from the models' own prices. */
 export async function quotePlan(spec: PlanSpec): Promise<PlanState> {
-  const [mr, cr] = await Promise.all([fetch("/api/models").then((r) => (r.ok ? r.json() : null)).catch(() => null), fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).catch(() => null)]);
-  const models: PublicModel[] = Array.isArray(mr?.models) ? mr.models : [];
-  return quoteWith(spec, planSetup(spec, models, Array.isArray(cr?.direct) ? cr.direct : [], !!cr?.creditsOn), models);
+  try {
+    const res = await fetch("/api/plans/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spec }) });
+    const d = await res.json().catch(() => null);
+    if (res.ok && d?.plan) return d.plan;
+  } catch {}
+  return newPlan(spec, null);
+}
+
+/** The person's plans, newest first. */
+export async function listPlansFor(): Promise<{ id: string; createdAt: string; plan: PlanState }[]> {
+  try {
+    const res = await fetch("/api/plans");
+    const d = await res.json().catch(() => null);
+    return res.ok && Array.isArray(d?.plans) ? d.plans : [];
+  } catch { return []; }
 }
 
 export type PlanReply = { id: string; plan: PlanState } | { error: string };

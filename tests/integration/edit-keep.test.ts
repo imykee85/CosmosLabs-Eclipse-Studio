@@ -31,7 +31,7 @@ before(async () => {
   });
   const port = await new Promise<number>((r) => r2.listen(0, "127.0.0.1", () => r((r2.address() as { port: number }).port)));
   Object.assign(process.env, { R2_ENDPOINT: `http://127.0.0.1:${port}`, R2_ACCOUNT_ID: "a", R2_ACCESS_KEY_ID: "k", R2_SECRET_ACCESS_KEY: "s", R2_BUCKET: "bkt" });
-  lib = { keep: await import("../../src/lib/edit/keep"), db: (await import("../../src/lib/db")).db };
+  lib = { keep: await import("../../src/lib/edit/keep"), tr: await import("../../src/lib/edit/transform"), db: (await import("../../src/lib/db")).db };
   await clean();
   objects.set("/bkt/u/edit/orig.png", await png(200, 200, [200, 30, 30]));
   objects.set("/bkt/u/edit/res1.png", await png(200, 200, [10, 20, 220]));
@@ -111,4 +111,24 @@ test("refusals: other people's pictures, unfinished ones, bad input", { skip }, 
   assert.equal((await lib.keep.keepEdit(A, { parentId: mine.id, resultId: raw.id, op: "erase" })).status, 400); // no selection
   assert.equal((await lib.keep.keepEdit(A, { parentId: mine.id, resultId: raw.id, op: "erase", mask: Buffer.from("not a png").toString("base64") })).status, 400);
   assert.equal(await lib.keep.editHistory(B, mine.id), null); // somebody else's picture has no timeline for you
+});
+
+test("Crop and Adjust save a NEW picture from the person's own one, free, and refuse anything else", { skip }, async () => {
+  const sharp = (await import("sharp")).default;
+  objects.set("/bkt/u/edit/wide.png", await png(300, 150, [90, 90, 90]));
+  const src = await gen(A, { storageKey: "u/edit/wide.png", width: 300, height: 150 });
+  const c = await lib.tr.transformPicture(A, { op: "crop", sourceId: src.id, ratio: "1:1" });
+  assert.ok(c.ok, JSON.stringify(c));
+  const row = await lib.db.generation.findUnique({ where: { id: c.id } });
+  assert.notEqual(row.id, src.id); assert.equal(row.width, 150); assert.equal(row.height, 150); assert.equal(row.aspectRatio, "1:1"); assert.equal(row.params.op, "crop"); assert.equal(row.params.editOf, src.id);
+  assert.equal((await lib.db.generation.findUnique({ where: { id: src.id } })).width, 300, "the original is untouched");
+  const a = await lib.tr.transformPicture(A, { op: "adjust", sourceId: src.id, adjust: { brightness: 40 } });
+  assert.ok(a.ok);
+  const made = await lib.db.generation.findUnique({ where: { id: a.id } });
+  const px = Array.from((await sharp(objects.get(`/bkt/${made.storageKey}`)!).raw().toBuffer()).subarray(0, 3));
+  assert.ok(px[0] > 90, "brighter");
+  assert.equal((await lib.tr.transformPicture(A, { op: "adjust", sourceId: src.id, adjust: {} })).ok, false, "no slider moved");
+  assert.equal((await lib.tr.transformPicture(A, { op: "crop", sourceId: src.id, ratio: "7:3" })).ok, false, "only the listed ratios");
+  const other = await lib.tr.transformPicture(B, { op: "crop", sourceId: src.id, ratio: "1:1" });
+  assert.equal(other.ok, false); assert.equal(other.status, 404);
 });

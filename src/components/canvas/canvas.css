@@ -327,3 +327,6 @@
 .react-flow__node-group { background: none !important; border: 0 !important; padding: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
 .cv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .cv-chip.is-on { background: var(--a-fg); color: var(--a-bg); border-color: var(--a-fg); }
+.cv-adj { display: grid; gap: 6px; }
+.cv-adj label { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 8px; font-size: 12.5px; }
+.cv-adj input[type="range"] { width: 100%; accent-color: #c00707; }

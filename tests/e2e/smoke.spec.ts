@@ -301,7 +301,7 @@ test.describe("Atlas plans", () => {
     await seed(page);
     const got: { body?: { spec?: { scenes?: string[] }; projectId?: string } } = {};
     let looks = 0;
-    await page.route("**/api/plans", (r) => { got.body = r.request().postDataJSON(); return r.fulfill({ json: planOf("running", ["running", "waiting", "waiting"]) }); });
+    await page.route("**/api/plans", (r) => { if (r.request().method() !== "POST") return r.fulfill({ json: { plans: [] } }); got.body = r.request().postDataJSON(); return r.fulfill({ json: planOf("running", ["running", "waiting", "waiting"]) }); });
     await page.route("**/api/plans/pl1", (r) => { looks++; return r.fulfill({ json: looks < 2 ? planOf("running", ["done", "running", "waiting"]) : planOf("done", ["done", "done", "done"]) }); });
     await page.goto("/create");
     await page.click(".aw-btn");
@@ -318,9 +318,23 @@ test.describe("Atlas plans", () => {
     await expect(card.getByText(/All done/)).toBeVisible({ timeout: 30000 });
   });
 
+  test("the chat history lists the person's plans, newest first, and opening one shows its steps", async ({ page }) => {
+    await seed(page);
+    await page.route("**/api/plans", (r) => r.fulfill({ json: { plans: [{ ...planOf("done", ["done", "done", "done"]), createdAt: new Date().toISOString() }] } }));
+    await page.goto("/create");
+    await page.click(".aw-btn");
+    await page.getByRole("button", { name: "Chat history" }).click();
+    const row = page.locator(".aw-plan-row");
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await expect(row).toContainText("Sneaker ad");
+    await expect(row).toContainText("Done");
+    await row.getByRole("button").first().click();
+    await expect(row.locator(".aw-plan li")).toHaveCount(3);
+  });
+
   test("a plan that was running keeps showing its progress after the app is closed and opened again", async ({ page }) => {
     await seed(page);
-    await page.route("**/api/plans", (r) => r.fulfill({ json: planOf("running", ["running", "waiting", "waiting"]) }));
+    await page.route("**/api/plans", (r) => r.request().method() !== "POST" ? r.fulfill({ json: { plans: [] } }) : r.fulfill({ json: planOf("running", ["running", "waiting", "waiting"]) }));
     let done = false;
     await page.route("**/api/plans/pl1", (r) => r.fulfill({ json: done ? planOf("done", ["done", "done", "done"]) : planOf("running", ["done", "running", "waiting"]) }));
     await page.goto("/create");
