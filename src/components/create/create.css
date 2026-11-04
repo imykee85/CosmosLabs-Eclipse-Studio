@@ -530,3 +530,20 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-skin-pic { display: flex; align-items: center; justify-content: center; background: var(--a-input); }
 .cr-skin-pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .cr-light-quick.is-three { grid-template-columns: repeat(3, 1fr); }
+
+/* Variations panel */
+.cr-var.cr-vars { width: min(560px, 100%); }
+.cr-vars-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+.cr-vars-modes button { flex: 1; min-width: 72px; border: 1px solid var(--a-line); background: var(--a-input); color: inherit; font: inherit; font-size: 15px; padding: 11px 10px; border-radius: 999px; cursor: pointer; }
+.cr-vars-modes button.is-on { border-color: #c00707; box-shadow: inset 0 0 0 1px #c00707; }
+.cr-vars-hint { margin: 0; font-size: 13px; opacity: .7; }
+.cr-vars-hint.is-warn { color: #e5484d; opacity: 1; }
+.cr-vars-count { display: flex; justify-content: space-between; align-items: center; }
+.cr-vars-count span { opacity: 1; letter-spacing: 0; }
+.cr-vars-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+.cr-vars-checks.is-scroll { max-height: 190px; overflow-y: auto; }
+.cr-vars-checks label, .cr-vars-consent, .cr-vars-auto { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.cr-vars-checks label.is-off { opacity: .45; cursor: default; }
+.cr-vars-checks input, .cr-vars-consent input, .cr-vars-auto input { accent-color: #c00707; width: 18px; height: 18px; }
+.cr-vars-consent { font-size: 14px; }
+.cr-vars-auto { font-size: 14px; }
