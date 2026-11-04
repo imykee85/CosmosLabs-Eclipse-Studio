@@ -229,7 +229,7 @@ function publicPrices(model: ImageModel): Record<string, number> | null {
   return Object.fromEntries(keys.map((k) => [k, toLedger(imageCredits(model, k === "default" ? undefined : k, route)!)]));
 }
 
-export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "resolutions" | "maxBatch" | "maxPrompt" | "verified" | "autoPick" | "seed"> & { maxReferences: number; requiresReference: boolean; prices: Record<string, number> | null; batch: number; defaultResolution?: string };
+export type PublicModel = Pick<ImageModel, "id" | "label" | "blurb" | "ratios" | "resolutions" | "maxBatch" | "maxPrompt" | "verified" | "autoPick" | "seed"> & { maxReferences: number; requiresReference: boolean; maskEdit: boolean; prices: Record<string, number> | null; batch: number; defaultResolution?: string };
 export function toPublic(model: ImageModel): PublicModel {
-  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, resolutions: model.resolutions, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, autoPick: model.autoPick, seed: model.seed, maxReferences: maxRefs(model), requiresReference: minRefs(model) > 0, prices: publicPrices(model), batch: model.batch ?? 1, defaultResolution: model.defaultResolution };
+  return { id: model.id, label: model.label, blurb: model.blurb, ratios: model.ratios, resolutions: model.resolutions, maxBatch: model.maxBatch, maxPrompt: model.maxPrompt, verified: model.verified, autoPick: model.autoPick, seed: model.seed, maxReferences: maxRefs(model), requiresReference: minRefs(model) > 0, maskEdit: model.provider === "openai" && maxRefs(model) > 0, prices: publicPrices(model), batch: model.batch ?? 1, defaultResolution: model.defaultResolution };
 }

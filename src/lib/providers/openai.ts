@@ -25,7 +25,8 @@ export const openaiUser = (userId: string) => "u_" + createHash("sha256").update
 export function openaiRequest(input: SyncGenerateInput): { path: string; body: Record<string, unknown> } {
   const common = { model: input.apiModel, prompt: input.prompt, n: 1, size: openaiSize(input.aspectRatio, input.resolution, input.sizing), quality: QUALITY, output_format: "png", ...(input.user ? { user: input.user } : {}) };
   if (input.references.length === 0) return { path: "/images/generations", body: common };
-  return { path: "/images/edits", body: { ...common, images: input.references.map((r) => ({ image_url: `data:${r.contentType};base64,${Buffer.from(r.bytes).toString("base64")}` })) } };
+  const dataUrl = (r: { contentType: string; bytes: Uint8Array }) => `data:${r.contentType};base64,${Buffer.from(r.bytes).toString("base64")}`;
+  return { path: "/images/edits", body: { ...common, images: input.references.map((r) => ({ image_url: dataUrl(r) })), ...(input.mask ? { mask: { image_url: dataUrl(input.mask) } } : {}) } };
 }
 
 export const openai: SyncImageProvider = {

@@ -23,6 +23,7 @@ export type SyncGenerateInput = {
   aspectRatio?: string;
   resolution?: string;         // our tier ("1k", "2k", "4k"); each provider maps it to its own size field
   references: ReferenceImage[];
+  mask?: ReferenceImage;       // OpenAI: a PNG the size of the first picture; fully transparent where the picture should be edited (Retouch)
   sizing?: "custom16" | "fixed3"; // OpenAI only: free WIDTHxHEIGHT (gpt-image-2 family) or one of the three fixed sizes
   sizeRule?: SizeRule; // BytePlus: target pixels per tier and the allowed total pixel range
   outputPng?: boolean;         // BytePlus: ask for PNG (only some models take output_format)

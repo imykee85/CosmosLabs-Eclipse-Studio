@@ -128,6 +128,21 @@ test.describe("Image editor", () => {
     expect(sent[0].references).toEqual([{ type: "render", id: "src1" }, { type: "upload", id: "up1" }]); // the original, then the picture with the selection painted on
   });
 
+  test("Retouch on a model with a real mask sends the selection as a mask, not as a second picture", async ({ page }) => {
+    const { sent } = await setup(page);
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [{ ...model, id: "gpt", label: "Masked", maskEdit: true }] } }));
+    const ed = await openEditor(page);
+    await ed.getByRole("button", { name: "Retouch" }).click();
+    await drag(page, ed, [[0.3, 0.3], [0.6, 0.4], [0.6, 0.6]]);
+    await ed.getByRole("tab", { name: "Erase" }).click();
+    await ed.locator(".gen-btn").click();
+    await expect.poll(() => sent.length).toBe(2);
+    expect(sent[0].prompt).toContain("masked area");
+    expect(sent[0].prompt).not.toContain("blue");
+    expect(sent[0].references).toEqual([{ type: "render", id: "src1" }]); // only the picture
+    expect((sent[0] as unknown as { maskId: string }).maskId).toBe("up1"); // and the selection as its mask
+  });
+
   test("the history and the recent pictures are on the screen, and the editor closes", async ({ page }) => {
     await setup(page);
     const ed = await openEditor(page);

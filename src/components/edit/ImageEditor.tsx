@@ -15,7 +15,7 @@ import { uploadPicture } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
 import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { wandSelect } from "@/lib/edit/wand";
-import { EDIT_NAME, RETOUCH_NAME, problem, promptEdit, retouchEdit, visualEdit, type EditOp, type Pin } from "@/lib/edit/prompt";
+import { EDIT_NAME, RETOUCH_NAME, problem, promptEdit, retouchEdit, retouchMasked, visualEdit, type EditOp, type Pin } from "@/lib/edit/prompt";
 import "./edit.css";
 
 type Mode = "edit" | "retouch";
@@ -78,8 +78,11 @@ export default function ImageEditor({ sourceId, onClose }: { sourceId: string; o
   const drag = useRef<null | { kind: "draw" | "pan" | "pinch"; last?: { x: number; y: number }; pts?: { x: number; y: number }[]; moved?: boolean; d?: number; z?: number; cx?: number; cy?: number; px?: number; py?: number; start?: { x: number; y: number } }>(null);
 
   const op: EditOp = mode === "edit" ? tab : rop;
-  const need = mode === "retouch" ? 2 : 1;
-  const pool = useMemo(() => (models ?? []).filter((m) => m.maxReferences >= need), [models, need]);
+  // Retouch prefers a model with a REAL mask (the selection goes in as a mask); without one, the picture with the selection painted blue goes in as a second picture.
+  const masked = useMemo(() => (models ?? []).filter((m) => m.maskEdit && m.maxReferences >= 1), [models]);
+  const useMask = mode === "retouch" && masked.length > 0;
+  const need = mode === "retouch" && !useMask ? 2 : 1;
+  const pool = useMemo(() => (useMask ? masked : (models ?? []).filter((m) => m.maxReferences >= need)), [models, masked, useMask, need]);
   const model = useMemo(() => (modelId === "auto" ? toolModel(pool, "camera") : pool.find((m) => m.id === modelId) ?? toolModel(pool, "camera")), [pool, modelId]);
   const tiers = useMemo(() => (model ? ["1k", ...(model.resolutions.includes("1080p") ? ["1.5k"] : []), ...(model.resolutions.includes("2k") ? ["2k"] : []), ...(model.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"]), [model]);
   const useTier = tiers.includes(tier) ? tier : tiers.includes("2k") ? "2k" : tiers[tiers.length - 1] ?? "1k";
@@ -292,15 +295,22 @@ export default function ImageEditor({ sourceId, onClose }: { sourceId: string; o
     setBusy(true); setError(""); setCells(null); setPicked(null);
     try {
       const refs: RefId[] = [{ type: "render", id: cur }];
-      if (mode === "retouch") {
+      let maskId: string | undefined;
+      if (mode === "retouch" && useMask) { // the real mask: the selection itself, as a small picture; the server makes the provider's mask from it
+        const blob: Blob | null = await new Promise((res) => mask.current?.toBlob(res, "image/png"));
+        if (!blob) throw new Error("The selection could not be prepared.");
+        const up = await uploadPicture(new File([blob], "retouch-mask.png", { type: "image/png" }), "asset", "Retouch mask", projectId);
+        if (!up.ok || !up.item) throw new Error(up.ok ? "The selection could not be saved." : up.error);
+        maskId = up.item.id;
+      } else if (mode === "retouch") {
         const up = await uploadPicture(await overlayFile(), "asset", "Retouch selection", projectId);
         if (!up.ok || !up.item) throw new Error(up.ok ? "The selection could not be saved." : up.error);
         refs.push({ type: "upload", id: up.item.id });
       }
       const extra = userRefs.slice(0, Math.max(0, model.maxReferences - refs.length));
       refs.push(...extra.map((r) => ({ type: r.type, id: r.id })));
-      const prompt = op === "prompt" ? promptEdit(text, extra.length) : op === "visual" ? visualEdit(pins, extra.length) : retouchEdit(op, text, extra.length);
-      const { results } = await startImages({ models: models ?? [], model, auto: false, prompt, ratio: "auto", tier: useTier, qty, refs, seedOn: false, seedNum: null, projectId });
+      const prompt = op === "prompt" ? promptEdit(text, extra.length) : op === "visual" ? visualEdit(pins, extra.length) : (useMask ? retouchMasked(op, text, extra.length) : retouchEdit(op, text, extra.length));
+      const { results } = await startImages({ models: models ?? [], model, auto: false, prompt, ratio: "auto", tier: useTier, qty, refs, seedOn: false, seedNum: null, projectId, maskId });
       refreshCredits();
       const out: Cell[] = results.map((r) => (r.ok && r.id ? { id: r.id, status: "pending" } : { id: null, status: "failed", error: r.error }));
       if (!out.some((c) => c.id)) throw new Error(results.find((r) => !r.ok)?.error ?? "Something went wrong. Please try again.");

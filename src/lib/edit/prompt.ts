@@ -31,6 +31,13 @@ export function retouchEdit(op: "replace" | "erase", text: string, refs = 0): st
   return `${base} Inside the blue area: ${text.trim()}.${ref} Match the surrounding light, perspective, colour and sharpness so the change blends in. ${KEEP}`;
 }
 
+/** Retouch on a model that takes a real mask: the mask carries the area, so the words only say what to do inside it. */
+export function retouchMasked(op: "replace" | "erase", text: string, refs = 0): string {
+  if (op === "erase") return `Remove what is inside the masked area and fill it in naturally with matching background, texture, light and perspective, as if it was never there. ${KEEP}`;
+  const ref = refs > 0 ? ` Use the extra reference picture${refs > 1 ? "s" : ""} for what goes there.` : "";
+  return `Inside the masked area: ${text.trim()}.${ref} Match the surrounding light, perspective, colour and sharpness so the change blends in. ${KEEP}`;
+}
+
 export function problem(op: EditOp, text: string, pins: Pin[], hasSelection: boolean): string {
   if (op === "prompt" && !text.trim()) return "Write what you want to change.";
   if (op === "visual" && !pins.some((p) => p.text.trim())) return "Click on the picture and describe the change at that spot.";
