@@ -1,9 +1,10 @@
 import type { Edge, Node } from "@xyflow/react";
 import { makeEdge, migrateEdges, type PortId } from "./canvas-flow";
+import type { VarState } from "./variations/prompt";
 
 // Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
 export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator" | "sheet" | "image" | "clip" | "videogen"
-  | "assistant" | "voiceover" | "sfx" | "music" | "editor" | "upscaler" | "list" | "group";
+  | "assistant" | "voiceover" | "sfx" | "music" | "editor" | "upscaler" | "variations" | "list" | "group";
 
 export type PicRef = { type: "upload" | "render"; id: string; label: string };
 
@@ -41,6 +42,9 @@ export type CanvasNodeData = {
   title?: string;       // group: its title
   color?: string;       // group: its colour name
   option?: string;      // upscaler and image editor: unused for now
+  vars?: VarState;      // variations: the mode, its options, grid, aspect ratio and quality
+  consent?: boolean;    // variations, People mode: the picture is the person's own or they agreed
+  sheet?: string;       // variations: the contact sheet render (also kept last in `gens`)
 
   // Older saves: one render at a time. Read once and turned into the fields above by migrateNode.
   busy?: boolean;
@@ -61,6 +65,7 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
     { id: "assistant", kind: "assistant", label: "Assistant", blurb: "Writes or rewrites text for you" },
     { id: "editor", kind: "editor", label: "Image editor", blurb: "Changes a picture from an instruction" },
     { id: "upscaler", kind: "upscaler", label: "Upscaler", blurb: "Makes a picture sharper and larger" },
+    { id: "variations", kind: "variations", label: "Variations", blurb: "A grid of controlled versions of a picture" },
     { id: "list", kind: "list", label: "List", blurb: "Run a generator once per line" },
   ] },
   { title: "Audio", items: [
@@ -137,7 +142,7 @@ function writeTemplates(list: CanvasTemplate[]) {
 // Keep the layout, the wiring and what was typed; leave out results and errors.
 export function templateGraph(nodes: CNode[], edges: Edge[]): { nodes: CNode[]; edges: Edge[] } {
   return {
-    nodes: nodes.map(({ id, type, position, data, width, height, zIndex }) => ({ id, type, position, ...(type === "group" ? { width, height, zIndex } : {}), data: { ...data, error: undefined, note: undefined, gens: undefined, pending: undefined, pick: undefined } })),
+    nodes: nodes.map(({ id, type, position, data, width, height, zIndex }) => ({ id, type, position, ...(type === "group" ? { width, height, zIndex } : {}), data: { ...data, error: undefined, note: undefined, gens: undefined, pending: undefined, pick: undefined, sheet: undefined } })),
     edges: edges.map(({ id, source, sourceHandle, target, targetHandle }) => ({ id, source, sourceHandle, target, targetHandle })),
   };
 }

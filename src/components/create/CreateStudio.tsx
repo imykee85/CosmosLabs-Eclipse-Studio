@@ -5,7 +5,7 @@ import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUp, Camera, ScanFace, ChevronLeft, ChevronRight, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
+import { ArrowRight, ArrowUp, Brush, Camera, ScanFace, ChevronLeft, ChevronRight, ImageIcon, ChevronDown, Layers, Loader2, Eraser, Minus, Pencil, Plus, Shuffle, Sprout, Sun, Wand2, Workflow, X, ZoomIn } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import { createCanvasFromPrompt } from "@/lib/canvas-store";
 import { imageCost, MAX_QTY, startImages, TIERS, tierResolution } from "@/lib/image-render";
@@ -30,6 +30,18 @@ import "./create.css";
 import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import { CAMERA, RELIGHT, TOOL_LABEL, toolModel, toolPrompt, toolTier, type ToolId, type ToolOption } from "@/lib/picture-tools";
 import SoulIdDialog from "./SoulIdDialog";
+import MarkDialog from "./MarkDialog";
+import SheetPortal from "@/components/voice/SheetPortal";
+import GenerateButton from "@/components/GenerateButton";
+import CameraPanel, { type CameraRun } from "./CameraPanel";
+import VariationsTool from "./VariationsTool";
+import ImageEditor from "@/components/edit/ImageEditor";
+import RelightPanel, { type RelightRun } from "./RelightPanel";
+import SkinPanel, { type SkinRun } from "./SkinPanel";
+import { skinPrompt } from "@/lib/skin/prompt";
+import { relightPrompt } from "@/lib/relight/prompt";
+import { FEATURE_NAME as CAMERA_NAME, cameraPrompt } from "@/lib/camera/prompt";
+
 
 // Widest the preview gets for each shape: a compact thumbnail with 1/5 of the old area (old widths x 0.447).
 const PREVIEW_WIDTH: Record<string, number> = { "1:1": 215, "4:5": 188, "9:16": 134, "16:9": 304 };
@@ -79,6 +91,13 @@ export default function CreateStudio() {
   })();
   const { credits: creditInfo } = useCredits();
   const model = modelId === AUTO ? autoModel : models?.find((m) => m.id === modelId) ?? null;
+  // with Auto the model is picked per image: show what the cheapest fitting model would cost
+  const autoFrom = (() => {
+    if (modelId !== AUTO) return null;
+    const fits = (models ?? []).filter((m) => m.autoPick && !m.requiresReference && m.maxReferences >= refs.length && (!m.resolutions.length || !!tierResolution(m.resolutions, tier)));
+    const all = fits.map((m) => imageCost(m, m.resolutions.length ? tierResolution(m.resolutions, tier) : undefined, qty)).filter((x): x is number => x != null);
+    return all.length ? Math.min(...all) : null;
+  })();
   const imgCost = imageCost(model ?? undefined, model?.resolutions.length ? tierResolution(model.resolutions, tier) : undefined, qty); // what Generate will cost, in ledger units
 
   // Fixed seed: the switch (remembered), the number (remembered) and what the chosen model allows. The server always sends a seed to a
@@ -155,6 +174,46 @@ export default function CreateStudio() {
   // The + in the prompt box: pick a picture from this device and attach it right away as an ingredient (it is saved to Assets).
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(0);
+
+  // Tapping a picture in the box opens the marking tool: the marked copy is saved to Assets and sits after the original (or replaces it when the box is full).
+  const [marking, setMarking] = useState<number | null>(null);
+  const isMarked = (r: RefPick) => / \(marked\)$/.test(r.label);
+  async function saveMarked(index: number, f: File) {
+    const orig = refs[index];
+    setMarking(null);
+    if (!orig) return;
+    setError("");
+    setUploading((n) => n + 1);
+    try {
+      const base = orig.label.replace(/ \(marked\)$/, "");
+      const r = await uploadPicture(f, "asset", `${base} (marked)`.slice(0, 80), readCurrentProject()?.id ?? null);
+      if (!r.ok) { setError(r.error); return; }
+      if (!r.item) return;
+      const copy: RefPick = { type: "upload", id: r.item.id, url: r.item.imageUrl, label: r.item.name };
+      const maxRefs = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
+      setRefs((l) => {
+        const at = l.findIndex((x) => x.type === orig.type && x.id === orig.id);
+        if (at < 0) return l;
+        const n = [...l];
+        if (isMarked(orig)) n[at] = copy; // marking a marked copy again replaces it
+        else if (l.length < maxRefs) n.splice(at + 1, 0, copy);
+        else n[at] = copy;
+        return n;
+      });
+    } finally { setUploading((n) => n - 1); }
+  }
+  // What the model is told about marked copies, added when the render starts (never typed into the box).
+  function markNote(list: RefPick[]): string {
+    const lines: string[] = [];
+    list.forEach((r, i) => {
+      if (!isMarked(r)) return;
+      const base = r.label.replace(/ \(marked\)$/, "");
+      const prev = list[i - 1];
+      const of = prev && !isMarked(prev) && prev.label === base ? `a copy of image ${i}` : "a copy of the picture";
+      lines.push(`Image ${i + 1} is ${of} with the parts to change marked in red (drawn lines and numbered pins). Change only the marked parts as the instructions say, remove every mark, and keep everything else exactly as it is.`);
+    });
+    return lines.length ? `\n\n${lines.join(" ")}` : "";
+  }
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setError("");
@@ -188,7 +247,7 @@ export default function CreateStudio() {
     setSubmitting(true);
     try {
       const refList = refs.map((r) => ({ type: r.type, id: r.id }));
-      const { results, seed: firstSeed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt: text, ratio, tier, qty: count, refs: refList, seedOn, seedNum, projectId: readCurrentProject()?.id, soulId: soulVersion ? soul?.id ?? null : null, soulStrength });
+      const { results, seed: firstSeed } = await startImages({ models: models ?? [], model, auto: modelId === AUTO, prompt: `${text}${markNote(refs)}`, ratio, tier, qty: count, refs: refList, seedOn, seedNum, projectId: readCurrentProject()?.id, soulId: soulVersion ? soul?.id ?? null : null, soulStrength });
       if (firstSeed != null) putSeed(String(firstSeed));
       const note = results.find((r) => r.note)?.note;
       if (note) setSeedNote(note);
@@ -295,14 +354,20 @@ export default function CreateStudio() {
 
   // The tools for the picture in the preview. They sit tucked behind the prompt box and slide up when a picture is showing.
   const toolPic = busy ? null : latestDone;
-  function editPicture() {
-    if (!toolPic?.imageUrl) return;
-    setRefs([{ type: "render", id: toolPic.id, url: toolPic.imageUrl, label: toolPic.prompt }]);
-    if (modelId !== AUTO && (model?.maxReferences ?? 0) === 0) setNoRefs(true);
-    box.current?.focus();
-  }
-  function newVariations() {
-    if (toolPic) void generate({ prompt: toolPic.prompt });
+  // Variations: its own window (VariationsTool): one render per cell from this picture, then the contact sheet and the results.
+  const [varOpen, setVarOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  async function upscaleId(id: string) {
+    const m = toolModel(models ?? [], "upscale");
+    if (!m || submitting) { setToolNote("Upscale needs a model that edits pictures, and none is connected yet."); return; }
+    setError(""); setSubmitting(true);
+    try {
+      const { results } = await startImages({ models: models ?? [], model: m, auto: false, prompt: toolPrompt("upscale"), ratio: "auto", tier: toolTier(m, "upscale"), qty: 1, refs: [{ type: "render", id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      const r = results[0];
+      if (!r?.ok) throw new Error(r?.error ?? "Something went wrong. Please try again.");
+      if (r.id) setWatched(r.id);
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Please try again."); } finally { setSubmitting(false); }
   }
   // Soul ID (Soul, Soul 2, Soul Cinema only): the chosen trained character and how closely to follow it, remembered per model version.
   const soulVersion = modelId === "soul" ? "v1" : modelId === "soul_v2" ? "v2" : modelId === "soul_cinema" ? "cinema" : null;
@@ -319,6 +384,81 @@ export default function CreateStudio() {
   useEffect(() => { setToolNote(""); setToolMenu(null); }, [toolPic?.id]);
   // A picture tool makes a NEW image from this one (the original stays): the picture is the only ingredient, the instruction is fixed, the model is the best
   // picture-editing model this account has, and "auto" keeps the picture's aspect ratio.
+  // Skin Enhancer: one request, the same portrait with natural skin (src/lib/skin/prompt.ts).
+  const [skinOpen, setSkinOpen] = useState(false);
+  const [skinError, setSkinError] = useState("");
+  const skinModel = toolModel(models ?? [], "relight");
+  const skinTiers = skinModel ? ["1k", ...(skinModel.resolutions.includes("1080p") ? ["1.5k"] : []), ...(skinModel.resolutions.includes("2k") ? ["2k"] : []), ...(skinModel.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"];
+  async function runSkin(run: SkinRun) {
+    if (!toolPic || submitting) return;
+    if (!skinModel) { setSkinError("Skin Enhancer needs a model that edits pictures, and none is connected yet."); return; }
+    setSkinError(""); setError(""); setSubmitting(true);
+    try {
+      const { results } = await startImages({ models: models ?? [], model: skinModel, auto: false, prompt: skinPrompt(run.settings, run.note), ratio: "auto", tier: run.tier, qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      const r = results[0];
+      if (!r?.ok) throw new Error(r?.error ?? "Something went wrong. Please try again.");
+      setSkinOpen(false);
+      if (r.id) setWatched(r.id);
+      await reload();
+    } catch (e) {
+      setSkinError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+  // Relight: place up to three lights round the picture; the result is the picture lit that way (one request, up to four images).
+  const [lightOpen, setLightOpen] = useState(false);
+  const [lightError, setLightError] = useState("");
+  const lightModel = toolModel(models ?? [], "relight");
+  const lightTiers = lightModel ? ["1k", ...(lightModel.resolutions.includes("1080p") ? ["1.5k"] : []), ...(lightModel.resolutions.includes("2k") ? ["2k"] : []), ...(lightModel.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"];
+  async function runRelight(run: RelightRun) {
+    if (!toolPic || submitting) return;
+    if (!lightModel) { setLightError("Relight needs a model that edits pictures, and none is connected yet."); return; }
+    setLightError(""); setError(""); setSubmitting(true);
+    try {
+      const { results } = await startImages({ models: models ?? [], model: lightModel, auto: false, prompt: relightPrompt(run.lights, run.note), ratio: "auto", tier: run.tier, qty: run.count, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+      const first = results.find((r) => r.ok && r.id)?.id;
+      const bad = results.find((r) => !r.ok);
+      if (!first) throw new Error(bad && !bad.ok ? bad.error : "Something went wrong. Please try again.");
+      setLightOpen(false);
+      if (bad && !bad.ok) setError(`${results.filter((r) => !r.ok).length} of ${run.count} images could not be started: ${bad.error}`);
+      setWatched(first);
+      await reload();
+    } catch (e) {
+      setLightError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+  // Change Camera: one render per camera, each from the same picture with its own angle (src/lib/camera/prompt.ts).
+  const [camOpen, setCamOpen] = useState(false);
+  const camModel = toolModel(models ?? [], "camera");
+  const camTiers = camModel ? ["1k", ...(camModel.resolutions.includes("1080p") ? ["1.5k"] : []), ...(camModel.resolutions.includes("2k") ? ["2k"] : []), ...(camModel.resolutions.includes("4k") ? ["4k"] : [])] : ["1k"];
+  const [camError, setCamError] = useState("");
+  async function runCamera(run: CameraRun) {
+    if (!toolPic || submitting) return;
+    const m = toolModel(models ?? [], "camera");
+    if (!m) { setCamError(`${CAMERA_NAME} needs a model that edits pictures, and none is connected yet.`); return; }
+    setCamError(""); setError(""); setSubmitting(true);
+    try {
+      let first: string | undefined;
+      let failed = 0, why = "";
+      for (const c of run.cams) {
+        const { results } = await startImages({ models: models ?? [], model: m, auto: false, prompt: cameraPrompt(c, run.note), ratio: "auto", tier: run.tier, qty: 1, refs: [{ type: "render", id: toolPic.id }], seedOn: false, seedNum: null, projectId: readCurrentProject()?.id });
+        const r = results[0];
+        if (r?.ok) first = first ?? r.id; else { failed++; why = r?.error ?? why; }
+      }
+      if (!first) throw new Error(why || "Something went wrong. Please try again.");
+      setCamOpen(false);
+      if (failed) setError(`${failed} of ${run.cams.length} cameras could not be started: ${why}`);
+      setWatched(first);
+      await reload();
+    } catch (e) {
+      setCamError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
   async function runTool(tool: ToolId, option?: ToolOption) {
     if (!toolPic || submitting) return;
     const m = toolModel(models ?? [], tool);
@@ -394,12 +534,13 @@ export default function CreateStudio() {
           </>
         ) : (
           <>
-            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={editPicture} title="Use this picture as an ingredient and describe the change"><Pencil size={14} /> Edit</button>
-            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={newVariations} disabled={submitting || !model} title="Make another image from the same prompt"><Shuffle size={14} /> Variations</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => setEditorOpen(true)} title="Edit this picture with words, or retouch a selected area"><Pencil size={14} /> Edit</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} onClick={() => setVarOpen(true)} disabled={submitting} title="A set of controlled versions of this picture"><Shuffle size={14} /> Variations</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setLightError(""); setLightOpen(true); }} title="Place lights round the picture and change how it is lit"><Sun size={14} /> Relight</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setCamError(""); setCamOpen(true); }} title="See the same moment from another camera position"><Camera size={14} /> Change camera</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setSkinError(""); setSkinOpen(true); }} title="Natural, realistic skin on a portrait"><ScanFace size={14} /> Skin enhancer</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("upscale")} title="A sharper, higher-resolution copy of this picture"><ZoomIn size={14} /> Upscale</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("removebg")} title="The subject on a plain white background"><Eraser size={14} /> Remove background</button>
-            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => setToolMenu("relight")} title="Change the lighting"><Sun size={14} /> Relight</button>
-            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => setToolMenu("camera")} title="See the same moment from another angle"><Camera size={14} /> Change camera</button>
           </>
         )}
       </div>
@@ -425,8 +566,9 @@ export default function CreateStudio() {
             {refs.map((r, i) => (
               <span key={`${r.type}-${r.id}`} className="cr-ref" title={`Image ${i + 1}: ${r.label}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.url} alt={r.label} />
+                <img src={r.url} alt={r.label} role="button" tabIndex={0} aria-label={`Mark parts of ${r.label} to change`} onClick={() => setMarking(i)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMarking(i); } }} />
                 <i className="cr-ref-n">{i + 1}</i>
+                {isMarked(r) && <span className="cr-ref-mark" aria-label="Marked" title="Marked parts"><Brush size={10} /></span>}
                 <button type="button" className="cr-ref-x" aria-label={`Remove ${r.label}`} onClick={() => setRefs((l) => l.filter((x) => !(x.type === r.type && x.id === r.id)))}><X size={12} /></button>
                 {refs.length > 1 && (
                   <span className="cr-ref-move">
@@ -502,12 +644,16 @@ export default function CreateStudio() {
               <button type="button" className="cr-chip" onClick={randomizeSeed}><Shuffle size={14} /> Randomize</button>
             </div>
           )}
-          <button type="submit" className="cr-go" disabled={!prompt.trim() || submitting || !model || needsRef || seedBad}>
-            {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : imgCost != null && modelId !== AUTO ? <>Generate {(creditInfo?.freeImages ?? 0) >= qty ? <span className="cr-cost" title="Free with your welcome offer">Free</span> : <span className="cr-cost" title={`${creditsText(imgCost)}${model && model.batch > 1 ? ` (up to ${model.batch} images for one price)` : ""}`}><CoinIcon size={14} />{fmtCredits(imgCost)}</span>}</> : <>Generate <ArrowUp size={16} /></>}
-          </button>
+          <GenerateButton type="submit" className="cr-go" price={modelId === AUTO ? autoFrom : imgCost} from={modelId === AUTO} free={(creditInfo?.freeImages ?? 0) >= qty && (modelId === AUTO || imgCost != null)} busy={submitting} disabled={!prompt.trim() || !model || needsRef || seedBad} />
         </div>
       </form>
       </div>
+      {skinOpen && toolPic?.imageUrl && <SheetPortal><SkinPanel thumb={thumbOf("render", toolPic.id)} tiers={skinTiers} unit={(t) => (skinModel ? imageCost(skinModel, skinModel.resolutions.length ? tierResolution(skinModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={skinError} onRun={(r) => void runSkin(r)} onClose={() => setSkinOpen(false)} /></SheetPortal>}
+      {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} unit={(t) => (lightModel ? imageCost(lightModel, lightModel.resolutions.length ? tierResolution(lightModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
+      {editorOpen && toolPic?.imageUrl && <ImageEditor sourceId={toolPic.id} onClose={() => { setEditorOpen(false); void reload(); }} />}
+      {varOpen && toolPic?.imageUrl && <VariationsTool reference={{ type: "render", id: toolPic.id }} onClose={() => setVarOpen(false)} onUseAsReference={(id) => { setRefs([{ type: "render", id, url: `/api/generations/${id}/file`, label: "Variation" }]); box.current?.focus(); }} onUpscale={(id) => void upscaleId(id)} />}
+      {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} unit={(t) => (camModel ? imageCost(camModel, camModel.resolutions.length ? tierResolution(camModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
+      {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
       {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}

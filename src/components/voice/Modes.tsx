@@ -4,6 +4,7 @@ import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Mic, Plus, Repeat, Square, Users } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
+import GenerateButton from "@/components/GenerateButton";
 import { estimateSeconds } from "@/lib/audio/pricing-client";
 import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
 
@@ -52,11 +53,7 @@ const priceFor = (m: VoiceModel | null, secs: number) => (m?.pricing && m.pricin
 
 function Go({ label, busy, disabled, price, onClick }: { label: string; busy: boolean; disabled?: boolean; price: number | null; onClick: () => void }) {
   return (
-    <button type="button" className="vc-go" aria-label={label} disabled={disabled || busy} onClick={onClick} title={price != null ? `About ${fmtCredits(price)} credits` : label}>
-      {busy ? <Loader2 size={18} className="vc-spin" /> : null}
-      <span>{label}</span>
-      {price != null && <span className="vc-cost"><CoinIcon size={13} />{fmtCredits(price)}</span>}
-    </button>
+    <GenerateButton wide className="vc-go-slot" label={label} price={price} busy={busy} disabled={disabled} onClick={onClick} />
   );
 }
 

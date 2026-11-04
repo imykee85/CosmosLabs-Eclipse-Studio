@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
+import GenerateButton from "@/components/GenerateButton";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import MotionMenu, { type MotionMode } from "./MotionMenu";
@@ -572,9 +573,7 @@ export default function VideoStudio() {
               </div>
               <button type="button" className={`cr-chip vs-gear ${settingsInUse ? "is-on" : ""}`} aria-label="Settings" aria-haspopup="dialog" title="Seed, leave out and prompt strength" onClick={(e) => setSettingsAnchor(e.currentTarget.getBoundingClientRect())}><Settings size={16} />{settingsInUse && <i className="vs-dot" />}</button>
             </div>
-            <button type="submit" className="cr-go" disabled={!canGo || submitting || seedBad || (mc && mcEngine === "eclone")}>
-              {submitting ? <><Loader2 size={16} className="cr-spin" /> Generating</> : <>Generate {price != null ? <span className="cr-cost" title={creditsText(price)}><CoinIcon size={14} />{fmtCredits(price)}</span> : <ArrowUp size={16} />} {!live && <SoonTag />}</>}
-            </button>
+            <GenerateButton type="submit" className="cr-go" price={price} busy={submitting} disabled={!canGo || seedBad || (mc && mcEngine === "eclone")}>{!live && <SoonTag />}</GenerateButton>
           </div>
         </form>
       </div>
