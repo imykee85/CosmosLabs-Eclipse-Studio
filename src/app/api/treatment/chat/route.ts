@@ -12,7 +12,7 @@ import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { fetchPageText } from "@/lib/fetch-page";
 import { loadPromptImages, parseImageRefs } from "@/lib/prompt-images";
 import { workspaceSession } from "@/lib/workspace";
-import { SHORT_FORM_CRAFT, SCREEN_CRAFT } from "@/lib/story-knowledge";
+import { SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT } from "@/lib/story-knowledge";
 import { gateFeature } from "@/lib/access";
 
 export const maxDuration = 60;
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    const res = await client.messages.create({ model, max_tokens: 3000, system: cachedSystem(`${SYSTEM(mode)}\n\n${SHORT_FORM_CRAFT}\n\n${SCREEN_CRAFT}\n\n${BRAND_RULE}`, `<current_treatment>\n${treatmentText(current) || "(empty so far)"}\n</current_treatment>`), tools: [TOOL], messages: cacheLast(messages) as typeof messages });
+    const res = await client.messages.create({ model, max_tokens: 3000, system: cachedSystem(`${SYSTEM(mode)}\n\n${SHORT_FORM_CRAFT}\n\n${SCREEN_CRAFT}\n\n${BRAINSTORM_CRAFT}\n\n${PRODUCTION_CRAFT}\n\n${BRAND_RULE}`, `<current_treatment>\n${treatmentText(current) || "(empty so far)"}\n</current_treatment>`), tools: [TOOL], messages: cacheLast(messages) as typeof messages });
     meter.add(res.model, res.usage);
     let text = "";
     let treatment = current;
