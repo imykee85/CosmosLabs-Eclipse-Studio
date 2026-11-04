@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { cleanPlan, type PlanSpec } from "./agent-plan";
+import { cleanPlan, type PlanRef, type PlanSpec } from "./agent-plan";
 
 // Turns the model's answer into what the browser shows: the text and the buttons made from its tool calls. Kept apart from the route so it can be tested.
 export type Action = { kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number };
@@ -32,7 +32,7 @@ export function cleanControls(i: Record<string, unknown>): Controls {
   return c;
 }
 
-export function buildReply(content: Anthropic.ContentBlock[], stopReason: string | null | undefined): { text: string; actions: Action[]; controls: Controls; plan?: PlanSpec } {
+export function buildReply(content: Anthropic.ContentBlock[], stopReason: string | null | undefined, pictures: PlanRef[] = []): { text: string; actions: Action[]; controls: Controls; plan?: PlanSpec } {
   let text = "";
   let plan: PlanSpec | undefined;
   const actions: Action[] = [];
@@ -46,7 +46,7 @@ export function buildReply(content: Anthropic.ContentBlock[], stopReason: string
         const n = Number.isInteger(i.count) ? Math.min(4, Math.max(1, i.count as number)) : undefined;
         actions.push({ kind: "generate", label: n && n > 1 ? `Generate ${n}` : "Generate", prompt, count: n });
       } else if (b.name === "suggest_prompt" && prompt) actions.push({ kind: "use_prompt", label: "Use this prompt", prompt });
-      else if (b.name === "propose_plan") plan = cleanPlan(i) ?? plan;
+      else if (b.name === "propose_plan") plan = cleanPlan(i, pictures) ?? plan;
       else if (b.name === "set_prompt_box") controls = { ...controls, ...cleanControls(i) };
       else if (b.name === "ask_approval" && Array.isArray(i.options)) for (const o of i.options.slice(0, 4)) { const l = clip(o, 40); if (l) actions.push({ kind: "reply", label: l }); }
     }

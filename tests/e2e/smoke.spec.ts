@@ -273,8 +273,10 @@ test.describe("Atlas panel", () => {
 });
 
 test.describe("Atlas plans", () => {
-  test("a plan card shows the steps; Approve runs hero, pictures and one video from all of them", async ({ page }) => {
+  const seed = async (page: import("@playwright/test").Page) => {
     await page.addInitScript(() => {
+      if (sessionStorage.getItem("seeded")) return;
+      sessionStorage.setItem("seeded", "1");
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
       localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
       localStorage.setItem("eclipse-agent", "Atlas");
@@ -287,13 +289,20 @@ test.describe("Atlas plans", () => {
     await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE"
       ? r.fulfill({ json: { ok: true } })
       : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is the plan.", actions: [], plan: { title: "Sneaker ad", hero: "A sneaker on a wet street", scenes: ["Close-up of the laces", "Mid-stride"], video: "Move through image 1 to 3", seconds: 8, ratio: "16:9" } } } } }));
-    const generated: { prompt?: string; references?: unknown[] }[] = [];
-    let n = 0;
-    await page.route("**/api/generate", (r) => { generated.push(r.request().postDataJSON()); return r.fulfill({ json: { id: `g${++n}`, status: "pending" } }); });
-    await page.route(/\/api\/generations\/g\d$/, (r) => r.fulfill({ json: { status: "completed" } }));
-    let video: { refs?: { id: string }[]; model?: string } | null = null;
-    await page.route("**/api/video", (r) => { video = r.request().postDataJSON(); return r.fulfill({ json: { id: "v1" } }); });
-    await page.route("**/api/generations/v1/status", (r) => r.fulfill({ json: { status: "completed" } }));
+  };
+  const steps = (states: string[]) => [
+    { id: "hero", kind: "hero", label: "Hero image", state: states[0] },
+    { id: "scenes", kind: "scenes", label: "2 more pictures from the hero", state: states[1] },
+    { id: "video", kind: "video", label: "8-second video from all 3 pictures", state: states[2] },
+  ];
+  const planOf = (status: string, states: string[]) => ({ id: "pl1", plan: { id: "pl1", spec: { title: "Sneaker ad", hero: "x", scenes: ["a", "b"], video: "v", seconds: 8, ratio: "16:9" }, steps: steps(states), status } });
+
+  test("a plan card shows the steps; Approve sends the plan to the server, which runs it and the card follows", async ({ page }) => {
+    await seed(page);
+    const got: { body?: { spec?: { scenes?: string[] }; projectId?: string } } = {};
+    let looks = 0;
+    await page.route("**/api/plans", (r) => { got.body = r.request().postDataJSON(); return r.fulfill({ json: planOf("running", ["running", "waiting", "waiting"]) }); });
+    await page.route("**/api/plans/pl1", (r) => { looks++; return r.fulfill({ json: looks < 2 ? planOf("running", ["done", "running", "waiting"]) : planOf("done", ["done", "done", "done"]) }); });
     await page.goto("/create");
     await page.click(".aw-btn");
     await page.fill(".aw-input textarea", "Make me a sneaker ad");
@@ -302,12 +311,30 @@ test.describe("Atlas plans", () => {
     await expect(card).toBeVisible({ timeout: 20000 });
     await expect(card.locator("li")).toHaveCount(3);
     await expect(card.locator("li").nth(1)).toContainText("2 more pictures");
-    expect(generated.length).toBe(0); // nothing is made until Approve
+    expect(got.body).toBeUndefined(); // nothing is started until Approve
     await card.getByRole("button", { name: "Approve plan" }).click();
-    await expect(card.getByText(/All done/)).toBeVisible({ timeout: 40000 });
-    expect(generated.length).toBe(3); // the hero and two pictures
-    expect(generated[1].references).toEqual([{ type: "render", id: "g1" }]); // the pictures are made from the hero
-    await expect.poll(() => video?.refs?.map((x) => x.id).join(",")).toBe("g1,g2,g3"); // one video, all pictures in order
+    await expect.poll(() => got.body?.spec?.scenes?.length).toBe(2);
+    expect(got.body?.projectId).toBe("p1");
+    await expect(card.getByText(/All done/)).toBeVisible({ timeout: 30000 });
+  });
+
+  test("a plan that was running keeps showing its progress after the app is closed and opened again", async ({ page }) => {
+    await seed(page);
+    await page.route("**/api/plans", (r) => r.fulfill({ json: planOf("running", ["running", "waiting", "waiting"]) }));
+    let done = false;
+    await page.route("**/api/plans/pl1", (r) => r.fulfill({ json: done ? planOf("done", ["done", "done", "done"]) : planOf("running", ["done", "running", "waiting"]) }));
+    await page.goto("/create");
+    await page.click(".aw-btn");
+    await page.fill(".aw-input textarea", "Make me a sneaker ad");
+    await page.click('.aw-input button[type="submit"]');
+    await page.locator(".aw-plan").getByRole("button", { name: "Approve plan" }).click();
+    await expect(page.locator(".aw-plan li.is-running").first()).toBeVisible({ timeout: 20000 });
+    // the app is closed and opened again while the server carries on
+    await page.goto("about:blank");
+    done = true;
+    await page.goto("/create");
+    await page.click(".aw-btn");
+    await expect(page.locator(".aw-plan").getByText(/All done/)).toBeVisible({ timeout: 30000 });
   });
 });
 

@@ -41,7 +41,7 @@ const TOOLS: Anthropic.Tool[] = [
 const SET_BOX: Anthropic.Tool = { name: "set_prompt_box", description: "Set the prompt box's controls for the user: model, aspect ratio, number of results, quality, clip length, sound, fixed seed and the prompt text. It takes effect at once and costs nothing; the user still presses Generate. Use ONLY values listed under 'Controls you can set'. Include only what the user asked for or what clearly helps their idea. When the user is unsure what to pick, choose sensible values and say in one short line why.", input_schema: { type: "object", properties: { model: { type: "string", description: "A model id from the list (or auto)." }, aspect_ratio: { type: "string" }, count: { type: "integer", minimum: 1, maximum: 4, description: "How many images per run." }, quality: { type: "string", description: "A quality from the list." }, duration_seconds: { type: "integer", description: "Clip length in seconds." }, sound: { type: "boolean" }, fixed_seed: { type: "boolean" }, prompt: { type: "string", description: "Fill the prompt box with this text." } } } };
 
 // Scale only (FEATURE_MIN.plans): a whole small production run after ONE approval. Atlas decides how many pictures the video needs.
-const PLAN_TOOL: Anthropic.Tool = { name: "propose_plan", description: "Propose a small production the user approves ONCE: a hero image, then the extra pictures the video needs (you decide how many, 1 to 8, each made from the hero so the look stays the same), then ONE video that uses all of the pictures as references. Use it when the user wants a video or ad built from scratch. Shows one plan card with the total price; nothing is made or charged until the user presses Approve. Write every prompt in full.", input_schema: { type: "object", properties: { title: { type: "string" }, hero_prompt: { type: "string", description: "The hero image prompt." }, scenes: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 8, description: "One prompt per extra picture (a different angle, moment or shot of the same subject and look), in story order." }, video_prompt: { type: "string", description: "The motion prompt: how the video moves through the pictures. Refer to them as image 1, image 2, ... in order (image 1 is the hero)." }, duration_seconds: { type: "integer", minimum: 4, maximum: 30 }, aspect_ratio: { type: "string", description: "16:9, 9:16, 1:1, 4:3, 3:4 or 21:9." } }, required: ["hero_prompt", "scenes", "video_prompt"] } };
+const PLAN_TOOL: Anthropic.Tool = { name: "propose_plan", description: "Propose a small production the user approves ONCE: a hero image, then the extra pictures the video needs (you decide how many, 1 to 8, each made from the hero so the look stays the same), then ONE video that uses all of the pictures as references. Use it when the user wants a video or ad built from scratch. Shows one plan card with the total price; nothing is made or charged until the user presses Approve. Write every prompt in full.", input_schema: { type: "object", properties: { title: { type: "string" }, hero_prompt: { type: "string", description: "The hero image prompt. When reference_pictures are given they are images 1, 2, ... of the hero request, in the order listed." }, scenes: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 8, description: "One prompt per extra picture (image 1 of each request is the hero, the user's reference pictures follow; a different angle, moment or shot of the same subject and look), in story order." }, video_prompt: { type: "string", description: "The motion prompt: how the video moves through the pictures. Refer to the pictures as image 1, image 2, ... in order: image 1 is the hero, then the extra pictures in the order you list them, then the user's reference pictures (if any)." }, duration_seconds: { type: "integer", minimum: 4, maximum: 30 }, aspect_ratio: { type: "string", description: "16:9, 9:16, 1:1, 4:3, 3:4 or 21:9." }, reference_pictures: { type: "array", items: { type: "integer" }, maxItems: 4, description: "Numbers of the pictures the user gave you (Picture 1, Picture 2, ...) that the plan should use as references: they go into the hero, every extra picture and the video. Use the ones the user meant; leave out if none." } }, required: ["hero_prompt", "scenes", "video_prompt"] } };
 
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 
@@ -128,6 +128,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const earlier: Action[] = [];
       let controls: Controls = {};
       let plan: PlanSpec | undefined;
+      const planPictures = parsePictures(c.pictures).map(({ type, id }) => ({ type, id }));
       const frames: Frame[] = [];
       const state = { captures: 0 };
       let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
@@ -144,7 +145,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
             results.push({ type: "tool_result", tool_use_id: b.id, content: r.content, is_error: r.isError });
           } else results.push({ type: "tool_result", tool_use_id: b.id, content: "Shown to the user as a button." });
         }
-        const so = buildReply(res.content, res.stop_reason);
+        const so = buildReply(res.content, res.stop_reason, planPictures);
         earlier.push(...so.actions);
         controls = { ...controls, ...so.controls };
         plan = so.plan ?? plan;
@@ -160,7 +161,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
         res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
         meter.add(res.model, res.usage);
       }
-      const final = buildReply(res.content, res.stop_reason);
+      const final = buildReply(res.content, res.stop_reason, planPictures);
       const actions: Action[] = [...earlier, ...final.actions];
       const text = guardText(pieces.join("") + final.text, "atlas");
       controls = { ...controls, ...final.controls };

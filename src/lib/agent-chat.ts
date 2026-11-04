@@ -5,7 +5,7 @@ import { PERSONAS } from "./agent-personas";
 import { refreshCredits } from "@/lib/use-credits";
 import { buildProposal, type Proposal } from "./agent-proposal";
 import { newPlan, type PlanSpec, type PlanState } from "./agent-plan";
-import { quotePlan, runPlan } from "./agent-plan-run";
+import { quotePlan, readPlan, startPlan, stopPlan } from "./agent-plan-run";
 
 // The conversation between the user and a studio agent. One chat per agent, kept in this browser and shared live by everything that shows it
 // (the floating agent's card, the Image Studio prompt box, a canvas generator). The agent only PROPOSES: its replies carry buttons, and the screen the
@@ -55,15 +55,14 @@ const KEY = (agent: string) => `eclipse-agent-chat-${agent}`;
 const EVENT = "eclipse-agent-chat";
 const uid = () => Math.random().toString(36).slice(2, 10);
 const cache = new Map<string, Msg[]>();
-const planActive = new Set<string>();
 
 function read(agent: string): Msg[] {
   const hit = cache.get(agent);
   if (hit) return hit;
   let list: Msg[] = [];
   try { const raw = JSON.parse(localStorage.getItem(KEY(agent)) ?? "[]"); if (Array.isArray(raw)) list = raw.filter((m) => m && typeof m.text === "string").slice(-60); } catch {}
-  // A plan that was running when the page was closed is not running any more: it says so (what it already made is in the Gallery).
-  list = list.map((m) => (m.plan?.status === "running" && !planActive.has(m.id) ? { ...m, plan: { ...m.plan, status: "failed" as const, note: "The plan stopped when the page was closed. What it already made is in your Gallery." } } : m));
+  // A plan that was running keeps running on the server: when the chat opens again its card picks the progress up.
+  if (typeof window !== "undefined") for (const m of list) if (m.plan?.status === "running" && m.plan.id) { const pid = m.plan.id; setTimeout(() => void followPlan(agent, m.id, pid), 0); }
   cache.set(agent, list);
   return list;
 }
@@ -139,20 +138,39 @@ function showReply(agent: string, page: string, status: number, body: Record<str
   if (planSpec) void quotePlan(planSpec).then((q) => patchPlan(agent, id, (cur) => (cur.status === "ready" ? { ...q } : cur)));
 }
 
-// Plans being run in this browser (a plan stops if the page is closed: what it already made stays in the Gallery).
-const planCancel = new Set<string>();
 function patchPlan(agent: string, msgId: string, fn: (p: PlanState) => PlanState) {
   write(agent, read(agent).map((m) => (m.id === msgId && m.plan ? { ...m, plan: fn(m.plan) } : m)));
 }
-/** The person pressed Approve on a plan card: it runs to the end, or stops at the first step that fails. */
+// Shows a running plan's progress in its card. The plan itself runs on the server, so this only reads it; closing the app does not stop the plan.
+const followingPlans = new Set<string>();
+async function followPlan(agent: string, msgId: string, planId: string) {
+  if (followingPlans.has(planId)) return;
+  followingPlans.add(planId);
+  try {
+    for (let i = 0; i < 2000; i++) {
+      const r = await readPlan(planId);
+      if (r === "gone") { patchPlan(agent, msgId, (p) => ({ ...p, status: "failed", note: "This plan can no longer be found." })); break; }
+      if (r) {
+        patchPlan(agent, msgId, (p) => ({ ...r.plan, id: planId, spec: p.spec }));
+        if (r.plan.status !== "running") { refreshCredits(); break; }
+      }
+      await new Promise((res) => setTimeout(res, 5000));
+    }
+  } finally { followingPlans.delete(planId); }
+}
+/** The person pressed Approve on a plan card: the server saves and runs it (it carries on if the app is closed). */
 export async function approvePlan(agent: string, msgId: string) {
   const m = read(agent).find((x) => x.id === msgId);
   if (!m?.plan || m.plan.status !== "ready") return;
-  planCancel.delete(msgId);
-  planActive.add(msgId);
-  try { await runPlan(m.plan, (np) => patchPlan(agent, msgId, () => np), () => planCancel.has(msgId)); } finally { planActive.delete(msgId); }
+  const r = await startPlan(m.plan.spec);
+  if ("error" in r) { patchPlan(agent, msgId, (p) => ({ ...p, note: r.error })); return; }
+  patchPlan(agent, msgId, (p) => ({ ...r.plan, id: r.id, spec: p.spec }));
+  void followPlan(agent, msgId, r.id);
 }
-export function cancelPlan(msgId: string) { planCancel.add(msgId); }
+export function cancelPlan(agent: string, msgId: string) {
+  const id = read(agent).find((x) => x.id === msgId)?.plan?.id;
+  if (id) void stopPlan(id);
+}
 
 // Waits for a reply started on the server and shows it when it is ready. Safe to call again for a reply already being followed.
 async function followRun(agent: string, runId: string, page: string) {
@@ -326,7 +344,7 @@ export function useAgentChat(agent: string | null) {
     write(agent, hit.messages);
   }, [agent]);
   const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
-  return { messages, busy, send, approvePlan: (id: string) => approvePlan(agent ?? "", id), cancelPlan, retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
+  return { messages, busy, send, approvePlan: (id: string) => approvePlan(agent ?? "", id), cancelPlan: (id: string) => cancelPlan(agent ?? "", id), retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
 }
 
 /** True when the screen the user is on can take a captured frame into its prompt box. */

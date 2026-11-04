@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { finalizeGeneration, purgeFailed } from "@/lib/generation-jobs";
 import { sweep } from "@/lib/sandbox/runner";
+import { advancePlan } from "@/lib/agent-plan-server";
 import { finalizeVideo, isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
 
 export const maxDuration = 300;
@@ -39,7 +40,10 @@ export async function GET(req: Request) {
     const done = results.filter((r) => r.status === "fulfilled" && r.value.status !== "pending" && r.value.status !== "saving").length;
     const cleared = await purgeFailed().catch(() => 0);
     const sweptBuilds = (await sweep(20).catch(() => null))?.advanced ?? 0; // sandbox jobs nobody is following (also its own cron, /api/cron/sandbox-sweeper)
-    return NextResponse.json({ checked: rows.length, finished: done, rescuedLate: rescued, clearedFailed: cleared, sweptBuilds, more: rows.length === BATCH });
+    // Atlas plans nobody is driving (the hand-over between functions failed): give each a push
+    const plans = await db.agentPlan.findMany({ where: { status: "running" }, orderBy: { createdAt: "asc" }, take: 20, select: { id: true } });
+    const pushedPlans = (await Promise.allSettled(plans.map((p) => advancePlan(p.id)))).length;
+    return NextResponse.json({ pushedPlans, checked: rows.length, finished: done, rescuedLate: rescued, clearedFailed: cleared, sweptBuilds, more: rows.length === BATCH });
   } catch (err) {
     console.error("render finishing job failed", err);
     return NextResponse.json({ error: "The job failed." }, { status: 500 });
