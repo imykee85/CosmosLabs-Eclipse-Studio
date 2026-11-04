@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { opsAlert } from "@/lib/ops-alert";
 
 // A record of the payment-provider deliveries we received, kept so the first real events can be compared with what the code expects.
 // Only the SHAPE is stored (field paths and value types), never values: no names, emails, amounts or ids beyond our own external id.
@@ -29,6 +30,7 @@ export async function logPaymentEvent(provider: string, rawBody: string, outcome
     const type = parsed && typeof parsed === "object" && typeof (parsed as { type?: unknown }).type === "string" ? (parsed as { type: string }).type : "unknown";
     await db.paymentEventLog.create({ data: { provider, type, externalId: externalId ?? null, outcome, detail: detail?.slice(0, 300) ?? null, shape: shapeOf(parsed) } });
     if (outcome === "unmatched" || outcome === "error") console.error(`PAYMENT ALERT: ${provider} ${type} ${externalId ?? ""} ${outcome}: ${detail ?? ""}`);
+    if (outcome === "unmatched" || outcome === "error") void opsAlert(`pay-${type}`, `a ${provider} ${type} payment event ended as ${outcome}. Open /admin/health, Payment events.`);
     if (Math.random() < 0.05) {
       const old = await db.paymentEventLog.findMany({ orderBy: { createdAt: "desc" }, skip: KEEP, select: { id: true } });
       if (old.length) await db.paymentEventLog.deleteMany({ where: { id: { in: old.map((r) => r.id) } } });
