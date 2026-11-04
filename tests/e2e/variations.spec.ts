@@ -24,14 +24,20 @@ async function setup(page: Page) {
   return sent;
 }
 
+// the tool tray appears once a finished picture is showing in the preview: click the latest one in the history row
+async function openChip(page: Page) {
+  await page.goto("/create");
+  await page.locator('[aria-label="Your five most recent renders"] button').first().click();
+  const chip = page.locator(".cr-tray button", { hasText: "Variations" });
+  await expect(chip).toBeVisible({ timeout: 15000 });
+  await chip.click();
+  return page.getByRole("dialog", { name: "Variations" });
+}
+
 test.describe("Variations", () => {
   test("its own chip opens its own panel; Reframe holds one view per cell", async ({ page }) => {
     await setup(page);
-    await page.goto("/create");
-    const chip = page.locator(".cr-tray button", { hasText: "Variations" });
-    await expect(chip).toBeVisible({ timeout: 15000 });
-    await chip.click();
-    const panel = page.getByRole("dialog", { name: "Variations" });
+    const panel = await openChip(page);
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("tab")).toHaveText(["Reframe", "Storyboard", "People", "Custom"]);
     await expect(panel.locator(".cr-vars-count span").first()).toHaveText("4/4"); // 2x2: four views ticked
@@ -45,13 +51,11 @@ test.describe("Variations", () => {
 
   test("People needs the consent tick; Storyboard counts scenes", async ({ page }) => {
     await setup(page);
-    await page.goto("/create");
-    await page.locator(".cr-tray button", { hasText: "Variations" }).click();
-    const panel = page.getByRole("dialog", { name: "Variations" });
+    const panel = await openChip(page);
     await panel.getByRole("tab", { name: "People" }).click();
     await panel.getByRole("tab", { name: "Age" }).click();
-    await expect(panel.locator(".cr-vars-hint").first()).toContainText("Adult ages only");
-    await expect(panel.locator(".cr-var-err")).toContainText("own picture");
+    await expect(panel.getByText(/Adult ages only/)).toBeVisible();
+    await expect(panel.locator(".cr-var-err")).toContainText("Confirm the picture is yours");
     await expect(panel.locator(".gen-btn")).toBeDisabled();
     await panel.locator(".cr-vars-consent input").check();
     await expect(panel.locator(".gen-btn")).toBeEnabled();
@@ -63,9 +67,7 @@ test.describe("Variations", () => {
 
   test("a Custom run makes one render per cell, follows them and offers the sheet", async ({ page }) => {
     const sent = await setup(page);
-    await page.goto("/create");
-    await page.locator(".cr-tray button", { hasText: "Variations" }).click();
-    const panel = page.getByRole("dialog", { name: "Variations" });
+    const panel = await openChip(page);
     await panel.getByRole("tab", { name: "Custom" }).click();
     await panel.locator("textarea").fill("this street in spring, summer, autumn and winter");
     await expect(panel.locator(".gen-btn")).toContainText("16"); // 4 cells at 4 credits
