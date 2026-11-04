@@ -85,6 +85,22 @@ test("Retouch: only the selected area is replaced, kept once, and the selection 
   assert.equal((await lib.keep.editHistory(A, k.id)).length, 2);
 });
 
+test("the variations that were not kept go to the Bin; never the original, the kept one, or someone else's", { skip }, async () => {
+  const orig = await gen(A, {}), keep = await gen(A, {}), x1 = await gen(A, {}), x2 = await gen(A, {}), foreign = await gen(B, {});
+  const k = await lib.keep.keepEdit(A, { parentId: orig.id, resultId: keep.id, op: "prompt", prompt: "night", discardIds: [x1.id, x2.id, orig.id, keep.id, foreign.id] });
+  assert.ok(k.ok); assert.equal(k.binned, 2);
+  const rows = await lib.db.generation.findMany({ where: { id: { in: [orig.id, keep.id, x1.id, x2.id, foreign.id] } }, select: { id: true, deletedAt: true } });
+  const binned = new Set(rows.filter((r: { deletedAt: Date | null }) => r.deletedAt).map((r: { id: string }) => r.id));
+  assert.deepEqual([...binned].sort(), [x1.id, x2.id].sort());
+  // Retouch: the raw render the new picture came from is binned too
+  const raw = await gen(A, { storageKey: "u/edit/res1.png" }), other = await gen(A, {});
+  const mask = await maskPng(200, 200, 80, 80, 40);
+  const r = await lib.keep.keepEdit(A, { parentId: orig.id, resultId: raw.id, op: "erase", mask, discardIds: [other.id] });
+  assert.ok(r.ok); assert.equal(r.binned, 2);
+  assert.ok((await lib.db.generation.findUnique({ where: { id: raw.id } })).deletedAt);
+  assert.equal((await lib.db.generation.findUnique({ where: { id: r.id } })).deletedAt, null);
+});
+
 test("refusals: other people's pictures, unfinished ones, bad input", { skip }, async () => {
   const mine = await gen(A, {}), theirs = await gen(B, {}), pending = await gen(A, { status: "pending" });
   assert.equal((await lib.keep.keepEdit(A, { parentId: mine.id, resultId: theirs.id, op: "prompt" })).status, 409);

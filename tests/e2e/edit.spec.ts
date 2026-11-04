@@ -75,6 +75,8 @@ test.describe("Image editor", () => {
     await expect.poll(() => kept.length).toBe(1);
     expect(kept[0]).toMatchObject({ parentId: "src1", op: "prompt", prompt: "change from daytime to night" });
     expect(kept[0].resultId).toMatch(/^c\d$/);
+    expect((kept[0].discardIds as string[]).length).toBe(2); // the two variations that were not kept are sent to be binned
+    expect(kept[0].discardIds).not.toContain(kept[0].resultId);
     await expect(ed.locator(".ed-thumb")).toHaveCount(0); // back to editing the kept version
   });
 

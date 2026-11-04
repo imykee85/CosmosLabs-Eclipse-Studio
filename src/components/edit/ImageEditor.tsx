@@ -328,7 +328,7 @@ export default function ImageEditor({ sourceId, onClose }: { sourceId: string; o
         if (!blob) throw new Error("The selection could not be read.");
         maskB64 = btoa(String.fromCharCode(...new Uint8Array(await blob.arrayBuffer())));
       }
-      const res = await fetch("/api/edit/keep", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ parentId: cur, resultId: picked, op: lastOp, prompt: text, pins: lastOp === "visual" ? pins : undefined, mask: maskB64 }) });
+      const res = await fetch("/api/edit/keep", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ parentId: cur, resultId: picked, op: lastOp, prompt: text, pins: lastOp === "visual" ? pins : undefined, mask: maskB64, discardIds: (cells ?? []).flatMap((c) => (c.id && c.id !== picked ? [c.id] : [])) }) });
       const d = await res.json().catch(() => ({}));
       if (!res.ok || typeof d.id !== "string") throw new Error(d.error ?? "This edit could not be saved.");
       switchTo(d.id);
@@ -428,7 +428,7 @@ export default function ImageEditor({ sourceId, onClose }: { sourceId: string; o
               </button>
             ))}
             {picked && <button type="button" className="ed-keep" onClick={() => void keep()} disabled={keeping}>{keeping ? <Loader2 size={14} className="gen-spin" /> : <Check size={14} />} Keep this one</button>}
-            {cells.every((c) => c.status !== "pending") && <small className="ed-tray-note">The others stay in your Gallery.</small>}
+            {cells.every((c) => c.status !== "pending") && <small className="ed-tray-note">The others go to the Bin.</small>}
           </div>
         )}
 
