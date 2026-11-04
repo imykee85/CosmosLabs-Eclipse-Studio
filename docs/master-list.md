@@ -1,4 +1,4 @@
-# Master list: everything still open (owner 2026-11-04: "every single list, even stuff parked for later")
+# Master list: EVERYTHING still open, in one place (owner 2026-11-04: "every single list, even stuff parked for later"; it is called the master list because no other list may hold an item that is missing here)
 
 Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, check CLAUDE.md for a DONE note, and for anything about the homepage or dashboard LOOK AT THE RENDERED PAGE (Playwright screenshot of the local server), never judge it from the code (2026-11-04: I wrongly called homepage cards and a wall slot empty from reading code; the rendered page had every one filled).
 
@@ -51,3 +51,29 @@ Built and removed from this list on 2026-11-04: the sign-up tour (`FirstTour.tsx
 | # | Item | Who |
 |---|---|---|
 | 38 | Major upgrades closed as too risky for an automatic bump: Prisma 5 to 7 (#225), Anthropic SDK 0.132 to 1.3 (#227), Tailwind 3 to 4 (#228). Each needs a planned upgrade with testing; do only when the owner says | Me, on the owner's go |
+
+
+## After launch (V2, from `docs/v2.md`; details live there)
+| # | Item | Who |
+|---|---|---|
+| 39 | Core connectors: the OAuth connect flow and app registrations (TikTok, Instagram, YouTube, Google, Microsoft, Dropbox, HubSpot, Salesforce, Supabase, Vimeo, Frame.io) | Owner, then me |
+| 40 | "Eclipse DOP V1" and the keys for the image makers still marked Soon (Flux, Mystic, Luma, Runway, Krea, Microsoft) | Owner, then me |
+| 41 | Audio Studio Qwen and Seed voices (hidden for launch): the new `qwen-audio-3.x` pages and keys `DASHSCOPE_API_KEY`, `BYTEPLUS_VOICE_API_KEY` | Owner, then me |
+| 42 | Video models Kling 3.0 Omni and FLUX 3 Video: request pages and price approval | Owner, then me |
+| 43 | Canvas V2 brief (`docs/canvas-v2.md`); parts A to D were built 2026-10-26, the rest waits for the owner's "canvas v2" | Owner, then me |
+| 44 | Eclipse as a Claude connector (parked 2026-10-29): needs the Vercel logs for `/oauth/token`, `/oauth/register`, `/api/oauth/approve`, `/api/mcp` | Owner, then me |
+
+## Parked (from `docs/last-hour.md`; details live there)
+| # | Item | Who |
+|---|---|---|
+| 45 | Content: onboarding video, tutorial videos, landing card and results pictures, pictures for the empty dashboard cards | Owner |
+| 46 | First Mirelo tests: one sound effect, one Add sound | Owner |
+| 47 | BytePlus Seedance: load the balance, then activate and run the live draft test (same as item 18) | Owner |
+
+## Built or half-built, on no earlier list (found 2026-11-04)
+| # | Item | Who |
+|---|---|---|
+| 48 | UI for Seedance draft mode and for the Seedance 2.0 edit model (back end built) | Me, on the owner's go |
+| 49 | Eclone: wire the checker, the finish step, clips over 30 s and target-frame generation (needs the media worker host, item 12) | Owner, then me |
+| 50 | Team-level Core, certificates and portfolio (never built) | Owner decision |
+| 51 | "Eclipse Vizo" renaming of the Seedance entries (parked until the owner raises it) | Owner |
