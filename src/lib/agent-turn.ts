@@ -6,6 +6,7 @@ import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
+import { AD_DIRECTOR, CINEMA_CRAFT, wantsAds, wantsCinema } from "@/lib/craft-knowledge";
 import { FASHION_DIRECTOR, wantsFashion } from "@/lib/fashion-knowledge";
 import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
 import { claimUsage } from "@/lib/usage";
@@ -118,8 +119,11 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
       // The Fashion Campaign Director (owner's skill, about 11,000 tokens) rides along only while the talk is about fashion, a campaign, an editorial, a lookbook or a shoot.
       const fashion = isAtlas && wantsFashion(messages, ctx) ? `\n\n${FASHION_DIRECTOR}` : "";
+      // Ad Creative Director (about 1,800 tokens) on ad talk; Cinema Craft (about 2,200) on cinematic talk. Atlas only.
+      const ads = isAtlas && wantsAds(messages, ctx) ? `\n\n${AD_DIRECTOR}` : "";
+      const cinema = isAtlas && wantsCinema(messages, ctx) ? `\n\n${CINEMA_CRAFT}` : "";
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}` : "";
-      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
       const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
