@@ -60,7 +60,7 @@ test.describe("Variations", () => {
     await panel.locator(".cr-vars-consent input").check();
     await expect(panel.locator(".gen-btn")).toBeEnabled();
     await panel.getByRole("tab", { name: "Storyboard" }).click();
-    await panel.getByLabel("Auto").uncheck();
+    await panel.getByRole("checkbox", { name: "Auto" }).uncheck();
     await panel.locator("textarea").fill("Scene 1: a\nScene 2: b\nScene 3: c");
     await expect(panel.locator(".cr-var-err")).toContainText("needs 4 scenes and you wrote 3");
   });
