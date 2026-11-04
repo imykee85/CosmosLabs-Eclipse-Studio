@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { UGC_CRAFT, STYLE_TEMPLATE_CRAFT, wantsUgc, wantsStyleTemplate } from "../../src/lib/craft-knowledge";
+import { UGC_CRAFT, STYLE_TEMPLATE_CRAFT, wantsUgc, wantsStyleTemplate, MARKETING_CRAFT, CREATOR_CRAFT, wantsMarketing, wantsCreator } from "../../src/lib/craft-knowledge";
 import { SEEDANCE_PRODUCTION } from "../../src/lib/seedance-knowledge";
 import { MOTION_CRAFT, wantsMotion } from "../../src/lib/motion-knowledge";
 import { DIRECTOR_CRAFT, wantsDirector } from "../../src/lib/director-knowledge";
@@ -22,7 +22,9 @@ test("code equals the docs and originals are kept", () => {
   assert.equal(UGC_CRAFT, doc("ugc-ads-craft.md"));
   assert.equal(STYLE_TEMPLATE_CRAFT, doc("reference-video-template-craft.md"));
   assert.equal(SEEDANCE_PRODUCTION, doc("seedance-production-notes.md"));
-  for (const f of ["director-craft/SKILL.md", "filmmaking-short-form/anti-slop-SKILL.md", "screenwriting/sw-dialogue.md", "brainstorming/SKILL.md", "filmmaking-producer/SKILL.md", "motion-direction/motionmaxxing-LICENSE", "seedance-production/SKILL.md", "ugc-ads/make-ugc-SKILL.md", "documentary/produce-documentary-SKILL.md", "reference-video/SKILL.md"]) assert.ok(existsSync(K + "original/" + f), f);
+  assert.equal(MARKETING_CRAFT, doc("marketing-copy-craft.md"));
+  assert.equal(CREATOR_CRAFT, doc("creator-channel-craft.md"));
+  for (const f of ["director-craft/SKILL.md", "filmmaking-short-form/anti-slop-SKILL.md", "screenwriting/sw-dialogue.md", "brainstorming/SKILL.md", "filmmaking-producer/SKILL.md", "motion-direction/motionmaxxing-LICENSE", "seedance-production/SKILL.md", "ugc-ads/make-ugc-SKILL.md", "documentary/produce-documentary-SKILL.md", "reference-video/SKILL.md", "marketing/LICENSE", "creator-channel/sell-digital-products-SKILL.md", "product-launch-motion/LICENSE"]) assert.ok(existsSync(K + "original/" + f), f);
 });
 
 test("topic gates", () => {
@@ -42,10 +44,14 @@ test("topic gates", () => {
   assert.equal(wantsDocumentary(m("a red apple"), ""), false);
   assert.equal(wantsUgc(m("write a UGC testimonial ad"), ""), true);
   assert.equal(wantsUgc(m("a red apple"), ""), false);
+  assert.equal(wantsMarketing(m("write a headline for my landing page"), ""), true);
+  assert.equal(wantsMarketing(m("a red apple"), ""), false);
+  assert.equal(wantsCreator(m("how do I grow my youtube channel with a recurring character"), ""), true);
+  assert.equal(wantsCreator(m("a red apple"), ""), false);
   assert.equal(wantsStyleTemplate(m("break this down into a template: make videos like this"), ""), true);
   assert.equal(wantsStyleTemplate(m("a red apple"), ""), false);
 });
 
 test("no outside tool or brand names", () => {
-  for (const t of [DIRECTOR_CRAFT, SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT, MOTION_CRAFT, DOCUMENTARY_CRAFT, UGC_CRAFT, STYLE_TEMPLATE_CRAFT, SEEDANCE_PRODUCTION]) assert.doesNotMatch(t, /higgsfield|scenario|claude code|@\w+ tag/i);
+  for (const t of [DIRECTOR_CRAFT, SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT, MOTION_CRAFT, DOCUMENTARY_CRAFT, UGC_CRAFT, STYLE_TEMPLATE_CRAFT, SEEDANCE_PRODUCTION, MARKETING_CRAFT, CREATOR_CRAFT]) assert.doesNotMatch(t, /higgsfield|scenario|claude code|@\w+ tag/i);
 });
