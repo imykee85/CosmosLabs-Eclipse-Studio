@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { serverSecret } from "@/lib/server-secret";
 import { waitUntil } from "@vercel/functions";
 import type { AgentPlan, Prisma } from "@prisma/client";
 import { db } from "./db";
@@ -254,7 +255,7 @@ export async function drive(id: string, deps: PlanDeps = realDeps, budgetMs = DR
 }
 
 // ---- the hand-over ----
-const secret = () => process.env.CRON_SECRET || process.env.CLERK_SECRET_KEY || "dev-plan-secret";
+const secret = () => serverSecret(process.env.CRON_SECRET, process.env.CLERK_SECRET_KEY);
 export const planToken = (id: string) => createHmac("sha256", secret()).update(`plan:${id}`).digest("hex");
 export function validPlanToken(id: string, given: string | null): boolean {
   const a = Buffer.from(given ?? ""), b = Buffer.from(planToken(id));

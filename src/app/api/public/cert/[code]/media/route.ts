@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { normalizeCode } from "@/lib/certificates";
 import { storageEnabled } from "@/lib/storage";
-import { streamStored } from "@/lib/media-link";
+import { streamStored, publicStreamLimited } from "@/lib/media-link";
 
 export const maxDuration = 300;
 
 // The certified file for the public certificate page, only when its owner chose to show it. Streamed from Eclipse's own address (never a storage-service link); nothing is public in the bucket.
 export async function GET(req: Request, props: { params: Promise<{ code: string }> }) {
+  const limited = await publicStreamLimited(req);
+  if (limited) return limited;
   const params = await props.params;
   const code = normalizeCode(params.code);
   if (!code || !storageEnabled) return NextResponse.json({ error: "Not found" }, { status: 404 });

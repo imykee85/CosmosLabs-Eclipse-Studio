@@ -37,3 +37,11 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 | 30 | Team gaps: lower a team's member limit when its plan lapses, delete a team's data when the team is deleted, team-level Core/certificates/portfolio | Me |
 | 31 | Kling 4: Prompts tab says Kling 4 UGC but Video Studio only has Kling 3.0, 2.6 and 2.5 | Owner, then me |
 | 32 | Small gaps: audio uploads not scanned, iPhone HEVC `.mov` may not play, old `.doc`/Excel/PowerPoint chat files unreadable, 3 failing `byteplus-video` integration tests (assume the Seedance backup is off), unlinked `/export` and `/avatars` pages, Tavus live agent (later) | Me |
+
+## Added 2026-11-04 from the attacker review (open, owner)
+| # | Item | Who |
+|---|---|---|
+| 33 | Vercel Firewall: rate-limit by address and know where Attack Challenge Mode is (CPU-exhaustion flood protection; every page renders per request because of the nonce security policy) | Owner |
+| 34 | Clerk: block email subaddresses (name+1@) and disposable email domains (free-trial farming) | Owner |
+| 35 | Two-step on the Google or email account you use to sign in as admin (admin is "verified email equals ADMIN_EMAILS") | Owner |
+| 36 | Set a separate Secret `CONNECT_SECRET_KEY` in Vercel (today the Clerk key also encrypts connector logins and signs share links; changing either later breaks saved connectors and share links) | Owner |
