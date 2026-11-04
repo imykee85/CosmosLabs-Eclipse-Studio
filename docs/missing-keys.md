@@ -1,3 +1,5 @@
+> SUPERSEDED (2026-11-04): the only open list is `docs/master-list.md`. This file is kept for detail and history; do not track open items here.
+
 # Missing keys and settings (updated 2026-10-17)
 
 Add each one in Vercel (Project Settings, Environment Variables) for **Production and Preview**; save secrets with Sensitive on. Redeploy once after the last key. Never paste a key in chat, and crop keys out of screenshots.

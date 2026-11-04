@@ -1,3 +1,5 @@
+> SUPERSEDED (2026-11-04): the only open list is `docs/master-list.md`. This file is kept for detail and history; do not track open items here.
+
 # Pages Claude needs from the owner
 
 Why: the sandbox cannot reach these providers' websites, and I will not guess field names or prices. Each item below stays unbuilt (or greyed out) until the page arrives.

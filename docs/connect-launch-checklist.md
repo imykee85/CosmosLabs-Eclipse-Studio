@@ -1,3 +1,5 @@
+> SUPERSEDED (2026-11-04): the only open list is `docs/master-list.md`. This file is kept for detail and history; do not track open items here.
+
 # Orbit ("Your creative computer"): launch checklist
 
 Goal: Orbit (the tab at /connect) behaves like a computer. It chats like a strong AI assistant, runs skills, builds and runs mini apps, connects to external apps (TikTok, Instagram, X, Google Drive and more), and remembers everything. Everything below must be done, or its claim left out of the public copy, before launch.
