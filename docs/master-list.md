@@ -50,7 +50,7 @@ Only OPEN items. Done items live in CLAUDE.md. Before listing anything as open, 
 
 Built and removed from this list on 2026-11-04: the sign-up tour (`FirstTour.tsx`), the leak guard (#304), team seat release when a plan ends and the deleted-team sweep (`team-sweep` cron), removal of the unlinked `/export` and `/avatars` pages, and the failing integration tests.
 
-## Added 2026-11-04 from the GitHub security sweep (owner)
+## Planned upgrades (closed Dependabot PRs, 2026-11-04)
 | # | Item | Who |
 |---|---|---|
-| 37 | The repository is PUBLIC and holds internal notes (CLAUDE.md, docs/master-list.md, the security audit reports, known gaps). The sweep found no keys, tokens, private keys or database passwords in the files or the last 400 commits, but those notes tell an attacker where the weak spots are. Make the repository private (GitHub, Settings, General, Danger Zone, Change visibility). Also check Settings, Code security: secret scanning, push protection, Dependabot alerts and private vulnerability reporting are ON, and add a branch rule on `main` (pull request and passing `check` before merge). I cannot read or change these from here. | Owner |
+| 38 | Major upgrades closed as too risky for an automatic bump: Prisma 5 to 7 (#225), Anthropic SDK 0.132 to 1.3 (#227), Tailwind 3 to 4 (#228). Each needs a planned upgrade with testing; do only when the owner says | Me, on the owner's go |
