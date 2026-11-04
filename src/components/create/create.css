@@ -566,3 +566,14 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .cr-vars-viewbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; color: #fff; }
 .cr-vars-viewbar button { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); color: #fff; }
 .cr-vars-viewbar button.is-on { border-color: #c00707; }
+.aw-plan-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.aw-plan-steps { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.aw-plan-steps li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; opacity: .65; }
+.aw-plan-steps li.is-running, .aw-plan-steps li.is-done, .aw-plan-steps li.is-failed { opacity: 1; }
+.aw-plan-dot { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--a-line3, currentColor); display: grid; place-items: center; font-size: 11px; }
+.is-done .aw-plan-dot { background: #c00707; border-color: #c00707; color: #fff; }
+.is-failed .aw-plan-dot { border-color: #c00707; color: #c00707; }
+.aw-plan-err { color: #c00707; font-style: normal; }
+.aw-plan-price { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.aw-plan-note { font-size: 12.5px; margin: 0 0 8px; color: var(--a-fg3, inherit); }
+.aw-plan-done { font-size: 13px; }

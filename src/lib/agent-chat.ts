@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PERSONAS } from "./agent-personas";
 import { refreshCredits } from "@/lib/use-credits";
 import { buildProposal, type Proposal } from "./agent-proposal";
+import { newPlan, type PlanSpec, type PlanState } from "./agent-plan";
+import { quotePlan, runPlan } from "./agent-plan-run";
 
 // The conversation between the user and a studio agent. One chat per agent, kept in this browser and shared live by everything that shows it
 // (the floating agent's card, the Image Studio prompt box, a canvas generator). The agent only PROPOSES: its replies carry buttons, and the screen the
@@ -14,7 +16,7 @@ export type Frame = { id: string; label: string; sec: number; used?: string };
 // A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
 export type Attach = { kind: "picture" | "video"; id: string; name: string };
 export type AttachedDoc = { name: string; text?: string; pdf?: string };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; proposal?: Proposal; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; proposal?: Proposal; plan?: PlanState; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
 
 // What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
 export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
@@ -53,12 +55,15 @@ const KEY = (agent: string) => `eclipse-agent-chat-${agent}`;
 const EVENT = "eclipse-agent-chat";
 const uid = () => Math.random().toString(36).slice(2, 10);
 const cache = new Map<string, Msg[]>();
+const planActive = new Set<string>();
 
 function read(agent: string): Msg[] {
   const hit = cache.get(agent);
   if (hit) return hit;
   let list: Msg[] = [];
   try { const raw = JSON.parse(localStorage.getItem(KEY(agent)) ?? "[]"); if (Array.isArray(raw)) list = raw.filter((m) => m && typeof m.text === "string").slice(-60); } catch {}
+  // A plan that was running when the page was closed is not running any more: it says so (what it already made is in the Gallery).
+  list = list.map((m) => (m.plan?.status === "running" && !planActive.has(m.id) ? { ...m, plan: { ...m.plan, status: "failed" as const, note: "The plan stopped when the page was closed. What it already made is in your Gallery." } } : m));
   cache.set(agent, list);
   return list;
 }
@@ -120,15 +125,34 @@ function addTo(agent: string, m: Omit<Msg, "id">) { write(agent, [...read(agent)
 // Shows a finished reply in the chat it belongs to, and applies the box settings it chose when the same screen is still open.
 function showReply(agent: string, page: string, status: number, body: Record<string, unknown>) {
   if (status !== 200) { addTo(agent, { role: "agent", text: typeof body.error === "string" ? body.error : "The agent couldn't answer. Please try again.", error: true }); return; }
-  const data = body as { text?: string; actions?: Omit<Act, "id">[]; frames?: Frame[]; controls?: ControlPatch };
+  const data = body as { text?: string; actions?: Omit<Act, "id">[]; frames?: Frame[]; controls?: ControlPatch; plan?: PlanSpec };
   const all: Act[] = Array.isArray(data.actions) ? data.actions.map((a) => ({ ...a, id: uid() })) : [];
   const frames: Frame[] = Array.isArray(data.frames) ? data.frames.filter((f) => f && typeof f.id === "string").slice(0, 8).map((f) => ({ id: f.id, label: String(f.label ?? "Frame"), sec: Number(f.sec) || 0 })) : [];
   // A new prompt and/or new box settings become ONE proposal card (Apply, Apply and generate); nothing is changed until the person presses a button.
   const ctx = host?.page === page ? host.context() : { prompt: "" };
   const proposal = buildProposal(page, data.controls as Record<string, unknown> | undefined, all, ctx);
   const actions = proposal ? all.filter((a) => a.kind === "reply") : all;
-  addTo(agent, { role: "agent", text: String(data.text ?? ""), actions, ...(proposal ? { proposal } : {}), ...(frames.length ? { frames } : {}) });
+  const planSpec = data.plan && typeof data.plan === "object" ? data.plan : null;
+  const id = uid();
+  write(agent, [...read(agent), { id, role: "agent", text: String(data.text ?? ""), actions, ...(proposal ? { proposal } : {}), ...(frames.length ? { frames } : {}), ...(planSpec ? { plan: newPlan(planSpec) } : {}) } as Msg]);
+  // The price of the whole plan is worked out from the models' own prices and shown on the card.
+  if (planSpec) void quotePlan(planSpec).then((q) => patchPlan(agent, id, (cur) => (cur.status === "ready" ? { ...q } : cur)));
 }
+
+// Plans being run in this browser (a plan stops if the page is closed: what it already made stays in the Gallery).
+const planCancel = new Set<string>();
+function patchPlan(agent: string, msgId: string, fn: (p: PlanState) => PlanState) {
+  write(agent, read(agent).map((m) => (m.id === msgId && m.plan ? { ...m, plan: fn(m.plan) } : m)));
+}
+/** The person pressed Approve on a plan card: it runs to the end, or stops at the first step that fails. */
+export async function approvePlan(agent: string, msgId: string) {
+  const m = read(agent).find((x) => x.id === msgId);
+  if (!m?.plan || m.plan.status !== "ready") return;
+  planCancel.delete(msgId);
+  planActive.add(msgId);
+  try { await runPlan(m.plan, (np) => patchPlan(agent, msgId, () => np), () => planCancel.has(msgId)); } finally { planActive.delete(msgId); }
+}
+export function cancelPlan(msgId: string) { planCancel.add(msgId); }
 
 // Waits for a reply started on the server and shows it when it is ready. Safe to call again for a reply already being followed.
 async function followRun(agent: string, runId: string, page: string) {
@@ -302,7 +326,7 @@ export function useAgentChat(agent: string | null) {
     write(agent, hit.messages);
   }, [agent]);
   const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
-  return { messages, busy, send, retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
+  return { messages, busy, send, approvePlan: (id: string) => approvePlan(agent ?? "", id), cancelPlan, retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
 }
 
 /** True when the screen the user is on can take a captured frame into its prompt box. */
