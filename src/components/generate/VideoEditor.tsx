@@ -15,6 +15,17 @@ type Pick = { kind: Clip["kind"]; src: string; name: string; dur: number | null 
 const SPEEDS = [0.25, 0.5, 1, 1.5, 2, 4];
 const COLORS = ["#ffffff", "#000000", "#c00707", "#ffd400"];
 
+/** A copy of the file held in memory, so scrubbing and playing never wait on the network. Falls back to the address itself. */
+async function localCopy(src: string, keep: string[]): Promise<string> {
+  if (src.startsWith("blob:") || src.startsWith("data:")) return src;
+  try {
+    const r = await fetch(src);
+    const len = Number(r.headers.get("content-length") || 0);
+    if (!r.ok || len > 400 * 1024 * 1024) return src;
+    const u = URL.createObjectURL(await r.blob()); keep.push(u); return u;
+  } catch { return src; }
+}
+
 /** Reads how long a video or sound file is (images need no length). */
 function probe(kind: Clip["kind"], src: string): Promise<number> {
   return new Promise((res) => {
@@ -48,6 +59,10 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const content = useRef<HTMLDivElement | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const headRef = useRef<HTMLDivElement | null>(null);
+  const timeRef = useRef<HTMLSpanElement | null>(null);
+  const lastSet = useRef(0);
+  const blobs = useRef<string[]>([]);
 
   const lp = useMemo(() => layout(project), [project]);
   const total = useMemo(() => totalDur(project), [project]);
@@ -89,7 +104,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
       }
     }
   }, [project.clips, draw]);
-  useEffect(() => () => { for (const el of media.current.values()) if (el instanceof HTMLVideoElement) el.pause(); media.current.clear(); }, []);
+  useEffect(() => () => { for (const el of media.current.values()) if (el instanceof HTMLVideoElement) el.pause(); media.current.clear(); for (const u of blobs.current) URL.revokeObjectURL(u); }, []);
 
   const syncMedia = useCallback((time: number, isPlaying: boolean) => {
     for (const c of lpRef.current.clips) {
@@ -103,7 +118,11 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
         el.volume = Math.max(0, Math.min(1, c.volume * fadeFactor(c, time - c.start)));
         if (isPlaying && el.paused) void el.play().catch(() => {});
         if (!isPlaying && !el.paused) el.pause();
-      } else if (!el.paused) el.pause();
+      } else {
+        if (!el.paused) el.pause();
+        // get the next clip ready just before it starts, so there is no stall at the cut
+        if (isPlaying && time < c.start && c.start - time < 1 && !el.seeking && Math.abs(el.currentTime - c.in) > 0.1) el.currentTime = c.in;
+      }
     }
   }, []);
 
@@ -114,12 +133,15 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
     const tick = () => {
       const now = base + (performance.now() - t0) / 1000;
       if (now >= total) { tRef.current = total; setT(total); setPlaying(false); return; }
-      tRef.current = now; setT(now); syncMedia(now, true); draw();
+      tRef.current = now; syncMedia(now, true); draw();
+      if (headRef.current) headRef.current.style.left = `${now * pps}px`;
+      if (timeRef.current) timeRef.current.textContent = `${fmtTime(now)} / ${fmtTime(total)}`;
+      if (performance.now() - lastSet.current > 250) { lastSet.current = performance.now(); setT(now); }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(raf); for (const el of media.current.values()) if (el instanceof HTMLVideoElement && !el.paused) el.pause(); };
-  }, [playing, total, syncMedia, draw]);
+  }, [playing, total, pps, syncMedia, draw]);
   const seekTo = (time: number) => { const v = Math.max(0, Math.min(total, time)); tRef.current = v; setT(v); };
 
   // the clip handed in from the preview starts the timeline
@@ -127,7 +149,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
     if (!video) return;
     let dead = false;
     void (async () => {
-      const src = `/api/generations/${video.id}/file`;
+      const src = await localCopy(`/api/generations/${video.id}/file`, blobs.current);
       const dur = video.durationSec && video.durationSec > 0 ? video.durationSec : await probe("video", src);
       if (!dead) commit((p) => (p.clips.length ? p : { ...p, clips: [newClip("video", src, video.fileName || "Clip", dur)] }));
     })();
@@ -138,8 +160,9 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
   // ---- adding ----
   async function add(p: Pick) {
     setError("");
-    const dur = p.dur && p.dur > 0 ? p.dur : await probe(p.kind, p.src);
-    const c = newClip(p.kind, p.src, p.name, dur);
+    const src = await localCopy(p.src, blobs.current);
+    const dur = p.dur && p.dur > 0 ? p.dur : await probe(p.kind, src);
+    const c = newClip(p.kind, src, p.name, dur);
     if (p.kind === "audio") c.start = tRef.current;
     commit((cur) => ({ ...cur, clips: [...cur.clips, c] }));
     setSel({ type: "clip", id: c.id });
@@ -261,7 +284,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
 
         <div className="ve-bar">
           <button type="button" className="ve-play" onClick={() => { if (!total) return; if (!playing && tRef.current >= total - 0.05) seekTo(0); setPlaying((p) => !p); }} aria-label={playing ? "Pause" : "Play"} disabled={!total}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
-          <span className="ve-time">{fmtTime(t)} / {fmtTime(total)}</span>
+          <span className="ve-time" ref={timeRef}>{fmtTime(t)} / {fmtTime(total)}</span>
           <span className="ve-grow" />
           <button type="button" className="ve-icon" onClick={undo} disabled={!past.current.length} aria-label="Undo"><Undo2 size={16} /></button>
           <button type="button" className="ve-icon" onClick={redo} disabled={!future.current.length} aria-label="Redo"><Redo2 size={16} /></button>
@@ -282,7 +305,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
                   </div>
                 ))}
               </div>
-              <div className="ve-head" style={{ left: t * pps }} />
+              <div className="ve-head" ref={headRef} style={{ left: t * pps }} />
             </div>
           </div>
         </div>
