@@ -443,7 +443,7 @@ export default function VideoStudio() {
   const settingsInUse = !!shotList || (seedLocked && !!caps.seed) || (caps.negativePrompt != null && !!negative.trim()) || (caps.cfgScale && creative != null);
 
   return (
-    <div className={`cr-wrap ${active ? "has-shot" : "is-idle"}`}>
+    <div className={`cr-wrap ${active?.status === "pending" ? "has-shot" : "is-idle"}`}>
       <header className="cr-intro">
         <h1 className="pg-title">Video Studio</h1>
         <p>Describe the clip you imagine.</p>

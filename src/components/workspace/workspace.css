@@ -1,5 +1,5 @@
 .ws-root { display: flex; min-height: 100vh; background: var(--a-bg); color: var(--a-fg); font-family: var(--font-sans), Inter, sans-serif; }
-.ws-sidebar { flex: none; width: 272px; display: flex; flex-direction: column; border-right: 1px solid var(--a-line); background: var(--a-bg); position: sticky; top: 0; height: 100vh; margin-left: -272px; transition: margin-left .25s ease; z-index: 30; }
+.ws-sidebar { flex: none; width: 272px; display: flex; flex-direction: column; border-right: 1px solid var(--a-line); background: var(--a-bg); position: sticky; top: 0; height: 100vh; overflow-y: auto; overscroll-behavior: contain; margin-left: -272px; transition: margin-left .25s ease; z-index: 30; }
 .ws-root.is-open .ws-sidebar { margin-left: 0; }
 .ws-sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 18px 14px; color: var(--a-muted2); font-size: 12px; font-weight: 500; letter-spacing: .16em; }
 .ws-nav { flex: 1; overflow-y: auto; padding: 4px 10px 16px; display: grid; align-content: start; gap: 4px; }

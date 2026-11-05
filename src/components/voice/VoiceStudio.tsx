@@ -207,7 +207,7 @@ export default function VoiceStudio() {
   }, [strip.voices, voice]);
 
   return (
-    <div className="vc">
+    <div className={`vc ${takes.length ? "has-takes" : "is-idle"}`}>
       <h1 className="pg-title vc-title">Audio Studio</h1>
 
       <section className="vc-hero" aria-label="Stage">

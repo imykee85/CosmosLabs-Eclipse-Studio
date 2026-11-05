@@ -493,7 +493,7 @@ export default function CreateStudio() {
   }
 
   return (
-    <div className={`cr-wrap ${busy || latestDone ? "has-shot" : "is-idle"}`}>
+    <div className={`cr-wrap ${busy ? "has-shot" : "is-idle"}`}>
       <header className="cr-intro">
         <h1 className="pg-title">Image Studio</h1>
         <p>Describe the shot you imagine.</p>
