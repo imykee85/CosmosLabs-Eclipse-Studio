@@ -1,6 +1,9 @@
 /* ShotMap panel: it reuses the Relight and Change Camera classes (cr-var, cr-cam, cr-light-*, cr-bar); only what they do not have is here. */
 .sm-badge { width: 48px; height: 48px; border-radius: 12px; background: var(--a-input); display: inline-flex; align-items: center; justify-content: center; }
 .sm-stage { width: 100%; }
+.sm-orbit { cursor: grab; }
+.sm-inset { position: absolute; right: 8px; bottom: 8px; width: 34%; aspect-ratio: auto; height: auto; border: 2px solid rgba(255,255,255,.75); border-radius: 10px; z-index: 2; background: #000; }
+.sm-hidden { display: none; }
 .sm-canvas, .sm-map { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
 .sm-lens { position: absolute; left: 10px; top: 8px; font-size: 11px; color: #ddd; background: rgba(0,0,0,.45); padding: 3px 8px; border-radius: 999px; }
 .sm-play { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; }

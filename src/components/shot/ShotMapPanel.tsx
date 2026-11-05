@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Car, Map as MapIcon, Pause, Play, Plus, RotateCcw, Trash2, User, Video, X } from "lucide-react";
+import { Box, Car, Map as MapIcon, Pause, Play, Plus, RotateCcw, Trash2, User, Video, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import Bar from "../create/Bar";
 import { cancelSandboxJob, followSandboxJob, startSandboxJob, type SandboxJobView } from "@/lib/sandbox-client";
@@ -16,12 +16,14 @@ export type ShotUse = { guide: GuideResult; prompt: string; aspect: AspectId; se
 const ASPECT_CHOICES: AspectId[] = ["16:9", "9:16", "1:1", "4:5"];
 const POSE_LABEL = (p: string) => p.replace("-", " ").replace(/^./, (c) => c.toUpperCase());
 type Build = { drawAt: (s: number, t: number) => void; dispose: () => void };
+type StageBuild = { drawAt: (t: number) => void; dispose: () => void };
+type OrbitState = import("@/lib/shot/render-page").Orbit;
 
 /** ShotMap: build a rough 3D blockout of a shot, choose the camera move, preview it, make a guide video and hand it to Video Studio. Laid out like Relight and Change Camera. */
 export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose }: { projectId: string | null; initialPreset?: PresetId; onUse: (use: ShotUse) => void; onClose: () => void }) {
   const [setup, setSetup] = useState<Setup>(() => ({ ...DEFAULT_SETUP, preset: initialPreset ?? DEFAULT_SETUP.preset }));
   const [sel, setSel] = useState(0);
-  const [view, setView] = useState<"shot" | "map">("shot");
+  const [view, setView] = useState<"shot" | "map" | "stage">("shot");
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [look, setLook] = useState("");
@@ -33,6 +35,9 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   const abort = useRef<AbortController | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const built = useRef<Build | null>(null);
+  const stageCanvas = useRef<HTMLCanvasElement | null>(null);
+  const stageBuilt = useRef<StageBuild | null>(null);
+  const orbit = useRef<OrbitState | null>(null);
   const scene = useMemo(() => buildScene(setup), [setup]);
   const cast = setup.cast, item = cast[Math.min(sel, cast.length - 1)] ?? cast[0];
   const aspect = ASPECTS[setup.aspect], T = setup.durationS;
@@ -45,15 +50,39 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   // the 3D preview: three.js is loaded when the panel opens; the scene is rebuilt when it changes (a handful of shapes) and drawn at the playhead
   const tRef = useRef(0); tRef.current = t;
   useEffect(() => {
-    const el = canvas.current; if (!el || flat || view !== "shot") return;
+    const el = canvas.current; if (!el || flat) return;
     let r: Build | null = null, gone = false;
     void import("@/lib/shot/render-page").then(({ build }) => {
       if (gone) return;
       try { r = build(scene, 640, Math.round(640 / aspect), el) as unknown as Build; built.current = r; r.drawAt(0, Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
     }).catch(() => setFlat(true));
-    return () => { gone = true; r?.dispose(); if (built.current === r) built.current = null; if (el && view === "shot") void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
+    return () => { gone = true; r?.dispose(); if (built.current === r) built.current = null; if (el) void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
+  }, [scene, flat, aspect, T]);
+
+  // the Stage view: the whole set from outside with the camera drawn as equipment and its view as a pyramid; drag to orbit, wheel or pinch to zoom
+  useEffect(() => {
+    const el = stageCanvas.current; if (view !== "stage" || !el || flat) return;
+    let r: StageBuild | null = null, gone = false;
+    void import("@/lib/shot/render-page").then(({ buildStage, fitOrbit }) => {
+      if (gone) return;
+      try { if (!orbit.current) orbit.current = fitOrbit(scene); r = buildStage(scene, el, 640, Math.round(640 / aspect), orbit.current); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
+    }).catch(() => setFlat(true));
+    return () => { gone = true; r?.dispose(); if (stageBuilt.current === r) stageBuilt.current = null; void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
   }, [scene, view, flat, aspect, T]);
-  useEffect(() => { built.current?.drawAt(0, Math.min(t, T - 0.001)); }, [t, T]);
+  const redraw = useCallback(() => { stageBuilt.current?.drawAt(Math.min(tRef.current, T - 0.001)); }, [T]);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef(0);
+  const onStageDown = (e: React.PointerEvent) => { (e.currentTarget as Element).setPointerCapture(e.pointerId); pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY }); pinch.current = 0; };
+  const onStageMove = (e: React.PointerEvent) => {
+    const o = orbit.current, p = pointers.current.get(e.pointerId); if (!o || !p) return;
+    const prev = { ...p }; p.x = e.clientX; p.y = e.clientY;
+    if (pointers.current.size >= 2) { const [a, b] = [...pointers.current.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch.current) o.dist = Math.min(80, Math.max(2.5, o.dist * (pinch.current / d))); pinch.current = d; }
+    else { o.az -= (e.clientX - prev.x) * 0.008; o.el = Math.min(1.45, Math.max(0.05, o.el + (e.clientY - prev.y) * 0.008)); }
+    redraw();
+  };
+  const onStageUp = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId); pinch.current = 0; };
+  const onStageWheel = (e: React.WheelEvent) => { const o = orbit.current; if (!o) return; o.dist = Math.min(80, Math.max(2.5, o.dist * (1 + e.deltaY * 0.001))); redraw(); };
+  useEffect(() => { built.current?.drawAt(0, Math.min(t, T - 0.001)); stageBuilt.current?.drawAt(Math.min(t, T - 0.001)); }, [t, T]);
   useEffect(() => {
     if (!playing) return;
     let raf = 0, last = performance.now();
@@ -66,7 +95,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   const addP = () => { const n = addPerson(setup); if (n !== setup) { edit(n); setSel(n.cast.length - 1); } };
   const addV = () => { const n = addVehicleWithDriver(setup); if (n !== setup) { edit(n); setSel(setup.cast.length); } };
   const remove = () => { if (cast.length < 2 || !item) return; edit(removeCast(setup, item.id)); setSel(0); };
-  const reset = () => { setSetup({ ...DEFAULT_SETUP, preset: initialPreset ?? DEFAULT_SETUP.preset }); setSel(0); setT(0); setGuide(null); };
+  const reset = () => { orbit.current = null; setSetup({ ...DEFAULT_SETUP, preset: initialPreset ?? DEFAULT_SETUP.preset }); setSel(0); setT(0); setGuide(null); };
 
   async function make() {
     setError(""); setGuide(null); setPlaying(false);
@@ -95,8 +124,9 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
         <div className="cr-light-label">Shot preview</div>
         <div className="cr-cam-stage sm-stage" style={{ aspectRatio: String(aspect) }}>
           {changed && <button type="button" className="cr-light-reset" onClick={reset} aria-label="Reset the shot"><RotateCcw size={16} /></button>}
-          {view === "shot" && !flat && <canvas ref={canvas} className="sm-canvas" aria-label="Shot preview" />}
-          {view === "shot" && flat && <div className="cr-light-flat">The 3D preview isn&apos;t available on this device. You can still make the guide video.</div>}
+          {!flat && <canvas ref={canvas} className={view === "shot" ? "sm-canvas" : view === "stage" ? "sm-inset" : "sm-hidden"} aria-label="Shot preview" />}
+          {view === "stage" && !flat && <canvas ref={stageCanvas} className="sm-canvas sm-orbit" aria-label="Stage view: drag to look around" onPointerDown={onStageDown} onPointerMove={onStageMove} onPointerUp={onStageUp} onPointerCancel={onStageUp} onWheel={onStageWheel} />}
+          {view !== "map" && flat && <div className="cr-light-flat">The 3D preview isn&apos;t available on this device. You can still make the guide video.</div>}
           {view === "map" && <MapView setup={setup} scene={scene} t={t} onMove={(id, patch) => edit({ cast: cast.map((m) => (m.id === id ? { ...m, ...patch } : m)) })} onSelect={(id) => setSel(Math.max(0, cast.findIndex((m) => m.id === id)))} sel={item?.id} />}
           <span className="sm-lens" aria-hidden>{Math.round(camNow.lensMm)} mm</span>
         </div>
@@ -106,6 +136,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
           <output>{t.toFixed(1)} / {T} s</output>
           <div className="sm-view" role="group" aria-label="View">
             <button type="button" className={view === "shot" ? "is-on" : ""} onClick={() => setView("shot")}><Video size={14} /> Shot</button>
+            <button type="button" className={view === "stage" ? "is-on" : ""} onClick={() => setView("stage")}><Box size={14} /> Stage</button>
             <button type="button" className={view === "map" ? "is-on" : ""} onClick={() => setView("map")}><MapIcon size={14} /> Map</button>
           </div>
         </div>

@@ -32,7 +32,11 @@ test.describe("ShotMap", () => {
     await expect(panel.locator("canvas.sm-canvas, .cr-light-flat").first()).toBeVisible({ timeout: 15000 });
     await panel.getByRole("button", { name: "Shin height" }).click();
     await expect(panel.getByRole("button", { name: "Shin height" })).toHaveClass(/is-on/);
-    await panel.getByRole("button", { name: "Map" }).click();
+    await panel.getByRole("button", { name: "Stage", exact: true }).click();
+    await expect(panel.locator("canvas.sm-orbit, .cr-light-flat").first()).toBeVisible({ timeout: 15000 });
+    await expect(panel.locator("canvas.sm-inset, .cr-light-flat").first()).toBeVisible();
+    await panel.locator("canvas.sm-orbit").hover(); await page.mouse.wheel(0, 200);
+    await panel.getByRole("button", { name: "Map", exact: true }).click();
     await expect(panel.locator("svg.sm-map")).toBeVisible();
     await panel.getByRole("button", { name: "Add a person" }).click();
     await expect(panel.getByRole("tab")).toHaveCount(2);
