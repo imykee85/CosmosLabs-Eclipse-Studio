@@ -43,3 +43,22 @@ test("a person can be a man or a woman; the prompt and the scene say so", () => 
   const a = buildScene(s).actors[0]; assert.equal(a.build, "woman"); assert.ok(a.heightM < 1.7);
   assert.match(shotPrompt(s), /red figure is a woman/); assert.match(shotPrompt({ ...s, cast: [{ ...s.cast[0], build: "man" }] }), /red figure is a man/);
 });
+
+import { addObject, objectProps, OBJECTS, MAX_OBJECTS } from "../../src/lib/shot/setup";
+test("objects become props in the scene and the prompt, and turn with their rotation", () => {
+  let s = addObject(DEFAULT_SETUP, "table"); s = addObject(s, "horse");
+  const sc = buildScene(s);
+  assert.ok(sc.set.props.length >= 12);
+  assert.ok(OBJECTS.length >= 16);
+  const t = { id: "ox", type: "chair" as const, x: 1, z: 1, rot: 90, scale: 1 };
+  const back = objectProps(t).find((p) => p.size[1] === 0.55)!; // chair back sits at local z -0.2 -> world x -0.2 after a quarter turn
+  assert.ok(Math.abs(back.pos[0] - (1 - 0.2)) < 1e-9 || Math.abs(back.pos[0] - (1 + 0.2)) < 1e-9);
+  assert.match(shotPrompt(s), /table, horse/);
+  let many = DEFAULT_SETUP; for (let i = 0; i < MAX_OBJECTS + 3; i++) many = addObject(many, "crate");
+  assert.equal((many.objects ?? []).length, MAX_OBJECTS);
+});
+test("several pose changes are all in the actor's actions, in time order", () => {
+  const m = { ...DEFAULT_SETUP.cast[0], pose: "sitting" as const, pose2: "standing" as const, pose2At: 2, extra: [{ pose: "running" as const, at: 6 }, { pose: "walking" as const, at: 4 }] };
+  const sc = buildScene({ ...DEFAULT_SETUP, durationS: 8, cast: [m] });
+  assert.deepEqual(sc.actors[0].actions.map((a) => a.pose), ["sitting", "standing", "walking", "running"]);
+});

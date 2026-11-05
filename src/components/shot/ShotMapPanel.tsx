@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Car, Map as MapIcon, Pause, Play, Plus, RotateCcw, Trash2, User, Video, X } from "lucide-react";
+import { Armchair, Box, Car, Map as MapIcon, Pause, Play, Plus, RotateCcw, Trash2, User, Video, X } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import Bar from "../create/Bar";
 import { cancelSandboxJob, followSandboxJob, startSandboxJob, type SandboxJobView } from "@/lib/sandbox-client";
 import { ASPECTS, FEATURE_NAME, PALETTE, POSES, colorHex, type AspectId, type Pose } from "@/lib/shot/schema";
 import { cameraAt } from "@/lib/shot/engine";
-import { DEFAULT_SETUP, KITS, MAX_CAST, PRESETS, addPerson, addVehicleWithDriver, buildScene, colorName, removeCast, type CastItem, type PresetId, type Setup } from "@/lib/shot/setup";
+import { DEFAULT_SETUP, KITS, MAX_CAST, MAX_OBJECTS, OBJECTS, PRESETS, addObject, addPerson, removeObject, type ObjType, type SceneObject, addVehicleWithDriver, buildScene, colorName, removeCast, type CastItem, type PresetId, type Setup } from "@/lib/shot/setup";
 import { shotPrompt } from "@/lib/shot/prompt";
 import "./shot.css";
 
@@ -92,6 +92,10 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
 
   const edit = useCallback((patch: Partial<Setup>) => { setSetup((s) => ({ ...s, ...patch })); setGuide(null); setError(""); }, []);
   const editItem = (patch: Partial<CastItem>) => edit({ cast: cast.map((m, i) => (i === Math.min(sel, cast.length - 1) ? { ...m, ...patch } : m)) });
+  const objects: SceneObject[] = setup.objects ?? [];
+  const [osel, setOsel] = useState(0);
+  const obj = objects[Math.min(osel, objects.length - 1)];
+  const editObj = (patch: Partial<SceneObject>) => edit({ objects: objects.map((o) => (o.id === obj?.id ? { ...o, ...patch } : o)) });
   const addP = () => { const n = addPerson(setup); if (n !== setup) { edit(n); setSel(n.cast.length - 1); } };
   const addV = () => { const n = addVehicleWithDriver(setup); if (n !== setup) { edit(n); setSel(setup.cast.length); } };
   const remove = () => { if (cast.length < 2 || !item) return; edit(removeCast(setup, item.id)); setSel(0); };
@@ -127,7 +131,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
           {!flat && <canvas ref={canvas} className={view === "shot" ? "sm-canvas" : view === "stage" ? "sm-inset" : "sm-hidden"} aria-label="Shot preview" />}
           {view === "stage" && !flat && <canvas ref={stageCanvas} className="sm-canvas sm-orbit" aria-label="Stage view: drag to look around" onPointerDown={onStageDown} onPointerMove={onStageMove} onPointerUp={onStageUp} onPointerCancel={onStageUp} onWheel={onStageWheel} />}
           {view !== "map" && flat && <div className="cr-light-flat">The 3D preview isn&apos;t available on this device. You can still make the guide video.</div>}
-          {view === "map" && <MapView setup={setup} scene={scene} t={t} onMove={(id, patch) => edit({ cast: cast.map((m) => (m.id === id ? { ...m, ...patch } : m)) })} onSelect={(id) => setSel(Math.max(0, cast.findIndex((m) => m.id === id)))} sel={item?.id} />}
+          {view === "map" && <MapView setup={setup} scene={scene} t={t} onMove={(id, patch) => (id.startsWith("o") && objects.some((o) => o.id === id) ? edit({ objects: objects.map((o) => (o.id === id ? { ...o, x: patch.x ?? o.x, z: patch.z ?? o.z } : o)) }) : edit({ cast: cast.map((m) => (m.id === id ? { ...m, ...patch } : m)) }))} onSelect={(id) => setSel(Math.max(0, cast.findIndex((m) => m.id === id)))} sel={item?.id} />}
           <span className="sm-lens" aria-hidden>{Math.round(camNow.lensMm)} mm</span>
         </div>
         <div className="sm-play">
@@ -187,6 +191,16 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
               </div>
             )}
             {item.kind === "person" && !item.rides && item.pose2 && <Bar id="sm-p2" label="Changes at" min={1} max={Math.max(2, T - 1)} value={Math.min(item.pose2At, Math.max(2, T - 1))} unit="s" onChange={(v) => editItem({ pose2At: v })} />}
+            {item.kind === "person" && !item.rides && item.pose2 && (item.extra ?? []).map((x, i) => (
+              <div key={i} className="sm-extra">
+                <div className="cr-light-opts">
+                  <label className="cr-light-chip" aria-label={`Action ${i + 3}`}><User size={14} /><select value={x.pose} onChange={(e) => editItem({ extra: (item.extra ?? []).map((q, k) => (k === i ? { ...q, pose: e.target.value as Pose } : q)) })}>{POSES.filter((p) => p !== "driving").map((p) => <option key={p} value={p}>Then {POSE_LABEL(p).toLowerCase()}</option>)}</select></label>
+                  <button type="button" className="cr-light-chip" onClick={() => editItem({ extra: (item.extra ?? []).filter((_, k) => k !== i) })} aria-label="Remove this action"><X size={14} /></button>
+                </div>
+                <Bar id={`sm-x${i}`} label="Changes at" min={1} max={Math.max(2, T - 1)} value={Math.min(x.at, Math.max(2, T - 1))} unit="s" onChange={(v) => editItem({ extra: (item.extra ?? []).map((q, k) => (k === i ? { ...q, at: v } : q)) })} />
+              </div>
+            ))}
+            {item.kind === "person" && !item.rides && item.pose2 && (item.extra ?? []).length < 3 && <button type="button" className="sm-addact" onClick={() => editItem({ extra: [...(item.extra ?? []), { pose: "standing", at: Math.min(T - 1, Math.max(item.pose2At, ...(item.extra ?? []).map((q) => q.at)) + 2) }] })}><Plus size={14} /> Add another action</button>}
             {!item.rides && (
               <>
                 <Bar id="sm-x" label="Left / right" min={-12} max={12} step={0.1} value={item.x} text={`${item.x.toFixed(1)} m`} onChange={(v) => editItem({ x: v })} />
@@ -199,6 +213,25 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
               </>
             )}
             {item.rides && <p className="cr-cam-tip">Sits in the vehicle and goes where it goes.</p>}
+          </div>
+        )}
+
+        <div className="cr-light-label">Objects</div>
+        <div className="cr-light-row">
+          <div className="cr-light-tabs" role="tablist" aria-label="Objects">
+            {objects.map((o, i) => <button key={o.id} type="button" role="tab" aria-selected={i === osel} className={i === osel ? "is-on" : ""} onClick={() => setOsel(i)}><Armchair size={13} /> {OBJECTS.find((d) => d.id === o.type)?.label}</button>)}
+            {objects.length < MAX_OBJECTS && (
+              <label className="cr-light-chip sm-addobj" aria-label="Add an object"><Plus size={14} /><select value="" onChange={(e) => { if (!e.target.value) return; const n = addObject(setup, e.target.value as ObjType); edit(n); setOsel((n.objects ?? []).length - 1); }}><option value="">Add object</option>{OBJECTS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
+            )}
+            {obj && <button type="button" onClick={() => { edit(removeObject(setup, obj.id)); setOsel(0); }} aria-label="Remove this object"><Trash2 size={14} /></button>}
+          </div>
+        </div>
+        {obj && (
+          <div className="sm-cast">
+            <Bar id="sm-ox" label="Left / right" min={-12} max={12} step={0.1} value={obj.x} text={`${obj.x.toFixed(1)} m`} onChange={(v) => editObj({ x: v })} />
+            <Bar id="sm-oz" label="Near / far" min={-12} max={12} step={0.1} value={obj.z} text={`${obj.z.toFixed(1)} m`} onChange={(v) => editObj({ z: v })} />
+            <Bar id="sm-or" label="Turn" min={0} max={359} value={obj.rot} unit="°" onChange={(v) => editObj({ rot: v })} />
+            <Bar id="sm-os" label="Size" min={0.3} max={3} step={0.1} value={obj.scale} text={`${obj.scale.toFixed(1)}x`} onChange={(v) => editObj({ scale: v })} />
           </div>
         )}
 
@@ -231,6 +264,7 @@ function MapView({ setup, scene, t, onMove, onSelect, sel }: { setup: Setup; sce
   const frozen = useRef<{ x0: number; z0: number; w: number; h: number } | null>(null);
   const [drag, setDrag] = useState<{ id: string; to: boolean } | null>(null);
   const pts: [number, number][] = [];
+  for (const o of setup.objects ?? []) pts.push([o.x, o.z]);
   for (const m of setup.cast) { pts.push([m.x, m.z]); if (m.moves) pts.push([m.toX, m.toZ]); }
   for (const k of scene.cameras[0].keys) pts.push([k.pos[0], k.pos[2]]);
   const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
@@ -252,6 +286,11 @@ function MapView({ setup, scene, t, onMove, onSelect, sel }: { setup: Setup; sce
       <polyline points={path} className="sm-campath" />
       <path d={`M ${c.pos[0]} ${c.pos[2]} L ${c.pos[0] + len * Math.sin(ang - half)} ${c.pos[2] + len * Math.cos(ang - half)} L ${c.pos[0] + len * Math.sin(ang + half)} ${c.pos[2] + len * Math.cos(ang + half)} Z`} className="sm-fov" />
       <circle cx={c.pos[0]} cy={c.pos[2]} r={r * 0.9} className="sm-cam" />
+      {(setup.objects ?? []).map((o) => { const f = OBJECTS.find((d) => d.id === o.type)?.foot ?? [1, 1]; const w = f[0] * o.scale, d = f[1] * o.scale; return (
+        <g key={o.id} transform={`translate(${o.x} ${o.z}) rotate(${-o.rot})`} className="sm-drag" onPointerDown={(e) => { (e.target as Element).setPointerCapture(e.pointerId); frozen.current = { x0: live.x0, z0: live.z0, w: live.x1 - live.x0, h: live.z1 - live.z0 }; setDrag({ id: o.id, to: false }); }}>
+          <rect x={-w / 2} y={-d / 2} width={w} height={d} fill="rgba(160,166,176,.55)" stroke="rgba(255,255,255,.7)" strokeWidth={r * 0.25} rx={r * 0.3} />
+        </g>
+      ); })}
       {setup.cast.filter((m) => !m.rides).map((m) => (
         <g key={m.id}>
           {m.moves && <line x1={m.x} y1={m.z} x2={m.toX} y2={m.toZ} stroke={colorHex(m.color)} strokeWidth={r * 0.35} strokeDasharray={`${r} ${r}`} />}

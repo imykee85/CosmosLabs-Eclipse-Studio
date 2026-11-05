@@ -17,6 +17,7 @@ export function shotPrompt(s: Setup, opts: { look?: string; sound?: string; exac
     const acts = [m.pose !== "standing" ? poseText(m.pose) : "", m.pose2 ? `${poseText(m.pose2)} from ${m.pose2At} s` : "", m.moves && !m.rides ? "walks across the space" : ""].filter(Boolean).join(", ");
     lines.push(`The ${colorName(m.color)} figure is ${who}${acts ? `; ${acts}` : ""}.`);
   }
+  const things = (s.objects ?? []).map((o) => o.type === "lamppost" ? "lamp post" : o.type); if (things.length) lines.push(`Set pieces in the scene (grey blocks in video 1, make them real and in the same places): ${Array.from(new Set(things)).join(", ")}.`);
   for (const m of cars) lines.push(`The ${colorName(m.color)} vehicle is ${m.label.trim() || "a car"}${m.moves ? " and drives along the marked path" : ""}.`);
   if (opts.look?.trim()) lines.push(`Look: ${opts.look.trim()}`);
   lines.push(opts.exactSpeed ? "Follow the guide's speed exactly." : "Prefer natural motion and momentum over matching the guide's speed exactly.");

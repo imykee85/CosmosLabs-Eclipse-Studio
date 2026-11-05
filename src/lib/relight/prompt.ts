@@ -75,3 +75,8 @@ export function relightPrompt(lights: Light[], note = ""): string {
   const extra = note.trim() ? ` ${note.trim().slice(0, 400)}` : "";
   return `Relight image 1. The scene is lit by ${list}. Remove the original lighting so only this lighting remains. ${KEEP}${extra}`;
 }
+
+/** The same lights, asked of a whole clip: the lighting changes and nothing else does. */
+export function relightVideoPrompt(lights: Light[], note = ""): string {
+  return relightPrompt(lights, note).replace(/^Relight image 1\./, "Relight the whole video. Keep every movement, camera move, timing, subject and sound exactly as they are.");
+}

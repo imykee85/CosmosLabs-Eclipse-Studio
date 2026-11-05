@@ -21,12 +21,12 @@ test.describe("ShotMap", () => {
   test("chip, tray, panel, guide and the hand-over to Video Studio", async ({ page }) => {
     const jobs = await setup(page);
     await page.goto("/generate");
-    await page.getByRole("button", { name: "ShotMap", exact: true }).click();
-    const tray = page.getByRole("toolbar", { name: "ShotMap moves" });
-    await expect(tray.getByRole("button", { name: /Push in/ })).toBeVisible();
-    await tray.getByRole("button", { name: /Orbit 180/ }).click();
+    const tray = page.getByRole("toolbar", { name: "Video tools" });
+    await expect(tray.getByRole("button", { name: /Relight/ })).toBeDisabled();
+    await tray.getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Orbit 180°" }).click();
     await expect(panel.locator(".cr-light-quick button.is-on", { hasText: "Orbit 180°" })).toBeVisible();
     // the preview draws (WebGL may be missing in some browsers: then the message shows instead and the rest still works)
     await expect(panel.locator("canvas.sm-canvas, .cr-light-flat").first()).toBeVisible({ timeout: 15000 });
@@ -38,6 +38,13 @@ test.describe("ShotMap", () => {
     await panel.locator("canvas.sm-orbit").hover(); await page.mouse.wheel(0, 200);
     await panel.getByRole("button", { name: "Map", exact: true }).click();
     await expect(panel.locator("svg.sm-map")).toBeVisible();
+    await panel.getByLabel("Add an object").selectOption("horse");
+    await expect(panel.locator("svg.sm-map rect")).toHaveCount(1);
+    await panel.getByRole("button", { name: "Remove this object" }).click();
+    await expect(panel.locator("svg.sm-map rect")).toHaveCount(0);
+    await panel.getByLabel("Then", { exact: true }).selectOption("walking");
+    await panel.getByRole("button", { name: "Add another action" }).click();
+    await expect(panel.getByLabel("Action 3", { exact: true })).toBeVisible();
     await panel.getByRole("button", { name: "Add a person" }).click();
     await expect(panel.getByRole("tab")).toHaveCount(2);
     await panel.getByRole("button", { name: "Add a vehicle with a driver" }).click();
@@ -59,8 +66,7 @@ test.describe("ShotMap", () => {
     const ctx = await browser.newContext({ viewport: { width: 520, height: 900 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage(); await setup(page);
     await page.goto("/generate");
-    await page.getByRole("button", { name: "ShotMap", exact: true }).click();
-    await page.getByRole("toolbar", { name: "ShotMap moves" }).getByRole("button", { name: /Open ShotMap/ }).click();
+    await page.getByRole("toolbar", { name: "Video tools" }).getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel).toBeVisible();
     const over = await panel.evaluate((el) => el.scrollWidth - el.clientWidth);

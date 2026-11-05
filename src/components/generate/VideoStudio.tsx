@@ -6,7 +6,7 @@ import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Sun, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import GenerateButton from "@/components/GenerateButton";
 import AgentIcon from "../AgentIcon";
@@ -21,9 +21,10 @@ import { askConfirm } from "@/components/ConfirmHost";
 import RenderDetails from "../library/RenderDetails";
 import OrderedRefs, { type RefItem } from "./OrderedRefs";
 import StyleLibrary from "./StyleLibrary";
+import RelightVideoPanel from "./RelightVideoPanel";
 import ShotMapPanel, { type ShotUse } from "../shot/ShotMapPanel";
 import SheetPortal from "@/components/voice/SheetPortal";
-import { PRESETS as SHOT_PRESETS, type PresetId } from "@/lib/shot/setup";
+import { type PresetId } from "@/lib/shot/setup";
 import { FEATURE_NAME as SHOT_NAME } from "@/lib/shot/schema";
 import SoonTag from "../SoonTag";
 import VideoModelPicker from "./VideoModelPicker";
@@ -67,7 +68,7 @@ export default function VideoStudio() {
   const [mcOrient, setMcOrient] = useState<"video" | "image">("video");
   const [mcSound, setMcSound] = useState(true);
   const [styleOpen, setStyleOpen] = useState(false);
-  const [shotTray, setShotTray] = useState(false);          // the ShotMap tray under the prompt box
+  const [relightOpen, setRelightOpen] = useState(false);
   const [shotOpen, setShotOpen] = useState<PresetId | "open" | null>(null);
   const [mcScene, setMcScene] = useState(false);          // Scene control: not sent anywhere yet (its API field is not in our reference)
   const [mcSceneFrom, setMcSceneFrom] = useState<"video" | "image">("video");
@@ -146,6 +147,7 @@ export default function VideoStudio() {
   const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 40);
   const videos = (renders ?? []).filter((g) => g.kind === "video");
   const active: Render | null = (activeId ? videos.find((g) => g.id === activeId) : videos.find((g) => g.status === "pending")) ?? null;
+  const toolVid = active?.status === "completed" ? active : null;
   const done = videos.filter((g) => g.status === "completed" && !g.deletedAt).slice(0, 5); // the five most recent, like Image Studio
 
   useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => c && setConfig(c)).catch(() => {}); }, []);
@@ -255,13 +257,12 @@ export default function VideoStudio() {
 
   /** ShotMap hands over: Seedance 2.5, the guide as the reference clip, the built prompt, the shape and length of the shot. The person presses Generate as usual. */
   function applyShotMap(u: ShotUse) {
-    setShotOpen(null); setShotTray(false); setNote("");
+    setShotOpen(null);  setNote("");
     setModelId("seedance_2_5"); try { localStorage.setItem(MODEL_KEY, "seedance_2_5"); } catch {}
     setStart(null); setEnd(null); setRefs([]); setMotion(null);
     setVrefs([{ type: "render", id: u.guide.id, label: "ShotMap guide", url: u.guide.url, sec: u.guide.seconds }]);
     setPrompt(u.prompt); setRatio(u.aspect === "4:5" ? "3:4" : u.aspect); setDuration(Math.min(30, Math.max(4, Math.round(u.seconds))));
   }
-  function toggleShotMap() { if (!allowedNow("shotmap")) { askUpgrade("shotmap"); return; } setShotTray((v) => !v); }
 
   function pickModel(m: VideoModel) {
     setModelId(m.id);
@@ -468,9 +469,9 @@ export default function VideoStudio() {
       </section>
 
       <div className="cr-dock">
-        <div className={`cr-tray ${shotTray ? "is-open" : ""}`} role="toolbar" aria-label={`${SHOT_NAME} moves`} aria-hidden={!shotTray}>
-          {SHOT_PRESETS.filter((p) => ["push-in", "orbit-180", "shin", "handheld", "follow"].includes(p.id)).map((p) => <button key={p.id} type="button" tabIndex={shotTray ? 0 : -1} title={p.hint} onClick={() => { if (allowedNow("shotmap")) setShotOpen(p.id); else askUpgrade("shotmap"); }}><Clapperboard size={14} /> {p.label}</button>)}
-          <button type="button" tabIndex={shotTray ? 0 : -1} onClick={() => { if (allowedNow("shotmap")) setShotOpen("open"); else askUpgrade("shotmap"); }}><Video size={14} /> Open {SHOT_NAME}</button>
+        <div className={`cr-tray is-open`} role="toolbar" aria-label="Video tools">
+          <button type="button" onClick={() => { if (allowedNow("shotmap")) setShotOpen("open"); else askUpgrade("shotmap"); }} title="Direct a new shot in 3D, then generate it from the guide video"><Clapperboard size={14} /> {SHOT_NAME}</button>
+          <button type="button" disabled={!toolVid} onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
         </div>
         <PromptEdge message={edge} />
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>
@@ -584,7 +585,6 @@ export default function VideoStudio() {
                 </>
               )}
               <button type="button" className="cr-chip" disabled={(!caps.refMax && !caps.refVideoMax && !mc) || (!mc && (!!start || !!end))} title={!caps.refMax && !caps.refVideoMax && !mc ? `${model.label} takes no reference pictures or videos yet` : mc ? "Choose a picture (who or what appears) and the video whose movement should be copied" : start || end ? "Use either a start frame or Ingredients, not both" : `Choose up to ${caps.refMax} pictures${caps.refVideoMax ? ` and ${caps.refVideoMax} of your videos` : ""}${caps.refAudioMax ? ` and ${caps.refAudioMax} sounds` : ""} the video should work from`} onClick={() => openPicker("refs")}><Layers size={14} /> Ingredients{refs.length + vrefs.length + arefs.length + (mc && start ? 1 : 0) ? ` (${refs.length + vrefs.length + arefs.length + (mc && start ? 1 : 0)})` : ""}</button>
-              <button type="button" className={`cr-chip ${shotTray ? "is-on" : ""}`} aria-pressed={shotTray} title="Direct the shot in 3D first, then generate it from the guide video" onClick={toggleShotMap}><Clapperboard size={14} /> {SHOT_NAME}</button>
               <button type="button" className={`cr-chip ${motion ? "is-on" : ""}`} aria-haspopup="menu" aria-pressed={!!motion} title="Copy the movement of a reference clip" onClick={(e) => setMotionAnchor(e.currentTarget.getBoundingClientRect())}><Video size={14} /> Motion{motion ? `: ${motion === "subject" ? "subject" : "3D scene"}` : ""}</button>
               <div className="cr-grp">
                 <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}><AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Atlas"}</span></button>
@@ -609,6 +609,7 @@ export default function VideoStudio() {
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} multiShot={!!caps.multiShot && !mc} shotsOn={!!shots} onShots={(on) => setShots(on ? [{ prompt: "", duration: 3 }, { prompt: "", duration: 3 }] : null)} onClose={() => setSettingsAnchor(null)} />}
       {styleOpen && <StyleLibrary onClose={() => setStyleOpen(false)} />}
+      {relightOpen && toolVid && <SheetPortal><RelightVideoPanel video={toolVid} onClose={() => setRelightOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {shotOpen && <SheetPortal><ShotMapPanel projectId={projectId ?? null} initialPreset={shotOpen === "open" ? undefined : shotOpen} onUse={applyShotMap} onClose={() => setShotOpen(null)} /></SheetPortal>}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} creditsOn={!!config?.creditsOn} direct={config?.direct ?? []} />}
     </div>
