@@ -39,6 +39,15 @@
 /* Same stage as Change Camera: the same size and the same dark background, in every theme. The guide's own shape sits inside it. */
 .cr-var.sm-panel .cr-cam-stage.sm-stage { background: #0d0d10; aspect-ratio: 300 / 240; min-height: 0; }
 @media (min-width: 801px) { .cr-var.sm-panel .cr-cam-stage.sm-stage { aspect-ratio: auto; height: min(42dvh, 380px); } }
-.cr-var.sm-panel .sm-canvas { object-fit: contain; background: #0d0d10; }
+.cr-var.sm-panel .sm-canvas { object-fit: cover; background: #0d0d10; }
 .cr-var.sm-panel .sm-canvas.sm-orbit { object-fit: cover; }
 .sm-options { margin-top: -2px; }
+
+.sm-quality { grid-template-columns: 1fr 1fr; }
+.sm-mv { position: relative; min-width: 0; }
+.sm-mv > button { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.sm-mv > button small { font-size: 10px; opacity: .75; margin-top: 2px; }
+.sm-menu { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; min-width: 150px; margin: 0; padding: 6px; list-style: none; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 18px; box-shadow: 0 12px 32px rgba(0,0,0,.25); }
+.sm-menu li button { width: 100%; text-align: left; border: 0; background: transparent; color: inherit; font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; cursor: pointer; }
+.sm-menu li button:hover { background: var(--a-input); }
+.sm-menu li[aria-selected="true"] button::before { content: "✓ "; }

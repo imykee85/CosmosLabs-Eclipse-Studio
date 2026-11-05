@@ -84,7 +84,7 @@ test("combined moves: pull back while orbiting, or one after the other; speed an
 import { addCamera, camCount, editCam, removeCamera, totalS, MOVE_GROUPS, PRESETS as ALL_PRESETS } from "../../src/lib/shot/setup";
 test("move groups cover every preset once, and extra cameras cut one after the other", () => {
   const ids = MOVE_GROUPS.flatMap((g) => g.options.map((o) => o.id)).sort();
-  assert.deepEqual(ids, ALL_PRESETS.map((p) => p.id).sort());
+  assert.deepEqual(ids, ALL_PRESETS.filter((p) => p.id !== "static").map((p) => p.id).sort());
   let s = addCamera({ ...DEFAULT_SETUP, durationS: 5 }); s = editCam(s, 1, { preset: "orbit-180", durationS: 4 });
   assert.equal(camCount(s), 2); assert.equal(totalS(s), 9);
   const sc = buildScene(s);

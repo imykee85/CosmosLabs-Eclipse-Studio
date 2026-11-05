@@ -156,7 +156,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
         </div>
         {camCount(setup) > 1 && <p className="cr-cam-tip">The cameras cut one after the other: camera {ci + 1} runs for {cam.durationS} s of the {T} s.</p>}
         <div className="cr-light-label">Camera move</div>
-        <MovePicker label="Camera move" value={cam.preset} onChange={(id) => { if (!id) return; editC({ preset: id, ...(isCombinable(id) ? {} : { preset2: null }) }); }} />
+        <MovePicker label="Camera move" value={cam.preset === "static" ? null : cam.preset} onChange={(id) => { if (!id) { editC({ preset: "static", preset2: null }); return; } editC({ preset: id, ...(isCombinable(id) ? {} : { preset2: null }) }); }} />
         {isCombinable(cam.preset) && (
           <>
             <div className="cr-light-label">Add a second move</div>
@@ -268,12 +268,18 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
             </div>
           </div>
         ) : (
+          <>
+          <div className="cr-light-label">Quality</div>
+          <div className="cr-light-quick sm-quality" role="group" aria-label="Guide quality">
+            <button type="button" className={res === "480" ? "is-on" : ""} onClick={() => setRes("480")}>480p</button>
+            <button type="button" className={res === "720" ? "is-on" : ""} onClick={() => setRes("720")}>720p</button>
+          </div>
           <div className="cr-cam-actions sm-make">
-            <label className="cr-light-chip" aria-label="Guide quality"><Video size={14} /><select value={res} onChange={(e) => setRes(e.target.value as "480" | "720")}><option value="480">480p</option><option value="720">720p</option></select></label>
-            {running
+                        {running
               ? <button type="button" className="cr-var-go" onClick={() => void stop()}>{job?.message ? `${job.message.slice(0, 40)} · Cancel` : "Making the guide · Cancel"}</button>
               : <button type="button" className="cr-var-go" onClick={() => void make()}>Make guide video</button>}
           </div>
+          </>
         )}
       </div>
     </div>
@@ -327,23 +333,36 @@ function MapView({ setup, scene, t, onMove, onSelect, sel }: { setup: Setup; sce
 export { PALETTE };
 
 
-/** Dolly, Truck, Crane...: pick a group, then one of its options. */
-function MovePicker({ label, value, onChange, none, exclude, combinableOnly }: { label: string; value: import("@/lib/shot/setup").PresetId | null; onChange: (id: import("@/lib/shot/setup").PresetId | null) => void; none?: boolean; exclude?: import("@/lib/shot/setup").PresetId; combinableOnly?: boolean }) {
-  const [open, setOpen] = useState<string>(value ? groupOf(value) : "dolly");
+/** Dolly, Truck, Crane...: tap a group for a list of options; tap a chosen group again to clear it. */
+function MovePicker({ label, value, onChange, exclude, combinableOnly }: { label: string; value: import("@/lib/shot/setup").PresetId | null; onChange: (id: import("@/lib/shot/setup").PresetId | null) => void; none?: boolean; exclude?: import("@/lib/shot/setup").PresetId; combinableOnly?: boolean }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => { if (!wrap.current?.contains(e.target as Node)) setOpen(null); };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [open]);
   const groups = MOVE_GROUPS.map((g) => ({ ...g, options: g.options.filter((o) => o.id !== exclude && (!combinableOnly || isCombinable(o.id))) })).filter((g) => g.options.length);
-  const g = groups.find((x) => x.id === open) ?? groups[0];
   return (
-    <>
-      <div className="cr-light-quick sm-presets" role="group" aria-label={label}>
-        {none && <button type="button" className={!value ? "is-on" : ""} onClick={() => onChange(null)}>None</button>}
-        {groups.map((x) => <button key={x.id} type="button" className={value && x.options.some((o) => o.id === value) ? "is-on" : open === x.id && !value ? "is-on" : ""} aria-expanded={g?.id === x.id} onClick={() => setOpen(x.id)}>{x.label}</button>)}
-      </div>
-      {g && (
-        <div className="cr-light-quick sm-options" role="group" aria-label={`${label}: ${g.label}`}>
-          {g.options.map((o) => <button key={o.id} type="button" className={value === o.id ? "is-on" : ""} onClick={() => onChange(o.id)}>{o.label}</button>)}
-        </div>
-      )}
-    </>
+    <div className="cr-light-quick sm-presets" role="group" aria-label={label} ref={wrap}>
+      {groups.map((x) => {
+        const chosen = value ? x.options.find((o) => o.id === value) : undefined;
+        return (
+          <div key={x.id} className="sm-mv">
+            <button type="button" className={chosen ? "is-on" : ""} aria-haspopup="listbox" aria-expanded={open === x.id}
+              onClick={() => { if (chosen) { setOpen(null); onChange(null); } else setOpen(open === x.id ? null : x.id); }}>
+              <span>{x.label}</span>{chosen && <small>{chosen.label}</small>}
+            </button>
+            {open === x.id && (
+              <ul className="sm-menu" role="listbox" aria-label={`${label}: ${x.label}`}>
+                {x.options.map((o) => <li key={o.id} role="option" aria-selected={value === o.id}><button type="button" onClick={() => { setOpen(null); onChange(o.id); }}>{o.label}</button></li>)}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

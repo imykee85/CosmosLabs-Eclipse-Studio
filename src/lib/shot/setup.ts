@@ -21,6 +21,7 @@ export const PRESETS = [
   { id: "high-hero", label: "High hero", hint: "High angle looking down, slow push" },
   { id: "low-hero", label: "Low hero", hint: "Low angle, slow push" }, { id: "shin", label: "Shin height", hint: "Locked off, very low, wide lens" },
   { id: "handheld", label: "Handheld", hint: "Drifts with a little shake" }, { id: "follow", label: "Follow", hint: "Moves alongside the subject" },
+  { id: "static", label: "No move", hint: "The camera holds still" },
 ] as const;
 export type PresetId = (typeof PRESETS)[number]["id"];
 /** Moves that can be stacked or chained. The others (low hero, shin height, handheld, follow) are looks of their own and stand alone. */
@@ -129,6 +130,7 @@ export function cameraFor(s: Setup, subjectAt: (t: number) => { x: number; z: nu
     case "crane-up": rig = "crane"; keys = [key(0, pos(0, d, 0.5), at), key(T, pos(0, d, Math.max(h * 2.4, 3.2)), [f.x, 0.9, f.z])]; break;
     case "low-hero": keys = [key(0, pos(0.15, d, 0.35, f), [f.x, 1.6, f.z], Math.min(lens, 24)), key(T, pos(0.1, Math.max(1.4, d * 0.7), 0.35, f), [f.x, 1.6, f.z], Math.min(lens, 24))]; break;
     case "high-hero": keys = [key(0, pos(0.15, d, 3.4, f), [f.x, 0.9, f.z], Math.min(lens, 28)), key(T, pos(0.1, Math.max(1.6, d * 0.7), 3.0, f), [f.x, 0.9, f.z], Math.min(lens, 28))]; break;
+    case "static": rig = "tripod"; keys = [key(0, pos(0, d, h), at)]; break;
     case "shin": rig = "tripod"; keys = [key(0, pos(0, d, 0.15), [f.x, 0.55, f.z], 15)]; break;
     case "handheld": rig = "handheld"; shake = Math.max(shake, 0.45); keys = [key(0, pos(-0.35, d, h), at), key(T / 2, pos(0, d * 0.9, h - 0.05), at), key(T, pos(0.35, d * 0.8, h), at)]; break;
     case "follow": {
