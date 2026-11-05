@@ -19,11 +19,14 @@ async function setup(page: Page) {
   return jobs;
 }
 
+async function pick(page: Page) { await page.getByRole("button", { name: "a clip" }).first().click(); }
+
 test.describe("ShotMap", () => {
   test("rebuild from a picture fills the scene and Edit scene opens only when asked", async ({ page }) => {
     await setup(page);
     await page.route("**/api/shot/rebuild", (r) => r.fulfill({ json: { setup: { kit: "street", cast: [{ id: "rp1", kind: "person", label: "", color: "red", x: 1, z: 0, moves: false, toX: 1, toZ: 0, build: "woman", pose: "sitting", pose2: null, pose2At: 3, vtype: "car" }], objects: [{ id: "ro1", type: "bench", x: 1, z: 0, rot: 0, scale: 1 }], lensMm: 50, distance: 5, vertical: 0, preset: "push-in", durationS: 8, shake: 0, aspect: "1:1", seed: 7 }, people: 1, objects: 1 } }));
     await page.goto("/generate");
+    await pick(page);
     await page.getByRole("toolbar", { name: "Video tools" }).getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel.getByText("Edit scene")).toBeVisible();
@@ -42,6 +45,7 @@ test.describe("ShotMap", () => {
     await page.goto("/generate");
     const tray = page.getByRole("toolbar", { name: "Video tools" });
     await expect(tray.getByRole("button", { name: /Relight/ })).toHaveCount(0);
+    await pick(page);
     await tray.getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel).toBeVisible();
@@ -101,6 +105,7 @@ test.describe("ShotMap", () => {
     const ctx = await browser.newContext({ viewport: { width: 520, height: 900 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage(); await setup(page);
     await page.goto("/generate");
+    await pick(page);
     await page.getByRole("toolbar", { name: "Video tools" }).getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel).toBeVisible();
