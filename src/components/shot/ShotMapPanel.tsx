@@ -7,13 +7,12 @@ import Bar from "../create/Bar";
 import { cancelSandboxJob, followSandboxJob, startSandboxJob, type SandboxJobView } from "@/lib/sandbox-client";
 import { ASPECTS, FEATURE_NAME, PALETTE, POSES, colorHex, type AspectId, type Pose } from "@/lib/shot/schema";
 import { cameraAt } from "@/lib/shot/engine";
-import { DEFAULT_SETUP, KITS, MAX_CAST, MAX_OBJECTS, OBJECTS, PRESETS, addObject, addPerson, removeObject, type ObjType, type SceneObject, addVehicleWithDriver, buildScene, colorName, removeCast, type CastItem, type PresetId, type Setup } from "@/lib/shot/setup";
+import { DEFAULT_SETUP, KITS, MAX_CAST, MAX_OBJECTS, OBJECTS, PRESETS, isCombinable, addObject, addPerson, removeObject, type ObjType, type SceneObject, addVehicleWithDriver, buildScene, colorName, removeCast, type CastItem, type PresetId, type Setup } from "@/lib/shot/setup";
 import { shotPrompt } from "@/lib/shot/prompt";
 import "./shot.css";
 
 export type GuideResult = { id: string; url: string; seconds: number; width: number | null; height: number | null };
 export type ShotUse = { guide: GuideResult; prompt: string; aspect: AspectId; seconds: number };
-const ASPECT_CHOICES: AspectId[] = ["16:9", "9:16", "1:1", "4:5"];
 const POSE_LABEL = (p: string) => p.replace("-", " ").replace(/^./, (c) => c.toUpperCase());
 type Build = { drawAt: (s: number, t: number) => void; dispose: () => void };
 type StageBuild = { drawAt: (t: number) => void; dispose: () => void };
@@ -149,14 +148,31 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
         <div className="cr-light-quick sm-presets" role="group" aria-label="Camera move">
           {PRESETS.map((p) => <button key={p.id} type="button" title={p.hint} className={setup.preset === p.id ? "is-on" : ""} onClick={() => edit({ preset: p.id })}>{p.label}</button>)}
         </div>
-        <Bar id="sm-lens" label="Lens" min={12} max={120} value={setup.lensMm} unit="mm" onChange={(v) => edit({ lensMm: v })} />
-        <Bar id="sm-h" label="Height" min={0.1} max={6} step={0.05} value={setup.height} text={`${setup.height.toFixed(2)} m`} onChange={(v) => edit({ height: v })} />
+        {isCombinable(setup.preset) && (
+          <>
+            <div className="cr-light-label">Add a second move</div>
+            <div className="cr-light-quick sm-presets" role="group" aria-label="Second move">
+              <button type="button" className={!setup.preset2 ? "is-on" : ""} onClick={() => edit({ preset2: null })}>None</button>
+              {PRESETS.filter((p) => isCombinable(p.id) && p.id !== setup.preset).map((p) => <button key={p.id} type="button" title={p.hint} className={setup.preset2 === p.id ? "is-on" : ""} onClick={() => edit({ preset2: p.id })}>{p.label}</button>)}
+            </div>
+            {setup.preset2 && (
+              <>
+                <div className="cr-light-quick is-three sm-moves" role="group" aria-label="How the moves combine">
+                  <button type="button" className={(setup.combine ?? "together") === "together" ? "is-on" : ""} onClick={() => edit({ combine: "together" })}>At the same time</button>
+                  <button type="button" className={setup.combine === "then" ? "is-on" : ""} onClick={() => edit({ combine: "then" })}>One after the other</button>
+                </div>
+                {setup.combine === "then" && <Bar id="sm-split" label="Switches at" min={10} max={90} value={Math.round((setup.split ?? 0.5) * 100)} unit="%" onChange={(v) => edit({ split: v / 100 })} />}
+              </>
+            )}
+          </>
+        )}
+        <Bar id="sm-rot" label="Rotate" min={0} max={359} value={Math.round(setup.rotate ?? 0)} unit="°" onChange={(v) => edit({ rotate: v })} />
+        <Bar id="sm-vert" label="Vertical" min={-30} max={80} value={Math.round(setup.vertical ?? 0)} unit="°" onChange={(v) => edit({ vertical: v })} />
         <Bar id="sm-d" label="Distance" min={1} max={20} step={0.1} value={setup.distance} text={`${setup.distance.toFixed(1)} m`} onChange={(v) => edit({ distance: v })} />
+        <Bar id="sm-speed" label="Speed" min={25} max={300} value={Math.round((setup.speed ?? 1) * 100)} unit="%" onChange={(v) => edit({ speed: v / 100 })} />
+        <Bar id="sm-lens" label="Lens" min={12} max={120} value={setup.lensMm} unit="mm" onChange={(v) => edit({ lensMm: v })} />
         <Bar id="sm-t" label="Length" min={2} max={30} value={setup.durationS} unit="s" onChange={(v) => { edit({ durationS: v }); setT(0); }} />
         <Bar id="sm-s" label="Handheld shake" min={0} max={100} value={Math.round(setup.shake * 100)} unit="%" onChange={(v) => edit({ shake: v / 100 })} />
-        <div className="cr-light-quick sm-aspects" role="group" aria-label="Aspect ratio">
-          {ASPECT_CHOICES.map((a) => <button key={a} type="button" className={setup.aspect === a ? "is-on" : ""} onClick={() => edit({ aspect: a })}>{a}</button>)}
-        </div>
 
         <div className="cr-light-label">Set</div>
         <div className="cr-light-quick sm-kits" role="group" aria-label="Set">

@@ -13,11 +13,16 @@ export type KitId = (typeof KITS)[number]["id"];
 export const PRESETS = [
   { id: "push-in", label: "Push in", hint: "Moves toward the subject" }, { id: "pull-out", label: "Pull out", hint: "Moves away from the subject" },
   { id: "orbit-180", label: "Orbit 180°", hint: "Half way round the subject" }, { id: "orbit-360", label: "Orbit 360°", hint: "All the way round" },
-  { id: "pan", label: "Pan", hint: "Turns on the spot" }, { id: "crane-up", label: "Crane up", hint: "Rises while looking down at the subject" },
+  { id: "pan", label: "Pan right", hint: "Turns on the spot to the right" }, { id: "pan-left", label: "Pan left", hint: "Turns on the spot to the left" },
+  { id: "truck-left", label: "Truck left", hint: "Slides sideways to the left" }, { id: "truck-right", label: "Truck right", hint: "Slides sideways to the right" },
+  { id: "crane-up", label: "Crane up", hint: "Rises while looking down at the subject" }, { id: "crane-down", label: "Crane down", hint: "Lowers towards the ground" },
   { id: "low-hero", label: "Low hero", hint: "Low angle, slow push" }, { id: "shin", label: "Shin height", hint: "Locked off, very low, wide lens" },
   { id: "handheld", label: "Handheld", hint: "Drifts with a little shake" }, { id: "follow", label: "Follow", hint: "Moves alongside the subject" },
 ] as const;
 export type PresetId = (typeof PRESETS)[number]["id"];
+/** Moves that can be stacked or chained. The others (low hero, shin height, handheld, follow) are looks of their own and stand alone. */
+export const COMBINABLE: PresetId[] = ["push-in", "pull-out", "orbit-180", "orbit-360", "pan", "pan-left", "truck-left", "truck-right", "crane-up", "crane-down"];
+export const isCombinable = (id: PresetId) => COMBINABLE.includes(id);
 
 export type CastItem = {
   id: string; kind: "person" | "vehicle"; label: string; color: ColorId; x: number; z: number;
@@ -26,12 +31,12 @@ export type CastItem = {
   rides?: string;
 };
 export type Setup = {
-  kit: KitId; cast: CastItem[]; objects?: SceneObject[]; preset: PresetId; lensMm: number; height: number; distance: number; durationS: number; shake: number; aspect: AspectId; seed: number;
+  kit: KitId; cast: CastItem[]; objects?: SceneObject[]; preset: PresetId; preset2?: PresetId | null; combine?: "together" | "then"; split?: number; rotate?: number; vertical?: number; speed?: number; lensMm: number; distance: number; durationS: number; shake: number; aspect: AspectId; seed: number;
 };
 
 export const DEFAULT_SETUP: Setup = {
   kit: "studio", cast: [{ id: "p1", kind: "person", label: "", color: "red", x: 0, z: 0, moves: false, toX: 0, toZ: 3, build: "man", pose: "standing", pose2: null, pose2At: 3, vtype: "car" }],
-  preset: "push-in", lensMm: 35, height: 1.5, distance: 4, durationS: 8, shake: 0, aspect: "16:9", seed: 7,
+  preset: "push-in", preset2: null, combine: "together", split: 0.5, rotate: 0, vertical: 0, speed: 1, lensMm: 35, distance: 4, durationS: 8, shake: 0, aspect: "1:1", seed: 7,
 };
 
 export const nextColor = (cast: CastItem[]): ColorId | null => PALETTE.find((c) => c.id !== "grey" && !cast.some((m) => m.color === c.id))?.id ?? null;
@@ -65,14 +70,17 @@ export function focusOf(s: Setup): { x: number; z: number } {
 
 /** Camera keys for a preset, round the focus point. Azimuth 0 puts the camera in front of the subject (positive z) looking toward negative z. */
 export function cameraFor(s: Setup, subjectAt: (t: number) => { x: number; z: number }): Camera {
-  const { distance: d, height: h, durationS: T, lensMm: lens } = s, f = focusOf(s), eye = 1.35;
+  const { distance: d, durationS: T, lensMm: lens } = s, f = focusOf(s), eye = 1.35, vert = ((s.vertical ?? 0) * Math.PI) / 180, az0 = ((s.rotate ?? 0) * Math.PI) / 180, k = Math.max(0.25, Math.min(3, s.speed ?? 1));
+  const h = Math.max(0.15, eye + d * Math.tan(vert));
   const pos = (a: number, dist: number, y: number, c = f): [number, number, number] => [c.x + dist * Math.sin(a), y, c.z + dist * Math.cos(a)];
   const key = (t: number, p: [number, number, number], look: [number, number, number], l = lens) => ({ t, pos: p, lookAt: look, lensMm: l, roll: 0 });
   const at: [number, number, number] = [f.x, eye, f.z];
   let keys: Camera["keys"] = []; let rig: Camera["rig"] = "dolly", shake = s.shake;
+  const second = s.preset2 && s.preset2 !== s.preset && isCombinable(s.preset) && isCombinable(s.preset2) ? s.preset2 : null;
+  if (isCombinable(s.preset)) return composed(s, f, eye, vert, az0, k, second, subjectAt);
   switch (s.preset) {
-    case "push-in": keys = [key(0, pos(0, d * 1.5, h), at), key(T, pos(0, Math.max(1.2, d * 0.6), h), at)]; break;
-    case "pull-out": keys = [key(0, pos(0, Math.max(1.2, d * 0.6), h), at), key(T, pos(0, d * 1.5, h), at)]; break;
+    case "push-in": keys = [key(0, pos(az0, d * 1.5, h), at), key(T, pos(0, Math.max(1.2, d * 0.6), h), at)]; break;
+    case "pull-out": keys = [key(0, pos(0, Math.max(1.2, d * 0.6), h), at), key(T, pos(az0, d * 1.5, h), at)]; break;
     case "orbit-180": case "orbit-360": {
       rig = "orbit"; const total = s.preset === "orbit-180" ? Math.PI : Math.PI * 2, n = s.preset === "orbit-180" ? 6 : 10;
       keys = Array.from({ length: n + 1 }, (_, i) => key((i / n) * T, pos((i / n) * total, d, h), at)); break;
@@ -167,4 +175,45 @@ export function objectProps(o: SceneObject): Prop[] {
     pos: [o.x + (p.at[0] * cs + p.at[2] * sn) * k, p.at[1] * k, o.z + (-p.at[0] * sn + p.at[2] * cs) * k] as [number, number, number],
     size: [p.size[0] * k, p.size[1] * k, p.size[2] * k] as [number, number, number],
   }));
+}
+
+
+// ---- Combined moves: every move adds to the camera's distance, angle, sideways slide, height or aim; together they all span the clip, "then" gives each its own part. ----
+const smooth = (u: number) => { const c = Math.max(0, Math.min(1, u)); return c * c * (3 - 2 * c); };
+type Delta = { dist: number; az: number; side: number; up: number; aim: number };
+function moveDelta(id: PresetId, d: number, k: number): Delta {
+  const z: Delta = { dist: 0, az: 0, side: 0, up: 0, aim: 0 };
+  switch (id) {
+    case "push-in": return { ...z, dist: -0.55 * d * k };
+    case "pull-out": return { ...z, dist: 0.8 * d * k };
+    case "orbit-180": return { ...z, az: Math.PI * k };
+    case "orbit-360": return { ...z, az: Math.PI * 2 * k };
+    case "pan": return { ...z, aim: d * 0.55 * k };
+    case "pan-left": return { ...z, aim: -d * 0.55 * k };
+    case "truck-left": return { ...z, side: -d * 0.8 * k };
+    case "truck-right": return { ...z, side: d * 0.8 * k };
+    case "crane-up": return { ...z, up: 2.2 * k };
+    case "crane-down": return { ...z, up: -1.0 * k };
+    default: return z;
+  }
+}
+export function moveLabel(s: Setup): string {
+  const a = PRESETS.find((p) => p.id === s.preset)?.label ?? "Move", b = s.preset2 && isCombinable(s.preset) && isCombinable(s.preset2) && s.preset2 !== s.preset ? PRESETS.find((p) => p.id === s.preset2)?.label : null;
+  return b ? `${a} ${s.combine === "then" ? "then" : "while"} ${b.toLowerCase()}` : a;
+}
+function composed(s: Setup, f: { x: number; z: number }, eye: number, vert: number, az0: number, k: number, second: PresetId | null, _subjectAt: (t: number) => { x: number; z: number }): Camera {
+  const T = s.durationS, d = s.distance, tan = Math.tan(vert), split = Math.max(0.1, Math.min(0.9, s.split ?? 0.5)) * T;
+  const moves = [{ id: s.preset, a: 0, b: second && s.combine === "then" ? split : T }, ...(second ? [{ id: second, a: s.combine === "then" ? split : 0, b: T }] : [])].map((m) => ({ ...m, dl: moveDelta(m.id, d, k) }));
+  const n = Math.max(8, Math.min(90, Math.ceil(T * 3)));
+  const keys: Camera["keys"] = Array.from({ length: n + 1 }, (_, i) => {
+    const t = (i / n) * T; let dist = d, az = az0, side = 0, up = 0, aim = 0;
+    for (const m of moves) { const u = smooth((t - m.a) / Math.max(1e-6, m.b - m.a)); dist += m.dl.dist * u; az += m.dl.az * u; side += m.dl.side * u; up += m.dl.up * u; aim += m.dl.aim * u; }
+    dist = Math.max(1.0, dist);
+    const rx = Math.cos(az), rz = -Math.sin(az), y = Math.max(0.15, eye + dist * tan + up);
+    const pos: [number, number, number] = [f.x + dist * Math.sin(az) + side * rx, y, f.z + dist * Math.cos(az) + side * rz];
+    const look: [number, number, number] = [f.x + (side + aim) * rx, up > 0 ? Math.max(0.9, eye - up * 0.15) : eye, f.z + (side + aim) * rz];
+    return { t, pos, lookAt: look, lensMm: s.lensMm, roll: 0 };
+  });
+  const orbits = moves.some((m) => m.id.startsWith("orbit")), crane = moves.some((m) => m.id.startsWith("crane"));
+  return { id: "cam", name: moveLabel(s), rig: orbits ? "orbit" : crane ? "crane" : moves.every((m) => m.id.startsWith("pan")) ? "tripod" : "dolly", sensor: "FF", interpolation: "smooth", shake: { amount: s.shake, frequency: 1.8, seed: s.seed }, keys } as Camera;
 }

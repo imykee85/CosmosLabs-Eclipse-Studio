@@ -1,16 +1,15 @@
 // The ShotMap prompt: fixed blocks, our own wording. The guide video is attached as video 1 (the order things are added in Video Studio names them).
-import { PRESETS, colorName, type Setup } from "./setup";
+import { colorName, moveLabel, type Setup } from "./setup";
 import { POSES } from "./schema";
 
 const poseText = (p: string) => (p === "driving" ? "at the wheel" : p.replace("-", " "));
 const lensWords = (mm: number) => (mm <= 18 ? "ultra wide" : mm <= 30 ? "wide" : mm <= 50 ? "natural" : "telephoto");
 
 export function shotPrompt(s: Setup, opts: { look?: string; sound?: string; exactSpeed?: boolean } = {}): string {
-  const preset = PRESETS.find((p) => p.id === s.preset);
   const lines: string[] = [];
-  lines.push("Use video 1 only as the guide for camera position, camera movement, timing and where each person and vehicle is. Match its framing and move closely.");
+  lines.push("Use video 1 only as the guide for camera position, camera movement, timing and where each person and vehicle is. Match its camera move closely, but take only the movement and the positions from it: ignore the shape of its frame and use the aspect ratio of the video you are making.");
   lines.push("The coloured shapes in video 1 are stand-ins, not real objects. Never show capsules, spheres, flat colours, a grid or grey geometry. Replace them with real people, real vehicles and a real location.");
-  lines.push(`Camera: ${s.lensMm} mm (${lensWords(s.lensMm)} lens), ${(preset?.label ?? "move").toLowerCase()}${s.shake > 0.05 ? ", gentle handheld shake" : ""}, ${s.durationS} seconds.`);
+  lines.push(`Camera: ${s.lensMm} mm (${lensWords(s.lensMm)} lens), ${moveLabel(s).toLowerCase()}${(s.speed ?? 1) >= 1.4 ? ", fast" : (s.speed ?? 1) <= 0.7 ? ", slow" : ""}${s.shake > 0.05 ? ", gentle handheld shake" : ""}, ${s.durationS} seconds.`);
   const people = s.cast.filter((m) => m.kind === "person"), cars = s.cast.filter((m) => m.kind === "vehicle");
   for (const m of people) {
     const who = m.label.trim() || (m.build === "woman" ? "a woman" : "a man");

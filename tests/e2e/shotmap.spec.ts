@@ -26,11 +26,16 @@ test.describe("ShotMap", () => {
     await tray.getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel).toBeVisible();
-    await panel.getByRole("button", { name: "Orbit 180°" }).click();
-    await expect(panel.locator(".cr-light-quick button.is-on", { hasText: "Orbit 180°" })).toBeVisible();
+    await panel.getByRole("group", { name: "Camera move", exact: true }).getByRole("button", { name: "Pull out" }).click();
+    await panel.getByRole("group", { name: "Second move" }).getByRole("button", { name: "Orbit 360°" }).click();
+    await expect(panel.getByRole("group", { name: "How the moves combine" })).toBeVisible();
+    await panel.getByRole("button", { name: "One after the other" }).click();
+    await expect(panel.locator("#sm-split")).toBeVisible();
+    await expect(panel.locator("#sm-rot, #sm-vert, #sm-speed")).toHaveCount(3);
+    await expect(panel.getByRole("group", { name: "Aspect ratio" })).toHaveCount(0);
     // the preview draws (WebGL may be missing in some browsers: then the message shows instead and the rest still works)
     await expect(panel.locator("canvas.sm-canvas, .cr-light-flat").first()).toBeVisible({ timeout: 15000 });
-    await panel.getByRole("button", { name: "Shin height" }).click();
+    await panel.getByRole("group", { name: "Camera move", exact: true }).getByRole("button", { name: "Shin height" }).click();
     await expect(panel.getByRole("button", { name: "Shin height" })).toHaveClass(/is-on/);
     await panel.getByRole("button", { name: "Stage", exact: true }).click();
     await expect(panel.locator("canvas.sm-orbit, .cr-light-flat").first()).toBeVisible({ timeout: 15000 });
@@ -50,17 +55,17 @@ test.describe("ShotMap", () => {
     await panel.getByRole("button", { name: "Add a vehicle with a driver" }).click();
     await expect(panel.getByRole("tab")).toHaveCount(4);
     await panel.getByLabel("Who is this").fill("a barista in her thirties");
-    await panel.getByRole("button", { name: "9:16" }).click();
     await panel.getByRole("button", { name: "Make guide video" }).click();
     await expect(panel.getByLabel("Guide video")).toBeVisible();
     const sent = jobs[0] as { kind: string; input: { scene: { cameras: unknown[]; actors: unknown[]; shots: { aspect: string }[] }; res: string } };
-    expect(sent.kind).toBe("media.shotguide"); expect(sent.input.scene.shots[0].aspect).toBe("9:16"); expect(sent.input.scene.actors.length).toBe(3); expect(sent.input.res).toBe("480");
+    expect(sent.kind).toBe("media.shotguide"); expect(sent.input.scene.shots[0].aspect).toBe("1:1"); expect(sent.input.scene.actors.length).toBe(3); expect(sent.input.res).toBe("480");
     await panel.getByRole("button", { name: "Use in Video Studio" }).click();
     await expect(panel).toBeHidden();
     await expect(page.locator("#vs-prompt")).toHaveValue(/Use video 1 only as the guide/);
     await expect(page.locator("#vs-prompt")).toHaveValue(/barista in her thirties/);
     await expect(page.getByRole("button", { name: /Ingredients \(1\)/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Video model/ })).toContainText("Seedance 2.5");
+    await expect(page.locator("#vs-prompt")).toHaveValue(/ignore the shape of its frame/);
   });
   test("it fits a phone without sideways scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 520, height: 900 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

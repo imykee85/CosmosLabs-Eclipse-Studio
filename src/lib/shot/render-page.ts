@@ -131,7 +131,7 @@ export function fitOrbit(scene: Scene): Orbit {
 export function buildStage(scene: Scene, canvas: HTMLCanvasElement, width: number, height: number, orbit: Orbit) {
   canvas.width = width; canvas.height = height;
   const renderer = rendererFor(canvas, false); renderer.setSize(width, height, false); renderer.setPixelRatio(1);
-  const three = new THREE.Scene(); three.background = new THREE.Color("#12131a");
+  const three = new THREE.Scene(); three.background = new THREE.Color("#0d0d10");
   const pop = populate(scene, three);
   const grid = new THREE.GridHelper(80, 80, 0x4a5080, 0x2a2e4a); grid.position.y = 0.02; (grid.material as THREE.Material).transparent = true; (grid.material as THREE.Material).opacity = 0.5; three.add(grid);
   const sh = scene.shots[0], camData = scene.cameras.find((c) => c.id === sh.cameraId)!, aspect = ASPECTS[sh.aspect as AspectId];

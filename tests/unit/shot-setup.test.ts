@@ -62,3 +62,21 @@ test("several pose changes are all in the actor's actions, in time order", () =>
   const sc = buildScene({ ...DEFAULT_SETUP, durationS: 8, cast: [m] });
   assert.deepEqual(sc.actors[0].actions.map((a) => a.pose), ["sitting", "standing", "walking", "running"]);
 });
+
+test("combined moves: pull back while orbiting, or one after the other; speed and angles change the path", () => {
+  const base = { ...DEFAULT_SETUP, durationS: 8 };
+  const both = buildScene({ ...base, preset: "pull-out", preset2: "orbit-360", combine: "together" }).cameras[0];
+  const dist = (k: { pos: number[] }) => Math.hypot(k.pos[0], k.pos[2]);
+  assert.ok(dist(both.keys[both.keys.length - 1]) > dist(both.keys[0]) + 2, "it gets further away");
+  const ang = (k: { pos: number[] }) => Math.atan2(k.pos[0], k.pos[2]);
+  assert.ok(Math.abs(Math.abs(ang(both.keys[Math.floor(both.keys.length / 2)]) - ang(both.keys[0])) ) > 0.5, "and swings round");
+  const seq = buildScene({ ...base, preset: "push-in", preset2: "truck-right", combine: "then", split: 0.5 }).cameras[0];
+  const mid = seq.keys[Math.floor(seq.keys.length / 2)], end = seq.keys[seq.keys.length - 1];
+  assert.ok(Math.abs(mid.pos[0]) < 0.3 && end.pos[0] > 1, "slides sideways only in the second half");
+  const slow = buildScene({ ...base, preset: "orbit-180", speed: 0.5 }).cameras[0], fast = buildScene({ ...base, preset: "orbit-180", speed: 2 }).cameras[0];
+  assert.ok(Math.abs(ang(fast.keys[fast.keys.length - 1]) - ang(fast.keys[0])) !== Math.abs(ang(slow.keys[slow.keys.length - 1]) - ang(slow.keys[0])));
+  const high = buildScene({ ...base, preset: "truck-left", vertical: 40, rotate: 90 }).cameras[0].keys[0];
+  assert.ok(high.pos[1] > 3 && high.pos[0] > 3, "vertical raises it and rotate swings it round");
+  assert.match(shotPrompt({ ...base, preset: "pull-out", preset2: "orbit-360" }), /pull out while orbit 360/);
+  assert.equal(DEFAULT_SETUP.aspect, "1:1");
+});

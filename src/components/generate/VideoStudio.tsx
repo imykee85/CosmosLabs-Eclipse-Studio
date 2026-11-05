@@ -261,7 +261,7 @@ export default function VideoStudio() {
     setModelId("seedance_2_5"); try { localStorage.setItem(MODEL_KEY, "seedance_2_5"); } catch {}
     setStart(null); setEnd(null); setRefs([]); setMotion(null);
     setVrefs([{ type: "render", id: u.guide.id, label: "ShotMap guide", url: u.guide.url, sec: u.guide.seconds }]);
-    setPrompt(u.prompt); setRatio(u.aspect === "4:5" ? "3:4" : u.aspect); setDuration(Math.min(30, Math.max(4, Math.round(u.seconds))));
+    setPrompt(u.prompt); setDuration(Math.min(30, Math.max(4, Math.round(u.seconds))));
   }
 
   function pickModel(m: VideoModel) {
