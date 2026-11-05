@@ -6,7 +6,7 @@ import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Sun, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUp, ArrowUpFromLine, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Sun, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import GenerateButton from "@/components/GenerateButton";
 import AgentIcon from "../AgentIcon";
@@ -475,6 +475,7 @@ export default function VideoStudio() {
           <button type="button" onClick={() => { if (allowedNow("shotmap")) setShotOpen("open"); else askUpgrade("shotmap"); }} title="Direct a new shot in 3D, then generate it from the guide video"><Clapperboard size={14} /> {SHOT_NAME}</button>
           <button type="button" disabled={!toolVid} onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
           <button type="button" disabled={!toolVid} onClick={() => setEditorOpen(true)} title="Cut, trim, grade and mix the clip on a timeline"><Film size={14} /> Editor</button>
+          <button type="button" disabled={!toolVid} onClick={() => { setError(""); setNote("Upscale isn't connected yet."); }} title="Raise the resolution and sharpness of the clip"><ArrowUpFromLine size={14} /> Upscale <SoonTag /></button>
         </div>
         <PromptEdge message={edge} />
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>
