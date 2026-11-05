@@ -29,7 +29,7 @@ export async function streamStored(req: Request, key: string, contentType: strin
   const range = req.headers.get("range");
   const upstream = await fetch(await signedGetUrl(key, 600), { headers: range ? { Range: range } : {} });
   if (!upstream.ok && upstream.status !== 206) return new Response("Could not read the file.", { status: upstream.status === 416 ? 416 : 502 });
-  const headers = new Headers({ "Content-Type": contentType, "Accept-Ranges": "bytes", "Cache-Control": opts.cache ?? "private, max-age=300" });
+  const headers = new Headers({ "Content-Type": contentType, "Accept-Ranges": "bytes", "Cache-Control": opts.cache ?? "private, max-age=300", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox" });
   for (const h of ["content-length", "content-range", "etag", "last-modified"]) { const v = upstream.headers.get(h); if (v) headers.set(h, v); }
   if (opts.download) headers.set("Content-Disposition", `attachment; filename="${opts.download.replace(/["\\\r\n]/g, "")}"`);
   return new Response(upstream.body, { status: upstream.status, headers });
