@@ -40,11 +40,13 @@ test("Editor: clip on the timeline, split, title, aspect, and Save keeps an MP4 
   await dlg.getByRole("button", { name: /Split/ }).click();
   await expect(dlg.locator(".ve-r1 .ve-block")).toHaveCount(2);
   // a title
-  await dlg.getByRole("button", { name: /Title/ }).click();
+  await dlg.getByRole("tab", { name: "Text" }).click();
+  await dlg.getByRole("button", { name: /Add title/ }).click();
   await expect(dlg.locator(".ve-r3 .ve-block")).toHaveCount(1);
   await dlg.getByLabel("Title text").fill("Hello");
   await expect(dlg.locator(".ve-r3 .ve-block")).toContainText("Hello");
   // aspect ratio changes the preview shape
+  await dlg.getByRole("tab", { name: "Ratio" }).click();
   await dlg.getByRole("radio", { name: "9:16" }).click();
   const c = (await dlg.locator("canvas").evaluate((el) => [(el as HTMLCanvasElement).width, (el as HTMLCanvasElement).height])) as number[];
   expect(c[1]).toBeGreaterThan(c[0]);

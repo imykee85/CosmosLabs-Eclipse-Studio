@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { Copy, Film, Image as ImageIcon, Loader2, Music, Pause, Play, Plus, Redo2, Scissors, Trash2, Type, Undo2, Upload, X } from "lucide-react";
+import Bar from "../create/Bar";
 import { useRenders } from "@/lib/use-renders";
 import { uploadVideo } from "@/lib/use-uploads";
 import type { AudioItem } from "@/lib/audio/jobs";
@@ -244,74 +245,96 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
     );
   };
 
+  const [tab, setTab] = useState<"edit" | "audio" | "text" | "ratio">("edit");
+  useEffect(() => { if (selText) setTab("text"); else if (selClip?.kind === "audio") setTab("audio"); else if (selClip) setTab((x) => (x === "audio" || x === "text" ? "edit" : x)); }, [selClip?.id, selClip?.kind, selText?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <div className="ve" role="dialog" aria-modal="true" aria-label="Video editor">
-      <div className="ve-top">
-        <button type="button" className="ve-icon" onClick={onClose} disabled={!!busy} aria-label="Close the editor"><X size={18} /></button>
-        <strong>Editor</strong>
-        <div className="ve-seg" role="radiogroup" aria-label="Aspect ratio">
-          {ASPECTS.map((a) => <button key={a} type="button" role="radio" aria-checked={project.aspect === a} className={project.aspect === a ? "on" : ""} onClick={() => commit((p) => ({ ...p, aspect: a }))}>{a}</button>)}
+    <div className="cr-var-back">
+      <div className="cr-var cr-cam ve-panel" role="dialog" aria-modal="true" aria-label="Video editor">
+        <div className="cr-var-head">
+          <span className="cr-var-thumb ve-thumb"><Film size={22} /></span>
+          <div><h2>Editor</h2><p>Cut, add sound and titles</p></div>
+          <button type="button" className="cr-var-x" onClick={onClose} disabled={!!busy} aria-label="Close"><X size={18} /></button>
         </div>
-        <span className="ve-grow" />
-        <button type="button" className="ve-icon" onClick={undo} disabled={!past.current.length} aria-label="Undo"><Undo2 size={17} /></button>
-        <button type="button" className="ve-icon" onClick={redo} disabled={!future.current.length} aria-label="Redo"><Redo2 size={17} /></button>
-        <button type="button" className="ve-save" onClick={() => void save()} disabled={!total || !!busy}>{busy ? <><Loader2 size={15} className="cr-spin" /> {busy.label} {Math.round(busy.f * 100)}%</> : "Save to Library"}</button>
-        {busy && <button type="button" className="ve-link" onClick={() => abort.current?.abort()}>Cancel</button>}
-      </div>
-      {error && <p className="ve-err" role="alert">{error}</p>}
 
-      <div className="ve-stage"><canvas ref={canvas} width={cw} height={ch} aria-label="Preview" /></div>
+        <div className="cr-cam-stage ve-stage"><canvas ref={canvas} width={cw} height={ch} aria-label="Preview" /></div>
 
-      <div className="ve-bar">
-        <button type="button" className="ve-play" onClick={() => { if (!total) return; if (!playing && tRef.current >= total - 0.05) seekTo(0); setPlaying((p) => !p); }} aria-label={playing ? "Pause" : "Play"} disabled={!total}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
-        <span className="ve-time">{fmtTime(t)} / {fmtTime(total)}</span>
-        <span className="ve-grow" />
-        <button type="button" className="ve-tool" onClick={() => setPicker(true)}><Plus size={16} /> Add</button>
-        <button type="button" className="ve-tool" onClick={addText}><Type size={16} /> Title</button>
-        <button type="button" className="ve-tool" onClick={split} disabled={!total}><Scissors size={16} /> Split</button>
-        <button type="button" className="ve-icon" onClick={() => selClip && commit((p) => duplicateClip(p, selClip.id))} disabled={!selClip} aria-label="Duplicate"><Copy size={16} /></button>
-        <button type="button" className="ve-icon" onClick={del} disabled={!sel} aria-label="Delete"><Trash2 size={16} /></button>
-        <input type="range" className="ve-zoom" min={20} max={160} value={pps} onChange={(e) => setPps(Number(e.target.value))} aria-label="Zoom the timeline" />
-      </div>
+        <div className="ve-bar">
+          <button type="button" className="ve-play" onClick={() => { if (!total) return; if (!playing && tRef.current >= total - 0.05) seekTo(0); setPlaying((p) => !p); }} aria-label={playing ? "Pause" : "Play"} disabled={!total}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
+          <span className="ve-time">{fmtTime(t)} / {fmtTime(total)}</span>
+          <span className="ve-grow" />
+          <button type="button" className="ve-icon" onClick={undo} disabled={!past.current.length} aria-label="Undo"><Undo2 size={16} /></button>
+          <button type="button" className="ve-icon" onClick={redo} disabled={!future.current.length} aria-label="Redo"><Redo2 size={16} /></button>
+          <input type="range" className="ve-zoom" min={20} max={160} value={pps} onChange={(e) => setPps(Number(e.target.value))} aria-label="Zoom the timeline" />
+        </div>
 
-      <div className="ve-tl">
-        <div className="ve-gutter"><span /><Film size={14} /><Music size={14} /><Type size={14} /></div>
-        <div className="ve-scroll">
-          <div className="ve-content" ref={content} style={{ width }} onPointerDown={() => setSel(null)}>
-            <div className="ve-ruler" onPointerDown={scrub}>{ticks.map((s) => <em key={s} style={{ left: s * pps }}>{s}s</em>)}</div>
-            <div className="ve-row ve-r1">{lp.clips.filter(isVisual).map(block)}{!lp.clips.some(isVisual) && <p className="ve-hint">Add a clip or picture to begin</p>}</div>
-            <div className="ve-row ve-r2">{lp.clips.filter((c) => !isVisual(c)).map(block)}</div>
-            <div className="ve-row ve-r3">
-              {project.texts.map((x) => (
-                <div key={x.id} className={`ve-block ve-text${sel?.id === x.id ? " is-sel" : ""}`} style={{ left: x.start * pps, width: Math.max(8, x.dur * pps) }} onPointerDown={(e) => drag(e, "text", x.id, "move")}>
-                  <i className="ve-h ve-hl" onPointerDown={(e) => drag(e, "text", x.id, "l")} /><span>{x.text}</span><i className="ve-h ve-hr" onPointerDown={(e) => drag(e, "text", x.id, "r")} />
-                </div>
-              ))}
+        <div className="ve-tl">
+          <div className="ve-gutter"><span /><Film size={14} /><Music size={14} /><Type size={14} /></div>
+          <div className="ve-scroll">
+            <div className="ve-content" ref={content} style={{ width }} onPointerDown={() => setSel(null)}>
+              <div className="ve-ruler" onPointerDown={scrub}>{ticks.map((s) => <em key={s} style={{ left: s * pps }}>{s}s</em>)}</div>
+              <div className="ve-row ve-r1">{lp.clips.filter(isVisual).map(block)}{!lp.clips.some(isVisual) && <p className="ve-hint">Add a clip or picture to begin</p>}</div>
+              <div className="ve-row ve-r2">{lp.clips.filter((c) => !isVisual(c)).map(block)}</div>
+              <div className="ve-row ve-r3">
+                {project.texts.map((x) => (
+                  <div key={x.id} className={`ve-block ve-text${sel?.id === x.id ? " is-sel" : ""}`} style={{ left: x.start * pps, width: Math.max(8, x.dur * pps) }} onPointerDown={(e) => drag(e, "text", x.id, "move")}>
+                    <i className="ve-h ve-hl" onPointerDown={(e) => drag(e, "text", x.id, "l")} /><span>{x.text}</span><i className="ve-h ve-hr" onPointerDown={(e) => drag(e, "text", x.id, "r")} />
+                  </div>
+                ))}
+              </div>
+              <div className="ve-head" style={{ left: t * pps }} />
             </div>
-            <div className="ve-head" style={{ left: t * pps }} />
           </div>
         </div>
-      </div>
 
-      {(selClip || selText) && (
-        <div className="ve-insp">
-          {selClip && <>
-            <b>{selClip.name}</b>
-            {selClip.kind === "image" && <label>Length <input type="range" min={0.5} max={30} step={0.5} value={clipDur(selClip)} onChange={(e) => patchClip({ out: selClip.in + Number(e.target.value) }, "len")} /><em>{clipDur(selClip).toFixed(1)}s</em></label>}
-            {selClip.kind !== "image" && <label>Volume <input type="range" min={0} max={1} step={0.05} value={selClip.volume} onChange={(e) => patchClip({ volume: Number(e.target.value) }, "vol")} /><em>{Math.round(selClip.volume * 100)}%</em></label>}
-            {selClip.kind !== "image" && <label>Speed <select value={selClip.speed} onChange={(e) => patchClip({ speed: Number(e.target.value) }, "spd")}>{SPEEDS.map((s) => <option key={s} value={s}>{s}x</option>)}</select></label>}
-            <label>Fade in <input type="range" min={0} max={3} step={0.1} value={selClip.fadeIn} onChange={(e) => patchClip({ fadeIn: Number(e.target.value) }, "fi")} /><em>{selClip.fadeIn.toFixed(1)}s</em></label>
-            <label>Fade out <input type="range" min={0} max={3} step={0.1} value={selClip.fadeOut} onChange={(e) => patchClip({ fadeOut: Number(e.target.value) }, "fo")} /><em>{selClip.fadeOut.toFixed(1)}s</em></label>
-          </>}
-          {selText && <>
-            <input className="ve-text-in" value={selText.text} onChange={(e) => patchText({ text: e.target.value }, "txt")} aria-label="Title text" />
-            <label>Size <input type="range" min={3} max={20} step={0.5} value={selText.size} onChange={(e) => patchText({ size: Number(e.target.value) }, "sz")} /></label>
-            <label>Position <select value={selText.y} onChange={(e) => patchText({ y: Number(e.target.value) }, "y")}><option value={0.15}>Top</option><option value={0.5}>Middle</option><option value={0.85}>Bottom</option></select></label>
-            <span className="ve-swatches">{COLORS.map((c) => <button key={c} type="button" aria-label={`Colour ${c}`} className={selText.color === c ? "on" : ""} style={{ background: c }} onClick={() => patchText({ color: c }, "col")} />)}</span>
-          </>}
+        <div className="cr-light-quick ve-tabs is-four" role="tablist" aria-label="Editor tools">
+          {([["edit", "Edit"], ["audio", "Audio"], ["text", "Text"], ["ratio", "Ratio"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? "is-on" : ""} onClick={() => setTab(k)}>{l}</button>)}
         </div>
-      )}
 
+        {tab === "edit" && <>
+          <div className="cr-light-quick ve-actions" role="group" aria-label="Edit">
+            <button type="button" onClick={() => { setPicker(true); }}><Plus size={14} /> Add</button>
+            <button type="button" onClick={split} disabled={!total}><Scissors size={14} /> Split</button>
+            <button type="button" onClick={() => selClip && commit((p) => duplicateClip(p, selClip.id))} disabled={!selClip}><Copy size={14} /> Copy</button>
+            <button type="button" onClick={del} disabled={!sel}><Trash2 size={14} /> Delete</button>
+          </div>
+          {selClip && selClip.kind !== "audio" ? <>
+            <div className="cr-light-label">Speed</div>
+            <div className="cr-light-quick ve-speeds" role="group" aria-label="Speed">{SPEEDS.map((s) => <button key={s} type="button" disabled={selClip.kind === "image"} className={selClip.speed === s ? "is-on" : ""} onClick={() => patchClip({ speed: s }, "spd")}>{s}x</button>)}</div>
+            {selClip.kind === "image" && <Bar id="ve-len" label="Length" min={0.5} max={30} step={0.5} value={clipDur(selClip)} text={`${clipDur(selClip).toFixed(1)}s`} onChange={(v) => patchClip({ out: selClip.in + v }, "len")} />}
+            {selClip.kind === "video" && <Bar id="ve-vol" label="Volume" min={0} max={100} value={Math.round(selClip.volume * 100)} unit="%" onChange={(v) => patchClip({ volume: v / 100 }, "vol")} />}
+            <Bar id="ve-fi" label="Fade in" min={0} max={30} value={Math.round(selClip.fadeIn * 10)} text={`${selClip.fadeIn.toFixed(1)}s`} onChange={(v) => patchClip({ fadeIn: v / 10 }, "fi")} />
+            <Bar id="ve-fo" label="Fade out" min={0} max={30} value={Math.round(selClip.fadeOut * 10)} text={`${selClip.fadeOut.toFixed(1)}s`} onChange={(v) => patchClip({ fadeOut: v / 10 }, "fo")} />
+          </> : <p className="ve-note">Tap a clip on the timeline to change it. Drag its ends to trim, drag it to reorder.</p>}
+        </>}
+
+        {tab === "audio" && <>
+          <div className="cr-light-quick ve-actions is-two" role="group" aria-label="Audio"><button type="button" onClick={() => setPicker(true)}><Plus size={14} /> Add sound</button><button type="button" onClick={del} disabled={!selClip || selClip.kind !== "audio"}><Trash2 size={14} /> Delete</button></div>
+          {selClip && selClip.kind !== "image" ? <>
+            <Bar id="ve-avol" label="Volume" min={0} max={100} value={Math.round(selClip.volume * 100)} unit="%" onChange={(v) => patchClip({ volume: v / 100 }, "vol")} />
+            <Bar id="ve-afi" label="Fade in" min={0} max={30} value={Math.round(selClip.fadeIn * 10)} text={`${selClip.fadeIn.toFixed(1)}s`} onChange={(v) => patchClip({ fadeIn: v / 10 }, "fi")} />
+            <Bar id="ve-afo" label="Fade out" min={0} max={30} value={Math.round(selClip.fadeOut * 10)} text={`${selClip.fadeOut.toFixed(1)}s`} onChange={(v) => patchClip({ fadeOut: v / 10 }, "fo")} />
+          </> : <p className="ve-note">Add a voiceover, music or sound from the Library or your device. It starts where the playhead is.</p>}
+        </>}
+
+        {tab === "text" && <>
+          <div className="cr-light-quick ve-actions is-two" role="group" aria-label="Text"><button type="button" onClick={addText}><Type size={14} /> Add title</button><button type="button" onClick={del} disabled={!selText}><Trash2 size={14} /> Delete</button></div>
+          {selText ? <>
+            <input className="cr-var-text" value={selText.text} onChange={(e) => patchText({ text: e.target.value }, "txt")} aria-label="Title text" />
+            <Bar id="ve-tsz" label="Size" min={3} max={20} step={0.5} value={selText.size} unit="" onChange={(v) => patchText({ size: v }, "sz")} />
+            <div className="cr-light-quick is-three" role="group" aria-label="Position">{([["Top", 0.15], ["Middle", 0.5], ["Bottom", 0.85]] as const).map(([l, y]) => <button key={l} type="button" className={selText.y === y ? "is-on" : ""} onClick={() => patchText({ y }, "y")}>{l}</button>)}</div>
+            <div className="cr-light-colors ve-colors" role="group" aria-label="Colour">{COLORS.map((c) => <button key={c} type="button" aria-label={`Colour ${c}`} className={selText.color === c ? "is-on" : ""} style={{ background: c }} onClick={() => patchText({ color: c }, "col")} />)}</div>
+          </> : <p className="ve-note">Add a title, then drag it on the timeline to set when it shows.</p>}
+        </>}
+
+        {tab === "ratio" && <div className="cr-light-quick ve-ratios" role="radiogroup" aria-label="Aspect ratio">{ASPECTS.map((a) => <button key={a} type="button" role="radio" aria-checked={project.aspect === a} className={project.aspect === a ? "is-on" : ""} onClick={() => commit((p) => ({ ...p, aspect: a }))}>{a}</button>)}</div>}
+
+        {error && <div className="cr-var-err" role="alert">{error}</div>}
+        <div className="cr-cam-actions">
+          <button type="button" className="cr-var-go" onClick={() => void save()} disabled={!total || !!busy}>{busy ? <><Loader2 size={16} className="cr-spin" /> {busy.label} {Math.round(busy.f * 100)}%</> : "Save to Library"}</button>
+          {busy && <button type="button" className="ve-cancel" onClick={() => abort.current?.abort()}>Cancel</button>}
+        </div>
+      </div>
       {picker && <AddSheet projectId={projectId} onPick={(p) => void add(p)} onClose={() => setPicker(false)} />}
     </div>
   );
