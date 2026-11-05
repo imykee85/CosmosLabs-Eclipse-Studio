@@ -1,0 +1,362 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
+import { Copy, Film, Image as ImageIcon, Loader2, Music, Pause, Play, Plus, Redo2, Scissors, Trash2, Type, Undo2, Upload, X } from "lucide-react";
+import { useRenders } from "@/lib/use-renders";
+import { uploadVideo } from "@/lib/use-uploads";
+import type { AudioItem } from "@/lib/audio/jobs";
+import { ASPECTS, clipDur, duplicateClip, emptyProject, fadeFactor, fmtTime, isVisual, layout, newClip, newText, removeClip, reorderVisual, sizeFor, splitAt, totalDur, trimEnd, trimStart, type Aspect, type Clip, type Project } from "@/lib/editor/model";
+import { drawFrame, exportProject, type Media } from "@/lib/editor/render";
+import "./video-editor.css";
+
+type Sel = { type: "clip" | "text"; id: string } | null;
+type Pick = { kind: Clip["kind"]; src: string; name: string; dur: number | null };
+const SPEEDS = [0.25, 0.5, 1, 1.5, 2, 4];
+const COLORS = ["#ffffff", "#000000", "#c00707", "#ffd400"];
+
+/** Reads how long a video or sound file is (images need no length). */
+function probe(kind: Clip["kind"], src: string): Promise<number> {
+  return new Promise((res) => {
+    if (kind === "image") return res(3600);
+    const el = document.createElement(kind === "video" ? "video" : "audio");
+    el.preload = "metadata";
+    el.onloadedmetadata = () => res(Number.isFinite(el.duration) ? el.duration : 5);
+    el.onerror = () => res(5);
+    el.src = src;
+  });
+}
+
+/** Eclipse's own timeline editor: put clips, pictures, sound and titles in order, cut and trim them, and save the result as a new video. Everything runs on the person's device. */
+export default function VideoEditor({ video, projectId, onClose, onSaved }: { video: { id: string; fileName?: string | null; durationSec?: number | null; aspectRatio?: string | null } | null; projectId: string | null; onClose: () => void; onSaved: (id?: string) => void }) {
+  const [project, setProject] = useState<Project>(() => emptyProject((["16:9", "9:16", "1:1", "4:5"].includes(video?.aspectRatio ?? "") ? video!.aspectRatio : "16:9") as Aspect));
+  const [sel, setSel] = useState<Sel>(null);
+  const [t, setT] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [pps, setPps] = useState(60);
+  const [busy, setBusy] = useState<{ f: number; label: string } | null>(null);
+  const [error, setError] = useState("");
+  const [picker, setPicker] = useState(false);
+  const [dragX, setDragX] = useState<{ id: string; dx: number } | null>(null);
+
+  const past = useRef<Project[]>([]);
+  const future = useRef<Project[]>([]);
+  const lastKey = useRef({ key: "", at: 0 });
+  const [, bump] = useState(0);
+  const tRef = useRef(0);
+  const media = useRef(new Map<string, Media>());
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const content = useRef<HTMLDivElement | null>(null);
+  const abort = useRef<AbortController | null>(null);
+
+  const lp = useMemo(() => layout(project), [project]);
+  const total = useMemo(() => totalDur(project), [project]);
+  const { w: cw, h: ch } = sizeFor(project.aspect, 540);
+
+  const commit = useCallback((next: Project | ((p: Project) => Project), key?: string) => {
+    setProject((cur) => {
+      const n = typeof next === "function" ? next(cur) : next;
+      if (n === cur) return cur;
+      const now = Date.now();
+      if (!(key && lastKey.current.key === key && now - lastKey.current.at < 800)) { past.current.push(cur); if (past.current.length > 60) past.current.shift(); }
+      lastKey.current = { key: key ?? "", at: now };
+      future.current = [];
+      return n;
+    });
+    bump((x) => x + 1);
+  }, []);
+  const undo = () => { const p = past.current.pop(); if (!p) return; setProject((cur) => { future.current.push(cur); return p; }); bump((x) => x + 1); };
+  const redo = () => { const p = future.current.pop(); if (!p) return; setProject((cur) => { past.current.push(cur); return p; }); bump((x) => x + 1); };
+
+  // ---- loaded media (one element per clip, used by the preview) ----
+  const lpRef = useRef(lp); lpRef.current = lp;
+  const draw = useCallback(() => {
+    const c = canvas.current; const ctx = c?.getContext("2d"); if (!c || !ctx) return;
+    drawFrame(ctx, c.width, c.height, lpRef.current, tRef.current, (id) => media.current.get(id) ?? null);
+  }, []);
+  useEffect(() => {
+    const m = media.current;
+    const ids = new Set(project.clips.map((c) => c.id));
+    for (const [id, el] of m) if (!ids.has(id)) { if (el instanceof HTMLVideoElement) el.pause(); m.delete(id); }
+    for (const c of project.clips) {
+      if (m.has(c.id)) continue;
+      if (c.kind === "image") { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = draw; i.src = c.src; m.set(c.id, i); }
+      else {
+        const v = document.createElement(c.kind === "video" ? "video" : "audio");
+        v.preload = "auto"; v.src = c.src; (v as HTMLVideoElement).playsInline = true;
+        v.addEventListener("seeked", draw); v.addEventListener("loadeddata", draw);
+        m.set(c.id, v as HTMLVideoElement);
+      }
+    }
+  }, [project.clips, draw]);
+  useEffect(() => () => { for (const el of media.current.values()) if (el instanceof HTMLVideoElement) el.pause(); media.current.clear(); }, []);
+
+  const syncMedia = useCallback((time: number, isPlaying: boolean) => {
+    for (const c of lpRef.current.clips) {
+      const el = media.current.get(c.id);
+      if (!el || el instanceof HTMLImageElement) continue;
+      const d = clipDur(c);
+      if (time >= c.start && time < c.start + d) {
+        const want = c.in + (time - c.start) * c.speed;
+        if (Math.abs(el.currentTime - want) > (isPlaying ? 0.35 : 0.04)) el.currentTime = want;
+        el.playbackRate = c.speed;
+        el.volume = Math.max(0, Math.min(1, c.volume * fadeFactor(c, time - c.start)));
+        if (isPlaying && el.paused) void el.play().catch(() => {});
+        if (!isPlaying && !el.paused) el.pause();
+      } else if (!el.paused) el.pause();
+    }
+  }, []);
+
+  useEffect(() => { if (!playing) { syncMedia(t, false); draw(); } }, [t, playing, project, syncMedia, draw]);
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0; const t0 = performance.now(); const base = tRef.current;
+    const tick = () => {
+      const now = base + (performance.now() - t0) / 1000;
+      if (now >= total) { tRef.current = total; setT(total); setPlaying(false); return; }
+      tRef.current = now; setT(now); syncMedia(now, true); draw();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); for (const el of media.current.values()) if (el instanceof HTMLVideoElement && !el.paused) el.pause(); };
+  }, [playing, total, syncMedia, draw]);
+  const seekTo = (time: number) => { const v = Math.max(0, Math.min(total, time)); tRef.current = v; setT(v); };
+
+  // the clip handed in from the preview starts the timeline
+  useEffect(() => {
+    if (!video) return;
+    let dead = false;
+    void (async () => {
+      const src = `/api/generations/${video.id}/file`;
+      const dur = video.durationSec && video.durationSec > 0 ? video.durationSec : await probe("video", src);
+      if (!dead) commit((p) => (p.clips.length ? p : { ...p, clips: [newClip("video", src, video.fileName || "Clip", dur)] }));
+    })();
+    return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video?.id]);
+
+  // ---- adding ----
+  async function add(p: Pick) {
+    setError("");
+    const dur = p.dur && p.dur > 0 ? p.dur : await probe(p.kind, p.src);
+    const c = newClip(p.kind, p.src, p.name, dur);
+    if (p.kind === "audio") c.start = tRef.current;
+    commit((cur) => ({ ...cur, clips: [...cur.clips, c] }));
+    setSel({ type: "clip", id: c.id });
+    setPicker(false);
+  }
+  function addText() { const x = newText(tRef.current); commit((cur) => ({ ...cur, texts: [...cur.texts, x] })); setSel({ type: "text", id: x.id }); }
+
+  // ---- editing the selection ----
+  const selClip = sel?.type === "clip" ? lp.clips.find((c) => c.id === sel.id) ?? null : null;
+  const selText = sel?.type === "text" ? project.texts.find((x) => x.id === sel.id) ?? null : null;
+  const patchClip = (patch: Partial<Clip>, key: string) => selClip && commit((p) => ({ ...p, clips: p.clips.map((c) => (c.id === selClip.id ? { ...c, ...patch } : c)) }), key);
+  const patchText = (patch: Partial<NonNullable<typeof selText>>, key: string) => selText && commit((p) => ({ ...p, texts: p.texts.map((x) => (x.id === selText.id ? { ...x, ...patch } : x)) }), key);
+  function split() {
+    const target = selClip && t > selClip.start && t < selClip.start + clipDur(selClip) ? selClip : lp.clips.find((c) => isVisual(c) && t > c.start && t < c.start + clipDur(c));
+    if (target) commit((p) => splitAt(p, target.id, tRef.current));
+  }
+  function del() {
+    if (selClip) { commit((p) => removeClip(p, selClip.id)); setSel(null); }
+    else if (selText) { commit((p) => ({ ...p, texts: p.texts.filter((x) => x.id !== selText.id) })); setSel(null); }
+  }
+
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "Escape" && !busy) onClose();
+      else if (e.key === " ") { e.preventDefault(); setPlaying((p) => !p); }
+      else if (e.key === "s" || e.key === "S") split();
+      else if (e.key === "Delete" || e.key === "Backspace") del();
+      else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+    };
+    window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
+  });
+
+  // ---- timeline dragging ----
+  function xToTime(clientX: number) { const r = content.current?.getBoundingClientRect(); return r ? (clientX - r.left) / pps : 0; }
+  function scrub(e: RPointerEvent) {
+    e.preventDefault(); setPlaying(false); setSel(null); seekTo(xToTime(e.clientX));
+    const move = (ev: PointerEvent) => seekTo(xToTime(ev.clientX));
+    const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+  }
+  function drag(e: RPointerEvent, type: "clip" | "text", id: string, mode: "move" | "l" | "r") {
+    e.stopPropagation(); e.preventDefault();
+    setSel({ type, id }); setPlaying(false);
+    const x0 = e.clientX; const snap = project; let moved = false;
+    const base = type === "clip" ? lp.clips.find((c) => c.id === id)! : null;
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - x0; const dt = dx / pps;
+      if (!moved && Math.abs(dx) < 4) return;
+      if (!moved) { moved = true; past.current.push(snap); future.current = []; lastKey.current = { key: "", at: 0 }; }
+      if (type === "clip" && base) {
+        if (mode === "move" && isVisual(base)) { setDragX({ id, dx }); return; }
+        const orig = snap.clips.find((c) => c.id === id)!;
+        const next = mode === "l" ? trimStart({ ...orig, start: base.start }, dt) : mode === "r" ? trimEnd(orig, dt) : { ...orig, start: Math.max(0, base.start + dt) };
+        setProject({ ...snap, clips: snap.clips.map((c) => (c.id === id ? next : c)) });
+      } else {
+        const o = snap.texts.find((x) => x.id === id)!;
+        const next = mode === "move" ? { ...o, start: Math.max(0, o.start + dt) } : mode === "r" ? { ...o, dur: Math.max(0.3, o.dur + dt) } : { ...o, start: Math.max(0, Math.min(o.start + o.dur - 0.3, o.start + dt)), dur: Math.max(0.3, o.dur - (Math.max(0, Math.min(o.start + o.dur - 0.3, o.start + dt)) - o.start)) };
+        setProject({ ...snap, texts: snap.texts.map((x) => (x.id === id ? next : x)) });
+      }
+    };
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+      if (moved && type === "clip" && base && mode === "move" && isVisual(base)) {
+        const drop = base.start + clipDur(base) / 2 + (ev.clientX - x0) / pps;
+        setProject(reorderVisual(snap, id, drop));
+      }
+      setDragX(null); bump((x) => x + 1);
+    };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+  }
+
+  // ---- saving ----
+  async function save() {
+    if (busy || !total) return;
+    setError(""); setPlaying(false);
+    abort.current = new AbortController();
+    try {
+      setBusy({ f: 0, label: "Preparing" });
+      const blob = await exportProject(project, (f, label) => setBusy({ f, label }), abort.current.signal);
+      setBusy({ f: 0.98, label: "Saving" });
+      const file = new File([blob], "edit.mp4", { type: "video/mp4" });
+      const r = await uploadVideo<{ id: string }>(file, `Edit ${new Date().toISOString().slice(0, 10)}`, projectId, (f) => setBusy({ f: 0.98 + f * 0.02, label: "Saving" }));
+      if (!r.ok) { setError(r.error || "The edit could not be saved."); setBusy(null); return; }
+      onSaved(r.item?.id); onClose();
+    } catch (e) {
+      setError(e instanceof Error && e.message && e.message !== "Cancelled." ? e.message : e instanceof Error && e.message === "Cancelled." ? "" : "The edit could not be saved.");
+      setBusy(null);
+    }
+  }
+
+  const width = Math.max(total + 8, 20) * pps;
+  const ticks: number[] = []; const step = pps >= 90 ? 1 : pps >= 40 ? 2 : 5; for (let s = 0; s <= width / pps; s += step) ticks.push(s);
+  const block = (c: Clip) => {
+    const d = clipDur(c); const dx = dragX?.id === c.id ? dragX.dx : 0;
+    return (
+      <div key={c.id} className={`ve-block ve-${c.kind}${sel?.id === c.id ? " is-sel" : ""}${dx ? " is-drag" : ""}`} style={{ left: c.start * pps, width: Math.max(8, d * pps), transform: dx ? `translateX(${dx}px)` : undefined }} onPointerDown={(e) => drag(e, "clip", c.id, "move")}>
+        <i className="ve-h ve-hl" onPointerDown={(e) => drag(e, "clip", c.id, "l")} />
+        <span>{c.name}{c.speed !== 1 ? ` · ${c.speed}x` : ""}</span>
+        <i className="ve-h ve-hr" onPointerDown={(e) => drag(e, "clip", c.id, "r")} />
+      </div>
+    );
+  };
+
+  return (
+    <div className="ve" role="dialog" aria-modal="true" aria-label="Video editor">
+      <div className="ve-top">
+        <button type="button" className="ve-icon" onClick={onClose} disabled={!!busy} aria-label="Close the editor"><X size={18} /></button>
+        <strong>Editor</strong>
+        <div className="ve-seg" role="radiogroup" aria-label="Aspect ratio">
+          {ASPECTS.map((a) => <button key={a} type="button" role="radio" aria-checked={project.aspect === a} className={project.aspect === a ? "on" : ""} onClick={() => commit((p) => ({ ...p, aspect: a }))}>{a}</button>)}
+        </div>
+        <span className="ve-grow" />
+        <button type="button" className="ve-icon" onClick={undo} disabled={!past.current.length} aria-label="Undo"><Undo2 size={17} /></button>
+        <button type="button" className="ve-icon" onClick={redo} disabled={!future.current.length} aria-label="Redo"><Redo2 size={17} /></button>
+        <button type="button" className="ve-save" onClick={() => void save()} disabled={!total || !!busy}>{busy ? <><Loader2 size={15} className="cr-spin" /> {busy.label} {Math.round(busy.f * 100)}%</> : "Save to Library"}</button>
+        {busy && <button type="button" className="ve-link" onClick={() => abort.current?.abort()}>Cancel</button>}
+      </div>
+      {error && <p className="ve-err" role="alert">{error}</p>}
+
+      <div className="ve-stage"><canvas ref={canvas} width={cw} height={ch} aria-label="Preview" /></div>
+
+      <div className="ve-bar">
+        <button type="button" className="ve-play" onClick={() => { if (!total) return; if (!playing && tRef.current >= total - 0.05) seekTo(0); setPlaying((p) => !p); }} aria-label={playing ? "Pause" : "Play"} disabled={!total}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
+        <span className="ve-time">{fmtTime(t)} / {fmtTime(total)}</span>
+        <span className="ve-grow" />
+        <button type="button" className="ve-tool" onClick={() => setPicker(true)}><Plus size={16} /> Add</button>
+        <button type="button" className="ve-tool" onClick={addText}><Type size={16} /> Title</button>
+        <button type="button" className="ve-tool" onClick={split} disabled={!total}><Scissors size={16} /> Split</button>
+        <button type="button" className="ve-icon" onClick={() => selClip && commit((p) => duplicateClip(p, selClip.id))} disabled={!selClip} aria-label="Duplicate"><Copy size={16} /></button>
+        <button type="button" className="ve-icon" onClick={del} disabled={!sel} aria-label="Delete"><Trash2 size={16} /></button>
+        <input type="range" className="ve-zoom" min={20} max={160} value={pps} onChange={(e) => setPps(Number(e.target.value))} aria-label="Zoom the timeline" />
+      </div>
+
+      <div className="ve-tl">
+        <div className="ve-gutter"><span /><Film size={14} /><Music size={14} /><Type size={14} /></div>
+        <div className="ve-scroll">
+          <div className="ve-content" ref={content} style={{ width }} onPointerDown={() => setSel(null)}>
+            <div className="ve-ruler" onPointerDown={scrub}>{ticks.map((s) => <em key={s} style={{ left: s * pps }}>{s}s</em>)}</div>
+            <div className="ve-row ve-r1">{lp.clips.filter(isVisual).map(block)}{!lp.clips.some(isVisual) && <p className="ve-hint">Add a clip or picture to begin</p>}</div>
+            <div className="ve-row ve-r2">{lp.clips.filter((c) => !isVisual(c)).map(block)}</div>
+            <div className="ve-row ve-r3">
+              {project.texts.map((x) => (
+                <div key={x.id} className={`ve-block ve-text${sel?.id === x.id ? " is-sel" : ""}`} style={{ left: x.start * pps, width: Math.max(8, x.dur * pps) }} onPointerDown={(e) => drag(e, "text", x.id, "move")}>
+                  <i className="ve-h ve-hl" onPointerDown={(e) => drag(e, "text", x.id, "l")} /><span>{x.text}</span><i className="ve-h ve-hr" onPointerDown={(e) => drag(e, "text", x.id, "r")} />
+                </div>
+              ))}
+            </div>
+            <div className="ve-head" style={{ left: t * pps }} />
+          </div>
+        </div>
+      </div>
+
+      {(selClip || selText) && (
+        <div className="ve-insp">
+          {selClip && <>
+            <b>{selClip.name}</b>
+            {selClip.kind === "image" && <label>Length <input type="range" min={0.5} max={30} step={0.5} value={clipDur(selClip)} onChange={(e) => patchClip({ out: selClip.in + Number(e.target.value) }, "len")} /><em>{clipDur(selClip).toFixed(1)}s</em></label>}
+            {selClip.kind !== "image" && <label>Volume <input type="range" min={0} max={1} step={0.05} value={selClip.volume} onChange={(e) => patchClip({ volume: Number(e.target.value) }, "vol")} /><em>{Math.round(selClip.volume * 100)}%</em></label>}
+            {selClip.kind !== "image" && <label>Speed <select value={selClip.speed} onChange={(e) => patchClip({ speed: Number(e.target.value) }, "spd")}>{SPEEDS.map((s) => <option key={s} value={s}>{s}x</option>)}</select></label>}
+            <label>Fade in <input type="range" min={0} max={3} step={0.1} value={selClip.fadeIn} onChange={(e) => patchClip({ fadeIn: Number(e.target.value) }, "fi")} /><em>{selClip.fadeIn.toFixed(1)}s</em></label>
+            <label>Fade out <input type="range" min={0} max={3} step={0.1} value={selClip.fadeOut} onChange={(e) => patchClip({ fadeOut: Number(e.target.value) }, "fo")} /><em>{selClip.fadeOut.toFixed(1)}s</em></label>
+          </>}
+          {selText && <>
+            <input className="ve-text-in" value={selText.text} onChange={(e) => patchText({ text: e.target.value }, "txt")} aria-label="Title text" />
+            <label>Size <input type="range" min={3} max={20} step={0.5} value={selText.size} onChange={(e) => patchText({ size: Number(e.target.value) }, "sz")} /></label>
+            <label>Position <select value={selText.y} onChange={(e) => patchText({ y: Number(e.target.value) }, "y")}><option value={0.15}>Top</option><option value={0.5}>Middle</option><option value={0.85}>Bottom</option></select></label>
+            <span className="ve-swatches">{COLORS.map((c) => <button key={c} type="button" aria-label={`Colour ${c}`} className={selText.color === c ? "on" : ""} style={{ background: c }} onClick={() => patchText({ color: c }, "col")} />)}</span>
+          </>}
+        </div>
+      )}
+
+      {picker && <AddSheet projectId={projectId} onPick={(p) => void add(p)} onClose={() => setPicker(false)} />}
+    </div>
+  );
+}
+
+function AddSheet({ projectId, onPick, onClose }: { projectId: string | null; onPick: (p: Pick) => void; onClose: () => void }) {
+  const [tab, setTab] = useState<"video" | "image" | "audio">("video");
+  const renders = useRenders(projectId, 60).renders;
+  const [sounds, setSounds] = useState<AudioItem[] | null>(null);
+  useEffect(() => { let live = true; fetch("/api/audio", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => { if (live) setSounds(Array.isArray(d.items) ? d.items : []); }).catch(() => { if (live) setSounds([]); }); return () => { live = false; }; }, []);
+  const mine = (renders ?? []).filter((r) => r.status === "completed" && r.kind === tab);
+  const takes = (sounds ?? []).filter((a) => a.status === "completed" && a.url && a.kind !== "stt");
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  function device(f: File | undefined) {
+    if (!f) return;
+    const kind: Clip["kind"] = f.type.startsWith("video") ? "video" : f.type.startsWith("audio") ? "audio" : "image";
+    onPick({ kind, src: URL.createObjectURL(f), name: f.name.replace(/\.[^.]+$/, "").slice(0, 40), dur: null });
+  }
+  return (
+    <div className="ve-sheet-back" onClick={onClose}>
+      <div className="ve-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add to the timeline">
+        <div className="ve-sheet-top">
+          <div className="ve-seg">
+            {(["video", "image", "audio"] as const).map((k) => <button key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{k === "video" ? <Film size={14} /> : k === "image" ? <ImageIcon size={14} /> : <Music size={14} />} {k === "video" ? "Videos" : k === "image" ? "Pictures" : "Sounds"}</button>)}
+          </div>
+          <span className="ve-grow" />
+          <button type="button" className="ve-tool" onClick={() => fileInput.current?.click()}><Upload size={15} /> From device</button>
+          <input ref={fileInput} type="file" hidden accept="video/*,image/*,audio/*" onChange={(e) => { device(e.target.files?.[0]); e.target.value = ""; }} />
+          <button type="button" className="ve-icon" onClick={onClose} aria-label="Close"><X size={17} /></button>
+        </div>
+        <div className="ve-grid">
+          {tab !== "audio" && mine.map((r) => (
+            <button key={r.id} type="button" className="ve-tile" onClick={() => onPick({ kind: tab, src: `/api/generations/${r.id}/file`, name: (r.prompt || r.fileName || "Clip").slice(0, 40), dur: r.durationSec })}>
+              {tab === "video" ? <video src={`/api/generations/${r.id}/file#t=0.1`} preload="metadata" muted playsInline /> : <img src={`/api/generations/${r.id}/thumb`} alt="" loading="lazy" />}
+              {tab === "video" && r.durationSec ? <small>{Math.round(r.durationSec)}s</small> : null}
+            </button>
+          ))}
+          {tab === "audio" && takes.map((a) => (
+            <button key={a.id} type="button" className="ve-take" onClick={() => onPick({ kind: "audio", src: `/api/audio/${a.id}/file`, name: (a.text || a.modelLabel).slice(0, 40), dur: a.durationMs ? a.durationMs / 1000 : null })}>
+              <Music size={16} /><span><b>{(a.text || a.modelLabel).slice(0, 70)}</b><em>{a.modelLabel}</em></span>
+            </button>
+          ))}
+          {((tab !== "audio" && renders && !mine.length) || (tab === "audio" && sounds && !takes.length)) && <p className="ve-empty">Nothing here yet. Use From device to add a file.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}

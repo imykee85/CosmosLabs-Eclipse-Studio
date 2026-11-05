@@ -30,9 +30,7 @@ const nextConfig = {
     // Signed-in screens and the API are never indexed (the public site, /terms and /privacy stay indexable).
     const appPaths = ["dashboard", "create", "generate", "gallery", "library", "assets", "ingredients", "canvas", "connect", "memory", "skills", "tools", "agents", "prompts", "treatment", "project", "settings", "portfolio", "certificates", "voice", "admin", "onboarding", "tutorial", "motion", "export", "avatars", "api"];
     return [
-      { source: "/((?!api/core/tools/[^/]+/frame$|filmcraft/).*)", headers: securityHeaders },
-      // The timeline editor (a static page and a program file, public/filmcraft) is shown in a frame by Eclipse's own pages only.
-      { source: "/filmcraft/:path*", headers: [{ key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" }, { key: "X-Content-Type-Options", value: "nosniff" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/((?!api/core/tools/[^/]+/frame$).*)", headers: securityHeaders },
       ...appPaths.map((p) => ({ source: `/${p}/:path*`, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] })),
     ];
   },

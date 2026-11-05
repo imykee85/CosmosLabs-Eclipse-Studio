@@ -22,7 +22,7 @@ import RenderDetails from "../library/RenderDetails";
 import OrderedRefs, { type RefItem } from "./OrderedRefs";
 import StyleLibrary from "./StyleLibrary";
 import RelightVideoPanel from "./RelightVideoPanel";
-import TimelineEditor from "./TimelineEditor";
+import VideoEditor from "./VideoEditor";
 import ShotMapPanel, { type ShotUse } from "../shot/ShotMapPanel";
 import SheetPortal from "@/components/voice/SheetPortal";
 import { type PresetId } from "@/lib/shot/setup";
@@ -612,7 +612,7 @@ export default function VideoStudio() {
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} multiShot={!!caps.multiShot && !mc} shotsOn={!!shots} onShots={(on) => setShots(on ? [{ prompt: "", duration: 3 }, { prompt: "", duration: 3 }] : null)} onClose={() => setSettingsAnchor(null)} />}
       {styleOpen && <StyleLibrary onClose={() => setStyleOpen(false)} />}
-      {editorOpen && toolVid && <SheetPortal><TimelineEditor video={toolVid} projectId={projectId ?? null} onClose={() => setEditorOpen(false)} onSaved={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
+      {editorOpen && toolVid && <SheetPortal><VideoEditor video={toolVid} projectId={projectId ?? null} onClose={() => setEditorOpen(false)} onSaved={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {relightOpen && toolVid && <SheetPortal><RelightVideoPanel video={toolVid} onClose={() => setRelightOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {shotOpen && <SheetPortal><ShotMapPanel projectId={projectId ?? null} initialPreset={shotOpen === "open" ? undefined : shotOpen} onUse={applyShotMap} onClose={() => setShotOpen(null)} /></SheetPortal>}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} creditsOn={!!config?.creditsOn} direct={config?.direct ?? []} />}
