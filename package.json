@@ -17,7 +17,8 @@
     "i18n:extract": "node --import tsx scripts/i18n-extract.mjs",
     "i18n:warm": "I18N_BUILD_WARM=on node --import tsx scripts/i18n-warm.mjs",
     "test:integration": "node --import tsx --test tests/integration/*.test.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "shot:bundle": "node scripts/shot-bundle.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",

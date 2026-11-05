@@ -23,9 +23,14 @@ function vehicleMesh(v: Vehicle) {
   return g;
 }
 
-export function build(scene: Scene, width: number, height: number) {
-  const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; document.body.appendChild(canvas);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+// One WebGL renderer per canvas: the editor rebuilds the scene on every edit and a canvas cannot get a second context after the first is lost.
+const renderers = new WeakMap<HTMLCanvasElement, THREE.WebGLRenderer>();
+/** Frees a canvas's renderer for good (when the panel closes). */
+export function release(canvas: HTMLCanvasElement) { const r = renderers.get(canvas); if (r) { r.dispose(); r.forceContextLoss(); renderers.delete(canvas); } }
+
+export function build(scene: Scene, width: number, height: number, existing?: HTMLCanvasElement) {
+  const canvas = existing ?? document.createElement("canvas"); canvas.width = width; canvas.height = height; if (!existing) document.body.appendChild(canvas);
+  const renderer = renderers.get(canvas) ?? new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); renderers.set(canvas, renderer);
   renderer.setSize(width, height, false); renderer.setPixelRatio(1);
   const three = new THREE.Scene(); three.background = new THREE.Color(scene.set.sky); three.fog = new THREE.Fog(scene.set.sky, 60, 220);
   three.add(new THREE.AmbientLight(0xffffff, 0.85)); const sun = new THREE.DirectionalLight(0xffffff, 1.1); sun.position.set(-8, 14, 10); three.add(sun);
@@ -38,8 +43,9 @@ export function build(scene: Scene, width: number, height: number) {
   const cars = scene.vehicles.map((v) => ({ v, g: vehicleMesh(v) })); for (const c of cars) three.add(c.g);
   const cam = new THREE.PerspectiveCamera(40, width / height, 0.05, 600);
   return {
-    frame(shotIndex: number, index: number): string {
-      const sh = scene.shots[shotIndex], camera = scene.cameras.find((c) => c.id === sh.cameraId)!, t = sh.startS + index / scene.fps;
+    /** Draws the shot at time t (seconds from the start of the shot) on the canvas. */
+    drawAt(shotIndex: number, local: number) {
+      const sh = scene.shots[shotIndex], camera = scene.cameras.find((c) => c.id === sh.cameraId)!, t = sh.startS + local;
       for (const c of cars) { const p = vehicleAt(c.v, t); c.g.position.set(...p.pos); c.g.rotation.y = p.facing; }
       for (const p of people) {
         const pl = actorAt(scene, p.a, t), s = poseShape(pl.pose, pl.poseT, t * 6.5);
@@ -49,8 +55,11 @@ export function build(scene: Scene, width: number, height: number) {
       const cs = cameraAt(scene, camera, t, sh.aspect as AspectId);
       cam.fov = cs.fov; cam.aspect = ASPECTS[sh.aspect as AspectId]; cam.updateProjectionMatrix();
       cam.position.set(...cs.pos); cam.up.set(0, 1, 0); cam.lookAt(...cs.lookAt); cam.rotateZ((cs.roll * Math.PI) / 180);
-      renderer.render(three, cam); return canvas.toDataURL("image/jpeg", 0.92);
+      renderer.render(three, cam);
     },
+    frame(shotIndex: number, index: number): string { this.drawAt(shotIndex, index / scene.fps); return canvas.toDataURL("image/jpeg", 0.92); },
+    /** Frees what this scene built; the canvas keeps its renderer for the next scene. */
+    dispose() { three.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose?.(); const mt = m.material as THREE.Material | undefined; mt?.dispose?.(); }); },
   };
 }
 (globalThis as unknown as { ShotRender: unknown }).ShotRender = { build };

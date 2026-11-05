@@ -1,0 +1,30 @@
+/* ShotMap panel: it reuses the Relight and Change Camera classes (cr-var, cr-cam, cr-light-*, cr-bar); only what they do not have is here. */
+.sm-badge { width: 48px; height: 48px; border-radius: 12px; background: var(--a-input); display: inline-flex; align-items: center; justify-content: center; }
+.sm-stage { width: 100%; }
+.sm-canvas, .sm-map { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+.sm-lens { position: absolute; left: 10px; top: 8px; font-size: 11px; color: #ddd; background: rgba(0,0,0,.45); padding: 3px 8px; border-radius: 999px; }
+.sm-play { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; }
+.sm-play > button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--a-line); background: transparent; color: inherit; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.sm-play input[type=range] { width: 100%; accent-color: #c00707; }
+.sm-play output { font-size: 13px; opacity: .75; white-space: nowrap; }
+.sm-view { grid-column: 1 / -1; display: flex; gap: 8px; }
+.sm-view button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--a-line); background: var(--a-input); color: inherit; font: inherit; font-size: 14px; padding: 9px; border-radius: 999px; cursor: pointer; }
+.sm-view button.is-on { border-color: #c00707; box-shadow: inset 0 0 0 1px #c00707; }
+.sm-presets { grid-template-columns: repeat(2, 1fr); }
+.sm-aspects { grid-template-columns: repeat(4, 1fr); } .sm-kits { grid-template-columns: repeat(3, 1fr); } .sm-moves { grid-template-columns: 1fr; }
+@media (min-width: 801px) { .sm-presets { grid-template-columns: repeat(5, 1fr); } .sm-kits { grid-template-columns: repeat(5, 1fr); } }
+.sm-cast { display: flex; flex-direction: column; gap: 10px; }
+.sm-cast input.cr-var-text { width: 100%; }
+.sm-guide video { width: 100%; max-height: 40dvh; border-radius: 16px; background: #000; margin-bottom: 8px; }
+.sm-make .cr-light-chip { flex: none; min-width: 110px; }
+.sm-map { background: #0d0d10; }
+.sm-grid { stroke: rgba(150,160,255,.14); stroke-width: .04; }
+.sm-campath { fill: none; stroke: #8a5cf5; stroke-width: .12; stroke-dasharray: .4 .3; }
+.sm-fov { fill: rgba(79,107,255,.28); stroke: #4f6bff; stroke-width: .05; }
+.sm-cam { fill: #4f6bff; stroke: #fff; stroke-width: .06; }
+.sm-drag { cursor: grab; }
+@media (min-width: 801px) { .sm-panel > .sm-play, .sm-panel > .sm-cast { grid-column: 1 / -1; } }
+/* a long panel scrolls; its parts keep their own size instead of squeezing */
+.sm-panel > * { flex-shrink: 0; }
+.sm-stage { min-height: 120px; }
+@media (min-width: 801px) { .cr-var.cr-cam > .cr-cam-stage svg.sm-map { width: 100%; height: 100%; } }

@@ -38,3 +38,36 @@ test("drivers ride with their vehicle", () => {
   assert.ok(Math.hypot(a.pos[0] - c.pos[0], a.pos[2] - c.pos[2]) < 1.5);
   assert.equal(a.pose, "driving");
 });
+
+import { readFileSync, mkdirSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { SHOT_BUNDLE } from "../../src/lib/shot/render-bundle.generated";
+import { RENDER_MJS, guideSize } from "../../src/lib/shot/render-script";
+
+test("guide sizes: short side is the resolution, both sides even", () => {
+  assert.deepEqual(guideSize("16:9", 720), { w: 1280, h: 720 });
+  assert.deepEqual(guideSize("9:16", 480), { w: 480, h: 854 });
+  assert.deepEqual(guideSize("1:1", 480), { w: 480, h: 480 });
+});
+test("the committed render bundle matches the page code", async () => {
+  const { build } = await import("esbuild");
+  const r = await build({ entryPoints: ["src/lib/shot/render-page.ts"], bundle: true, write: false, format: "iife", platform: "browser", target: "es2020", minify: true, legalComments: "none" });
+  assert.equal(r.outputFiles[0].text, SHOT_BUNDLE, "run: npm run shot:bundle");
+});
+test("the render script makes a real video from a scene (same video twice)", { skip: !existsSync("/opt/pw-browsers/chromium-1243/chrome-linux64/chrome") }, () => {
+  const dir = path.join(tmpdir(), "shot-script-test"); mkdirSync(dir, { recursive: true });
+  try { symlinkSync(path.resolve("node_modules"), path.join(dir, "node_modules")); } catch { /* exists */ }
+  const scene = { ...t5, durationS: 1, shots: [{ ...t5.shots[0], endS: 1 }] };
+  writeFileSync(path.join(dir, "scene.json"), JSON.stringify(scene)); writeFileSync(path.join(dir, "bundle.js"), SHOT_BUNDLE); writeFileSync(path.join(dir, "render.mjs"), RENDER_MJS);
+  const ff = path.dirname(path.resolve("node_modules/@ffmpeg-installer/linux-x64/ffmpeg")), env = { ...process.env, SHOT_CHROME: "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome", PATH: `${ff}:${process.env.PATH}` };
+  const sums: string[] = [];
+  for (let i = 0; i < 2; i++) {
+    const r = spawnSync("node", ["render.mjs", "scene.json", `out${i}.mp4`, "480"], { cwd: dir, env, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    sums.push(readFileSync(path.join(dir, `out${i}.mp4`)).toString("base64"));
+  }
+  assert.equal(sums[0], sums[1]);
+  assert.ok(sums[0].length > 1000);
+});
