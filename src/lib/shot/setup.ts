@@ -157,7 +157,7 @@ export function buildScene(s: Setup, id = "shot"): Scene {
     path: m.moves ? [0, 0.5, 1].map((k) => { const e = k * k; return { t: k * T, pos: [ease(m.x, m.toX, e), ease(m.z, m.toZ, e)] as [number, number] }; }) : [{ t: 0, pos: [m.x, m.z] as [number, number] }],
   }));
   const people = s.cast.filter((m) => m.kind === "person").map((m) => castActor(m, T, m.label || colorName(m.color)));
-  const models = (s.objects ?? []).filter((o) => o.type === "chair" || o.type === "sofa").map((o) => ({ id: o.id, type: o.type as "chair" | "sofa", pos: [o.x, 0, o.z] as [number, number, number], rotY: o.rot, scale: o.scale }));
+  const models = (s.objects ?? []).filter((o) => o.type === "chair" || o.type === "armchair" || o.type === "sofa").map((o) => ({ id: o.id, type: (o.type === "sofa" ? "sofa" : "chair") as "chair" | "sofa", pos: [o.x, 0, o.z] as [number, number, number], rotY: o.rot, scale: o.scale }));
   const base = { id, version: SCENE_VERSION, models, fps: 24, durationS: T, seed: s.seed, set: { groundColor: kit.ground, groundSize: 300, sky: kit.sky, props: [...kitProps(s.kit), ...(s.objects ?? []).flatMap(objectProps)].slice(0, 400) }, actors: people, vehicles, cameras: [] as Camera[], shots: [{ id: "s1", cameraId: "cam", startS: 0, endS: camOf(s, 0).durationS, aspect: s.aspect }] };
   const first = sceneSchema.parse({ ...base, cameras: [{ id: "cam", name: "tmp", rig: "tripod", sensor: "FF", keys: [{ t: 0, pos: [0, 1.5, 5], lookAt: [0, 1, 0], lensMm: 35, roll: 0 }] }] });
   const subject = s.cast.find((m) => m.kind === "person" && !m.rides) ?? s.cast[0];
@@ -186,7 +186,7 @@ export function addVehicleWithDriver(s: Setup): Setup {
 
 
 // ---- Objects: things real cameras shoot around. Each is a few plain boxes and cylinders (neutral grey/wood tones, never the cast colours). ----
-export type ObjType = "table" | "chair" | "bench" | "sofa" | "bed" | "counter" | "crate" | "pillar" | "lamppost" | "tree" | "fence" | "door" | "window" | "stairs" | "barrier" | "horse";
+export type ObjType = "table" | "chair" | "armchair" | "sidetable" | "bench" | "sofa" | "bed" | "counter" | "crate" | "pillar" | "lamppost" | "tree" | "fence" | "door" | "window" | "stairs" | "barrier" | "horse";
 export type SceneObject = { id: string; type: ObjType; x: number; z: number; rot: number; scale: number };
 type Part = { k: "box" | "cylinder"; at: [number, number, number]; size: [number, number, number]; c?: string };
 const WOOD = "#b59b7e", STONE = "#b9bec6", DARK = "#7d848f", HIDE = "#a9805a";
@@ -194,6 +194,8 @@ const legs = (w: number, d: number, h: number, t: number, c: string): Part[] => 
 export const OBJECTS: { id: ObjType; label: string; foot: [number, number]; parts: Part[] }[] = [
   { id: "table", label: "Table", foot: [1.4, 0.8], parts: [{ k: "box", at: [0, 0.75, 0], size: [1.4, 0.06, 0.8], c: WOOD }, ...legs(1.4, 0.8, 0.72, 0.07, WOOD)] },
   { id: "chair", label: "Chair", foot: [0.45, 0.45], parts: [{ k: "box", at: [0, 0.45, 0], size: [0.45, 0.05, 0.45], c: WOOD }, { k: "box", at: [0, 0.75, -0.2], size: [0.45, 0.55, 0.05], c: WOOD }, ...legs(0.45, 0.45, 0.43, 0.05, WOOD)] },
+  { id: "armchair", label: "Armchair", foot: [0.85, 0.85], parts: [{ k: "box", at: [0, 0.22, 0], size: [0.85, 0.44, 0.85], c: DARK }, { k: "box", at: [0, 0.65, -0.35], size: [0.85, 0.5, 0.18], c: DARK }, { k: "box", at: [-0.38, 0.45, 0.05], size: [0.16, 0.3, 0.7], c: DARK }, { k: "box", at: [0.38, 0.45, 0.05], size: [0.16, 0.3, 0.7], c: DARK }] },
+  { id: "sidetable", label: "Side table", foot: [0.5, 0.5], parts: [{ k: "cylinder", at: [0, 0.55, 0], size: [0.5, 0.05, 0.5], c: WOOD }, { k: "cylinder", at: [0, 0.27, 0], size: [0.06, 0.54, 0.06], c: DARK }] },
   { id: "bench", label: "Bench", foot: [1.6, 0.45], parts: [{ k: "box", at: [0, 0.45, 0], size: [1.6, 0.06, 0.45], c: WOOD }, { k: "box", at: [-0.7, 0.22, 0], size: [0.07, 0.44, 0.4], c: DARK }, { k: "box", at: [0.7, 0.22, 0], size: [0.07, 0.44, 0.4], c: DARK }] },
   { id: "sofa", label: "Sofa", foot: [1.9, 0.9], parts: [{ k: "box", at: [0, 0.22, 0], size: [1.9, 0.44, 0.9], c: DARK }, { k: "box", at: [0, 0.7, -0.35], size: [1.9, 0.5, 0.2], c: DARK }, { k: "box", at: [-0.9, 0.5, 0.05], size: [0.2, 0.3, 0.8], c: DARK }, { k: "box", at: [0.9, 0.5, 0.05], size: [0.2, 0.3, 0.8], c: DARK }] },
   { id: "bed", label: "Bed", foot: [1.6, 2.1], parts: [{ k: "box", at: [0, 0.3, 0], size: [1.6, 0.5, 2.1], c: STONE }, { k: "box", at: [0, 0.65, -0.8], size: [0.9, 0.12, 0.4], c: "#d9dde3" }, { k: "box", at: [0, 0.8, -1.05], size: [1.6, 0.8, 0.08], c: WOOD }] },
