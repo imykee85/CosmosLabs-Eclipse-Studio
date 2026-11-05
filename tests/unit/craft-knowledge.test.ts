@@ -17,3 +17,8 @@ test("they load only on their own topics", () => {
   assert.equal(wantsCinema([{ content: "give it a cinematic anamorphic look" }], ""), true);
   assert.equal(wantsCinema([{ content: "hi" }], "Prompt: slow dolly in, color grading"), true);
 });
+
+test("Cinema Craft carries the 34 shot types and loads on shot-type talk", () => {
+  for (const t of ["Wide:", "Macro:", "Dutch angle", "Worm's-eye view", "Over-the-shoulder", "Inside-the-fridge", "Magnifying glass", "Lens flare", "Foreground occlusion", "Hoop-level"]) assert.ok(CINEMA_CRAFT.includes(t), t);
+  assert.ok(wantsCinema([{ role: "user", content: "give me a fisheye close-up and a dutch angle" }] as never, ""));
+});
