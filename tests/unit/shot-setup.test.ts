@@ -114,3 +114,10 @@ test("a rebuilt scene is cleaned: valid poses, clamped places, a driver rides th
   assert.equal(new Set(s.cast.map((c) => c.color)).size, s.cast.length);
   assert.doesNotThrow(() => buildScene(setupFromRebuild(null)));
 });
+
+test("a seated person is placed on their seat and the seat keeps its own size", () => {
+  const s = setupFromRebuild({ set: "room", people: [{ build: "man", x: 0.4, z: 0.3, pose: "sitting" }], objects: [{ type: "chair", x: 0, z: 0, rot: 0, scale: 1.8 }, { type: "table", x: 3, z: 0 }] });
+  const p = s.cast.find((c) => c.kind === "person")!, chair = s.objects!.find((o) => o.type === "chair")!;
+  assert.equal(chair.scale, 1); assert.ok(Math.hypot(p.x - chair.x, p.z - chair.z) < 0.1);
+  assert.equal(s.objects!.find((o) => o.type === "table")!.scale, 1);
+});
