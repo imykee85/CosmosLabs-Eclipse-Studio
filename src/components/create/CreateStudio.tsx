@@ -37,6 +37,7 @@ import CameraPanel, { type CameraRun } from "./CameraPanel";
 import VariationsTool from "./VariationsTool";
 import ImageEditor from "@/components/edit/ImageEditor";
 import RelightPanel, { type RelightRun } from "./RelightPanel";
+import UpscalePanel from "../upscale/UpscalePanel";
 import SkinPanel, { type SkinRun } from "./SkinPanel";
 import { skinPrompt } from "@/lib/skin/prompt";
 import { relightPrompt } from "@/lib/relight/prompt";
@@ -356,6 +357,9 @@ export default function CreateStudio() {
   const toolPic = busy ? null : latestDone;
   // Variations: its own window (VariationsTool): one render per cell from this picture, then the contact sheet and the results.
   const [varOpen, setVarOpen] = useState(false);
+  const [upOpen, setUpOpen] = useState(false);
+  const [upAvailable, setUpAvailable] = useState(false); // the real upscaler is switched on (else the old edit-model upscale is used)
+  useEffect(() => { fetch("/api/upscale/quote").then((r) => (r.ok ? r.json() : null)).then((d) => setUpAvailable(!!d?.available)).catch(() => {}); }, []);
   const [editorOpen, setEditorOpen] = useState(false);
   async function upscaleId(id: string) {
     const m = toolModel(models ?? [], "upscale");
@@ -539,7 +543,7 @@ export default function CreateStudio() {
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setLightError(""); setLightOpen(true); }} title="Place lights round the picture and change how it is lit"><Sun size={14} /> Relight</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setCamError(""); setCamOpen(true); }} title="See the same moment from another camera position"><Camera size={14} /> Change camera</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { setSkinError(""); setSkinOpen(true); }} title="Natural, realistic skin on a portrait"><ScanFace size={14} /> Skin enhancer</button>
-            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("upscale")} title="A sharper, higher-resolution copy of this picture"><ZoomIn size={14} /> Upscale</button>
+            <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => { if (upAvailable) setUpOpen(true); else void runTool("upscale"); }} title="A sharper, higher-resolution copy of this picture"><ZoomIn size={14} /> Upscale</button>
             <button type="button" tabIndex={toolPic ? 0 : -1} disabled={submitting} onClick={() => void runTool("removebg")} title="The subject on a plain white background"><Eraser size={14} /> Remove background</button>
           </>
         )}
@@ -651,6 +655,7 @@ export default function CreateStudio() {
       {skinOpen && toolPic?.imageUrl && <SheetPortal><SkinPanel thumb={thumbOf("render", toolPic.id)} tiers={skinTiers} unit={(t) => (skinModel ? imageCost(skinModel, skinModel.resolutions.length ? tierResolution(skinModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={skinError} onRun={(r) => void runSkin(r)} onClose={() => setSkinOpen(false)} /></SheetPortal>}
       {lightOpen && toolPic?.imageUrl && <SheetPortal><RelightPanel thumb={thumbOf("render", toolPic.id)} tiers={lightTiers} unit={(t) => (lightModel ? imageCost(lightModel, lightModel.resolutions.length ? tierResolution(lightModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={lightError} onRun={(r) => void runRelight(r)} onClose={() => setLightOpen(false)} /></SheetPortal>}
       {editorOpen && toolPic?.imageUrl && <ImageEditor sourceId={toolPic.id} onClose={() => { setEditorOpen(false); void reload(); }} />}
+      {upOpen && toolPic?.imageUrl && <SheetPortal><UpscalePanel source={{ id: toolPic.id, kind: "image", width: toolPic.width, height: toolPic.height }} onClose={() => setUpOpen(false)} onStarted={(id) => { if (id) setWatched(id); void reload(); }} /></SheetPortal>}
       {varOpen && toolPic?.imageUrl && <VariationsTool reference={{ type: "render", id: toolPic.id }} onClose={() => setVarOpen(false)} onUseAsReference={(id) => { setRefs([{ type: "render", id, url: `/api/generations/${id}/file`, label: "Variation" }]); box.current?.focus(); }} onUpscale={(id) => void upscaleId(id)} />}
       {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} unit={(t) => (camModel ? imageCost(camModel, camModel.resolutions.length ? tierResolution(camModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}

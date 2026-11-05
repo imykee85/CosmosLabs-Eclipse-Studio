@@ -69,6 +69,7 @@ export const higgsfield: ImageProvider = {
   },
 
   async status(statusUrl): Promise<ProviderStatus> {
+    if (statusUrl.startsWith("topaz:")) return (await import("@/lib/topaz/jobs")).topazImageStatus(statusUrl); // an upscale of a picture
     // The key goes with this request, so it only ever goes to Higgsfield's own address.
     if (new URL(statusUrl).origin !== new URL(BASE_URL).origin) throw new Error("Refusing a status address outside the provider's host");
     const res = await fetch(statusUrl, { headers: headers() });

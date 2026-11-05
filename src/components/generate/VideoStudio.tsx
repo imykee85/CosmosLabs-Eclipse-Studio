@@ -23,6 +23,7 @@ import OrderedRefs, { type RefItem } from "./OrderedRefs";
 import StyleLibrary from "./StyleLibrary";
 import RelightVideoPanel from "./RelightVideoPanel";
 import VideoEditor from "./VideoEditor";
+import UpscalePanel from "../upscale/UpscalePanel";
 import ShotMapPanel, { type ShotUse } from "../shot/ShotMapPanel";
 import SheetPortal from "@/components/voice/SheetPortal";
 import { type PresetId } from "@/lib/shot/setup";
@@ -71,6 +72,7 @@ export default function VideoStudio() {
   const [styleOpen, setStyleOpen] = useState(false);
   const [relightOpen, setRelightOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [upOpen, setUpOpen] = useState(false);
   const [shotOpen, setShotOpen] = useState<PresetId | "open" | null>(null);
   const [mcScene, setMcScene] = useState(false);          // Scene control: not sent anywhere yet (its API field is not in our reference)
   const [mcSceneFrom, setMcSceneFrom] = useState<"video" | "image">("video");
@@ -475,7 +477,7 @@ export default function VideoStudio() {
           <button type="button" onClick={() => { if (allowedNow("shotmap")) setShotOpen("open"); else askUpgrade("shotmap"); }} title="Direct a new shot in 3D, then generate it from the guide video"><Clapperboard size={14} /> {SHOT_NAME}</button>
           <button type="button" disabled={!toolVid} onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
           <button type="button" disabled={!toolVid} onClick={() => setEditorOpen(true)} title="Cut, trim, grade and mix the clip on a timeline"><Film size={14} /> Editor</button>
-          <button type="button" disabled={!toolVid} onClick={() => { setError(""); setNote("Upscale isn't connected yet."); }} title="Raise the resolution and sharpness of the clip"><ArrowUpFromLine size={14} /> Upscale <SoonTag /></button>
+          <button type="button" disabled={!toolVid} onClick={() => setUpOpen(true)} title="Raise the resolution and sharpness of the clip"><ArrowUpFromLine size={14} /> Upscale</button>
         </div>
         <PromptEdge message={edge} />
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>
@@ -613,6 +615,7 @@ export default function VideoStudio() {
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {settingsAnchor && <VideoSettingsMenu anchor={settingsAnchor} label={model.label} seed={caps.seed} seedLocked={seedLocked} onSeedLocked={setSeedLocked} seedText={seedText} onSeedText={setSeedText} seedBad={seedBad} negMax={caps.negativePrompt} negative={negative} onNegative={setNegative} cfg={caps.cfgScale} creative={creative} onCreative={setCreative} multiShot={!!caps.multiShot && !mc} shotsOn={!!shots} onShots={(on) => setShots(on ? [{ prompt: "", duration: 3 }, { prompt: "", duration: 3 }] : null)} onClose={() => setSettingsAnchor(null)} />}
       {styleOpen && <StyleLibrary onClose={() => setStyleOpen(false)} />}
+      {upOpen && toolVid && <SheetPortal><UpscalePanel source={{ id: toolVid.id, kind: "video", width: toolVid.width, height: toolVid.height, durationSec: toolVid.durationSec }} onClose={() => setUpOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {editorOpen && toolVid && <SheetPortal><VideoEditor video={toolVid} projectId={projectId ?? null} onClose={() => setEditorOpen(false)} onSaved={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {relightOpen && toolVid && <SheetPortal><RelightVideoPanel video={toolVid} onClose={() => setRelightOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {shotOpen && <SheetPortal><ShotMapPanel projectId={projectId ?? null} initialPreset={shotOpen === "open" ? undefined : shotOpen} onUse={applyShotMap} onClose={() => setShotOpen(null)} /></SheetPortal>}

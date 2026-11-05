@@ -172,7 +172,7 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     id: g.id,
     prompt: g.prompt,
     model: g.model,
-    modelLabel: (g.kind === "video" ? findVideoModel(g.model)?.label : getModelById(g.model)?.label) ?? (g.model === "variations" ? "Variations" : g.model),
+    modelLabel: (g.kind === "video" ? findVideoModel(g.model)?.label : getModelById(g.model)?.label) ?? (g.model === "variations" ? "Variations" : g.model === "upscale" ? "Upscale" : g.model),
     fileName: done ? fileNameFor(g) : null,
     contentType: g.contentType,
     sizeBytes: g.sizeBytes,

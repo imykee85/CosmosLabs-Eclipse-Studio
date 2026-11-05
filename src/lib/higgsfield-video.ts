@@ -49,6 +49,7 @@ export async function submitVideo(endpoint: string, body: Record<string, unknown
 
 // GET status_url once. Stop asking on completed, failed, nsfw or canceled.
 export async function videoStatus(statusUrl: string): Promise<VideoStatus> {
+  if (statusUrl.startsWith("topaz:")) return (await import("@/lib/topaz/jobs")).topazVideoStatus(statusUrl); // an upscale of a clip
   if (isArkUrl(statusUrl)) return arkStatus(statusUrl); // a job started on the direct BytePlus route
   const res = await fetch(checked(statusUrl), { headers: headers(), signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`Higgsfield status check failed (${res.status})`);
