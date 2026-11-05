@@ -80,3 +80,17 @@ test("combined moves: pull back while orbiting, or one after the other; speed an
   assert.match(shotPrompt({ ...base, preset: "pull-out", preset2: "orbit-360" }), /pull out while orbit 360/);
   assert.equal(DEFAULT_SETUP.aspect, "1:1");
 });
+
+import { addCamera, camCount, editCam, removeCamera, totalS, MOVE_GROUPS, PRESETS as ALL_PRESETS } from "../../src/lib/shot/setup";
+test("move groups cover every preset once, and extra cameras cut one after the other", () => {
+  const ids = MOVE_GROUPS.flatMap((g) => g.options.map((o) => o.id)).sort();
+  assert.deepEqual(ids, ALL_PRESETS.map((p) => p.id).sort());
+  let s = addCamera({ ...DEFAULT_SETUP, durationS: 5 }); s = editCam(s, 1, { preset: "orbit-180", durationS: 4 });
+  assert.equal(camCount(s), 2); assert.equal(totalS(s), 9);
+  const sc = buildScene(s);
+  assert.equal(sc.cameras.length, 2); assert.deepEqual(sc.shots.map((x) => [x.startS, x.endS]), [[0, 5], [5, 9]]);
+  assert.ok(sc.cameras[1].keys[0].t >= 5 - 1e-9);
+  assert.match(shotPrompt(s), /hard cut to camera 2 \(5 to 9 s\)/);
+  assert.equal(camCount(removeCamera(s, 1)), 1);
+  for (const p of ALL_PRESETS) { const sc2 = buildScene({ ...DEFAULT_SETUP, preset: p.id }); assert.ok(sc2.cameras[0].keys.length >= 1); }
+});

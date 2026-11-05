@@ -45,7 +45,7 @@ export async function shotGuideInputFor(userId: string, jobId: string, body: unk
   if (JSON.stringify(req.scene ?? null).length > MAX_SCENE) throw new JobInputError("That scene is too large.");
   const scene = sceneSchema.safeParse(req.scene);
   if (!scene.success) throw new JobInputError(scene.error.issues[0]?.message?.slice(0, 160) || "That scene is not valid.");
-  const sh = scene.data.shots[0], seconds = sh.endS - sh.startS;
+  const shots = scene.data.shots, seconds = shots[shots.length - 1].endS - shots[0].startS;
   if (seconds > MAX_SECONDS) throw new JobInputError(`A guide can be up to ${MAX_SECONDS} seconds.`);
   if (req.projectId && !(await db.project.findFirst({ where: { id: req.projectId, userId, deletedAt: null }, select: { id: true } }))) throw new JobInputError("That project was not found.");
   return { scene: scene.data, res: req.res ?? "480", seconds, outputKey: `u/${userId}/shotguide/${jobId}.mp4`, projectId: req.projectId ?? null };

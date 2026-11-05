@@ -16,12 +16,27 @@ export const PRESETS = [
   { id: "pan", label: "Pan right", hint: "Turns on the spot to the right" }, { id: "pan-left", label: "Pan left", hint: "Turns on the spot to the left" },
   { id: "truck-left", label: "Truck left", hint: "Slides sideways to the left" }, { id: "truck-right", label: "Truck right", hint: "Slides sideways to the right" },
   { id: "crane-up", label: "Crane up", hint: "Rises while looking down at the subject" }, { id: "crane-down", label: "Crane down", hint: "Lowers towards the ground" },
+  { id: "crane-left", label: "Crane left", hint: "Swings round to the left on the arm" }, { id: "crane-right", label: "Crane right", hint: "Swings round to the right on the arm" },
+  { id: "tilt-up", label: "Tilt up", hint: "Aims upwards on the spot" }, { id: "tilt-down", label: "Tilt down", hint: "Aims downwards on the spot" },
+  { id: "high-hero", label: "High hero", hint: "High angle looking down, slow push" },
   { id: "low-hero", label: "Low hero", hint: "Low angle, slow push" }, { id: "shin", label: "Shin height", hint: "Locked off, very low, wide lens" },
   { id: "handheld", label: "Handheld", hint: "Drifts with a little shake" }, { id: "follow", label: "Follow", hint: "Moves alongside the subject" },
 ] as const;
 export type PresetId = (typeof PRESETS)[number]["id"];
 /** Moves that can be stacked or chained. The others (low hero, shin height, handheld, follow) are looks of their own and stand alone. */
-export const COMBINABLE: PresetId[] = ["push-in", "pull-out", "orbit-180", "orbit-360", "pan", "pan-left", "truck-left", "truck-right", "crane-up", "crane-down"];
+export const COMBINABLE: PresetId[] = ["push-in", "pull-out", "orbit-180", "orbit-360", "pan", "pan-left", "truck-left", "truck-right", "crane-up", "crane-down", "crane-left", "crane-right", "tilt-up", "tilt-down"];
+/** The move picker: a group, then its options. */
+export const MOVE_GROUPS: { id: string; label: string; options: { id: PresetId; label: string }[] }[] = [
+  { id: "dolly", label: "Dolly", options: [{ id: "push-in", label: "In" }, { id: "pull-out", label: "Out" }] },
+  { id: "truck", label: "Truck", options: [{ id: "truck-left", label: "Left" }, { id: "truck-right", label: "Right" }] },
+  { id: "crane", label: "Crane", options: [{ id: "crane-up", label: "Up" }, { id: "crane-down", label: "Down" }, { id: "crane-left", label: "Left" }, { id: "crane-right", label: "Right" }] },
+  { id: "orbit", label: "Orbit", options: [{ id: "orbit-180", label: "180°" }, { id: "orbit-360", label: "360°" }] },
+  { id: "pan", label: "Pan", options: [{ id: "pan-left", label: "Left" }, { id: "pan", label: "Right" }] },
+  { id: "tilt", label: "Tilt", options: [{ id: "tilt-up", label: "Up" }, { id: "tilt-down", label: "Down" }] },
+  { id: "hero", label: "Hero", options: [{ id: "low-hero", label: "Low" }, { id: "high-hero", label: "High" }] },
+  { id: "look", label: "Look", options: [{ id: "shin", label: "Shin height" }, { id: "handheld", label: "Handheld" }, { id: "follow", label: "Follow" }] },
+];
+export const groupOf = (id: PresetId) => MOVE_GROUPS.find((g) => g.options.some((o) => o.id === id))?.id ?? "dolly";
 export const isCombinable = (id: PresetId) => COMBINABLE.includes(id);
 
 export type CastItem = {
@@ -30,14 +45,39 @@ export type CastItem = {
   /** The id of the vehicle a person rides in (they sit inside it and follow it). */
   rides?: string;
 };
+/** One camera of the shot: the settings that belong to it. The first camera lives on the Setup itself; extra cameras are cuts that follow it. */
+export type CamSetup = { preset: PresetId; preset2?: PresetId | null; combine?: "together" | "then"; split?: number; rotate?: number; vertical?: number; speed?: number; lensMm: number; distance: number; durationS: number; shake: number };
+export const MAX_CAMERAS = 6;
 export type Setup = {
-  kit: KitId; cast: CastItem[]; objects?: SceneObject[]; preset: PresetId; preset2?: PresetId | null; combine?: "together" | "then"; split?: number; rotate?: number; vertical?: number; speed?: number; lensMm: number; distance: number; durationS: number; shake: number; aspect: AspectId; seed: number;
+  kit: KitId; cast: CastItem[]; objects?: SceneObject[]; more?: CamSetup[]; preset: PresetId; preset2?: PresetId | null; combine?: "together" | "then"; split?: number; rotate?: number; vertical?: number; speed?: number; lensMm: number; distance: number; durationS: number; shake: number; aspect: AspectId; seed: number;
 };
 
 export const DEFAULT_SETUP: Setup = {
   kit: "studio", cast: [{ id: "p1", kind: "person", label: "", color: "red", x: 0, z: 0, moves: false, toX: 0, toZ: 3, build: "man", pose: "standing", pose2: null, pose2At: 3, vtype: "car" }],
   preset: "push-in", preset2: null, combine: "together", split: 0.5, rotate: 0, vertical: 0, speed: 1, lensMm: 35, distance: 4, durationS: 8, shake: 0, aspect: "1:1", seed: 7,
 };
+
+export const camCount = (s: Setup) => 1 + (s.more?.length ?? 0);
+export function camOf(s: Setup, i: number): CamSetup {
+  if (i <= 0 || !s.more?.[i - 1]) return { preset: s.preset, preset2: s.preset2, combine: s.combine, split: s.split, rotate: s.rotate, vertical: s.vertical, speed: s.speed, lensMm: s.lensMm, distance: s.distance, durationS: s.durationS, shake: s.shake };
+  return s.more[i - 1];
+}
+export const totalS = (s: Setup) => Math.max(1, Math.min(30, camOf(s, 0).durationS + (s.more ?? []).reduce((a, c) => a + c.durationS, 0)));
+export function editCam(s: Setup, i: number, patch: Partial<CamSetup>): Setup {
+  if (i <= 0) return { ...s, ...patch };
+  return { ...s, more: (s.more ?? []).map((c, k) => (k === i - 1 ? { ...c, ...patch } : c)) };
+}
+export function addCamera(s: Setup): Setup {
+  if (camCount(s) >= MAX_CAMERAS) return s;
+  const left = 30 - totalS(s); if (left < 2) return s;
+  const prev = camOf(s, camCount(s) - 1);
+  return { ...s, more: [...(s.more ?? []), { ...prev, preset: "pull-out", preset2: null, rotate: ((prev.rotate ?? 0) + 90) % 360, durationS: Math.min(4, left) }] };
+}
+export function removeCamera(s: Setup, i: number): Setup {
+  if (camCount(s) < 2) return s;
+  if (i <= 0) { const [n, ...rest] = s.more ?? []; return { ...s, ...n, more: rest }; }
+  return { ...s, more: (s.more ?? []).filter((_, k) => k !== i - 1) };
+}
 
 export const nextColor = (cast: CastItem[]): ColorId | null => PALETTE.find((c) => c.id !== "grey" && !cast.some((m) => m.color === c.id))?.id ?? null;
 export const colorName = (id: ColorId) => PALETTE.find((c) => c.id === id)?.name ?? id;
@@ -88,6 +128,7 @@ export function cameraFor(s: Setup, subjectAt: (t: number) => { x: number; z: nu
     case "pan": rig = "tripod"; keys = [key(0, pos(0, d, h), [f.x - d * 0.55, eye, f.z]), key(T, pos(0, d, h), [f.x + d * 0.55, eye, f.z])]; break;
     case "crane-up": rig = "crane"; keys = [key(0, pos(0, d, 0.5), at), key(T, pos(0, d, Math.max(h * 2.4, 3.2)), [f.x, 0.9, f.z])]; break;
     case "low-hero": keys = [key(0, pos(0.15, d, 0.35, f), [f.x, 1.6, f.z], Math.min(lens, 24)), key(T, pos(0.1, Math.max(1.4, d * 0.7), 0.35, f), [f.x, 1.6, f.z], Math.min(lens, 24))]; break;
+    case "high-hero": keys = [key(0, pos(0.15, d, 3.4, f), [f.x, 0.9, f.z], Math.min(lens, 28)), key(T, pos(0.1, Math.max(1.6, d * 0.7), 3.0, f), [f.x, 0.9, f.z], Math.min(lens, 28))]; break;
     case "shin": rig = "tripod"; keys = [key(0, pos(0, d, 0.15), [f.x, 0.55, f.z], 15)]; break;
     case "handheld": rig = "handheld"; shake = Math.max(shake, 0.45); keys = [key(0, pos(-0.35, d, h), at), key(T / 2, pos(0, d * 0.9, h - 0.05), at), key(T, pos(0.35, d * 0.8, h), at)]; break;
     case "follow": {
@@ -107,18 +148,27 @@ function castActor(m: CastItem, T: number, label: string): Scene["actors"][numbe
 }
 
 export function buildScene(s: Setup, id = "shot"): Scene {
-  const T = Math.max(1, Math.min(30, s.durationS)), kit = KITS.find((k) => k.id === s.kit) ?? KITS[0];
+  const T = totalS(s), kit = KITS.find((k) => k.id === s.kit) ?? KITS[0];
   const ease = (a: number, b: number, k: number) => a + (b - a) * k;
   const vehicles = s.cast.filter((m) => m.kind === "vehicle").map((m) => ({
     id: m.id, label: m.label || colorName(m.color), color: m.color, type: m.vtype,
     path: m.moves ? [0, 0.5, 1].map((k) => { const e = k * k; return { t: k * T, pos: [ease(m.x, m.toX, e), ease(m.z, m.toZ, e)] as [number, number] }; }) : [{ t: 0, pos: [m.x, m.z] as [number, number] }],
   }));
   const people = s.cast.filter((m) => m.kind === "person").map((m) => castActor(m, T, m.label || colorName(m.color)));
-  const base = { id, version: SCENE_VERSION, fps: 24, durationS: T, seed: s.seed, set: { groundColor: kit.ground, groundSize: 300, sky: kit.sky, props: [...kitProps(s.kit), ...(s.objects ?? []).flatMap(objectProps)].slice(0, 400) }, actors: people, vehicles, cameras: [] as Camera[], shots: [{ id: "s1", cameraId: "cam", startS: 0, endS: T, aspect: s.aspect }] };
+  const base = { id, version: SCENE_VERSION, fps: 24, durationS: T, seed: s.seed, set: { groundColor: kit.ground, groundSize: 300, sky: kit.sky, props: [...kitProps(s.kit), ...(s.objects ?? []).flatMap(objectProps)].slice(0, 400) }, actors: people, vehicles, cameras: [] as Camera[], shots: [{ id: "s1", cameraId: "cam", startS: 0, endS: camOf(s, 0).durationS, aspect: s.aspect }] };
   const first = sceneSchema.parse({ ...base, cameras: [{ id: "cam", name: "tmp", rig: "tripod", sensor: "FF", keys: [{ t: 0, pos: [0, 1.5, 5], lookAt: [0, 1, 0], lensMm: 35, roll: 0 }] }] });
   const subject = s.cast.find((m) => m.kind === "person" && !m.rides) ?? s.cast[0];
   const subjectAt = (t: number) => { if (!subject) return { x: 0, z: 0 }; const p = subject.kind === "vehicle" ? vehicleAt(first.vehicles.find((v) => v.id === subject.id)!, t) : actorAt(first, first.actors.find((a) => a.id === subject.id)!, t); return { x: p.pos[0], z: p.pos[2] }; };
-  return sceneSchema.parse({ ...base, cameras: [cameraFor({ ...s, durationS: T }, subjectAt)] });
+  const n = camCount(s); const cameras: Camera[] = [], shots: Scene["shots"] = []; let t0 = 0;
+  for (let i = 0; i < n; i++) {
+    const cs = camOf(s, i), len = i === n - 1 ? Math.max(0.5, T - t0) : cs.durationS, start = t0;
+    const c = cameraFor({ ...s, ...cs, durationS: len }, (t) => subjectAt(start + t));
+    const id = i === 0 ? "cam" : `cam${i + 1}`;
+    cameras.push({ ...c, id, name: `Camera ${i + 1}: ${c.name}`, keys: c.keys.map((k) => ({ ...k, t: k.t + start })) } as Camera);
+    shots.push({ id: `s${i + 1}`, cameraId: id, startS: start, endS: Math.min(T, start + len), aspect: s.aspect });
+    t0 += len;
+  }
+  return sceneSchema.parse({ ...base, cameras, shots });
 }
 
 /** A vehicle with a driver: adding a vehicle also seats a person in it. */
@@ -180,9 +230,9 @@ export function objectProps(o: SceneObject): Prop[] {
 
 // ---- Combined moves: every move adds to the camera's distance, angle, sideways slide, height or aim; together they all span the clip, "then" gives each its own part. ----
 const smooth = (u: number) => { const c = Math.max(0, Math.min(1, u)); return c * c * (3 - 2 * c); };
-type Delta = { dist: number; az: number; side: number; up: number; aim: number };
+type Delta = { dist: number; az: number; side: number; up: number; aim: number; tilt: number };
 function moveDelta(id: PresetId, d: number, k: number): Delta {
-  const z: Delta = { dist: 0, az: 0, side: 0, up: 0, aim: 0 };
+  const z: Delta = { dist: 0, az: 0, side: 0, up: 0, aim: 0, tilt: 0 };
   switch (id) {
     case "push-in": return { ...z, dist: -0.55 * d * k };
     case "pull-out": return { ...z, dist: 0.8 * d * k };
@@ -194,6 +244,10 @@ function moveDelta(id: PresetId, d: number, k: number): Delta {
     case "truck-right": return { ...z, side: d * 0.8 * k };
     case "crane-up": return { ...z, up: 2.2 * k };
     case "crane-down": return { ...z, up: -1.0 * k };
+    case "crane-left": return { ...z, az: -Math.PI / 3 * k };
+    case "crane-right": return { ...z, az: Math.PI / 3 * k };
+    case "tilt-up": return { ...z, tilt: d * 0.45 * k };
+    case "tilt-down": return { ...z, tilt: -d * 0.45 * k };
     default: return z;
   }
 }
@@ -206,12 +260,12 @@ function composed(s: Setup, f: { x: number; z: number }, eye: number, vert: numb
   const moves = [{ id: s.preset, a: 0, b: second && s.combine === "then" ? split : T }, ...(second ? [{ id: second, a: s.combine === "then" ? split : 0, b: T }] : [])].map((m) => ({ ...m, dl: moveDelta(m.id, d, k) }));
   const n = Math.max(8, Math.min(90, Math.ceil(T * 3)));
   const keys: Camera["keys"] = Array.from({ length: n + 1 }, (_, i) => {
-    const t = (i / n) * T; let dist = d, az = az0, side = 0, up = 0, aim = 0;
-    for (const m of moves) { const u = smooth((t - m.a) / Math.max(1e-6, m.b - m.a)); dist += m.dl.dist * u; az += m.dl.az * u; side += m.dl.side * u; up += m.dl.up * u; aim += m.dl.aim * u; }
+    const t = (i / n) * T; let dist = d, az = az0, side = 0, up = 0, aim = 0, tilt = 0;
+    for (const m of moves) { const u = smooth((t - m.a) / Math.max(1e-6, m.b - m.a)); dist += m.dl.dist * u; az += m.dl.az * u; side += m.dl.side * u; up += m.dl.up * u; aim += m.dl.aim * u; tilt += m.dl.tilt * u; }
     dist = Math.max(1.0, dist);
     const rx = Math.cos(az), rz = -Math.sin(az), y = Math.max(0.15, eye + dist * tan + up);
     const pos: [number, number, number] = [f.x + dist * Math.sin(az) + side * rx, y, f.z + dist * Math.cos(az) + side * rz];
-    const look: [number, number, number] = [f.x + (side + aim) * rx, up > 0 ? Math.max(0.9, eye - up * 0.15) : eye, f.z + (side + aim) * rz];
+    const look: [number, number, number] = [f.x + (side + aim) * rx, Math.max(0.1, (up > 0 ? Math.max(0.9, eye - up * 0.15) : eye) + tilt), f.z + (side + aim) * rz];
     return { t, pos, lookAt: look, lensMm: s.lensMm, roll: 0 };
   });
   const orbits = moves.some((m) => m.id.startsWith("orbit")), crane = moves.some((m) => m.id.startsWith("crane"));

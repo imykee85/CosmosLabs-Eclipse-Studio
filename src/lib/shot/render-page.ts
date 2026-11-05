@@ -152,17 +152,21 @@ export function buildStage(scene: Scene, canvas: HTMLCanvasElement, width: numbe
   three.add(rig);
   // the path the camera travels (without shake) and its keys
   const samples: THREE.Vector3[] = [];
-  const T = Math.max(0.5, sh.endS - sh.startS), still = { ...camData, shake: { ...camData.shake, amount: 0 } };
-  for (let i = 0; i <= 80; i++) { const c = cameraAt(scene, still, sh.startS + (i / 80) * T, sh.aspect as AspectId); samples.push(new THREE.Vector3(...c.pos)); }
-  const path = new THREE.Line(new THREE.BufferGeometry().setFromPoints(samples), new THREE.LineDashedMaterial({ color: 0x8a5cf5, dashSize: 0.35, gapSize: 0.2 })); path.computeLineDistances(); three.add(path);
-  for (const k of camData.keys) { const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0x8a5cf5 })); d.position.set(...k.pos); three.add(d); }
+  // one path per shot (a cut to another camera is another path), each with its key dots
+  for (const shp of scene.shots) {
+    const cd = scene.cameras.find((c) => c.id === shp.cameraId)!, Ts = Math.max(0.5, shp.endS - shp.startS), still2 = { ...cd, shake: { ...cd.shake, amount: 0 } }, pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 80; i++) { const c = cameraAt(scene, still2, shp.startS + (i / 80) * Ts, shp.aspect as AspectId); pts.push(new THREE.Vector3(...c.pos)); }
+    const pathN = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0x8a5cf5, dashSize: 0.35, gapSize: 0.2 })); pathN.computeLineDistances(); three.add(pathN);
+    for (const k of cd.keys) { if (k.t < shp.startS - 1e-6 || k.t > shp.endS + 1e-6) continue; const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0x8a5cf5 })); d.position.set(...k.pos); three.add(d); }
+  }
+  void samples;
   const view = new THREE.PerspectiveCamera(42, width / height, 0.1, 800);
   const tmp = new THREE.Vector3();
   return {
     drawAt(local: number) {
-      const t = sh.startS + local;
+      const t = sh.startS + local, cur = scene.shots.find((x) => t >= x.startS && t < x.endS) ?? scene.shots[scene.shots.length - 1], camNow = scene.cameras.find((c) => c.id === cur.cameraId) ?? camData;
       pop.pose(t);
-      const cs = cameraAt(scene, camData, t, sh.aspect as AspectId);
+      const cs = cameraAt(scene, camNow, t, sh.aspect as AspectId);
       rig.position.set(...cs.pos); rig.up.set(0, 1, 0); rig.lookAt(...cs.lookAt); rig.rotateZ((cs.roll * Math.PI) / 180);
       const k = Math.max(1, orbit.dist * 0.055); rig.scale.setScalar(k);
       const D = Math.min(9, Math.max(2.5, tmp.set(...cs.lookAt).distanceTo(rig.position))) / k; // depth of the drawn view, in rig units

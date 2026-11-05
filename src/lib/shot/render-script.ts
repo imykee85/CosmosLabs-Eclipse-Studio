@@ -16,14 +16,15 @@ const scene = JSON.parse(readFileSync(sceneFile, "utf8")), bundle = readFileSync
 const ASPECTS = { "16:9": 16 / 9, "9:16": 9 / 16, "1:1": 1, "4:5": 4 / 5, "2.39:1": 2.39 };
 const sh = scene.shots[0], a = ASPECTS[sh.aspect] ?? 16 / 9, even = (n) => Math.max(2, Math.round(n / 2) * 2);
 const w = a >= 1 ? even(res * a) : res, h = a >= 1 ? res : even(res / a);
-const frames = Math.round((sh.endS - sh.startS) * scene.fps);
+const plan = []; for (let si = 0; si < scene.shots.length; si++) { const x = scene.shots[si]; const n = Math.round((x.endS - x.startS) * scene.fps); for (let f = 0; f < n; f++) plan.push([si, f]); }
+const frames = plan.length;
 const chrome = process.env.SHOT_CHROME || readFileSync("/opt/eclipse/chrome_path", "utf8").trim();
 mkdirSync("frames", { recursive: true });
 const browser = await chromium.launch({ executablePath: chrome, args: ["--no-sandbox", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 const page = await browser.newPage(); await page.setContent("<body style='margin:0'></body>"); await page.addScriptTag({ content: bundle });
 await page.evaluate(([s, w, h]) => { globalThis.__r = globalThis.ShotRender.build(s, w, h); }, [scene, w, h]);
 for (let f = 0; f < frames; f++) {
-  const url = await page.evaluate((f) => globalThis.__r.frame(0, f), f);
+  const url = await page.evaluate(([a, b]) => globalThis.__r.frame(a, b), plan[f]);
   writeFileSync("frames/" + String(f).padStart(5, "0") + ".jpg", Buffer.from(url.split(",")[1], "base64"));
 }
 await browser.close();

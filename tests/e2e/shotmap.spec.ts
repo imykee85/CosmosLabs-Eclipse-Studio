@@ -26,8 +26,10 @@ test.describe("ShotMap", () => {
     await tray.getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel).toBeVisible();
-    await panel.getByRole("group", { name: "Camera move", exact: true }).getByRole("button", { name: "Pull out" }).click();
-    await panel.getByRole("group", { name: "Second move" }).getByRole("button", { name: "Orbit 360°" }).click();
+    await panel.getByRole("group", { name: "Camera move", exact: true }).getByRole("button", { name: "Dolly" }).click();
+    await panel.getByRole("group", { name: "Camera move: Dolly" }).getByRole("button", { name: "Out" }).click();
+    await panel.getByRole("group", { name: "Second move", exact: true }).getByRole("button", { name: "Orbit" }).click();
+    await panel.getByRole("group", { name: "Second move: Orbit" }).getByRole("button", { name: "360°" }).click();
     await expect(panel.getByRole("group", { name: "How the moves combine" })).toBeVisible();
     await panel.getByRole("button", { name: "One after the other" }).click();
     await expect(panel.locator("#sm-split")).toBeVisible();
@@ -35,7 +37,11 @@ test.describe("ShotMap", () => {
     await expect(panel.getByRole("group", { name: "Aspect ratio" })).toHaveCount(0);
     // the preview draws (WebGL may be missing in some browsers: then the message shows instead and the rest still works)
     await expect(panel.locator("canvas.sm-canvas, .cr-light-flat").first()).toBeVisible({ timeout: 15000 });
-    await panel.getByRole("group", { name: "Camera move", exact: true }).getByRole("button", { name: "Shin height" }).click();
+    await panel.getByRole("group", { name: "Camera move", exact: true }).getByRole("button", { name: "Look" }).click();
+    await panel.getByRole("group", { name: "Camera move: Look" }).getByRole("button", { name: "Shin height" }).click();
+    await panel.getByRole("button", { name: "Add a camera" }).click();
+    await expect(panel.getByRole("tab", { name: "2" })).toBeVisible();
+    await panel.getByRole("button", { name: "Remove this camera" }).click();
     await expect(panel.getByRole("button", { name: "Shin height" })).toHaveClass(/is-on/);
     await panel.getByRole("button", { name: "Stage", exact: true }).click();
     await expect(panel.locator("canvas.sm-orbit, .cr-light-flat").first()).toBeVisible({ timeout: 15000 });
@@ -51,9 +57,9 @@ test.describe("ShotMap", () => {
     await panel.getByRole("button", { name: "Add another action" }).click();
     await expect(panel.getByLabel("Action 3", { exact: true })).toBeVisible();
     await panel.getByRole("button", { name: "Add a person" }).click();
-    await expect(panel.getByRole("tab")).toHaveCount(2);
+    await expect(panel.getByRole("tablist", { name: "Cast" }).getByRole("tab")).toHaveCount(2);
     await panel.getByRole("button", { name: "Add a vehicle with a driver" }).click();
-    await expect(panel.getByRole("tab")).toHaveCount(4);
+    await expect(panel.getByRole("tablist", { name: "Cast" }).getByRole("tab")).toHaveCount(4);
     await panel.getByLabel("Who is this").fill("a barista in her thirties");
     await panel.getByRole("button", { name: "Make guide video" }).click();
     await expect(panel.getByLabel("Guide video")).toBeVisible();

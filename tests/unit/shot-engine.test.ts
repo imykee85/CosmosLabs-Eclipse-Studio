@@ -73,6 +73,19 @@ test("the render script makes a real video from a scene (same video twice)", { s
 });
 
 import { BODY, hipHeight, poseJoints } from "../../src/lib/shot/engine";
+import { readdirSync } from "node:fs";
+import { DEFAULT_SETUP, addCamera, buildScene as buildSetupScene, editCam } from "../../src/lib/shot/setup";
+test("two cameras render as one video: all the frames of both shots", { skip: !existsSync("/opt/pw-browsers/chromium-1243/chrome-linux64/chrome") }, () => {
+  const dir = path.join(tmpdir(), "shot-script-test-2cam"); mkdirSync(dir, { recursive: true });
+  try { symlinkSync(path.resolve("node_modules"), path.join(dir, "node_modules")); } catch { /* exists */ }
+  let st = addCamera({ ...DEFAULT_SETUP, durationS: 1 }); st = editCam(st, 1, { durationS: 1, preset: "orbit-180" });
+  const scene = buildSetupScene(st);
+  writeFileSync(path.join(dir, "scene.json"), JSON.stringify(scene)); writeFileSync(path.join(dir, "bundle.js"), SHOT_BUNDLE); writeFileSync(path.join(dir, "render.mjs"), RENDER_MJS);
+  const ff = path.dirname(path.resolve("node_modules/@ffmpeg-installer/linux-x64/ffmpeg")), env = { ...process.env, SHOT_CHROME: "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome", PATH: `${ff}:${process.env.PATH}` };
+  const r = spawnSync("node", ["render.mjs", "scene.json", "out.mp4", "480"], { cwd: dir, env, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(readdirSync(path.join(dir, "frames")).length >= 48, true);
+});
 import { POSES } from "../../src/lib/shot/schema";
 test("every pose keeps the lower foot on the ground and the joints finite", () => {
   for (const p of POSES) for (const ph of [0, 1, 2.2, 4]) {

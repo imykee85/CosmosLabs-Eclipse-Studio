@@ -7,7 +7,7 @@ import Bar from "../create/Bar";
 import { cancelSandboxJob, followSandboxJob, startSandboxJob, type SandboxJobView } from "@/lib/sandbox-client";
 import { ASPECTS, FEATURE_NAME, PALETTE, POSES, colorHex, type AspectId, type Pose } from "@/lib/shot/schema";
 import { cameraAt } from "@/lib/shot/engine";
-import { DEFAULT_SETUP, KITS, MAX_CAST, MAX_OBJECTS, OBJECTS, PRESETS, isCombinable, addObject, addPerson, removeObject, type ObjType, type SceneObject, addVehicleWithDriver, buildScene, colorName, removeCast, type CastItem, type PresetId, type Setup } from "@/lib/shot/setup";
+import { DEFAULT_SETUP, KITS, MAX_CAMERAS, MAX_CAST, MAX_OBJECTS, MOVE_GROUPS, OBJECTS, addCamera, camCount, camOf, editCam, groupOf, isCombinable, removeCamera, totalS, addObject, addPerson, removeObject, type ObjType, type SceneObject, addVehicleWithDriver, buildScene, colorName, removeCast, type CastItem, type PresetId, type Setup } from "@/lib/shot/setup";
 import { shotPrompt } from "@/lib/shot/prompt";
 import "./shot.css";
 
@@ -39,7 +39,9 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   const orbit = useRef<OrbitState | null>(null);
   const scene = useMemo(() => buildScene(setup), [setup]);
   const cast = setup.cast, item = cast[Math.min(sel, cast.length - 1)] ?? cast[0];
-  const aspect = ASPECTS[setup.aspect], T = setup.durationS;
+  const aspect = ASPECTS[setup.aspect], T = totalS(setup);
+  const [ci0, setCi] = useState(0), ci = Math.min(ci0, camCount(setup) - 1), cam = camOf(setup, ci);
+  const editC = (patch: Partial<import("@/lib/shot/setup").CamSetup>) => edit(editCam(setup, ci, patch));
   const changed = JSON.stringify({ ...setup, seed: 0 }) !== JSON.stringify({ ...DEFAULT_SETUP, preset: initialPreset ?? DEFAULT_SETUP.preset, seed: 0 });
   const running = !!job && !["succeeded", "failed", "canceled", "expired"].includes(job.status);
 
@@ -53,7 +55,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
     let r: Build | null = null, gone = false;
     void import("@/lib/shot/render-page").then(({ build }) => {
       if (gone) return;
-      try { r = build(scene, 640, Math.round(640 / aspect), el) as unknown as Build; built.current = r; r.drawAt(0, Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
+      try { r = build(scene, 640, Math.round(640 / aspect), el) as unknown as Build; built.current = r; drawShot(r, scene, Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
     }).catch(() => setFlat(true));
     return () => { gone = true; r?.dispose(); if (built.current === r) built.current = null; if (el) void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
   }, [scene, flat, aspect, T]);
@@ -64,7 +66,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
     let r: StageBuild | null = null, gone = false;
     void import("@/lib/shot/render-page").then(({ buildStage, fitOrbit }) => {
       if (gone) return;
-      try { if (!orbit.current) orbit.current = fitOrbit(scene); r = buildStage(scene, el, 640, Math.round(640 / aspect), orbit.current); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
+      try { if (!orbit.current) orbit.current = fitOrbit(scene); r = buildStage(scene, el, 640, 512, orbit.current); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
     }).catch(() => setFlat(true));
     return () => { gone = true; r?.dispose(); if (stageBuilt.current === r) stageBuilt.current = null; void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
   }, [scene, view, flat, aspect, T]);
@@ -81,7 +83,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   };
   const onStageUp = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId); pinch.current = 0; };
   const onStageWheel = (e: React.WheelEvent) => { const o = orbit.current; if (!o) return; o.dist = Math.min(80, Math.max(2.5, o.dist * (1 + e.deltaY * 0.001))); redraw(); };
-  useEffect(() => { built.current?.drawAt(0, Math.min(t, T - 0.001)); stageBuilt.current?.drawAt(Math.min(t, T - 0.001)); }, [t, T]);
+  useEffect(() => { if (built.current) drawShot(built.current, scene, Math.min(t, T - 0.001)); stageBuilt.current?.drawAt(Math.min(t, T - 0.001)); }, [t, T]);
   useEffect(() => {
     if (!playing) return;
     let raf = 0, last = performance.now();
@@ -113,7 +115,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
     else setError(done.error?.message ?? "The guide video could not be made.");
   }
   const stop = async () => { if (job) await cancelSandboxJob(job.id); abort.current?.abort(); setJob(null); };
-  const cam0 = scene.cameras[0], camNow = cameraAt(scene, cam0, Math.min(t, T - 0.001), setup.aspect);
+  const camNow = cameraAt(scene, activeCamera(scene, t), Math.min(t, T - 0.001), setup.aspect);
 
   return (
     <div className="cr-var-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -125,7 +127,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
         </div>
 
         <div className="cr-light-label">Shot preview</div>
-        <div className="cr-cam-stage sm-stage" style={{ aspectRatio: String(aspect) }}>
+        <div className="cr-cam-stage sm-stage">
           {changed && <button type="button" className="cr-light-reset" onClick={reset} aria-label="Reset the shot"><RotateCcw size={16} /></button>}
           {!flat && <canvas ref={canvas} className={view === "shot" ? "sm-canvas" : view === "stage" ? "sm-inset" : "sm-hidden"} aria-label="Shot preview" />}
           {view === "stage" && !flat && <canvas ref={stageCanvas} className="sm-canvas sm-orbit" aria-label="Stage view: drag to look around" onPointerDown={onStageDown} onPointerMove={onStageMove} onPointerUp={onStageUp} onPointerCancel={onStageUp} onWheel={onStageWheel} />}
@@ -144,35 +146,39 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
           </div>
         </div>
 
-        <div className="cr-light-label">Camera move</div>
-        <div className="cr-light-quick sm-presets" role="group" aria-label="Camera move">
-          {PRESETS.map((p) => <button key={p.id} type="button" title={p.hint} className={setup.preset === p.id ? "is-on" : ""} onClick={() => edit({ preset: p.id })}>{p.label}</button>)}
+        <div className="cr-light-label">Camera</div>
+        <div className="cr-light-row">
+          <div className="cr-light-tabs" role="tablist" aria-label="Cameras">
+            {Array.from({ length: camCount(setup) }, (_, i) => <button key={i} type="button" role="tab" aria-selected={i === ci} className={i === ci ? "is-on" : ""} onClick={() => setCi(i)}>{i + 1}</button>)}
+            {camCount(setup) < MAX_CAMERAS && T < 28 && <button type="button" onClick={() => { const n = addCamera(setup); if (n !== setup) { edit(n); setCi(camCount(n) - 1); } }} aria-label="Add a camera"><Plus size={14} /></button>}
+            {camCount(setup) > 1 && <button type="button" onClick={() => { edit(removeCamera(setup, ci)); setCi(0); }} aria-label="Remove this camera"><Trash2 size={14} /></button>}
+          </div>
         </div>
-        {isCombinable(setup.preset) && (
+        {camCount(setup) > 1 && <p className="cr-cam-tip">The cameras cut one after the other: camera {ci + 1} runs for {cam.durationS} s of the {T} s.</p>}
+        <div className="cr-light-label">Camera move</div>
+        <MovePicker label="Camera move" value={cam.preset} onChange={(id) => { if (!id) return; editC({ preset: id, ...(isCombinable(id) ? {} : { preset2: null }) }); }} />
+        {isCombinable(cam.preset) && (
           <>
             <div className="cr-light-label">Add a second move</div>
-            <div className="cr-light-quick sm-presets" role="group" aria-label="Second move">
-              <button type="button" className={!setup.preset2 ? "is-on" : ""} onClick={() => edit({ preset2: null })}>None</button>
-              {PRESETS.filter((p) => isCombinable(p.id) && p.id !== setup.preset).map((p) => <button key={p.id} type="button" title={p.hint} className={setup.preset2 === p.id ? "is-on" : ""} onClick={() => edit({ preset2: p.id })}>{p.label}</button>)}
-            </div>
-            {setup.preset2 && (
+            <MovePicker label="Second move" value={cam.preset2 ?? null} none exclude={cam.preset} combinableOnly onChange={(id) => editC({ preset2: id })} />
+            {cam.preset2 && (
               <>
                 <div className="cr-light-quick is-three sm-moves" role="group" aria-label="How the moves combine">
-                  <button type="button" className={(setup.combine ?? "together") === "together" ? "is-on" : ""} onClick={() => edit({ combine: "together" })}>At the same time</button>
-                  <button type="button" className={setup.combine === "then" ? "is-on" : ""} onClick={() => edit({ combine: "then" })}>One after the other</button>
+                  <button type="button" className={(cam.combine ?? "together") === "together" ? "is-on" : ""} onClick={() => editC({ combine: "together" })}>At the same time</button>
+                  <button type="button" className={cam.combine === "then" ? "is-on" : ""} onClick={() => editC({ combine: "then" })}>One after the other</button>
                 </div>
-                {setup.combine === "then" && <Bar id="sm-split" label="Switches at" min={10} max={90} value={Math.round((setup.split ?? 0.5) * 100)} unit="%" onChange={(v) => edit({ split: v / 100 })} />}
+                {cam.combine === "then" && <Bar id="sm-split" label="Switches at" min={10} max={90} value={Math.round((cam.split ?? 0.5) * 100)} unit="%" onChange={(v) => editC({ split: v / 100 })} />}
               </>
             )}
           </>
         )}
-        <Bar id="sm-rot" label="Rotate" min={0} max={359} value={Math.round(setup.rotate ?? 0)} unit="°" onChange={(v) => edit({ rotate: v })} />
-        <Bar id="sm-vert" label="Vertical" min={-30} max={80} value={Math.round(setup.vertical ?? 0)} unit="°" onChange={(v) => edit({ vertical: v })} />
-        <Bar id="sm-d" label="Distance" min={1} max={20} step={0.1} value={setup.distance} text={`${setup.distance.toFixed(1)} m`} onChange={(v) => edit({ distance: v })} />
-        <Bar id="sm-speed" label="Speed" min={25} max={300} value={Math.round((setup.speed ?? 1) * 100)} unit="%" onChange={(v) => edit({ speed: v / 100 })} />
-        <Bar id="sm-lens" label="Lens" min={12} max={120} value={setup.lensMm} unit="mm" onChange={(v) => edit({ lensMm: v })} />
-        <Bar id="sm-t" label="Length" min={2} max={30} value={setup.durationS} unit="s" onChange={(v) => { edit({ durationS: v }); setT(0); }} />
-        <Bar id="sm-s" label="Handheld shake" min={0} max={100} value={Math.round(setup.shake * 100)} unit="%" onChange={(v) => edit({ shake: v / 100 })} />
+        <Bar id="sm-rot" label="Rotate" min={0} max={359} value={Math.round(cam.rotate ?? 0)} unit="°" onChange={(v) => editC({ rotate: v })} />
+        <Bar id="sm-vert" label="Vertical" min={-30} max={80} value={Math.round(cam.vertical ?? 0)} unit="°" onChange={(v) => editC({ vertical: v })} />
+        <Bar id="sm-d" label="Distance" min={1} max={20} step={0.1} value={cam.distance} text={`${cam.distance.toFixed(1)} m`} onChange={(v) => editC({ distance: v })} />
+        <Bar id="sm-speed" label="Speed" min={25} max={300} value={Math.round((cam.speed ?? 1) * 100)} unit="%" onChange={(v) => editC({ speed: v / 100 })} />
+        <Bar id="sm-lens" label="Lens" min={12} max={120} value={cam.lensMm} unit="mm" onChange={(v) => editC({ lensMm: v })} />
+        <Bar id="sm-t" label="Length" min={2} max={Math.max(2, 30 - (T - cam.durationS))} value={cam.durationS} unit="s" onChange={(v) => { editC({ durationS: v }); setT(0); }} />
+        <Bar id="sm-s" label="Handheld shake" min={0} max={100} value={Math.round(cam.shake * 100)} unit="%" onChange={(v) => editC({ shake: v / 100 })} />
 
         <div className="cr-light-label">Set</div>
         <div className="cr-light-quick sm-kits" role="group" aria-label="Set">
@@ -282,15 +288,15 @@ function MapView({ setup, scene, t, onMove, onSelect, sel }: { setup: Setup; sce
   const pts: [number, number][] = [];
   for (const o of setup.objects ?? []) pts.push([o.x, o.z]);
   for (const m of setup.cast) { pts.push([m.x, m.z]); if (m.moves) pts.push([m.toX, m.toZ]); }
-  for (const k of scene.cameras[0].keys) pts.push([k.pos[0], k.pos[2]]);
+  for (const cm of scene.cameras) for (const k of cm.keys) pts.push([k.pos[0], k.pos[2]]);
   const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
   const live = { x0: Math.min(...xs, -4) - 2, z0: Math.min(...zs, -4) - 2, x1: Math.max(...xs, 4) + 2, z1: Math.max(...zs, 4) + 2 };
   const box = drag && frozen.current ? frozen.current : { x0: live.x0, z0: live.z0, w: live.x1 - live.x0, h: live.z1 - live.z0 };
   const size = Math.max(box.w, box.h), vb = `${box.x0} ${box.z0} ${size} ${size}`, r = size / 55;
   const world = (e: React.PointerEvent) => { const el = svg.current!, m = el.getScreenCTM()!.inverse(), p = el.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(m); return { x: Math.round(q.x * 10) / 10, z: Math.round(q.y * 10) / 10 }; };
-  const c = cameraAt(scene, scene.cameras[0], Math.min(t, setup.durationS - 0.001), setup.aspect);
+  const activeCam = activeCamera(scene, t), c = cameraAt(scene, activeCam, Math.min(t, totalS(setup) - 0.001), setup.aspect);
   const ang = Math.atan2(c.lookAt[0] - c.pos[0], c.lookAt[2] - c.pos[2]), half = (c.fov * Math.PI) / 360 * ASPECTS[setup.aspect], len = size * 0.18;
-  const path = scene.cameras[0].keys.map((k) => `${k.pos[0]},${k.pos[2]}`).join(" ");
+  const paths = scene.cameras.map((cm) => cm.keys.map((k) => `${k.pos[0]},${k.pos[2]}`).join(" "));
   const grid: number[] = []; for (let g = Math.ceil(box.x0 / 2) * 2; g < box.x0 + size; g += 2) grid.push(g);
   const gridZ: number[] = []; for (let g = Math.ceil(box.z0 / 2) * 2; g < box.z0 + size; g += 2) gridZ.push(g);
   return (
@@ -299,7 +305,7 @@ function MapView({ setup, scene, t, onMove, onSelect, sel }: { setup: Setup; sce
       onPointerUp={() => { setDrag(null); frozen.current = null; }} onPointerCancel={() => { setDrag(null); frozen.current = null; }}>
       {grid.map((g) => <line key={"x" + g} x1={g} y1={box.z0} x2={g} y2={box.z0 + size} className="sm-grid" />)}
       {gridZ.map((g) => <line key={"z" + g} x1={box.x0} y1={g} x2={box.x0 + size} y2={g} className="sm-grid" />)}
-      <polyline points={path} className="sm-campath" />
+      {paths.map((pt, i) => <polyline key={i} points={pt} className="sm-campath" />)}
       <path d={`M ${c.pos[0]} ${c.pos[2]} L ${c.pos[0] + len * Math.sin(ang - half)} ${c.pos[2] + len * Math.cos(ang - half)} L ${c.pos[0] + len * Math.sin(ang + half)} ${c.pos[2] + len * Math.cos(ang + half)} Z`} className="sm-fov" />
       <circle cx={c.pos[0]} cy={c.pos[2]} r={r * 0.9} className="sm-cam" />
       {(setup.objects ?? []).map((o) => { const f = OBJECTS.find((d) => d.id === o.type)?.foot ?? [1, 1]; const w = f[0] * o.scale, d = f[1] * o.scale; return (
@@ -319,3 +325,34 @@ function MapView({ setup, scene, t, onMove, onSelect, sel }: { setup: Setup; sce
   );
 }
 export { PALETTE };
+
+
+/** Dolly, Truck, Crane...: pick a group, then one of its options. */
+function MovePicker({ label, value, onChange, none, exclude, combinableOnly }: { label: string; value: import("@/lib/shot/setup").PresetId | null; onChange: (id: import("@/lib/shot/setup").PresetId | null) => void; none?: boolean; exclude?: import("@/lib/shot/setup").PresetId; combinableOnly?: boolean }) {
+  const [open, setOpen] = useState<string>(value ? groupOf(value) : "dolly");
+  const groups = MOVE_GROUPS.map((g) => ({ ...g, options: g.options.filter((o) => o.id !== exclude && (!combinableOnly || isCombinable(o.id))) })).filter((g) => g.options.length);
+  const g = groups.find((x) => x.id === open) ?? groups[0];
+  return (
+    <>
+      <div className="cr-light-quick sm-presets" role="group" aria-label={label}>
+        {none && <button type="button" className={!value ? "is-on" : ""} onClick={() => onChange(null)}>None</button>}
+        {groups.map((x) => <button key={x.id} type="button" className={value && x.options.some((o) => o.id === value) ? "is-on" : open === x.id && !value ? "is-on" : ""} aria-expanded={g?.id === x.id} onClick={() => setOpen(x.id)}>{x.label}</button>)}
+      </div>
+      {g && (
+        <div className="cr-light-quick sm-options" role="group" aria-label={`${label}: ${g.label}`}>
+          {g.options.map((o) => <button key={o.id} type="button" className={value === o.id ? "is-on" : ""} onClick={() => onChange(o.id)}>{o.label}</button>)}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** The camera that is rolling at time t, and the shot it belongs to. */
+function activeCamera(scene: ReturnType<typeof buildScene>, t: number) {
+  const sh = scene.shots.find((x) => t >= x.startS && t < x.endS) ?? scene.shots[scene.shots.length - 1];
+  return scene.cameras.find((c) => c.id === sh.cameraId) ?? scene.cameras[0];
+}
+function drawShot(r: { drawAt: (s: number, t: number) => void }, scene: ReturnType<typeof buildScene>, t: number) {
+  let i = scene.shots.findIndex((x) => t >= x.startS && t < x.endS); if (i < 0) i = scene.shots.length - 1;
+  r.drawAt(i, Math.max(0, t - scene.shots[i].startS));
+}
