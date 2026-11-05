@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { gateFeatureFor } from "@/lib/access";
 import { claimUsage } from "@/lib/usage";
 
-// Personal API keys for the public API (/api/v1) and the MCP endpoint (/api/mcp). A key is `ecl_` plus 40 random characters; it is shown
+// Personal API keys for the MCP endpoint (/api/mcp). A key is `ecl_` plus 40 random characters; it is shown
 // once when made and only its SHA-256 is kept, so a database leak gives no working key. A person may hold 10 live keys.
 export const MAX_KEYS = 10;
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";

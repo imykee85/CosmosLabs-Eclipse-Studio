@@ -7,7 +7,7 @@ type Key = { id: string; name: string; prefix: string; createdAt: string; lastUs
 type App = { id: string; name: string; connectedAt: string; lastUsedAt: string | null };
 
 // API keys and the MCP endpoint: make a key (its full value is shown once), see and revoke the live ones, and copy the commands that
-// connect an MCP client and the REST API. Everything acts as this account and spends its regular credits.
+// connect an MCP client. Everything acts as this account and spends its regular credits.
 function CodeBlock({ id, text }: { id: string; text: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
@@ -82,7 +82,6 @@ export default function ApiPanel() {
   const key = fresh ?? "YOUR_KEY";
   const claude = `claude mcp add --transport http eclipse ${origin}/api/mcp \\\n  --header "Authorization: Bearer ${key}"`;
   const json = JSON.stringify({ mcpServers: { eclipse: { type: "http", url: `${origin}/api/mcp`, headers: { Authorization: `Bearer ${key}` } } } }, null, 2);
-  const curl = `curl ${origin}/api/v1/images \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"prompt":"a red sneaker on wet asphalt at dusk","model":"soul_v2","aspect_ratio":"4:5"}'\n\ncurl ${origin}/api/v1/renders/RENDER_ID -H "Authorization: Bearer ${key}"`;
 
   return (
     <section className="st-section" aria-labelledby="st-api">
@@ -134,9 +133,6 @@ export default function ApiPanel() {
       <h3 className="st-h3 st-gap">Other MCP clients</h3>
       <CodeBlock id="st-json" text={json} />
       <p className="st-hint">Streamable HTTP at {origin}/api/mcp. Tools: list_models, generate_image, generate_video, get_render, list_renders, get_credits, ask_atlas, ask_core. Atlas and Core need the Growth plan. Commands: image, video, atlas, storyboard, core, balance (in Claude Code they are /mcp__eclipse__image and so on).</p>
-      <h3 className="st-h3 st-gap">REST API</h3>
-      <CodeBlock id="st-curl" text={curl} />
-      <p className="st-hint">GET /api/v1/models, POST /api/v1/images, POST /api/v1/videos, GET /api/v1/renders, GET /api/v1/renders/&lt;id&gt;, GET /api/v1/credits. Up to 60 requests a minute per key.</p>
     </section>
   );
 }
