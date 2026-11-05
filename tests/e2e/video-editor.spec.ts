@@ -7,7 +7,8 @@ async function setup(page: import("@playwright/test").Page) {
   const { tmpdir } = await import("node:os");
   const path = await import("node:path");
   const out = path.join(tmpdir(), `ve-${Date.now()}.webm`);
-  execFileSync("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=24", "-f", "lavfi", "-i", "sine", "-t", "3", "-c:v", "libvpx-vp9", "-c:a", "libopus", out]);
+  const ff = (await import("@ffmpeg-installer/ffmpeg")).default.path;
+  execFileSync(ff, ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=24", "-f", "lavfi", "-i", "sine", "-t", "3", "-c:v", "libvpx-vp9", "-c:a", "libopus", out]);
   const clip = readFileSync(out);
   await page.addInitScript(() => {
     localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
