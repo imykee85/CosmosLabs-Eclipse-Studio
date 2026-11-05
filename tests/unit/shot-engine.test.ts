@@ -71,3 +71,24 @@ test("the render script makes a real video from a scene (same video twice)", { s
   assert.equal(sums[0], sums[1]);
   assert.ok(sums[0].length > 1000);
 });
+
+import { BODY, hipHeight, poseJoints } from "../../src/lib/shot/engine";
+import { POSES } from "../../src/lib/shot/schema";
+test("every pose keeps the lower foot on the ground and the joints finite", () => {
+  for (const p of POSES) for (const ph of [0, 1, 2.2, 4]) {
+    const j = poseJoints(p, 5, ph), h = hipHeight(j, 1.75);
+    for (const v of [...j.hip, ...j.knee, ...j.shoulder, ...j.elbow, j.lean, j.pitch, h]) assert.ok(Number.isFinite(v), p);
+    assert.ok(h > 0.05 && h < 1.1, `${p} hips at ${h}`);
+    if (p !== "lying") { const reach = (hip: number, knee: number) => BODY.thigh * Math.cos(hip) + BODY.shin * Math.cos(hip - knee) + BODY.foot; assert.ok(Math.abs(Math.max(reach(j.hip[0], j.knee[0]), reach(j.hip[1], j.knee[1])) * 1.75 - h) < 1e-9); }
+  }
+});
+test("standing hips are about half the height; sitting is lower; poses ease in", () => {
+  assert.ok(Math.abs(hipHeight(poseJoints("standing", 9, 0), 1.75) - 0.53 * 1.75) < 0.01);
+  assert.ok(hipHeight(poseJoints("sitting", 9, 0), 1.75) < 0.5);
+  assert.deepEqual(poseJoints("squatting", 0, 0).hip, poseJoints("standing", 0, 0).hip);
+  assert.ok(poseJoints("squatting", 9, 0).hip[0] > 1.5);
+});
+test("a walking stride swings the legs in turn", () => {
+  const a = poseJoints("walking", 9, 0.8), b = poseJoints("walking", 9, 0.8 + Math.PI);
+  assert.ok(Math.abs(a.hip[0] + a.hip[1]) < 1e-9); assert.ok(Math.abs(a.hip[0] - b.hip[1]) < 1e-9);
+});

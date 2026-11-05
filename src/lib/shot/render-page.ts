@@ -1,16 +1,38 @@
 // Browser side of the guide renderer: builds the three.js scene from a Scene and draws one frame at a time (no clock, so frames repeat exactly).
 // It is bundled for the render job and for the Phase 0 test script; the editor will reuse the same builders.
 import * as THREE from "three";
-import { actorAt, cameraAt, poseShape, vehicleAt } from "./engine";
+import { BODY, actorAt, cameraAt, hipHeight, poseJoints, vehicleAt, type Joints } from "./engine";
 import { ASPECTS, colorHex, type Actor, type AspectId, type Scene, type Vehicle } from "./schema";
 
 const mat = (hex: string) => new THREE.MeshLambertMaterial({ color: hex });
-function personMesh(a: Actor) {
-  const g = new THREE.Group(), m = mat(colorHex(a.color)), h = a.heightM, r = 0.23;
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.1, h - 2 * r - 0.22), 6, 16), m); body.position.y = (h - 0.22) / 2;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 16), m); head.position.y = h - 0.17;
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 10), m); nose.rotation.x = Math.PI / 2; nose.position.set(0, h - 0.17, 0.2);
-  const inner = new THREE.Group(); inner.add(body, head, nose); g.add(inner); return { g, inner, h };
+type Rig = { g: THREE.Group; h: number; pelvis: THREE.Group; torso: THREE.Group; hips: THREE.Group[]; knees: THREE.Group[]; shoulders: THREE.Group[]; elbows: THREE.Group[] };
+/** A human-shaped stand-in: head, torso, two arms and two legs (upper and lower), one colour so the colour names the person. */
+function personMesh(a: Actor): Rig {
+  const m = mat(colorHex(a.color)), h = a.heightM, B = BODY;
+  const limb = (len: number, r: number) => { const g = new THREE.Group(), c = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.01, len - 2 * r), 4, 10), m); c.position.y = -len / 2; g.add(c); return g; };
+  const g = new THREE.Group(), pelvis = new THREE.Group(), torso = new THREE.Group();
+  g.add(pelvis); pelvis.add(torso);
+  const chest = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * h, B.torso * h - 0.17 * h + 0.06 * h, 4, 12), m); chest.scale.z = 0.7; chest.position.y = (B.torso * h) / 2; torso.add(chest);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(B.headR * h, 18, 14), m); head.position.y = B.torso * h + 0.045 * h + B.headR * h; torso.add(head);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.014 * h, 0.04 * h, 8), m); nose.rotation.x = Math.PI / 2; nose.position.set(0, head.position.y - 0.005 * h, B.headR * h + 0.012 * h); torso.add(nose);
+  const hips: THREE.Group[] = [], knees: THREE.Group[] = [], shoulders: THREE.Group[] = [], elbows: THREE.Group[] = [];
+  for (const side of [1, -1]) {
+    const hip = new THREE.Group(); hip.position.x = side * B.hipHalf * h; pelvis.add(hip); hips.push(hip);
+    const thigh = limb(B.thigh * h, 0.04 * h); hip.add(thigh);
+    const knee = new THREE.Group(); knee.position.y = -B.thigh * h; hip.add(knee); knees.push(knee);
+    knee.add(limb(B.shin * h, 0.032 * h));
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.05 * h, 0.03 * h, 0.12 * h), m); foot.position.set(0, -B.shin * h + 0.005 * h, 0.03 * h); knee.add(foot);
+    const sh = new THREE.Group(); sh.position.set(side * B.shoulderHalf * h, B.torso * h - 0.03 * h, 0); torso.add(sh); shoulders.push(sh);
+    sh.add(limb(B.upperArm * h, 0.028 * h));
+    const el = new THREE.Group(); el.position.y = -B.upperArm * h; sh.add(el); elbows.push(el);
+    el.add(limb(B.foreArm * h, 0.024 * h));
+  }
+  return { g, h, pelvis, torso, hips, knees, shoulders, elbows };
+}
+function poseRig(r: Rig, j: Joints) {
+  r.pelvis.position.y = hipHeight(j, r.h);
+  r.g.rotation.x = j.pitch; r.torso.rotation.x = j.lean;
+  for (let i = 0; i < 2; i++) { r.hips[i].rotation.x = -j.hip[i]; r.knees[i].rotation.x = j.knee[i]; r.shoulders[i].rotation.x = -j.shoulder[i]; r.elbows[i].rotation.x = -j.elbow[i]; }
 }
 function vehicleMesh(v: Vehicle) {
   const g = new THREE.Group(), m = mat(colorHex(v.color));
@@ -48,9 +70,9 @@ export function build(scene: Scene, width: number, height: number, existing?: HT
       const sh = scene.shots[shotIndex], camera = scene.cameras.find((c) => c.id === sh.cameraId)!, t = sh.startS + local;
       for (const c of cars) { const p = vehicleAt(c.v, t); c.g.position.set(...p.pos); c.g.rotation.y = p.facing; }
       for (const p of people) {
-        const pl = actorAt(scene, p.a, t), s = poseShape(pl.pose, pl.poseT, t * 6.5);
-        p.g.position.set(pl.pos[0], pl.pos[1] + s.bob - s.drop, pl.pos[2]); p.g.rotation.y = pl.facing;
-        p.inner.scale.y = s.scaleY; p.inner.rotation.x = s.lean; p.inner.position.y = 0;
+        const pl = actorAt(scene, p.a, t);
+        p.g.position.set(pl.pos[0], pl.pos[1], pl.pos[2]); p.g.rotation.y = pl.facing;
+        poseRig(p, poseJoints(pl.pose, pl.poseT, pl.walked * (pl.pose === "running" ? 2.1 : 4.5)));
       }
       const cs = cameraAt(scene, camera, t, sh.aspect as AspectId);
       cam.fov = cs.fov; cam.aspect = ASPECTS[sh.aspect as AspectId]; cam.updateProjectionMatrix();
