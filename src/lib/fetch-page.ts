@@ -24,6 +24,7 @@ const guarded = new Agent({
 const TIMEOUT_MS = 8000;
 
 function privateV4(ip: string): boolean {
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return true; // anything that is not a dotted quad is refused
   const [a, b] = ip.split(".").map(Number);
   return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
     || (a === 192 && b === 168) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
@@ -31,8 +32,15 @@ function privateV4(ip: string): boolean {
 function privateV6(ip: string): boolean {
   const v = ip.toLowerCase();
   if (v === "::" || v === "::1") return true;
-  if (v.startsWith("::ffff:")) return privateV4(v.slice(7));
-  return /^(fc|fd|fe8|fe9|fea|feb|ff)/.test(v);
+  // IPv4 embedded in IPv6 (mapped ::ffff:, compatible ::, NAT64 64:ff9b::): read the 32 bits, whatever the notation
+  const emb = /^(?:::ffff:|::|64:ff9b::)(?:(\d{1,3}(?:\.\d{1,3}){3})|([0-9a-f]{1,4}):([0-9a-f]{1,4}))$/.exec(v);
+  if (emb) {
+    if (emb[1]) return privateV4(emb[1]);
+    const hi = parseInt(emb[2], 16), lo = parseInt(emb[3], 16);
+    return privateV4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
+  if (v.startsWith("::ffff:") || v.startsWith("64:ff9b:") || v.startsWith("2002:")) return true;
+  return /^(fc|fd|fe[89abcdef]|ff)/.test(v);
 }
 export const isPrivateAddress = (ip: string) => (isIP(ip) === 6 ? privateV6(ip) : isIP(ip) === 4 ? privateV4(ip) : true);
 
