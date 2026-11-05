@@ -9,6 +9,8 @@ async function setup(page: Page) {
   });
   const jobs: unknown[] = [];
   await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 100 } }));
+  const clipVideo = { id: "v1", prompt: "a clip", model: "seedance_2_5", modelLabel: "Seedance 2.5", status: "completed", error: null, credits: 1, createdAt: new Date().toISOString(), deletedAt: null, references: null, seed: null, seedLocked: false, projectId: "p1", fileName: "a.mp4", contentType: "video/mp4", sizeBytes: 10, width: 320, height: 180, resolution: "720p", startedAt: null, imageUrl: "/api/generations/v1/file", kind: "video", durationSec: 3, aspectRatio: "16:9" };
+  await page.route("**/api/generations?**", (r) => r.fulfill({ json: { items: [clipVideo] } }));
   await page.route("**/api/credits", (r) => r.fulfill({ json: { balance: 100, charging: true, isAdmin: false, history: [], freeImages: 0 } }));
   await page.route("**/api/sandbox/jobs", (r) => {
     jobs.push(JSON.parse(r.request().postData() || "{}"));

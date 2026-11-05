@@ -443,7 +443,7 @@ export default function VideoStudio() {
   const settingsInUse = !!shotList || (seedLocked && !!caps.seed) || (caps.negativePrompt != null && !!negative.trim()) || (caps.cfgScale && creative != null);
 
   return (
-    <div className="cr-wrap">
+    <div className={`cr-wrap ${active ? "has-shot" : "is-idle"}`}>
       <header className="cr-intro">
         <h1 className="pg-title">Video Studio</h1>
         <p>Describe the clip you imagine.</p>
@@ -483,9 +483,9 @@ export default function VideoStudio() {
       </section>
 
       <div className="cr-dock">
-        <div className={`cr-tray is-open`} role="toolbar" aria-label="Video tools">
-          <button type="button" onClick={() => { if (allowedNow("shotmap")) setShotOpen("open"); else askUpgrade("shotmap"); }} title="Direct a new shot in 3D, then generate it from the guide video"><Clapperboard size={14} /> {SHOT_NAME}</button>
+        <div className={`cr-tray ${toolVid ? "is-open" : ""}`} role="toolbar" aria-label="Video tools" aria-hidden={!toolVid}>
           {toolVid && <>
+          <button type="button" onClick={() => { if (allowedNow("shotmap")) setShotOpen("open"); else askUpgrade("shotmap"); }} title="Direct a new shot in 3D, then generate it from the guide video"><Clapperboard size={14} /> {SHOT_NAME}</button>
           <button type="button" onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
           <button type="button" onClick={() => setEditorOpen(true)} title="Cut, trim, grade and mix the clip on a timeline"><Film size={14} /> Editor</button>
           <button type="button" onClick={() => setUpOpen(true)} title="A sharper, higher-resolution copy of this clip"><ZoomIn size={14} /> Upscale</button>
