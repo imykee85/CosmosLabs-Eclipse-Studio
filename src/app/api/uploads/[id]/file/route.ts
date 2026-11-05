@@ -18,7 +18,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     const row = await db.upload.findFirst({ where: { id: params.id, userId } });
     if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const bytes = await getObjectBytes(row.storageKey);
-    return new Response(Buffer.from(bytes), { headers: { "Content-Type": row.contentType, "Cache-Control": "private, max-age=300" } });
+    return new Response(Buffer.from(bytes), { headers: { "Content-Type": row.contentType, "Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox" } });
   } catch (err) {
     console.error("opening upload failed", err);
     return NextResponse.json({ error: "Could not read the picture." }, { status: 500 });

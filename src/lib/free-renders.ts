@@ -1,5 +1,6 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
+import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 const FREE_RENDERS_DEFAULT = 2;
 
@@ -16,14 +17,42 @@ async function accountCreatedAt(userId: string): Promise<number | null> {
   try { return (await (await clerkClient()).users.getUser(userId)).createdAt; } catch (err) { console.error("free renders: could not read the account", userId, err); return null; }
 }
 
+/** The same inbox written in different ways is one inbox: Gmail ignores dots and +tags in the name, and +tags are ignored almost everywhere. */
+export function normalizeEmail(raw: string): string {
+  const [local0, domain0] = raw.trim().toLowerCase().split("@");
+  if (!local0 || !domain0) return raw.trim().toLowerCase();
+  let local = local0.split("+")[0], domain = domain0;
+  if (domain === "googlemail.com") domain = "gmail.com";
+  if (domain === "gmail.com") local = local.replace(/\./g, "");
+  return `${local}@${domain}`;
+}
+
+async function accountEmail(userId: string): Promise<string | null> {
+  try {
+    const u = await (await clerkClient()).users.getUser(userId);
+    const primary = u.emailAddresses.find((e) => e.id === u.primaryEmailAddressId) ?? u.emailAddresses[0];
+    return primary?.emailAddress ?? null;
+  } catch { return null; }
+}
+
 /** How many free renders this person still has (0 when the offer does not apply). `createdAtOf` is for tests. */
-export async function freeRendersLeft(userId: string, createdAtOf: (id: string) => Promise<number | null> = accountCreatedAt): Promise<number> {
+export async function freeRendersLeft(userId: string, createdAtOf: (id: string) => Promise<number | null> = accountCreatedAt, emailOf: (id: string) => Promise<string | null> = accountEmail): Promise<number> {
   if (!personal(userId) || process.env.CREDITS_ENABLED !== "1" || (!clerkEnabled && createdAtOf === accountCreatedAt)) return 0;
   const row = await db.freeRender.findUnique({ where: { userId } });
   if (row) return leftOf(row); // never more than the current offer allows, even for an account made while it was bigger
   const made = await createdAtOf(userId);
   if (made == null) return 0; // could not tell: try again next time rather than deciding wrongly
-  const granted = made >= since() ? freeRendersCount() : 0;
+  let granted = made >= since() ? freeRendersCount() : 0;
+  if (granted > 0) {
+    // One offer per inbox: a second account on the same address (Gmail dots, +tags) gets nothing.
+    const email = await emailOf(userId);
+    if (email) {
+      const emailHash = createHash("sha256").update(normalizeEmail(email)).digest("hex");
+      await db.freeEmailClaim.createMany({ data: [{ emailHash, userId }], skipDuplicates: true });
+      const claim = await db.freeEmailClaim.findUnique({ where: { emailHash } });
+      if (claim && claim.userId !== userId) granted = 0;
+    }
+  }
   await db.freeRender.createMany({ data: [{ userId, remaining: granted, granted }], skipDuplicates: true });
   const made2 = await db.freeRender.findUnique({ where: { userId } });
   return made2 ? leftOf(made2) : 0;
@@ -39,8 +68,8 @@ export async function freeUsedUp(userId: string): Promise<boolean> {
 }
 
 /** Takes one free render when the person has one and this render is light enough. True when it is free. */
-export async function claimFreeRender(userId: string, price: number, createdAtOf?: (id: string) => Promise<number | null>): Promise<boolean> {
-  if (price > freeMaxCredits() || (await freeRendersLeft(userId, createdAtOf)) <= 0) return false;
+export async function claimFreeRender(userId: string, price: number, createdAtOf?: (id: string) => Promise<number | null>, emailOf?: (id: string) => Promise<string | null>): Promise<boolean> {
+  if (price > freeMaxCredits() || (await freeRendersLeft(userId, createdAtOf, emailOf)) <= 0) return false;
   return (await db.freeRender.updateMany({ where: { userId, remaining: { gt: 0 } }, data: { remaining: { decrement: 1 } } })).count > 0;
 }
 

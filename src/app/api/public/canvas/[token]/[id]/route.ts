@@ -14,5 +14,5 @@ export async function GET(req: Request, props: { params: Promise<{ token: string
   if (!storageEnabled) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const m = await sharedMedia(params.token, params.id).catch(() => null);
   if (!m) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return streamStored(req, m.key, m.mime, { cache: "public, max-age=300" });
+  return streamStored(req, m.key, m.mime, { cache: "private, max-age=60" });
 }

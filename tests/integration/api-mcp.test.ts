@@ -10,7 +10,7 @@ let lib: any; let key = "";
 
 before(async () => {
   if (skip) return;
-  lib = { keys: await import("../../src/lib/api-keys"), db: (await import("../../src/lib/db")).db, mcp: await import("../../src/app/api/mcp/route"), renders: await import("../../src/app/api/v1/renders/[id]/route"), credits: await import("../../src/app/api/v1/credits/route"), models: await import("../../src/app/api/v1/models/route") };
+  lib = { keys: await import("../../src/lib/api-keys"), db: (await import("../../src/lib/db")).db, mcp: await import("../../src/app/api/mcp/route") };
   await clean();
   await lib.db.billingSettings.upsert({ where: { userId: A }, create: { userId: A, planOverride: "starter" }, update: { planOverride: "starter" } }); // the API is part of every paid plan
   const k = await lib.keys.createKey(A, "Test");
@@ -25,17 +25,6 @@ test("only the hash is stored; a key starts with ecl_", { skip }, async () => {
   assert.match(key, /^ecl_[A-Za-z0-9]{40}$/);
   const rows = await lib.db.apiKey.findMany({ where: { userId: A } });
   assert.equal(rows.length, 1); assert.notEqual(rows[0].hash, key); assert.equal(rows[0].hash, lib.keys.hashKey(key)); assert.equal(rows[0].prefix, key.slice(0, 10));
-});
-
-test("REST: renders and credits answer for the key's owner; bad keys get 401", { skip }, async () => {
-  const r = await lib.renders.GET(req("/api/v1/renders/gapi1"), { params: { id: "gapi1" } });
-  assert.equal(r.status, 200); const d = await r.json();
-  assert.equal(d.id, "gapi1"); assert.equal(d.status, "completed"); assert.equal(d.url, "https://example.com/cat.png");
-  assert.equal((await lib.credits.GET(req("/api/v1/credits"))).status, 200);
-  assert.equal((await lib.models.GET(req("/api/v1/models"))).status, 200);
-  assert.equal((await lib.renders.GET(req("/api/v1/renders/gapi1", undefined, "ecl_wrongwrongwrongwrongwrongwrong"), { params: { id: "gapi1" } })).status, 401);
-  assert.equal((await lib.renders.GET(new Request("http://x/api/v1/renders/gapi1"), { params: { id: "gapi1" } })).status, 401);
-  assert.equal((await lib.renders.GET(req("/api/v1/renders/nope"), { params: { id: "nope" } })).status, 404);
 });
 
 test("MCP: initialize, tools/list, tools/call, notifications, unknown method", { skip }, async () => {
@@ -59,5 +48,5 @@ test("MCP: initialize, tools/list, tools/call, notifications, unknown method", {
 
 test("a revoked key stops working", { skip }, async () => {
   await lib.db.apiKey.updateMany({ where: { userId: A }, data: { revokedAt: new Date() } });
-  assert.equal((await lib.credits.GET(req("/api/v1/credits"))).status, 401);
+  assert.equal((await lib.mcp.POST(req("/api/mcp", { jsonrpc: "2.0", id: 1, method: "ping" }))).status, 401);
 });

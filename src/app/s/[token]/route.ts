@@ -16,5 +16,5 @@ export async function GET(req: Request, props: { params: Promise<{ token: string
   const g = await db.generation.findFirst({ where: { id: t.id, status: "completed", deletedAt: null }}).catch(() => null);
   if (!g?.storageKey) return new Response("This link has expired or is not valid.", { status: 404 });
   const download = new URL(req.url).searchParams.get("download") ? fileNameFor(g) : undefined;
-  return streamStored(req, g.storageKey, g.contentType ?? (g.kind === "video" ? "video/mp4" : "image/png"), { download, cache: "public, max-age=3600" });
+  return streamStored(req, g.storageKey, g.contentType ?? (g.kind === "video" ? "video/mp4" : "image/png"), { download, cache: "private, max-age=300" });
 }

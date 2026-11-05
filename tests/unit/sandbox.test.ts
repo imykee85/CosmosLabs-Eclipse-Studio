@@ -142,7 +142,7 @@ test("mux.sh: replace keeps the picture as is, puts in the new sound (AAC) and s
 // ---- Mini tools: the browser tool's frame rules, the form description and paths inside a build session.
 test("browser tools run sandboxed with an opaque origin and no network unless approved; only Eclipse may frame them", () => {
   const csp = frameCsp(false);
-  assert.match(csp, /^sandbox allow-scripts allow-downloads allow-forms allow-modals;/);
+  assert.match(csp, /^sandbox allow-scripts allow-downloads allow-forms;/);
   assert.ok(!csp.includes("allow-same-origin"));
   assert.match(csp, /connect-src 'none'/);
   assert.match(csp, /default-src 'none'/);

@@ -11,7 +11,7 @@ import { COLORS, DEFAULT_LIGHT, ELEV_MAX, ELEV_MIN, FEATURE_NAME, INTENSITY_MAX,
 export type RelightRun = { lights: Light[]; note: string; tier: string; count: number };
 
 /** Relight: place up to three lights round the picture, choose their colour and strength, and make the picture again lit that way. */
-export default function RelightPanel({ thumb, tiers, unit, freeLeft, busy, error, onRun, onClose }: { thumb: string; tiers: string[]; unit: (tier: string) => number | null; freeLeft: number; busy: boolean; error: string; onRun: (run: RelightRun) => void; onClose: () => void }) {
+export default function RelightPanel({ thumb, tiers, unit, freeLeft, busy, error, onRun, onClose, subtitle = "The same picture, lit from somewhere else", single = false }: { subtitle?: string; single?: boolean; thumb: string; tiers: string[]; unit: (tier: string) => number | null; freeLeft: number; busy: boolean; error: string; onRun: (run: RelightRun) => void; onClose: () => void }) {
   const [lights, setLights] = useState<Light[]>([DEFAULT_LIGHT]);
   const [sel, setSel] = useState(0);
   const [note, setNote] = useState("");
@@ -38,7 +38,7 @@ export default function RelightPanel({ thumb, tiers, unit, freeLeft, busy, error
         <div className="cr-var-head">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={thumb} alt="" className="cr-var-thumb" />
-          <div><h2>{FEATURE_NAME}</h2><p>The same picture, lit from somewhere else</p></div>
+          <div><h2>{FEATURE_NAME}</h2><p>{subtitle}</p></div>
           <button type="button" className="cr-var-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
 
@@ -82,7 +82,7 @@ export default function RelightPanel({ thumb, tiers, unit, freeLeft, busy, error
 
         <div className="cr-light-opts">
           <label className="cr-light-chip" aria-label="Quality"><Maximize2 size={14} /><select value={tier} onChange={(e) => setTier(e.target.value)}>{tiers.map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}</select></label>
-          <label className="cr-light-chip is-count" aria-label="Images"><Images size={14} /><select value={count} onChange={(e) => setCount(Number(e.target.value))}>{[1, 2, 3, 4].map((n) => <option key={n} value={n}>x{n}</option>)}</select></label>
+          {!single && <label className="cr-light-chip is-count" aria-label="Images"><Images size={14} /><select value={count} onChange={(e) => setCount(Number(e.target.value))}>{[1, 2, 3, 4].map((n) => <option key={n} value={n}>x{n}</option>)}</select></label>}
         </div>
 
         <GrowArea className="cr-var-text" rows={1} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional), for example: soft shadows" />

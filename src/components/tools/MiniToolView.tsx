@@ -19,7 +19,7 @@ type Field =
   | { name: string; label: string; type: "file"; accept?: string[]; multiple?: boolean; required?: boolean };
 type Tool = { id: string; name: string; description: string; kind: string; runtime: string | null; version: number; network: string; approved: boolean; fields: Field[] };
 type Picked = { key: string; name: string };
-const FRAME_SANDBOX = "allow-scripts allow-downloads allow-forms allow-modals";
+const FRAME_SANDBOX = "allow-scripts allow-downloads allow-forms";
 
 async function uploadFile(f: File, onProgress: (p: number) => void): Promise<Picked | string> {
   const r = await fetch("/api/core/tools/input", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: f.name, size: f.size }) }).catch(() => null);

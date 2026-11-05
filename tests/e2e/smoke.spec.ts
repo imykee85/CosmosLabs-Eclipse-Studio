@@ -675,8 +675,8 @@ test("paid plan cards list every benefit, the missing ones locked, with See more
   await expect(starter.locator(".pb-list li")).toHaveCount(9);
   await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(0);
   await starter.getByRole("button", { name: /See more/ }).click();
-  await expect(starter.locator(".pb-list li")).toHaveCount(18);
-  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(9); // no Atlas limit, mid-priced video, Canvas, own agents, Core, every video model, no Core limit, builds, Atlas plans, Atlas plans
+  await expect(starter.locator(".pb-list li")).toHaveCount(19);
+  await expect(starter.locator(".pb-list li.is-locked")).toHaveCount(10); // no Atlas limit, mid-priced video, Canvas, ShotMap, own agents, Core, every video model, no Core limit, builds, Atlas plans, Atlas plans
   await expect(starter.locator(".pb-list li.is-soon")).toHaveCount(0); // automated workflows is listed on the Scale card only
   const scale = page.locator(".plan-card").nth(3);
   await scale.getByRole("button", { name: /See more/ }).click();

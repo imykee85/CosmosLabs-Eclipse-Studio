@@ -12,7 +12,7 @@ export async function composeRetouch(o: CompositeInput): Promise<{ bytes: Uint8A
   const grow = Math.max(0, o.dilate ?? Math.round(Math.max(w, h) / 500)); // a few pixels so the edit reaches past the selection's edge
   const soft = Math.max(0.3, o.feather ?? Math.max(w, h) / 400);
   // the mask at the picture's size: white where the person selected (any non-transparent pixel counts), then grown and softened
-  const raw = await sharp(Buffer.from(o.mask), { failOn: "none" }).ensureAlpha().extractChannel(3).resize(w, h, { fit: "fill", kernel: "linear" }).raw().toBuffer();
+  const raw = await sharp(Buffer.from(o.mask), { failOn: "none", limitInputPixels: 16_000_000 }).ensureAlpha().extractChannel(3).resize(w, h, { fit: "fill", kernel: "linear" }).raw().toBuffer();
   let m = sharp(raw, { raw: { width: w, height: h, channels: 1 } });
   if (grow > 0) m = sharp(await m.blur(grow + 0.3).threshold(24).extractChannel(0).raw().toBuffer(), { raw: { width: w, height: h, channels: 1 } });
   const alpha = await m.blur(soft).extractChannel(0).raw().toBuffer();

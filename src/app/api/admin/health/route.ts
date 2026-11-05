@@ -34,6 +34,8 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "DASHSCOPE_API_KEY", kind: "Secret", needed: "Audio Studio: Qwen voices (Singapore/international key)" },
   { name: "BYTEPLUS_VOICE_API_KEY", kind: "Secret", needed: "Audio Studio: Seed Audio (Seed Speech console key, not ARK_API_KEY)" },
   { name: "MIRELO_API_KEY", kind: "Secret", needed: "Audio Studio: Mirelo sound effects and Add sound to video" },
+  { name: "TOPAZ_API_KEY", kind: "Secret", needed: "Upscale (pictures and clips) in Image Studio and Video Studio" },
+  { name: "TOPAZ_CREDIT_USD", kind: "Config", needed: "Upscale: dollars per Topaz credit on your plan, e.g. 0.01 (Upscale stays off without it)" },
   { name: "CRON_SECRET", kind: "Secret", needed: "daily finishing job" },
   { name: "ADMIN_EMAILS", kind: "Config", needed: "these owner pages" },
   { name: "CREDITS_ENABLED", kind: "Config", needed: "charging for renders" },

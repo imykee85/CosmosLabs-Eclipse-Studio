@@ -75,3 +75,14 @@ Completeness basis (2026-11-04 sweep): every "NOT built / NOT tested / NOT verif
 | 50 | Video models Kling 3.0 Omni and FLUX 3 Video: request pages and price approval | Not immediately necessary | V2 by your decision. | Owner, then me |
 | 51 | Canvas V2 brief (`docs/canvas-v2.md`): parts A to D were built; the rest waits for your "canvas v2" | Not immediately necessary | V2 by your decision. | Owner, then me |
 | 52 | Eclipse as a Claude connector (parked): needs the Vercel logs for `/oauth/token`, `/oauth/register`, `/api/oauth/approve`, `/api/mcp` | Not immediately necessary | Built and merged; the last failure's cause is unknown. | Owner, then me |
+| 53 | Design Studio (owner will add later). Parked material: the owner's `anatomy-main.zip` (3D organ viewer, 9 GLB models plus images, about 34 MB; kept by the owner, NOT in the repo). It has no licence or source for its models and pictures, so find out their terms before shipping; keep big assets in storage, not `public/`. Image-to-3D routes to look at when it starts: Higgsfield `generate_3d` (not verified on our API), Scenario `scenario-rodin` / `scenario-sparc3d`, direct makers (Hunyuan3D, Tripo, Meshy) | Not immediately necessary | Your decision: Design Studio comes later; nothing built. | Owner, then me |
+| 54 | Timeline editor (Editor chip, Eclipse's own build): check with a real clip on desktop and a phone (export speed, Safari/Firefox support, preview sound sync); decide if cross-fades, captions or Atlas control are wanted | Not immediately necessary | Built and tested in headless Chromium only | Owner |
+| 55 | Upscale (Topaz): save Secret `TOPAZ_API_KEY` and Config value `TOPAZ_CREDIT_USD` (dollars per Topaz credit on your plan), then run one picture and one clip upscale on the preview and send me the result; the status words, upload parts and estimate fields are unverified (`docs/topaz.md`) | High | The feature stays off until both are set | Owner |
+
+
+## Added by security audit run 3 (2026-11-05)
+| # | Item | Priority | Why it matters | Who |
+| --- | --- | --- | --- | --- |
+| 61 | R2 lifecycle rule: delete abandoned uploads (`u/*/up-*`, `u/*/vid-*`, `u/*/tools/in/*`) older than 24 hours | Not immediately necessary | People can start direct uploads and never finish them; the files stay in storage and cost money | Owner (Cloudflare R2 settings) |
+| 62 | Decide: confirm button before Core starts paid sandbox jobs (video edit, kinetic film, build session) | Not immediately necessary | Today it is a prompt rule only; worst case about 300 credits a day of self-harm, no cross-user effect | Owner decision, then me |
+| 63 | Live checks: Whop checkout metadata and chargeback events, Clerk session cookie SameSite, sandbox allowlist DNS | Not immediately necessary | Audit run 3 could not verify these from source | Owner |

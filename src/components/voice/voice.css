@@ -235,3 +235,11 @@
 .vc-leaveout { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 12px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 16px; }
 
 .vc-go-slot { margin-top: 10px; }
+
+/* No takes listed and nothing running: the page stays fixed (no scrolling). */
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .vc.is-idle { min-height: 0; padding-bottom: 0; max-height: calc(100dvh - 58px - env(safe-area-inset-top) - 76px); overflow: hidden; } }
+@media (min-width: 801px) and (pointer: fine) { .vc.is-idle { min-height: 0; max-height: calc(100dvh - 63px - 56px); overflow: hidden; } .ws-main:has(> .vc.is-idle) { padding-bottom: 0; } }
+
+/* Idle: lock the document itself (iPhone Safari rubber-bands even when the content fits). */
+html:has(.vc.is-idle), html:has(.vc.is-idle) body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
+html:has(.vc.is-idle) body { position: fixed; inset: 0; width: 100%; }

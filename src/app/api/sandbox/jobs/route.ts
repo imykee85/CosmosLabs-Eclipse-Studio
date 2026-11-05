@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/api-user";
 import { ownTool, toolRunInput, ToolRunError } from "@/lib/core-tools";
 import { editEnabled, editInputFor } from "@/lib/sandbox/kinds/edit";
 import { muxEnabled, muxInputFor } from "@/lib/sandbox/kinds/mux";
+import { shotGuideEnabled, shotGuideInputFor } from "@/lib/sandbox/kinds/shotguide";
 import { JobInputError } from "@/lib/sandbox/kinds/types";
 import { PERSON_KINDS } from "@/lib/sandbox/kinds";
 import { drive, enqueue } from "@/lib/sandbox/runner";
@@ -31,6 +32,9 @@ export async function POST(req: Request) {
     } else if (kind === "media.edit") {
       if (!editEnabled()) return NextResponse.json({ error: "Editing videos is not available yet." }, { status: 503 });
       input = await editInputFor(u.userId, id, b?.input);
+    } else if (kind === "media.shotguide") {
+      if (!shotGuideEnabled()) return NextResponse.json({ error: "ShotMap is not available yet." }, { status: 503 });
+      input = await shotGuideInputFor(u.userId, id, b?.input);
     } else {
       const body = (b?.input ?? {}) as { toolId?: unknown; values?: unknown; files?: unknown };
       const tool = typeof body.toolId === "string" ? await ownTool(u.userId, body.toolId) : null;

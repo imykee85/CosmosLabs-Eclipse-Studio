@@ -1,0 +1,4 @@
+.up-thumb { display: inline-grid; place-items: center; background: var(--a-input); flex: none; }
+.up-hint { margin: -2px 0 0; font-size: 13px; opacity: .65; }
+.up-sizes { grid-template-columns: repeat(2, 1fr); }
+.up-result { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; opacity: .75; min-height: 18px; }

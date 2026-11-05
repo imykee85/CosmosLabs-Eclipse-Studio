@@ -84,6 +84,7 @@ export async function POST(req: Request) {
   if (broke) return NextResponse.json(broke, { status: 402 });
   const limit = Number(process.env.TREATMENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.TREATMENT_DAILY_MESSAGES)) : 100;
   if (!(await claimUsage(userId, "treatment", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} planner messages. It resets on a rolling 24 hours.` }, { status: 429 });
+  if (!(await claimUsage(userId, "treatment-min", 12, 60_000))) return NextResponse.json({ error: "Slow down a little: try again in a minute." }, { status: 429 });
 
   const current = cleanTreatment(body?.treatment);
   let linkText = "";
