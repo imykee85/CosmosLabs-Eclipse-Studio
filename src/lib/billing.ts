@@ -160,10 +160,12 @@ async function applyRefund(event: PaymentEvent): Promise<{ ok: true; duplicate: 
     if (await tx.creditLedger.findFirst({ where: { provider: event.provider, externalId: event.externalId } })) return false;
     const before = await tx.creditLedger.aggregate({ where: { provider: event.provider, externalId: { startsWith: `refund:${event.refundOf}:` } }, _sum: { delta: true } });
     const left = paid.delta + (before._sum.delta ?? 0); // earlier refunds of this payment are negative rows
-    const sum = await tx.creditLedger.aggregate({ where: { userId: paid.userId }, _sum: { delta: true } });
-    // never below zero: credits already spent cannot be taken back
-    const take = Math.max(0, Math.min(Math.round(paid.delta * share), left, Math.max(0, sum._sum.delta ?? 0)));
+    // The whole refunded share is taken back, even when some of those credits are already spent: the balance may go below zero, which only blocks
+    // new spending until the person pays again (a refund must not be a way to keep the credits).
+    const take = Math.max(0, Math.min(Math.round(paid.delta * share), left));
     await tx.creditLedger.create({ data: { userId: paid.userId, delta: -take, reason: "ADJUST", provider: event.provider, externalId: event.externalId, note: `Refund: ${paid.note ?? "purchase"}` } });
+    // A refunded PLAN payment ends the plan now (it would otherwise keep counting as paid for the rest of its window).
+    if (take > 0 && (paid.note ?? "").startsWith("Plan:")) await tx.billingSettings.upsert({ where: { userId: paid.userId }, create: { userId: paid.userId, subscriptionEndedAt: new Date() }, update: { subscriptionEndedAt: new Date() } });
     return true;
   });
   return { ok: true, duplicate: !done };

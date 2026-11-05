@@ -9,6 +9,7 @@ import { createGenerationHeld } from "@/lib/reservations";
 import { refusal } from "@/lib/subscribe-alert";
 import { videoSettings } from "@/lib/start-video";
 import { claimUsage } from "@/lib/usage";
+import { videoTierGate } from "@/lib/video-gate";
 import { videoRouteNow, type VideoRoute } from "@/lib/video-submit";
 import { findVideoModel, videoPrice } from "@/lib/video-models";
 import type { Route } from "@/lib/routes";
@@ -21,7 +22,7 @@ import type { Route } from "@/lib/routes";
 // route used (BytePlus bills step 2 at the 1080p rate, with the token rate chosen by whether step 1 had an input video). NOT tested live.
 const DRAFT_DAYS = 7;
 
-export type FinalInput = { userId: string; draftId: unknown; confirm?: unknown };
+export type FinalInput = { userId: string; personId?: string | null; draftId: unknown; confirm?: unknown };
 export type FinalResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string };
 
 export async function startDraftFinal(input: FinalInput): Promise<FinalResult> {
@@ -37,6 +38,9 @@ export async function startDraftFinal(input: FinalInput): Promise<FinalResult> {
 
   const model = findVideoModel("seedance_2_5");
   if (!model?.live) return { ok: false, status: 503, error: "Seedance 2.5 is not connected." };
+  // The final is a 1080p video: the same plan tier as any other 1080p Seedance 2.5 video (a Starter draft at 480p must not unlock it).
+  const refused = await videoTierGate(userId, input.personId, model, "1080p");
+  if (refused) return { ok: false, status: refused.status, error: refused.error, code: refused.code };
   const secs = draft.durationSec ?? 5;
   const inputSec = typeof p.inputVideoSec === "number" ? p.inputVideoSec : undefined;
   // A Higgsfield draft is finished at Higgsfield. A BytePlus draft needs BytePlus to take the final right now (its id cannot be used anywhere else).
@@ -46,6 +50,12 @@ export async function startDraftFinal(input: FinalInput): Promise<FinalResult> {
   const route: Route = onHiggsfield ? "higgsfield" : "direct";
   const cost = cfg.creditsOn ? videoPrice(model, "1080p", secs, draft.hasAudio !== false, route, inputSec) : null;
   if (cost != null && cost > cfg.confirmAbove && input.confirm !== true) return { ok: false, status: 409, needsConfirm: true, cost, error: `This video costs ${fmtCredits(cost)} credits. Confirm to continue.` };
+  if (cost != null) {
+    const today = await db.generation.aggregate({ where: { userId, kind: "video", status: { not: "failed" }, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, _sum: { creditsHeld: true } });
+    if ((today._sum.creditsHeld ?? 0) + cost > cfg.dailyCredits) return { ok: false, status: 429, error: `That would go over today's video limit of ${fmtCredits(cfg.dailyCredits)} credits.` };
+  }
+  // One final per draft: two parallel taps cannot both start one (the claim is atomic).
+  if (!(await claimUsage(`draft:${draft.id}`, "draft-final", 1, 120_000))) return { ok: false, status: 409, error: "The final video for this draft is already being started." };
   const running = await db.generation.count({ where: { userId, kind: "video", status: { in: ["pending", "saving"] } } });
   if (running >= cfg.maxRunning) return { ok: false, status: 429, error: `You already have ${running} videos running. Wait for one to finish.` };
   if (!(await claimUsage(userId, "video", cfg.perMinute, 60_000))) return { ok: false, status: 429, error: "You are starting videos very quickly. Wait a moment and try again." };

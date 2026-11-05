@@ -12,7 +12,9 @@ export async function POST(req: Request) {
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => null);
-  if (!(await claimUsage(userId, "edit-transform", 60, 60_000))) return NextResponse.json({ error: "Too many at once. Try again in a minute." }, { status: 429 });
+  if (!(await claimUsage(userId, "edit-transform", 60, 60_000))) return NextResponse.json({ error: "Too many at once. Try again in a minute." }, { status: 429 })
+  if (!(await claimUsage(userId, "edit-transform-day", 1500, 86_400_000))) return NextResponse.json({ error: "That is a lot for one day. Please try again tomorrow." }, { status: 429 });
+;
   try {
     const r = await transformPicture(userId, body);
     return r.ok ? NextResponse.json({ id: r.id }) : NextResponse.json({ error: r.error }, { status: r.status });

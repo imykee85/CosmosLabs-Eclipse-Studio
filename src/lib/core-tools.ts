@@ -119,7 +119,7 @@ export async function toolRunInput(userId: string, tool: CoreTool, jobId: string
 /** The rules a browser tool page runs under (served by /api/core/tools/<id>/frame). */
 export function frameCsp(internet: boolean) {
   return [
-    "sandbox allow-scripts allow-downloads allow-forms allow-modals",
+    "sandbox allow-scripts allow-downloads allow-forms",
     "default-src 'none'",
     "script-src 'unsafe-inline' blob:",
     "style-src 'unsafe-inline'",

@@ -35,6 +35,7 @@ export async function POST(req: Request) {
   const w = await workspaceSession();
   const limit = w.workspaceId ? coreDailyLimit(await accessFor(w.workspaceId, w.personId)) : dailyLimit();
   if (limit !== null && !(await claimUsage(userId, "connect", limit, 24 * 3600 * 1000))) return NextResponse.json({ error: `You have reached today's limit of ${limit} Core messages. It resets on a rolling 24 hours. Scale has no daily limit.` }, { status: 429 });
+  if (!(await claimUsage(userId, "connect-min", 12, 60_000))) return NextResponse.json({ error: "Slow down a little: try again in a minute." }, { status: 429 });
 
   const enc = new TextEncoder();
   const stream = new ReadableStream({

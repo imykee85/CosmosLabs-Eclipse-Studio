@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { conformImage, conformVideoFile, type ConformTarget } from "./conform";
@@ -100,11 +100,19 @@ export function signedPutUrl(key: string, contentType: string, ttlSeconds = 3600
 }
 
 /** Size and type of a stored file, or null when it does not exist. */
-export async function headObjectInfo(key: string): Promise<{ size: number; contentType: string | null } | null> {
+export async function headObjectInfo(key: string): Promise<{ size: number; contentType: string | null; etag: string | null } | null> {
   try {
     const r = await r2().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
-    return { size: Number(r.ContentLength ?? 0), contentType: r.ContentType ?? null };
+    return { size: Number(r.ContentLength ?? 0), contentType: r.ContentType ?? null, etag: r.ETag ?? null };
   } catch { return null; }
+}
+
+/** Copies a stored file to a new key on the storage side, only while the source is still exactly the version that was checked (same ETag). */
+export async function copyObjectIfMatch(from: string, to: string, etag: string, contentType: string): Promise<boolean> {
+  try {
+    await r2().send(new CopyObjectCommand({ Bucket: bucket(), Key: to, CopySource: `${bucket()}/${encodeURIComponent(from).replace(/%2F/g, "/")}`, CopySourceIfMatch: etag, ContentType: contentType, MetadataDirective: "REPLACE" }));
+    return true;
+  } catch { return false; }
 }
 
 /** The first `length` bytes of a stored file (to read its real type without fetching all of it). */

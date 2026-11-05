@@ -6,7 +6,7 @@ export async function openaiMask(selection: Uint8Array, picture: Uint8Array): Pr
   const flip = (meta.orientation ?? 1) >= 5;
   const w = flip ? meta.height ?? 0 : meta.width ?? 0, h = flip ? meta.width ?? 0 : meta.height ?? 0;
   if (!w || !h) throw new Error("Could not read the picture");
-  const alpha = await sharp(Buffer.from(selection), { failOn: "none" }).ensureAlpha().extractChannel(3).resize(w, h, { fit: "fill", kernel: "linear" }).raw().toBuffer();
+  const alpha = await sharp(Buffer.from(selection), { failOn: "none", limitInputPixels: 16_000_000 }).ensureAlpha().extractChannel(3).resize(w, h, { fit: "fill", kernel: "linear" }).raw().toBuffer();
   const inverted = Buffer.alloc(w * h);
   for (let i = 0; i < inverted.length; i++) inverted[i] = alpha[i] > 40 ? 0 : 255; // selected: transparent (edit here); the rest: opaque (keep)
   const out = await sharp({ create: { width: w, height: h, channels: 3, background: { r: 255, g: 255, b: 255 } } })

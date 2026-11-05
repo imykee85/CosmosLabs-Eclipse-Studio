@@ -477,7 +477,7 @@ test("membership.updated with an ended status ends the subscription at once; per
   assert.equal(await sub.hasSubscription(USER), true, "the old membership ending does not end the new subscription");
 });
 
-test("refunds take back the refunded share once they succeed, never more than the payment granted, never below zero", { skip }, async () => {
+test("refunds take back the refunded share once they succeed, never more than the payment granted, even when spent (the balance may go negative)", { skip }, async () => {
   await reset(0, false);
   await lib.webhook.POST(signed(payment("pay_f1", "starter")));
   await lib.webhook.POST(signed(payment("pay_f2", "topup_500")));
@@ -495,10 +495,11 @@ test("refunds take back the refunded share once they succeed, never more than th
   assert.equal(await balance(), 750);
   await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_3", status: "succeeded", amount: 19, payment: { id: "pay_f1", total: 19 } } }));
   assert.equal(await balance(), 0, "a second refund takes only what the payment has left");
-  await lib.webhook.POST(signed(payment("pay_f3", "topup_500")));
+  assert.ok((await lib.db.billingSettings.findUnique({ where: { userId: USER } }))?.subscriptionEndedAt, "refunding a plan payment ends the plan");
+  await lib.webhook.POST(signed(payment("pay_f3", "growth")));
   await lib.credits.spendCredits(USER, 400, "x");
-  await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_4", status: "succeeded", amount: 10, payment: { id: "pay_f3", total: 10 } } }));
-  assert.equal(await balance(), 0, "only what was left is taken back");
+  await lib.webhook.POST(signed({ type: "refund.created", data: { id: "rf_4", status: "succeeded", amount: 49, payment: { id: "pay_f3", total: 49 } } }));
+  assert.equal(await balance(), -400, "the whole refunded share is taken back even though 400 of it was already spent");
   const early = { type: "refund.created", data: { id: "rf_5", status: "succeeded", amount: 10, payment: { id: "pay_not_yet" } } };
   assert.equal((await lib.webhook.POST(signed(early))).status, 422, "a refund before its payment is retried later");
 });

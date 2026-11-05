@@ -101,6 +101,8 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     // A daily limit per person (the answer costs money): AGENT_DAILY_MESSAGES, 200 by default.
     const limit = Number(process.env.AGENT_DAILY_MESSAGES) > 0 ? Math.floor(Number(process.env.AGENT_DAILY_MESSAGES)) : 200;
     if (!(await claimUsage(personId ?? userId, "agent", limit, 24 * 3600 * 1000))) return { status: 429, json: { error: `You have reached today's limit of ${limit} agent messages. It resets on a rolling 24 hours.` } };
+    // A per-minute limit too: parallel messages cannot all pass the "enough credits" check before the first one is charged (chat is paid after the reply).
+    if (!(await claimUsage(personId ?? userId, "agent-min", 12, 60_000))) return { status: 429, json: { error: "Slow down a little: try again in a minute." } };
 
     // Starter includes a small daily Atlas allowance (access.ts atlasDailyLimit); Growth and Scale have none.
     const access = await accessFor(userId, personId ?? null);

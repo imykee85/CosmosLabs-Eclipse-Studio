@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { readImageSize } from "@/lib/image-info";
-import { deleteObject, getObjectBytes, getObjectHead, headObjectInfo, putObject, signedGetUrl, signedPutUrl, storageEnabled } from "@/lib/storage";
+import { copyObjectIfMatch, deleteObject, getObjectBytes, getObjectHead, headObjectInfo, putObject, signedGetUrl, signedPutUrl, storageEnabled } from "@/lib/storage";
 import { MAX_UPLOADS_PER_USER, convertPicture, isUploadKind, sniffImageType, type UploadKind } from "@/lib/uploads";
 import { scanUpload } from "@/lib/upload-scan";
 import { frameAt, probeVideo, shrinkPicture, spacedTimes } from "@/lib/video-frames";
@@ -46,6 +46,9 @@ export async function startUpload(userId: string, i: StartInput): Promise<{ ok: 
 export function ownKey(userId: string, key: unknown, fileKind: "image" | "video"): key is string {
   return typeof key === "string" && key.length < 200 && new RegExp(`^u/${userId.replace(/[^A-Za-z0-9_-]/g, "")}/${fileKind === "image" ? "up" : "vid"}-[0-9a-f-]{36}\\.(png|jpg|webp|img|mp4|mov|webm|mkv|avi|m4v|3gp|vid)$`).test(key) && key.startsWith(`u/${userId}/`);
 }
+
+/** A new server-made key for a checked file, in the same folder pattern and with the same extension. */
+export const freshUploadKey = (userId: string, prefix: "up" | "vid", like: string) => `u/${userId}/${prefix}-${randomUUID()}.${(like.match(/\.([a-z0-9]+)$/)?.[1]) ?? "bin"}`;
 
 const refuse = async (key: string, status: number, error: string): Promise<{ ok: false; status: number; error: string }> => { await deleteObject(key).catch(() => {}); return { ok: false, status, error }; };
 
@@ -96,6 +99,13 @@ export async function finishImage(userId: string, originalKey: string, meta: { k
     if (storedKey !== key) await deleteObject(key).catch(() => {});
     bytes = new Uint8Array(redrawn); type = "image/jpeg";
   }
+  // The upload link stays valid for an hour, so the person could still overwrite the file they were handed after it was scanned. What we keep is the scanned
+  // copy, written under a new key only we know, and the original key is deleted.
+  const freshKey = freshUploadKey(userId, "up", storedKey);
+  await putObject(freshKey, bytes, type);
+  await deleteObject(storedKey).catch(() => {});
+  if (storedKey !== key) await deleteObject(key).catch(() => {});
+  storedKey = freshKey;
   const size = readImageSize(bytes);
   const row = await db.upload.create({ data: { userId, kind, name, projectId, storageKey: storedKey, contentType: type, sizeBytes: bytes.byteLength, width: size?.width ?? null, height: size?.height ?? null } });
   return { ok: true as const, item: row };
@@ -114,7 +124,8 @@ const ratioOf = (w: number, h: number) => {
 
 // An uploaded video becomes an ordinary finished video in the person's library (a Generation row with no model), so the Library, Gallery, the "My videos"
 // picker (reference clips, motion transfer) and Atlas's video watching all work on it without special cases.
-export async function finishVideo(userId: string, key: string, meta: { name: unknown; projectId: unknown }) {
+export async function finishVideo(userId: string, startKey: string, meta: { name: unknown; projectId: unknown }) {
+  let key = startKey;
   const name = (typeof meta.name === "string" ? meta.name.trim() : "").replace(/\s+/g, " ").slice(0, 80) || "Uploaded video";
   const projectId = typeof meta.projectId === "string" && meta.projectId.length > 0 && meta.projectId.length <= 64 ? meta.projectId : null;
   if (await db.generation.findFirst({ where: { storageKey: key }, select: { id: true } })) return { ok: false as const, status: 409, error: "That file was already added." };
@@ -138,6 +149,12 @@ export async function finishVideo(userId: string, key: string, meta: { name: unk
     if (!scan.ok) return refuse(key, scan.status, scan.error.replace("picture", "video"));
   }
   const contentType = key.endsWith(".mp4") ? "video/mp4" : key.endsWith(".mov") ? "video/quicktime" : "video/webm";
+  // Same reason as pictures: keep only the version that was checked, under a key the upload link does not point at. If the file changed since the
+  // check (the link was used again), it is refused.
+  const freshKey = freshUploadKey(userId, "vid", key);
+  if (!head.etag || !(await copyObjectIfMatch(key, freshKey, head.etag, contentType))) return refuse(key, 409, "That video changed while it was being checked. Please upload it again.");
+  await deleteObject(key).catch(() => {});
+  key = freshKey;
   const row = await db.generation.create({ data: { userId, projectId, prompt: name, status: "completed", kind: "video", imageUrl: "", storageKey: key, contentType, sizeBytes: head.size, durationSec: Math.round(info.duration * 10) / 10, hasAudio: info.hasAudio, aspectRatio: ratioOf(info.width, info.height), width: info.width, height: info.height, params: { uploaded: true }, finishedAt: new Date() } });
   return { ok: true as const, item: row };
 }

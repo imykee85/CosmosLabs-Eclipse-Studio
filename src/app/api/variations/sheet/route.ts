@@ -21,7 +21,9 @@ export async function POST(req: Request) {
   const ids: string[] = Array.isArray(body?.ids) ? body.ids.filter((x: unknown): x is string => typeof x === "string" && x.length > 0 && x.length < 64) : [];
   if (!grid || ids.length < 2 || ids.length > gridCount(grid) || new Set(ids).size !== ids.length) return NextResponse.json({ error: "Choose at least two finished variations." }, { status: 400 });
   if (!storageEnabled) return NextResponse.json({ error: "The sheet needs file storage, which is not set up yet." }, { status: 503 });
-  if (!(await claimUsage(userId, "variations-sheet", 20, 60_000))) return NextResponse.json({ error: "Too many at once. Try again in a minute." }, { status: 429 });
+  if (!(await claimUsage(userId, "variations-sheet", 20, 60_000))) return NextResponse.json({ error: "Too many at once. Try again in a minute." }, { status: 429 })
+  if (!(await claimUsage(userId, "variations-sheet-day", 600, 86_400_000))) return NextResponse.json({ error: "That is a lot for one day. Please try again tomorrow." }, { status: 429 });
+;
   try {
     const key = ids.join(",");
     const same = await db.generation.findFirst({ where: { userId, deletedAt: null, params: { path: ["variationSet", "key"], equals: key } }, select: { id: true } });

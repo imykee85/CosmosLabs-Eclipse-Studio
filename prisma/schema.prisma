@@ -628,6 +628,15 @@ model FreeRender {
   @@map("free_renders")
 }
 
+// One welcome offer per inbox: the first account to use an e-mail address (normalised: Gmail dots and +tags removed) keeps the free renders; hashed, never the address.
+model FreeEmailClaim {
+  emailHash String   @id @map("email_hash")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("free_email_claims")
+}
+
 // Every payment-provider webhook delivery that passed the signature check: its type, what we did with it, and its SHAPE (field names and value
 // types only, never values), so the owner can see what the provider really sends. "unmatched" rows are deliveries we could not credit to anyone.
 // Webhook deliveries already handled, by the provider's delivery id (Whop retries reuse it), so a retry is answered without doing anything twice.

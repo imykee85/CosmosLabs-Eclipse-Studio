@@ -29,17 +29,17 @@ export function cropBox(w: number, h: number, ratio: string, focus: { x: number;
 
 export async function applyCrop(bytes: Uint8Array, ratio: string, focus?: { x: number; y: number }): Promise<{ bytes: Uint8Array; width: number; height: number }> {
   const sharp = (await import("sharp")).default;
-  const meta = await sharp(bytes).metadata();
+  const meta = await sharp(bytes, { failOn: "none", limitInputPixels: 120_000_000 }).metadata();
   if (!meta.width || !meta.height) throw new Error("unreadable picture");
   const box = cropBox(meta.width, meta.height, ratio, focus);
   if (!box) throw new Error("bad ratio");
-  const out = await sharp(bytes).extract(box).png().toBuffer();
+  const out = await sharp(bytes, { failOn: "none", limitInputPixels: 120_000_000 }).extract(box).png().toBuffer();
   return { bytes: new Uint8Array(out), width: box.width, height: box.height };
 }
 
 export async function applyAdjust(bytes: Uint8Array, a: Adjust): Promise<Uint8Array> {
   const sharp = (await import("sharp")).default;
-  let img = sharp(bytes);
+  let img = sharp(bytes, { failOn: "none", limitInputPixels: 120_000_000 });
   img = img.modulate({ brightness: 1 + a.brightness / 100, saturation: 1 + a.saturation / 100 });
   const k = 1 + a.contrast / 100; // contrast pivots around mid-grey
   if (a.contrast !== 0) img = img.linear(k, 128 * (1 - k));

@@ -80,3 +80,17 @@ test("claims at the same moment never go below zero", { skip }, async () => {
   assert.equal(results.filter(Boolean).length, 2);
   assert.equal(await lib.freeRendersLeft(id, async () => NEW), 0);
 });
+
+test("one welcome offer per inbox: Gmail dots and +tags are the same address", { skip }, async () => {
+  await db.freeEmailClaim.deleteMany({});
+  assert.equal(lib.normalizeEmail("J.o.h.n+promo@googlemail.com"), "john@gmail.com");
+  assert.equal(lib.normalizeEmail("Ann+x@Example.com"), "ann@example.com");
+  const first = "user_free_dot1", second = "user_free_dot2", other = "user_free_dot3";
+  await db.freeRender.deleteMany({ where: { userId: { in: [first, second, other] } } });
+  assert.equal(await lib.freeRendersLeft(first, async () => NEW, async () => "jo.hn@gmail.com"), 2);
+  assert.equal(await lib.freeRendersLeft(second, async () => NEW, async () => "john+2@gmail.com"), 0, "the same inbox again gets nothing");
+  assert.equal(await lib.freeRendersLeft(other, async () => NEW, async () => "someone.else@gmail.com"), 2, "a different inbox is unaffected");
+  assert.equal(await lib.freeRendersLeft(first, async () => NEW, async () => "jo.hn@gmail.com"), 2, "the first account keeps its renders");
+  await db.freeEmailClaim.deleteMany({});
+  await db.freeRender.deleteMany({ where: { userId: { in: [first, second, other] } } });
+});
