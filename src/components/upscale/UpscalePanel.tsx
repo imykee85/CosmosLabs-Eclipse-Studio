@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpFromLine, X } from "lucide-react";
+import { X, ZoomIn } from "lucide-react";
 import Bar from "../create/Bar";
 import GenerateButton from "@/components/GenerateButton";
 import { PRESETS, PRESET_HINT, PRESET_LABEL, type Preset } from "@/lib/topaz/models";
@@ -58,7 +58,7 @@ export default function UpscalePanel({ source, onClose, onStarted }: { source: U
     <div className="cr-var-back" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
       <div className="cr-var cr-cam up-panel" role="dialog" aria-modal="true" aria-label="Upscale">
         <div className="cr-var-head">
-          {video ? <span className="cr-var-thumb up-thumb"><ArrowUpFromLine size={22} /></span> : /* eslint-disable-next-line @next/next/no-img-element */ <img src={thumbOf("render", source.id)} alt="" className="cr-var-thumb" />}
+          {video ? <span className="cr-var-thumb up-thumb"><ZoomIn size={22} /></span> : /* eslint-disable-next-line @next/next/no-img-element */ <img src={thumbOf("render", source.id)} alt="" className="cr-var-thumb" />}
           <div><h2>Upscale</h2><p>{video ? "A sharper, higher-resolution copy of the clip" : "A sharper, higher-resolution copy of the picture"}</p></div>
           <button type="button" className="cr-var-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>

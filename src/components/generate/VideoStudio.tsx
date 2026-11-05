@@ -6,7 +6,7 @@ import { attachKind } from "@/lib/attach-file";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, ArrowUp, ArrowUpFromLine, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Sun, Music, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUp, Check, ChevronDown, Clapperboard, Image as ImageIcon, Film, Layers, Loader2, Sun, Music, ZoomIn, Plus, Settings, Video, Volume2, VolumeX, X } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import GenerateButton from "@/components/GenerateButton";
 import AgentIcon from "../AgentIcon";
@@ -488,7 +488,7 @@ export default function VideoStudio() {
           {toolVid && <>
           <button type="button" onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
           <button type="button" onClick={() => setEditorOpen(true)} title="Cut, trim, grade and mix the clip on a timeline"><Film size={14} /> Editor</button>
-          <button type="button" onClick={() => setUpOpen(true)} title="Raise the resolution and sharpness of the clip"><ArrowUpFromLine size={14} /> Upscale</button>
+          <button type="button" onClick={() => setUpOpen(true)} title="A sharper, higher-resolution copy of this clip"><ZoomIn size={14} /> Upscale</button>
           </>}
         </div>
         <PromptEdge message={edge} />
