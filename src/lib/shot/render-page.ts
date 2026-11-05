@@ -29,6 +29,8 @@ export function fetchAssets(): Promise<Assets> {
   })();
   return assetCache;
 }
+const bentPose = (pose: string) => ["sitting", "squatting", "driving"].includes(pose);
+const bonesOf = (root: THREE.Object3D) => { const o: Record<string, THREE.Object3D> = {}; root.traverse((n) => { if (n.name.startsWith("mixamorig")) o[n.name.slice(9).replace(/^:/, "")] = n; }); return o; };
 const tintTo = (root: THREE.Object3D, hex: string) => root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = new THREE.MeshLambertMaterial({ color: hex }); });
 /** A copy of a loaded model scaled to `height` metres, standing on the ground with its middle at x 0, z 0. */
 function fitModel(src: THREE.Object3D, height: number, skinned: boolean) {
@@ -136,6 +138,15 @@ function populate(scene: Scene, three: THREE.Scene, assets: Assets = {}) {
         if (p.xg && p.mixer && use && clip) {
           p.g.visible = false; p.xg.visible = true; p.xg.position.set(pl.pos[0], pl.pos[1], pl.pos[2]); p.xg.rotation.y = pl.facing;
           const tt = use.strideM ? (pl.walked / use.strideM) * clip.duration : pl.poseT; p.mixer.stopAllAction(); p.mixer.clipAction(clip).reset().play(); p.mixer.setTime(((tt % clip.duration) + clip.duration) % clip.duration);
+        } else if (p.xg && p.mixer && p.clips.get("idle") && bentPose(pl.pose)) {
+          // no clip for this pose: the mannequin stands at rest, then its legs are bent by the same joint angles as the stand-in
+          const j = poseJoints(pl.pose, pl.poseT, 0), idle = p.clips.get("idle")!; p.g.visible = false; p.xg.visible = true; p.xg.rotation.y = pl.facing;
+          p.mixer.stopAllAction(); p.mixer.clipAction(idle).reset().play(); p.mixer.setTime(0); p.xg.position.set(pl.pos[0], pl.pos[1], pl.pos[2]); p.xg.updateMatrixWorld(true);
+          const bones = bonesOf(p.xg), hips = bones["Hips"]; if (hips) {
+            const rest = hips.getWorldPosition(new THREE.Vector3()).y - pl.pos[1];
+            (["Left", "Right"] as const).forEach((side, i) => { const u = bones[side + "UpLeg"], l = bones[side + "Leg"]; if (u) u.rotateX(-j.hip[i]); if (l) l.rotateX(j.knee[i]); });
+            p.xg.position.y = pl.pos[1] + hipHeight(j, p.a.heightM) - rest;
+          }
         } else { p.g.visible = true; if (p.xg) p.xg.visible = false; poseRig(p, poseJoints(pl.pose, pl.poseT, pl.walked * (pl.pose === "running" ? 2.1 : 4.5))); }
       }
     },
