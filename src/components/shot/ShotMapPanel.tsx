@@ -15,7 +15,7 @@ import "./shot.css";
 export type GuideResult = { id: string; url: string; seconds: number; width: number | null; height: number | null };
 export type ShotUse = { guide: GuideResult; prompt: string; aspect: AspectId; seconds: number };
 const POSE_LABEL = (p: string) => p.replace("-", " ").replace(/^./, (c) => c.toUpperCase());
-type Build = { drawAt: (s: number, t: number) => void; dispose: () => void };
+type Build = { setScene: (s: ReturnType<typeof buildScene>) => void; drawAt: (s: number, t: number) => void; dispose: () => void };
 type StageBuild = { drawAt: (t: number) => void; dispose: () => void };
 type OrbitState = import("@/lib/shot/render-page").Orbit;
 
@@ -57,31 +57,39 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
 
   // the 3D preview: three.js is loaded when the panel opens; the scene is rebuilt when it changes (a handful of shapes) and drawn at the playhead
   const tRef = useRef(0); tRef.current = t;
+  const sceneRef = useRef(scene); sceneRef.current = scene;
+  // only a change to the world (set, objects, people, vehicles) rebuilds the 3D preview; camera sliders just redraw it, so dragging stays smooth
+  const worldKey = useMemo(() => JSON.stringify([scene.set, scene.models, scene.actors, scene.vehicles]), [scene]);
   useEffect(() => {
     const el = canvas.current; if (!el || flat) return;
     let r: Build | null = null, gone = false;
     void import("@/lib/shot/render-page").then(({ build, fetchAssets }) => {
       if (gone) return;
-      const make = (assets?: import("@/lib/shot/render-page").Assets) => { r?.dispose(); r = build(scene, 640, Math.round(640 / aspect), el, assets) as unknown as Build; built.current = r; drawShot(r, scene, Math.min(tRef.current, T - 0.001)); };
+      const make = (assets?: import("@/lib/shot/render-page").Assets) => { r?.dispose(); r = build(sceneRef.current, 640, Math.round(640 / aspect), el, assets) as unknown as Build; built.current = r; r.setScene(sceneRef.current); drawShot(r, sceneRef.current, Math.min(tRef.current, T - 0.001)); };
       try { make(); } catch { setFlat(true); return; }
       // the stand-ins show at once; the real models replace them as soon as their files have loaded
       void fetchAssets().then((a) => { if (!gone && Object.keys(a).length) { try { make(a); } catch { /* keep the stand-ins */ } } }).catch(() => undefined);
     }).catch(() => setFlat(true));
     return () => { gone = true; r?.dispose(); if (built.current === r) built.current = null; if (el) void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
-  }, [scene, flat, aspect, T]);
+  }, [worldKey, flat, aspect]);
+  useEffect(() => { const r = built.current; if (!r) return; r.setScene(scene); drawShot(r, scene, Math.min(tRef.current, T - 0.001)); }, [scene, T]);
 
   // the Stage view: the whole set from outside with the camera drawn as equipment and its view as a pyramid; drag to orbit, wheel or pinch to zoom
   useEffect(() => {
     const el = stageCanvas.current; if (view !== "stage" || !el || flat) return;
-    let r: StageBuild | null = null, gone = false;
-    void import("@/lib/shot/render-page").then(({ buildStage, fitOrbit, fetchAssets }) => {
-      if (gone) return;
-      const make = (assets?: import("@/lib/shot/render-page").Assets) => { r?.dispose(); if (!orbit.current) orbit.current = fitOrbit(scene); r = buildStage(scene, el, 640, 512, orbit.current, assets); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); };
-      try { make(); } catch { setFlat(true); return; }
-      void fetchAssets().then((a) => { if (!gone && Object.keys(a).length) { try { make(a); } catch { /* keep the stand-ins */ } } }).catch(() => undefined);
-    }).catch(() => setFlat(true));
-    return () => { gone = true; r?.dispose(); if (stageBuilt.current === r) stageBuilt.current = null; void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
+    let gone = false;
+    // the camera drawing is rebuilt a moment after the last slider tick, and the old picture stays on screen until the new one is ready (no blank frames)
+    const timer = window.setTimeout(() => {
+      void import("@/lib/shot/render-page").then(({ buildStage, fitOrbit, fetchAssets }) => {
+        if (gone) return;
+        const make = (assets?: import("@/lib/shot/render-page").Assets) => { const old = stageBuilt.current; const r = buildStage(sceneRef.current, el, 640, 512, orbit.current ?? (orbit.current = fitOrbit(sceneRef.current)), assets); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); old?.dispose(); };
+        try { make(); } catch { setFlat(true); return; }
+        void fetchAssets().then((a) => { if (!gone && Object.keys(a).length) { try { make(a); } catch { /* keep the stand-ins */ } } }).catch(() => undefined);
+      }).catch(() => setFlat(true));
+    }, 70);
+    return () => { gone = true; window.clearTimeout(timer); };
   }, [scene, view, flat, aspect, T]);
+  useEffect(() => () => { stageBuilt.current?.dispose(); stageBuilt.current = null; }, []);
   const redraw = useCallback(() => { stageBuilt.current?.drawAt(Math.min(tRef.current, T - 0.001)); }, [T]);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef(0);

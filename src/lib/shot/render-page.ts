@@ -162,17 +162,20 @@ export function build(scene: Scene, width: number, height: number, existing?: HT
   const three = new THREE.Scene(); three.background = new THREE.Color(scene.set.sky); three.fog = new THREE.Fog(scene.set.sky, 60, 220);
   const pop = populate(scene, three, assets);
   const cam = new THREE.PerspectiveCamera(40, width / height, 0.05, 600);
+  let sc = scene;
   return {
+    /** Camera and shot edits do not rebuild the world: the panel hands over the newer scene and draws again. */
+    setScene(next: Scene) { sc = next; },
     /** Draws the shot at time t (seconds from the start of the shot) on the canvas. */
     drawAt(shotIndex: number, local: number) {
-      const sh = scene.shots[shotIndex], camera = scene.cameras.find((c) => c.id === sh.cameraId)!, t = sh.startS + local;
+      const sh = sc.shots[shotIndex], camera = sc.cameras.find((c) => c.id === sh.cameraId)!, t = sh.startS + local;
       pop.pose(t);
-      const cs = cameraAt(scene, camera, t, sh.aspect as AspectId);
+      const cs = cameraAt(sc, camera, t, sh.aspect as AspectId);
       cam.fov = cs.fov; cam.aspect = ASPECTS[sh.aspect as AspectId]; cam.updateProjectionMatrix();
       cam.position.set(...cs.pos); cam.up.set(0, 1, 0); cam.lookAt(...cs.lookAt); cam.rotateZ((cs.roll * Math.PI) / 180);
       renderer.render(three, cam);
     },
-    frame(shotIndex: number, index: number): string { this.drawAt(shotIndex, index / scene.fps); return canvas.toDataURL("image/jpeg", 0.92); },
+    frame(shotIndex: number, index: number): string { this.drawAt(shotIndex, index / sc.fps); return canvas.toDataURL("image/jpeg", 0.92); },
     /** Frees what this scene built; the canvas keeps its renderer for the next scene. */
     dispose() { freeScene(three); },
   };
