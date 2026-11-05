@@ -5,6 +5,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 os.environ["WORKER_SECRET"] = "test-secret"
+os.environ["WORKER_ALLOW_LOOPBACK"] = "1"
 import server  # noqa: E402
 
 STORE = {}

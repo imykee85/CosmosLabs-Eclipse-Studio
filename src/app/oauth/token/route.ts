@@ -1,5 +1,5 @@
 import { exchangeCode, getClient, refreshGrant } from "@/lib/oauth";
-import { json, oauthError, preflight, readParams, underLimit } from "@/lib/oauth-http";
+import { clientIp, json, oauthError, preflight, readParams, underLimit } from "@/lib/oauth-http";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const p = await readParams(req);
   const client = await getClient(p.client_id);
   if (!client) return oauthError("invalid_client", "Unknown client_id.", 401);
-  if (!(await underLimit(`client:${client.id}`, "oauth-token", 120, 60_000))) return oauthError("temporarily_unavailable", "Too many requests. Slow down.", 429);
+  if (!(await underLimit(`client:${client.id}:${clientIp(req)}`, "oauth-token", 120, 60_000))) return oauthError("temporarily_unavailable", "Too many requests. Slow down.", 429);
   if (p.grant_type === "authorization_code") {
     if (!p.code || !p.redirect_uri || !p.code_verifier) return oauthError("invalid_request", "code, redirect_uri and code_verifier are required.");
     const r = await exchangeCode({ code: p.code, clientId: client.id, redirectUri: p.redirect_uri, verifier: p.code_verifier });

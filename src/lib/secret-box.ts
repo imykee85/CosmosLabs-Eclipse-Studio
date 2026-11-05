@@ -17,7 +17,7 @@ export function seal(plain: string): string {
 
 export function unseal(box: string): string {
   const [iv, tag, enc] = box.split(".").map((p) => Buffer.from(p, "base64"));
-  const d = createDecipheriv("aes-256-gcm", key(), iv);
+  const d = createDecipheriv("aes-256-gcm", key(), iv, { authTagLength: 16 });
   d.setAuthTag(tag);
   return Buffer.concat([d.update(enc), d.final()]).toString("utf8");
 }

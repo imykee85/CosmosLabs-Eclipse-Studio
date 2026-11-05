@@ -11,7 +11,7 @@ export function json(body: unknown, status = 200, extra: Record<string, string> 
 export const oauthError = (error: string, description: string, status = 400) => json({ error, error_description: description }, status);
 
 export function clientIp(req: Request): string {
-  return (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
+  return req.headers.get("x-real-ip") || (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
 }
 /** True while the caller is under the limit (per address and kind). */
 export const underLimit = (key: string, kind: string, limit: number, windowMs: number) => claimUsage(key, kind, limit, windowMs);

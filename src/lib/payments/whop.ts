@@ -168,12 +168,14 @@ export const whop: PaymentProvider = {
     // Our checkout puts userId and planId on the payment. A renewal may arrive without them: then the plan is read from Whop's own plan id
     // (mapped back through the WHOP_PLAN_* settings) and the person from the subscription's membership id, saved on their first payment.
     const userId = text(meta.userId) ?? text(meta.app_user_id) ?? "";
-    const planId = text(meta.planId) ?? ourPlanId(idOf(d.plan) ?? text(d.plan_id));
+    const paidPlan = ourPlanId(idOf(d.plan) ?? text(d.plan_id));
+    // Whop's own plan id (what was really bought) wins over checkout metadata, which a buyer might influence.
+    const planId = paidPlan ?? text(meta.planId);
     if (!planId || (!userId && !refs?.membershipId)) {
       console.error("whop payment event without a known plan or owner", id);
       return null;
     }
-    const credits = Number(meta.credits);
+    const credits = paidPlan ? NaN : Number(meta.credits); // fixed plans and packs never take a credit amount from metadata
     return { provider: "whop", externalId: id, userId, planId, ...(Number.isInteger(credits) && credits > 0 ? { credits } : {}), auto: meta.auto === "1", refs };
   },
 
