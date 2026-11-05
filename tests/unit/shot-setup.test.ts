@@ -94,3 +94,23 @@ test("move groups cover every preset once, and extra cameras cut one after the o
   assert.equal(camCount(removeCamera(s, 1)), 1);
   for (const p of ALL_PRESETS) { const sc2 = buildScene({ ...DEFAULT_SETUP, preset: p.id }); assert.ok(sc2.cameras[0].keys.length >= 1); }
 });
+
+import { setupFromRebuild } from "../../src/lib/shot/rebuild";
+test("a rebuilt scene is cleaned: valid poses, clamped places, a driver rides the car, junk dropped", () => {
+  const s = setupFromRebuild({
+    set: "street",
+    people: [{ build: "woman", x: 99, z: 1, pose: "dancing", then: [{ pose: "sitting", at: 4 }, { pose: "walking", at: 9 }], moves: true, to_x: 3, to_z: 5 }, { build: "man", x: 0, z: 0, pose: "driving", rides_vehicle: 1 }],
+    vehicles: [{ type: "sports", x: 0, z: 2, moves: true, to_x: 20, to_z: 2 }],
+    objects: [{ type: "tree", x: -3, z: -5, rot: 400, scale: 9 }, { type: "spaceship", x: 0, z: 0 }],
+    lens_mm: 500, distance: 0, vertical: 5,
+  });
+  assert.equal(s.kit, "street");
+  const people = s.cast.filter((c) => c.kind === "person");
+  assert.equal(people[0].x, 12); assert.equal(people[0].pose, "standing"); assert.equal(people[0].pose2, "sitting"); assert.equal(people[0].extra?.[0].pose, "walking");
+  assert.equal(people[1].rides, "rv1"); assert.equal(people[1].pose, "driving");
+  assert.equal(s.objects?.length, 1); assert.equal(s.objects?.[0].rot, 359); assert.equal(s.objects?.[0].scale, 2);
+  assert.equal(s.lensMm, 135); assert.equal(s.distance, 1.5);
+  assert.doesNotThrow(() => buildScene(s));
+  assert.equal(new Set(s.cast.map((c) => c.color)).size, s.cast.length);
+  assert.doesNotThrow(() => buildScene(setupFromRebuild(null)));
+});

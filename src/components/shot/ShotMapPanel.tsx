@@ -9,6 +9,7 @@ import { ASPECTS, FEATURE_NAME, PALETTE, POSES, colorHex, type AspectId, type Po
 import { cameraAt } from "@/lib/shot/engine";
 import { DEFAULT_SETUP, KITS, MAX_CAMERAS, MAX_CAST, MAX_OBJECTS, MOVE_GROUPS, OBJECTS, addCamera, camCount, camOf, editCam, groupOf, isCombinable, removeCamera, totalS, addObject, addPerson, removeObject, type ObjType, type SceneObject, addVehicleWithDriver, buildScene, colorName, removeCast, type CastItem, type PresetId, type Setup } from "@/lib/shot/setup";
 import { shotPrompt } from "@/lib/shot/prompt";
+import { uploadPicture } from "@/lib/use-uploads";
 import "./shot.css";
 
 export type GuideResult = { id: string; url: string; seconds: number; width: number | null; height: number | null };
@@ -26,6 +27,12 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [look, setLook] = useState("");
+  const [pic, setPic] = useState<{ id: string; url: string } | null>(null);
+  const [rbPrompt, setRbPrompt] = useState("");
+  const [rbBusy, setRbBusy] = useState(false);
+  const [rbNote, setRbNote] = useState("");
+  const [editOpen, setEditOpen] = useState(true);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [res, setRes] = useState<"480" | "720">("480");
   const [flat, setFlat] = useState(false);
   const [job, setJob] = useState<SandboxJobView | null>(null);
@@ -102,6 +109,27 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   const remove = () => { if (cast.length < 2 || !item) return; edit(removeCast(setup, item.id)); setSel(0); };
   const reset = () => { orbit.current = null; setSetup({ ...DEFAULT_SETUP, preset: initialPreset ?? DEFAULT_SETUP.preset }); setSel(0); setT(0); setGuide(null); };
 
+  async function pickPicture(file: File | undefined) {
+    if (!file) return;
+    setRbNote(""); setError(""); setRbBusy(true);
+    const r = await uploadPicture(file, "asset", file.name.slice(0, 80) || "Scene picture", projectId ?? null);
+    setRbBusy(false);
+    if (!r.ok || !r.item) { setError(r.ok ? "The picture could not be added." : r.error); return; }
+    setPic({ id: r.item.id, url: URL.createObjectURL(file) });
+  }
+  async function rebuild() {
+    setError(""); setRbNote(""); setRbBusy(true);
+    try {
+      const res = await fetch("/api/shot/rebuild", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ uploadId: pic?.id, prompt: rbPrompt }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.setup) { setError(data.error ?? "The scene could not be rebuilt. Please try again."); return; }
+      orbit.current = null;
+      setSetup((cur) => ({ ...data.setup, preset: cur.preset, preset2: cur.preset2, combine: cur.combine, split: cur.split, rotate: cur.rotate, speed: cur.speed, durationS: cur.durationS, shake: cur.shake, more: cur.more, aspect: cur.aspect }));
+      setSel(0); setT(0); setGuide(null); setEditOpen(false);
+      setRbNote(`Rebuilt with ${data.people} ${data.people === 1 ? "person" : "people"} and ${data.objects} ${data.objects === 1 ? "object" : "objects"}. Check it, then choose your camera moves.`);
+    } finally { setRbBusy(false); }
+  }
+
   async function make() {
     setError(""); setGuide(null); setPlaying(false);
     const r = await startSandboxJob("media.shotguide", { scene, res, ...(projectId ? { projectId } : {}) });
@@ -124,6 +152,19 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
           <span className="sm-badge"><Video size={20} /></span>
           <div><h2>{FEATURE_NAME}</h2><p>Direct the shot in 3D, then generate it</p></div>
           <button type="button" className="cr-var-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
+        </div>
+
+        <div className="cr-light-label">Rebuild from a picture</div>
+        <div className="sm-rebuild">
+          <input ref={fileRef} type="file" hidden onChange={(e) => { void pickPicture(e.target.files?.[0]); e.target.value = ""; }} />
+          <div className="sm-rb-top">
+            <button type="button" className="sm-rb-pic" onClick={() => fileRef.current?.click()} aria-label="Add a picture" disabled={rbBusy}>
+              {pic ? <img src={pic.url} alt="Your scene picture" /> : <Plus size={20} />}
+            </button>
+            <GrowArea className="cr-var-text" rows={2} value={rbPrompt} onChange={(e) => setRbPrompt(e.target.value)} placeholder="Paste the video prompt (optional)" />
+          </div>
+          <button type="button" className="cr-var-go sm-rb-go" disabled={rbBusy || (!pic && !rbPrompt.trim())} onClick={() => void rebuild()}>{rbBusy ? "Working" : "Rebuild the scene"}</button>
+          {rbNote && <p className="cr-cam-tip">{rbNote}</p>}
         </div>
 
         <div className="cr-light-label">Shot preview</div>
@@ -180,6 +221,8 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
         <Bar id="sm-t" label="Length" min={2} max={Math.max(2, 30 - (T - cam.durationS))} value={cam.durationS} unit="s" onChange={(v) => { editC({ durationS: v }); setT(0); }} />
         <Bar id="sm-s" label="Handheld shake" min={0} max={100} value={Math.round(cam.shake * 100)} unit="%" onChange={(v) => editC({ shake: v / 100 })} />
 
+        <details className="sm-edit" open={editOpen} onToggle={(e) => setEditOpen(e.currentTarget.open)}>
+        <summary>Edit scene</summary>
         <div className="cr-light-label">Set</div>
         <div className="cr-light-quick sm-kits" role="group" aria-label="Set">
           {KITS.map((k) => <button key={k.id} type="button" className={setup.kit === k.id ? "is-on" : ""} onClick={() => edit({ kit: k.id })}>{k.label}</button>)}
@@ -256,6 +299,8 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
             <Bar id="sm-os" label="Size" min={0.3} max={3} step={0.1} value={obj.scale} text={`${obj.scale.toFixed(1)}x`} onChange={(v) => editObj({ scale: v })} />
           </div>
         )}
+
+        </details>
 
         <GrowArea className="cr-var-text" rows={1} value={look} onChange={(e) => setLook(e.target.value)} placeholder="The look (optional), for example: a rooftop at dusk, warm light, 35 mm film" />
 

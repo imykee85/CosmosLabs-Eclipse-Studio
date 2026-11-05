@@ -18,6 +18,23 @@ async function setup(page: Page) {
 }
 
 test.describe("ShotMap", () => {
+  test("rebuild from a picture fills the scene and tucks the controls into Edit scene", async ({ page }) => {
+    await setup(page);
+    await page.route("**/api/shot/rebuild", (r) => r.fulfill({ json: { setup: { kit: "street", cast: [{ id: "rp1", kind: "person", label: "", color: "red", x: 1, z: 0, moves: false, toX: 1, toZ: 0, build: "woman", pose: "sitting", pose2: null, pose2At: 3, vtype: "car" }], objects: [{ id: "ro1", type: "bench", x: 1, z: 0, rot: 0, scale: 1 }], lensMm: 50, distance: 5, vertical: 0, preset: "push-in", durationS: 8, shake: 0, aspect: "1:1", seed: 7 }, people: 1, objects: 1 } }));
+    await page.goto("/generate");
+    await page.getByRole("toolbar", { name: "Video tools" }).getByRole("button", { name: /ShotMap/ }).click();
+    const panel = page.getByRole("dialog", { name: "ShotMap" });
+    await expect(panel.getByText("Edit scene")).toBeVisible();
+    await expect(panel.locator("details.sm-edit")).toHaveAttribute("open", "");
+    await panel.getByPlaceholder("Paste the video prompt (optional)").fill("She sits on the bench");
+    await panel.getByRole("button", { name: "Rebuild the scene" }).click();
+    await expect(panel.getByText(/Rebuilt with 1 person and 1 object/)).toBeVisible();
+    await expect(panel.locator("details.sm-edit")).not.toHaveAttribute("open", "");
+    await panel.getByText("Edit scene").click();
+    await expect(panel.getByRole("tablist", { name: "Objects" })).toBeVisible();
+    await expect(panel.getByRole("tablist", { name: "Objects" }).getByRole("tab")).toHaveCount(1);
+  });
+
   test("chip, tray, panel, guide and the hand-over to Video Studio", async ({ page }) => {
     const jobs = await setup(page);
     await page.goto("/generate");
