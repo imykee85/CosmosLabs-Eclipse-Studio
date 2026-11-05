@@ -6,26 +6,44 @@ import { ASPECTS, colorHex, type Actor, type AspectId, type Scene, type Vehicle 
 
 const mat = (hex: string) => new THREE.MeshLambertMaterial({ color: hex });
 type Rig = { g: THREE.Group; h: number; pelvis: THREE.Group; torso: THREE.Group; hips: THREE.Group[]; knees: THREE.Group[]; shoulders: THREE.Group[]; elbows: THREE.Group[] };
-/** A human-shaped stand-in: head, torso, two arms and two legs (upper and lower), one colour so the colour names the person. */
+/** A smooth human mannequin, man or woman: ellipsoid head, neck, chest, waist and pelvis, tapered limbs with round joints, hands and feet. One colour, so the colour names the person. */
 function personMesh(a: Actor): Rig {
-  const m = mat(colorHex(a.color)), h = a.heightM, B = BODY;
-  const limb = (len: number, r: number) => { const g = new THREE.Group(), c = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.01, len - 2 * r), 4, 10), m); c.position.y = -len / 2; g.add(c); return g; };
+  const m = mat(colorHex(a.color)), h = a.heightM, B = BODY, w = a.build === "woman";
+  const ell = (rx: number, ry: number, rz: number) => { const e = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), m); e.scale.set(rx * h, ry * h, rz * h); return e; };
+  // a limb from y = 0 down to y = -len, radius rTop at the top and rBot at the bottom, with a swell in the middle (muscle)
+  const limb = (len: number, rTop: number, rBot: number, swell: number) => {
+    const pts: THREE.Vector2[] = [new THREE.Vector2(0, -len * h)];
+    for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(new THREE.Vector2((rBot + (rTop - rBot) * t + swell * Math.sin(Math.PI * t)) * h, (-len + len * t) * h)); }
+    pts.push(new THREE.Vector2(0, 0));
+    return new THREE.Mesh(new THREE.LatheGeometry(pts, 14), m);
+  };
   const g = new THREE.Group(), pelvis = new THREE.Group(), torso = new THREE.Group();
   g.add(pelvis); pelvis.add(torso);
-  const chest = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * h, B.torso * h - 0.17 * h + 0.06 * h, 4, 12), m); chest.scale.z = 0.7; chest.position.y = (B.torso * h) / 2; torso.add(chest);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(B.headR * h, 18, 14), m); head.position.y = B.torso * h + 0.045 * h + B.headR * h; torso.add(head);
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.014 * h, 0.04 * h, 8), m); nose.rotation.x = Math.PI / 2; nose.position.set(0, head.position.y - 0.005 * h, B.headR * h + 0.012 * h); torso.add(nose);
+  const hipHalf = w ? 0.056 : 0.05, shoulderHalf = w ? 0.108 : 0.13;
+  // pelvis, waist, chest, neck, head
+  const pel = ell(w ? 0.108 : 0.088, 0.062, 0.075); pel.position.y = 0.012 * h; pelvis.add(pel);
+  const waist = ell(w ? 0.07 : 0.076, 0.08, w ? 0.062 : 0.07); waist.position.y = 0.1 * h; torso.add(waist);
+  const chest = ell(w ? 0.088 : 0.124, w ? 0.105 : 0.092, w ? 0.072 : 0.088); chest.position.y = 0.215 * h; torso.add(chest);
+  if (w) for (const s of [1, -1]) { const b = ell(0.034, 0.034, 0.036); b.position.set(s * 0.04 * h, 0.225 * h, 0.066 * h); torso.add(b); }
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.026 * h, 0.03 * h, 0.06 * h, 12), m); neck.position.y = (B.torso + 0.012) * h; torso.add(neck);
+  const head = ell(w ? 0.052 : 0.058, 0.07, w ? 0.063 : 0.068); head.position.y = (B.torso + 0.095) * h; torso.add(head);
+  const jaw = ell(w ? 0.038 : 0.046, 0.04, w ? 0.05 : 0.054); jaw.position.set(0, (B.torso + 0.062) * h, 0.012 * h); torso.add(jaw);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.012 * h, 0.034 * h, 8), m); nose.rotation.x = Math.PI / 2; nose.position.set(0, (B.torso + 0.09) * h, 0.074 * h); torso.add(nose);
   const hips: THREE.Group[] = [], knees: THREE.Group[] = [], shoulders: THREE.Group[] = [], elbows: THREE.Group[] = [];
   for (const side of [1, -1]) {
-    const hip = new THREE.Group(); hip.position.x = side * B.hipHalf * h; pelvis.add(hip); hips.push(hip);
-    const thigh = limb(B.thigh * h, 0.04 * h); hip.add(thigh);
+    const hip = new THREE.Group(); hip.position.x = side * hipHalf * h; pelvis.add(hip); hips.push(hip);
+    hip.add(limb(B.thigh, w ? 0.057 : 0.056, w ? 0.034 : 0.036, w ? 0.004 : 0.007));
     const knee = new THREE.Group(); knee.position.y = -B.thigh * h; hip.add(knee); knees.push(knee);
-    knee.add(limb(B.shin * h, 0.032 * h));
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.05 * h, 0.03 * h, 0.12 * h), m); foot.position.set(0, -B.shin * h + 0.005 * h, 0.03 * h); knee.add(foot);
-    const sh = new THREE.Group(); sh.position.set(side * B.shoulderHalf * h, B.torso * h - 0.03 * h, 0); torso.add(sh); shoulders.push(sh);
-    sh.add(limb(B.upperArm * h, 0.028 * h));
+    const kj = ell(0.032, 0.032, 0.032); knee.add(kj);
+    const shin = limb(B.shin, 0.034, 0.02, w ? 0.004 : 0.007); shin.rotation.y = 0; knee.add(shin);
+    const foot = ell(0.027, 0.02, 0.07); foot.position.set(0, -B.shin * h + 0.012 * h, 0.034 * h); knee.add(foot);
+    const sh = new THREE.Group(); sh.position.set(side * shoulderHalf * h, (B.torso - 0.035) * h, 0); torso.add(sh); shoulders.push(sh);
+    sh.add(ell(w ? 0.036 : 0.044, w ? 0.036 : 0.044, w ? 0.036 : 0.044));
+    sh.add(limb(B.upperArm, w ? 0.03 : 0.037, w ? 0.024 : 0.028, w ? 0.002 : 0.005));
     const el = new THREE.Group(); el.position.y = -B.upperArm * h; sh.add(el); elbows.push(el);
-    el.add(limb(B.foreArm * h, 0.024 * h));
+    el.add(ell(0.026, 0.026, 0.026));
+    el.add(limb(B.foreArm, w ? 0.026 : 0.03, 0.017, w ? 0.002 : 0.005));
+    const hand = ell(0.02, 0.042, 0.012); hand.position.y = -(B.foreArm + 0.036) * h; el.add(hand);
   }
   return { g, h, pelvis, torso, hips, knees, shoulders, elbows };
 }

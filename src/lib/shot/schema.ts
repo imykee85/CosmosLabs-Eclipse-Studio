@@ -29,7 +29,7 @@ export const ASPECTS = { "16:9": 16 / 9, "9:16": 9 / 16, "1:1": 1, "4:5": 4 / 5,
 export type AspectId = keyof typeof ASPECTS;
 
 const actor = z.object({
-  id: z.string().min(1).max(40), label: z.string().max(60), color, heightM: z.number().min(0.4).max(2.4).default(1.75),
+  id: z.string().min(1).max(40), label: z.string().max(60), color, build: z.enum(["man", "woman"]).default("man"), heightM: z.number().min(0.4).max(2.4).default(1.75),
   parentId: z.string().max(40).optional(), // rides in a vehicle
   marks: z.array(z.object({ t, pos: vec2, facing: z.number().optional() })).min(1).max(60),
   actions: z.array(z.object({ t, pose: z.enum(POSES) })).max(80).default([]),

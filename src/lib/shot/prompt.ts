@@ -13,7 +13,7 @@ export function shotPrompt(s: Setup, opts: { look?: string; sound?: string; exac
   lines.push(`Camera: ${s.lensMm} mm (${lensWords(s.lensMm)} lens), ${(preset?.label ?? "move").toLowerCase()}${s.shake > 0.05 ? ", gentle handheld shake" : ""}, ${s.durationS} seconds.`);
   const people = s.cast.filter((m) => m.kind === "person"), cars = s.cast.filter((m) => m.kind === "vehicle");
   for (const m of people) {
-    const who = m.label.trim() || "a person";
+    const who = m.label.trim() || (m.build === "woman" ? "a woman" : "a man");
     const acts = [m.pose !== "standing" ? poseText(m.pose) : "", m.pose2 ? `${poseText(m.pose2)} from ${m.pose2At} s` : "", m.moves && !m.rides ? "walks across the space" : ""].filter(Boolean).join(", ");
     lines.push(`The ${colorName(m.color)} figure is ${who}${acts ? `; ${acts}` : ""}.`);
   }

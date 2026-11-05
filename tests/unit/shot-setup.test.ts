@@ -37,3 +37,9 @@ test("the prompt names the guide, the stand-in rule, the camera and each colour"
   assert.match(p, /video 1/); assert.match(p, /stand-ins/); assert.match(p, /35 mm/); assert.match(p, /red figure is a barista in her thirties; squatting from 3 s/); assert.match(p, /rooftop at dusk/);
   assert.equal(shotPrompt(s), shotPrompt(s));
 });
+
+test("a person can be a man or a woman; the prompt and the scene say so", () => {
+  const s: Setup = { ...DEFAULT_SETUP, cast: [{ ...DEFAULT_SETUP.cast[0], build: "woman" }] };
+  const a = buildScene(s).actors[0]; assert.equal(a.build, "woman"); assert.ok(a.heightM < 1.7);
+  assert.match(shotPrompt(s), /red figure is a woman/); assert.match(shotPrompt({ ...s, cast: [{ ...s.cast[0], build: "man" }] }), /red figure is a man/);
+});

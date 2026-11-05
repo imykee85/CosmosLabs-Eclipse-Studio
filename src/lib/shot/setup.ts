@@ -21,7 +21,7 @@ export type PresetId = (typeof PRESETS)[number]["id"];
 
 export type CastItem = {
   id: string; kind: "person" | "vehicle"; label: string; color: ColorId; x: number; z: number;
-  moves: boolean; toX: number; toZ: number; pose: Pose; pose2: Pose | null; pose2At: number; vtype: "car" | "sports" | "pickup" | "truck" | "van" | "bike";
+  moves: boolean; toX: number; toZ: number; build: "man" | "woman"; pose: Pose; pose2: Pose | null; pose2At: number; vtype: "car" | "sports" | "pickup" | "truck" | "van" | "bike";
   /** The id of the vehicle a person rides in (they sit inside it and follow it). */
   rides?: string;
 };
@@ -30,7 +30,7 @@ export type Setup = {
 };
 
 export const DEFAULT_SETUP: Setup = {
-  kit: "studio", cast: [{ id: "p1", kind: "person", label: "", color: "red", x: 0, z: 0, moves: false, toX: 0, toZ: 3, pose: "standing", pose2: null, pose2At: 3, vtype: "car" }],
+  kit: "studio", cast: [{ id: "p1", kind: "person", label: "", color: "red", x: 0, z: 0, moves: false, toX: 0, toZ: 3, build: "man", pose: "standing", pose2: null, pose2At: 3, vtype: "car" }],
   preset: "push-in", lensMm: 35, height: 1.5, distance: 4, durationS: 8, shake: 0, aspect: "16:9", seed: 7,
 };
 
@@ -41,7 +41,7 @@ function addCast(setup: Setup, kind: "person" | "vehicle"): Setup {
   const color = nextColor(setup.cast);
   if (!color || setup.cast.length >= MAX_CAST) return setup;
   const n = setup.cast.filter((m) => m.kind === kind).length + 1, id = `${kind === "person" ? "p" : "v"}${Date.now().toString(36)}${n}`;
-  const base: CastItem = { id, kind, label: "", color, x: kind === "person" ? (n - 1) * 1.2 : 0, z: kind === "person" ? 0 : 2.5 * n, moves: kind === "vehicle", toX: kind === "vehicle" ? 24 : 0, toZ: kind === "vehicle" ? 2.5 * n : 3, pose: "standing", pose2: null, pose2At: 3, vtype: "car" };
+  const base: CastItem = { id, kind, label: "", color, x: kind === "person" ? (n - 1) * 1.2 : 0, z: kind === "person" ? 0 : 2.5 * n, moves: kind === "vehicle", toX: kind === "vehicle" ? 24 : 0, toZ: kind === "vehicle" ? 2.5 * n : 3, build: kind === "person" && n % 2 === 0 ? "woman" : "man", pose: "standing", pose2: null, pose2At: 3, vtype: "car" };
   if (kind === "vehicle") base.x = 0;
   return { ...setup, cast: [...setup.cast, base] };
 }
@@ -94,7 +94,7 @@ function castActor(m: CastItem, T: number, label: string): Scene["actors"][numbe
   const marks: Scene["actors"][number]["marks"] = m.moves && !m.rides ? [{ t: 0, pos: [m.x, m.z] }, { t: T, pos: [m.toX, m.toZ] }] : [{ t: 0, pos: [m.x, m.z] }];
   const actions: Scene["actors"][number]["actions"] = [{ t: 0, pose: m.pose }];
   if (m.pose2 && m.pose2At > 0 && m.pose2At < T) actions.push({ t: m.pose2At, pose: m.pose2 });
-  return { id: m.id, label, color: m.color, heightM: 1.75, marks, actions, ...(m.rides ? { parentId: m.rides } : {}) };
+  return { id: m.id, label, color: m.color, build: m.build, heightM: m.build === "woman" ? 1.65 : 1.78, marks, actions, ...(m.rides ? { parentId: m.rides } : {}) };
 }
 
 export function buildScene(s: Setup, id = "shot"): Scene {
@@ -118,6 +118,6 @@ export function addVehicleWithDriver(s: Setup): Setup {
   if (withV.cast.length === before) return s;
   const v = withV.cast[withV.cast.length - 1], color = nextColor(withV.cast);
   if (!color || withV.cast.length >= MAX_CAST) return withV;
-  const driver: CastItem = { id: v.id + "d", kind: "person", label: "", color, x: 0.4, z: 0.3, moves: false, toX: 0, toZ: 0, pose: "driving", pose2: null, pose2At: 3, vtype: "car", rides: v.id };
+  const driver: CastItem = { id: v.id + "d", kind: "person", label: "", color, x: 0.4, z: 0.3, moves: false, toX: 0, toZ: 0, build: "man", pose: "driving", pose2: null, pose2At: 3, vtype: "car", rides: v.id };
   return { ...withV, cast: [...withV.cast, driver] };
 }

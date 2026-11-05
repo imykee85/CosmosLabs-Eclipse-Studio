@@ -11,7 +11,7 @@
 .sm-view button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--a-line); background: var(--a-input); color: inherit; font: inherit; font-size: 14px; padding: 9px; border-radius: 999px; cursor: pointer; }
 .sm-view button.is-on { border-color: #c00707; box-shadow: inset 0 0 0 1px #c00707; }
 .sm-presets { grid-template-columns: repeat(2, 1fr); }
-.sm-aspects { grid-template-columns: repeat(4, 1fr); } .sm-kits { grid-template-columns: repeat(3, 1fr); } .sm-moves { grid-template-columns: 1fr; }
+.sm-aspects { grid-template-columns: repeat(4, 1fr); } .sm-kits { grid-template-columns: repeat(3, 1fr); } .sm-moves { grid-template-columns: 1fr; } .sm-build { grid-template-columns: 1fr 1fr; }
 @media (min-width: 801px) { .sm-presets { grid-template-columns: repeat(5, 1fr); } .sm-kits { grid-template-columns: repeat(5, 1fr); } }
 .sm-cast { display: flex; flex-direction: column; gap: 10px; }
 .sm-cast input.cr-var-text { width: 100%; }

@@ -11,7 +11,7 @@ const wall = (id: string, x: number, z: number, w: number, d: number, rotY = 0) 
 
 /** 1. Slow push-in on one standing actor (one axis, 8 s). */
 export const t1 = base("t1-pushin", 8, {
-  actors: [person("hero", "red", 0, 0)], set: { groundColor: "#e9ecef", groundSize: 160, sky: "#cfd8e3", props: [wall("back", 0, -4, 12, 0.3)] },
+  actors: [person("hero", "red", -0.45, 0), person("partner", "blue", 0.45, 0, { build: "woman", heightM: 1.65 })], set: { groundColor: "#e9ecef", groundSize: 160, sky: "#cfd8e3", props: [wall("back", 0, -4, 12, 0.3)] },
   cameras: [{ id: "cam", name: "Push in", rig: "dolly", sensor: "FF", interpolation: "smooth", shake: { amount: 0, frequency: 1.6, seed: 1 }, keys: [{ t: 0, pos: [0, 1.5, 6], lookAt: [0, 1.45, 0], lensMm: 35, roll: 0 }, { t: 8, pos: [0, 1.5, 2.4], lookAt: [0, 1.5, 0], lensMm: 35, roll: 0 }] }],
   shots: shot("cam", 8),
 });

@@ -145,6 +145,11 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
           <div className="sm-cast">
             <input className="cr-var-text" value={item.label} maxLength={60} onChange={(e) => editItem({ label: e.target.value })} placeholder={item.kind === "vehicle" ? `Who or what is the ${colorName(item.color)} vehicle? For example: a rusty pickup` : `Who is the ${colorName(item.color)} figure? For example: a barista in her thirties`} aria-label="Who is this" />
             {item.kind === "person" && !item.rides && (
+              <div className="cr-light-quick sm-build" role="group" aria-label="Body">
+                {(["man", "woman"] as const).map((b) => <button key={b} type="button" className={item.build === b ? "is-on" : ""} onClick={() => editItem({ build: b })}>{b === "man" ? "Man" : "Woman"}</button>)}
+              </div>
+            )}
+            {item.kind === "person" && !item.rides && (
               <div className="cr-light-opts">
                 <label className="cr-light-chip" aria-label="Pose"><User size={14} /><select value={item.pose} onChange={(e) => editItem({ pose: e.target.value as Pose })}>{POSES.filter((p) => p !== "driving").map((p) => <option key={p} value={p}>{POSE_LABEL(p)}</option>)}</select></label>
                 <label className="cr-light-chip" aria-label="Then"><User size={14} /><select value={item.pose2 ?? ""} onChange={(e) => editItem({ pose2: (e.target.value || null) as Pose | null })}><option value="">No change</option>{POSES.filter((p) => p !== "driving").map((p) => <option key={p} value={p}>Then {POSE_LABEL(p).toLowerCase()}</option>)}</select></label>
