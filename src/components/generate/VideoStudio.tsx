@@ -149,9 +149,19 @@ export default function VideoStudio() {
   const [projectId, setProjectId] = useState<string | null | undefined>(undefined);
   useEffect(() => { setProjectId(readCurrentProject()?.id ?? null); }, []);
   const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 40);
-  const videos = (renders ?? []).filter((g) => g.kind === "video");
+  // A clip handed over from the Library or Gallery ("Tools" in its details, ?tool=<id>) joins the list, so its tools open like those of any recent clip.
+  const toolParam = useSearchParams().get("tool");
+  const [pinned, setPinned] = useState<Render | null>(null);
+  const own = (renders ?? []).filter((g) => g.kind === "video");
+  const videos = pinned && !own.some((g) => g.id === pinned.id) ? [pinned, ...own] : own;
   const active: Render | null = (activeId ? videos.find((g) => g.id === activeId) : videos.find((g) => g.status === "pending")) ?? null;
   const toolVid = active?.status === "completed" ? active : null;
+  useEffect(() => {
+    if (!toolParam) return;
+    let live = true;
+    fetch(`/api/generations/${encodeURIComponent(toolParam)}`).then((r) => (r.ok ? r.json() : null)).then((g: Render | null) => { if (live && g && g.status === "completed" && g.kind === "video") { setPinned(g); setActiveId(g.id); } }).catch(() => {});
+    return () => { live = false; };
+  }, [toolParam]);
   const done = videos.filter((g) => g.status === "completed" && !g.deletedAt).slice(0, 5); // the five most recent, like Image Studio
 
   useEffect(() => { fetch("/api/video/config").then((r) => (r.ok ? r.json() : null)).then((c) => c && setConfig(c)).catch(() => {}); }, []);
@@ -475,9 +485,11 @@ export default function VideoStudio() {
       <div className="cr-dock">
         <div className={`cr-tray is-open`} role="toolbar" aria-label="Video tools">
           <button type="button" onClick={() => { if (allowedNow("shotmap")) setShotOpen("open"); else askUpgrade("shotmap"); }} title="Direct a new shot in 3D, then generate it from the guide video"><Clapperboard size={14} /> {SHOT_NAME}</button>
-          <button type="button" disabled={!toolVid} onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
-          <button type="button" disabled={!toolVid} onClick={() => setEditorOpen(true)} title="Cut, trim, grade and mix the clip on a timeline"><Film size={14} /> Editor</button>
-          <button type="button" disabled={!toolVid} onClick={() => setUpOpen(true)} title="Raise the resolution and sharpness of the clip"><ArrowUpFromLine size={14} /> Upscale</button>
+          {toolVid && <>
+          <button type="button" onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
+          <button type="button" onClick={() => setEditorOpen(true)} title="Cut, trim, grade and mix the clip on a timeline"><Film size={14} /> Editor</button>
+          <button type="button" onClick={() => setUpOpen(true)} title="Raise the resolution and sharpness of the clip"><ArrowUpFromLine size={14} /> Upscale</button>
+          </>}
         </div>
         <PromptEdge message={edge} />
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void generate(); }}>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors, Grid3x3, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors, Grid3x3, Pencil, Wrench } from "lucide-react";
 import { getCertificate } from "@/lib/certificate-client";
 import { trashRender } from "@/lib/render-actions";
 import AddSoundDialog from "../voice/AddSoundDialog";
@@ -22,6 +23,7 @@ const FORMATS: Record<string, string> = { "image/png": "PNG", "image/jpeg": "JPE
 // The facts about one finished image, with the actions people reach for: copy the prompt, download the file, share it.
 // With `collapsible` (Image Studio) the facts stay hidden until the "i" button in front of Copy prompt is tapped; tap it again to close them.
 export default function RenderDetails({ g, onDeleted, onStarted, collapsible = false }: { g: Render; onDeleted?: () => void; onStarted?: () => void; collapsible?: boolean }) {
+  const router = useRouter();
   const [info, setInfo] = useState(false);
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState("");
@@ -121,6 +123,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined} aria-label="Download" title="Download"><Download size={15} /><span className="rd-lbl">Download</span></a>
         <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setSound(true)} aria-label="Add sound" title="Add sound to this video"><Volume2 size={15} /><span className="rd-lbl">Add sound</span></button>}
+        {!collapsible && <button type="button" className="rd-btn" onClick={() => router.push(`${g.kind === "video" ? "/generate" : "/create"}?tool=${g.id}`)} aria-label="Tools" title={g.kind === "video" ? "Open this video in Video Studio with its tools (upscale, relight, edit)" : "Open this picture in Image Studio with its tools (upscale, edit, relight, variations)"}><Wrench size={15} /><span className="rd-lbl">Tools</span></button>}
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setEditing(true)} aria-label="Edit video" title="Edit or extend this video"><Scissors size={15} /><span className="rd-lbl">Edit video</span></button>}
         {g.kind !== "video" && !collapsible && <button type="button" className="rd-btn" onClick={() => setEditorOpen(true)} aria-label="Edit image" title="Edit this picture with words, or retouch a selected area"><Pencil size={15} /><span className="rd-lbl">Edit image</span></button>}
         {g.kind !== "video" && !collapsible && <button type="button" className="rd-btn" onClick={() => setVarying(true)} aria-label="Variations" title="A set of controlled versions of this picture"><Grid3x3 size={15} /><span className="rd-lbl">Variations</span></button>}

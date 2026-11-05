@@ -30,7 +30,7 @@ test("Editor: clip on the timeline, split, title, aspect, and Save keeps an MP4 
   await page.route("**/api/uploads/direct/finish", (r) => { seen.finish = JSON.parse(r.request().postData() || "{}"); r.fulfill({ json: { ...video, id: "v2" } }); });
   await page.goto("/generate");
   const chip = page.getByRole("toolbar", { name: "Video tools" }).getByRole("button", { name: /Editor/ });
-  await expect(chip).toBeDisabled();
+  await expect(chip).toHaveCount(0);
   await page.locator(".cr-earlier button").first().click();
   await chip.click();
   const dlg = page.getByRole("dialog", { name: "Video editor" });

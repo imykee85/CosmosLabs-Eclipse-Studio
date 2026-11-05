@@ -55,7 +55,7 @@ test("Video Studio: Upscale needs a clip, offers 1080p and 4K and starts the ups
   await page.goto("/generate");
   const tray = page.getByRole("toolbar", { name: "Video tools" });
   const chip = tray.getByRole("button", { name: /Upscale/ });
-  await expect(chip).toBeDisabled();
+  await expect(chip).toHaveCount(0);
   await page.locator(".cr-earlier button").first().click();
   await expect(chip).toBeEnabled({ timeout: 15_000 });
   await chip.click();
@@ -78,4 +78,22 @@ test("the panel says so when Upscale is not switched on", async ({ page }) => {
   const dlg = page.getByRole("dialog", { name: "Upscale" });
   await expect(dlg.getByText("Upscale isn't available yet.")).toBeVisible();
   await expect(dlg.getByRole("button", { name: /Upscale/ }).last()).toBeDisabled();
+});
+
+test("a picture or clip from the Library or Gallery opens in its studio with the tools (?tool=<id>)", async ({ page }) => {
+  // the studio's own history is empty: the item is found by its id
+  await setup(page, "image", true);
+  await page.route("**/api/generations?**", (r) => r.fulfill({ json: { items: [] } }));
+  await page.route(/\/api\/generations\/img1$/, (r) => r.fulfill({ json: image }));
+  await page.goto("/create?tool=img1");
+  await expect(page.locator(".cr-tray.is-open button", { hasText: "Upscale" })).toBeVisible({ timeout: 15_000 });
+
+  const p2 = await page.context().newPage();
+  await setup(p2, "video", true);
+  await p2.route("**/api/generations?**", (r) => r.fulfill({ json: { items: [] } }));
+  await p2.route(/\/api\/generations\/vid1$/, (r) => r.fulfill({ json: clip }));
+  await p2.goto("/generate?tool=vid1");
+  const tray = p2.getByRole("toolbar", { name: "Video tools" });
+  await expect(tray.getByRole("button", { name: /Upscale/ })).toBeVisible({ timeout: 15_000 });
+  await expect(tray.getByRole("button", { name: /Editor/ })).toBeVisible();
 });

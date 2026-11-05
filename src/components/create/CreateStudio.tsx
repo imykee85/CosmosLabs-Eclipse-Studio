@@ -13,7 +13,7 @@ import { MODEL_STORAGE_KEY, useModels } from "@/lib/use-models";
 import { readCurrentProject } from "@/lib/projects";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import { uploadPicture } from "@/lib/use-uploads";
-import { useRenders } from "@/lib/use-renders";
+import { useRenders, type Render } from "@/lib/use-renders";
 import { fmtCredits, creditsText } from "@/lib/credit-units";
 import { useCredits } from "@/lib/use-credits";
 import RenderDetails from "../library/RenderDetails";
@@ -133,12 +133,22 @@ export default function CreateStudio() {
   const [projectId, setProjectId] = useState<string | null | undefined>(undefined);
   useEffect(() => { setProjectId(readCurrentProject()?.id ?? null); }, []);
   const { renders, reload } = useRenders(projectId === undefined ? null : projectId, 12);
-  const list = (renders ?? []).filter((g) => g.kind !== "video"); // Image Studio shows only images: videos live in Video Studio
+  // A picture handed over from the Library or Gallery ("Tools" in its details, ?tool=<id>): it joins the list so its tools open like those of any recent render.
+  const toolParam = useSearchParams().get("tool");
+  const [pinned, setPinned] = useState<Render | null>(null);
+  const own = (renders ?? []).filter((g) => g.kind !== "video"); // Image Studio shows only images: videos live in Video Studio
+  const list = pinned && !own.some((g) => g.id === pinned.id) ? [pinned, ...own] : own;
   const pending = list.find((g) => g.status === "pending") ?? null;
   // The big preview is for what you are making right now: it shows the render started on this visit and then clears
   // when you leave and come back. Earlier work stays in the row of small thumbnails (the five most recent).
   const [watched, setWatched] = useState<string | null>(null);
   useEffect(() => { if (pending) setWatched(pending.id); }, [pending]);
+  useEffect(() => {
+    if (!toolParam) return;
+    let live = true;
+    fetch(`/api/generations/${encodeURIComponent(toolParam)}`).then((r) => (r.ok ? r.json() : null)).then((g: Render | null) => { if (live && g && g.status === "completed" && g.kind !== "video" && g.imageUrl) { setPinned(g); setWatched(g.id); } }).catch(() => {});
+    return () => { live = false; };
+  }, [toolParam]);
   const latestDone = list.find((g) => g.id === watched && g.status === "completed" && g.imageUrl) ?? null;
   // GPT, Google and Seedream renders run inside the one request, so there is no pending row to see until they finish: the preview also shows "working" while the request is out.
   const busy = Boolean(pending) || submitting;

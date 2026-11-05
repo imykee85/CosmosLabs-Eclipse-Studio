@@ -39,7 +39,7 @@ test.describe("ShotMap", () => {
     const jobs = await setup(page);
     await page.goto("/generate");
     const tray = page.getByRole("toolbar", { name: "Video tools" });
-    await expect(tray.getByRole("button", { name: /Relight/ })).toBeDisabled();
+    await expect(tray.getByRole("button", { name: /Relight/ })).toHaveCount(0);
     await tray.getByRole("button", { name: /ShotMap/ }).click();
     const panel = page.getByRole("dialog", { name: "ShotMap" });
     await expect(panel).toBeVisible();
