@@ -31,7 +31,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   const [rbPrompt, setRbPrompt] = useState("");
   const [rbBusy, setRbBusy] = useState(false);
   const [rbNote, setRbNote] = useState("");
-  const [editOpen, setEditOpen] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [res, setRes] = useState<"480" | "720">("480");
   const [flat, setFlat] = useState(false);
@@ -125,7 +125,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
       if (!res.ok || !data.setup) { setError(data.error ?? "The scene could not be rebuilt. Please try again."); return; }
       orbit.current = null;
       setSetup((cur) => ({ ...data.setup, preset: cur.preset, preset2: cur.preset2, combine: cur.combine, split: cur.split, rotate: cur.rotate, speed: cur.speed, durationS: cur.durationS, shake: cur.shake, more: cur.more, aspect: cur.aspect }));
-      setSel(0); setT(0); setGuide(null); setEditOpen(false);
+      setSel(0); setT(0); setGuide(null);
       setRbNote(`Rebuilt with ${data.people} ${data.people === 1 ? "person" : "people"} and ${data.objects} ${data.objects === 1 ? "object" : "objects"}. Check it, then choose your camera moves.`);
     } finally { setRbBusy(false); }
   }
