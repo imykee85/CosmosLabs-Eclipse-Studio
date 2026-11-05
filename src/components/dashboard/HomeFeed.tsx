@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { ArrowRight, Crown, MoreVertical, Plus } from "lucide-react";
 import ProtectMedia from "@/components/landing/ProtectMedia";
 import { ClipCard } from "@/components/landing/ClipCard";
+import { allowedNow, askUpgrade } from "@/lib/use-access";
 import "./home-feed.css";
+
+// The crowned cards (premium collections) are for Growth and Scale: for anyone else the click opens the upgrade pop-up instead of the page (owner 2026-11-05).
+const crownClick = (e: ReactMouseEvent) => {
+  if (!allowedNow("premium")) { e.preventDefault(); askUpgrade("premium"); }
+};
 
 // The lower half of the dashboard, laid out as a long home page: collections, video, looks, tools, questions.
 // Cards with no real content behind them stay EMPTY placeholders on purpose (no pictures, no invented counts). Working: "Discover all videos" (/motion), "Discover all tools" (/tools), Generate an image and Generate
@@ -48,7 +54,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <ul className="hf-row">
           {["Art Direction", "Portraits", "Interiors", "Product shots", "Beauty shots"].map((n) => (
             <li key={n} className="hf-col">
-              <Gold /><Link href={`/collections/${slug(n)}`} className="hf-cover" aria-label={n} />
+              <Gold /><Link href={`/collections/${slug(n)}`} className="hf-cover" aria-label={n} onClick={crownClick} />
               <div className="hf-quad">
                 {n === "Art Direction" || n === "Portraits" || n === "Interiors"
                   ? [1, 2, 3, 4].map((i) => (
@@ -76,15 +82,15 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <ul className="hf-row hf-row-2">
           <li className="hf-wide">
               <Gold />
-            <Link href="/collections/filmmaking" className="hf-wide-link" aria-label="Filmmaking"><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Filmmaking</span></Link>
+            <Link href="/collections/filmmaking" className="hf-wide-link" aria-label="Filmmaking" onClick={crownClick}><LoopVideo className="hf-fill hf-video" src="/dashboard/templates-card.mp4" webm="/dashboard/templates-card.webm" poster="/dashboard/templates-card-poster.jpg" /><span className="hf-label hf-label-on-video">Filmmaking</span></Link>
           </li>
           <li className="hf-wide">
               <Gold />
-            <Link href="/collections/influencer-marketing" className="hf-wide-link" aria-label="Influencer Marketing"><div className="hf-collage">{[1, 2, 3].map((n) => (<div key={n} className="hf-cell"><LoopVideo className="hf-video" src={`/landing/influencer-${n}.mp4`} webm={`/landing/influencer-${n}.webm`} poster={`/landing/influencer-${n}-poster.jpg`} /></div>))}</div><span className="hf-label hf-label-on-video">Influencer Marketing</span></Link>
+            <Link href="/collections/influencer-marketing" className="hf-wide-link" aria-label="Influencer Marketing" onClick={crownClick}><div className="hf-collage">{[1, 2, 3].map((n) => (<div key={n} className="hf-cell"><LoopVideo className="hf-video" src={`/landing/influencer-${n}.mp4`} webm={`/landing/influencer-${n}.webm`} poster={`/landing/influencer-${n}-poster.jpg`} /></div>))}</div><span className="hf-label hf-label-on-video">Influencer Marketing</span></Link>
           </li>
           <li className="hf-wide">
               <Gold />
-            <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics"><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
+            <Link href="/motion" className="hf-wide-link" aria-label="Motion graphics" onClick={crownClick}><LoopVideo className="hf-fill hf-video" src="/dashboard/motion-card.mp4" webm="/dashboard/motion-card.webm" poster="/dashboard/motion-card-poster.jpg" /><span className="hf-label hf-label-on-video">Motion graphics</span></Link>
           </li>
         </ul>
       </div>
@@ -94,7 +100,7 @@ export default function HomeFeed({ onGo }: { onGo: (path: string) => void }) {
         <ul className="hf-row hf-row-2">
           {["Photography", "Illustration"].map((n) => (
             <li key={n} className="hf-looks">
-              <Gold /><Link href={`/collections/${slug(n)}`} className="hf-cover" aria-label={n} />
+              <Gold /><Link href={`/collections/${slug(n)}`} className="hf-cover" aria-label={n} onClick={crownClick} />
               <b>{n}</b>
               <div className="hf-dots">{Array.from({ length: 9 }, (_, i) => (n === "Photography" ? [0, 1, 2, 3, 4, 5, 6, 7, 8] : [0, 1, 2, 3, 4, 5, 6, 7, 8]).includes(i)
                 // eslint-disable-next-line @next/next/no-img-element
