@@ -30,7 +30,15 @@ export function fetchAssets(): Promise<Assets> {
   return assetCache;
 }
 const bentPose = (pose: string) => !XBOT_CLIP[pose] && pose !== "lying";
-const ARM_K = 1;
+const _q = new THREE.Quaternion(), _p = new THREE.Quaternion(), _axis = new THREE.Vector3();
+/** Swings a limb bone forward (positive) or back about the body's left-right axis, whatever way the model's own bone axes point: the turn is worked out in world space and handed back to the bone. */
+function swingForward(holder: THREE.Object3D, bone: THREE.Object3D, angle: number) {
+  if (!bone.parent) return;
+  holder.getWorldQuaternion(_q); _axis.set(1, 0, 0).applyQuaternion(_q).normalize();
+  bone.parent.getWorldQuaternion(_p);
+  const world = new THREE.Quaternion().setFromAxisAngle(_axis, -angle);
+  bone.quaternion.premultiply(_p.clone().invert().multiply(world).multiply(_p));
+}
 const bonesOf = (root: THREE.Object3D) => { const o: Record<string, THREE.Object3D> = {}; root.traverse((n) => { if (n.name.startsWith("mixamorig")) o[n.name.slice(9).replace(/^:/, "")] = n; }); return o; };
 const tintTo = (root: THREE.Object3D, hex: string) => root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = new THREE.MeshLambertMaterial({ color: hex }); });
 /** A copy of a loaded model scaled to `height` metres, standing on the ground with its middle at x 0, z 0. */
@@ -146,8 +154,8 @@ function populate(scene: Scene, three: THREE.Scene, assets: Assets = {}) {
           const bones = bonesOf(p.xg), hips = bones["Hips"]; if (hips) {
             const rest = hips.getWorldPosition(new THREE.Vector3()).y - pl.pos[1];
             (["Left", "Right"] as const).forEach((side, i) => { const u = bones[side + "UpLeg"], l = bones[side + "Leg"]; if (u) u.rotateX(-j.hip[i]); if (l) l.rotateX(j.knee[i]);
-              const arm = bones[side + "Arm"], fore = bones[side + "ForeArm"], sgn = side === "Left" ? 1 : -1;
-              if (arm) arm.rotateZ(sgn * (-j.shoulder[i] * ARM_K)); if (fore) fore.rotateZ(sgn * (-j.elbow[i] * ARM_K));
+              const arm = bones[side + "Arm"], fore = bones[side + "ForeArm"];
+              if (arm) swingForward(p.xg!, arm, j.shoulder[i]); if (fore) swingForward(p.xg!, fore, j.elbow[i]);
             });
             p.xg.position.y = pl.pos[1] + hipHeight(j, p.a.heightM) - rest;
           }
