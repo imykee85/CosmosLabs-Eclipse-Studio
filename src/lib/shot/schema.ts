@@ -19,8 +19,10 @@ const t = z.number().min(0).max(120);
 const vec3 = z.tuple([z.number(), z.number(), z.number()]);
 const vec2 = z.tuple([z.number(), z.number()]); // x, z on the ground
 
-export const POSES = ["standing", "walking", "running", "squatting", "half-squat", "sitting", "hands-in-pockets", "leaning", "lying", "driving"] as const;
+export const POSES = ["standing", "walking", "running", "squatting", "half-squat", "sitting", "hands-in-pockets", "leaning", "lying", "driving", "drinking", "smoking", "waving", "pointing", "arms-up", "reaching", "sitting-drinking", "sitting-smoking", "sitting-waving", "sitting-pointing", "lounging"] as const;
 export type Pose = (typeof POSES)[number];
+/** Poses where the person is on a seat (the seat snapping and the bent-leg mannequin use this). */
+export const isSeated = (p: string) => p === "sitting" || p === "lounging" || p.startsWith("sitting-");
 
 export const SENSORS = { S16: 12.5, S35: 24.9, FF: 36, "65": 54.1 } as const; // sensor width in mm
 export type SensorId = keyof typeof SENSORS;

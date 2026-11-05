@@ -110,6 +110,11 @@ const TABLE: Record<Pose, Joints> = {
   "half-squat": J({ hip: sym(0.95), knee: sym(1.25), shoulder: sym(0.35), elbow: sym(0.3), lean: 0.32 }),
   sitting: J({ hip: sym(1.57), knee: sym(1.57), shoulder: sym(0.35), elbow: sym(0.9), lean: 0.05 }),
   "hands-in-pockets": J({ shoulder: sym(-0.18), elbow: sym(0.55) }), leaning: J({ lean: 0.32, hip: sym(0.08), shoulder: sym(0.3), elbow: sym(0.6) }),
+  drinking: J({ shoulder: [0.1, 0.5], elbow: [0.2, 0.9] }), smoking: J({ shoulder: [0.1, 0.5], elbow: [0.2, 0.9] }), waving: J({ shoulder: [0.1, 2.6], elbow: [0.2, 0.7] }),
+  pointing: J({ shoulder: [0.1, 1.5], elbow: [0.2, 0.12] }), "arms-up": J({ shoulder: [2.8, 2.8], elbow: [0.2, 0.2] }), reaching: J({ shoulder: [0.2, 1.4], elbow: [0.3, 0.2], lean: 0.22 }),
+  "sitting-drinking": J({ hip: sym(1.57), knee: sym(1.57), shoulder: [0.35, 0.6], elbow: [0.9, 1.0], lean: 0.05 }), "sitting-smoking": J({ hip: sym(1.57), knee: sym(1.57), shoulder: [0.35, 0.6], elbow: [0.9, 1.0], lean: 0.05 }),
+  "sitting-waving": J({ hip: sym(1.57), knee: sym(1.57), shoulder: [0.35, 2.6], elbow: [0.9, 0.7] }), "sitting-pointing": J({ hip: sym(1.57), knee: sym(1.57), shoulder: [0.35, 1.5], elbow: [0.9, 0.12] }),
+  lounging: J({ hip: sym(1.35), knee: sym(1.4), shoulder: [0.2, 0.25], elbow: [0.5, 0.5], lean: -0.28 }),
   lying: J({ pitch: -Math.PI / 2, shoulder: [0.1, 0.1] }), driving: J({ hip: sym(1.45), knee: sym(1.45), shoulder: sym(0.85), elbow: sym(0.55), lean: 0.08 }),
 };
 const lerpJ = (a: Joints, b: Joints, k: number): Joints => {
@@ -124,6 +129,13 @@ export function poseJoints(pose: Pose, since: number, phase: number): Joints {
     j.hip = [s * amp, -s * amp]; j.knee = [Math.max(0, -c * (run ? 1.3 : 0.6)) + (run ? 0.3 : 0.05), Math.max(0, c * (run ? 1.3 : 0.6)) + (run ? 0.3 : 0.05)];
     j.shoulder = [-s * amp * 0.9, s * amp * 0.9]; j.elbow = run ? [1.3, 1.3] : [0.25, 0.25]; j.lean = run ? 0.25 : 0.05;
   }
+  // small actions that repeat while the pose lasts, so nobody is a statue: a sip, a drag, a wave, and a slow breath for everyone who stands or sits still
+  const sip = (period: number, hold: number) => { const u = (since % period) / period, c = u < 0.25 ? smooth(u / 0.25) : u < 0.25 + hold ? 1 : u < 0.5 + hold ? smooth(1 - (u - 0.25 - hold) / 0.25) : 0; j.shoulder[1] = lerp(0.3, 1.25, c); j.elbow[1] = lerp(0.9, 2.15, c); j.lean += c * 0.03; };
+  if (pose === "drinking" || pose === "sitting-drinking") sip(4.5, 0.12);
+  else if (pose === "smoking" || pose === "sitting-smoking") sip(7, 0.25);
+  else if (pose === "waving" || pose === "sitting-waving") j.elbow[1] = 0.7 + 0.55 * Math.sin(since * 7);
+  else if (pose === "pointing" || pose === "sitting-pointing") j.shoulder[1] += 0.06 * Math.sin(since * 2);
+  if (pose !== "walking" && pose !== "running" && pose !== "lying") { j.lean += 0.012 * Math.sin(since * 1.4); j.shoulder = [j.shoulder[0] + 0.02 * Math.sin(since * 1.4), j.shoulder[1] + 0.02 * Math.sin(since * 1.4 + 1)]; }
   return j;
 }
 /** Body proportions as fractions of the height, and how high the hips sit so the lower foot stands on the ground. */
