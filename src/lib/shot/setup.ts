@@ -157,7 +157,8 @@ export function buildScene(s: Setup, id = "shot"): Scene {
     path: m.moves ? [0, 0.5, 1].map((k) => { const e = k * k; return { t: k * T, pos: [ease(m.x, m.toX, e), ease(m.z, m.toZ, e)] as [number, number] }; }) : [{ t: 0, pos: [m.x, m.z] as [number, number] }],
   }));
   const people = s.cast.filter((m) => m.kind === "person").map((m) => castActor(m, T, m.label || colorName(m.color)));
-  const base = { id, version: SCENE_VERSION, fps: 24, durationS: T, seed: s.seed, set: { groundColor: kit.ground, groundSize: 300, sky: kit.sky, props: [...kitProps(s.kit), ...(s.objects ?? []).flatMap(objectProps)].slice(0, 400) }, actors: people, vehicles, cameras: [] as Camera[], shots: [{ id: "s1", cameraId: "cam", startS: 0, endS: camOf(s, 0).durationS, aspect: s.aspect }] };
+  const models = (s.objects ?? []).filter((o) => o.type === "chair" || o.type === "sofa").map((o) => ({ id: o.id, type: o.type as "chair" | "sofa", pos: [o.x, 0, o.z] as [number, number, number], rotY: o.rot, scale: o.scale }));
+  const base = { id, version: SCENE_VERSION, models, fps: 24, durationS: T, seed: s.seed, set: { groundColor: kit.ground, groundSize: 300, sky: kit.sky, props: [...kitProps(s.kit), ...(s.objects ?? []).flatMap(objectProps)].slice(0, 400) }, actors: people, vehicles, cameras: [] as Camera[], shots: [{ id: "s1", cameraId: "cam", startS: 0, endS: camOf(s, 0).durationS, aspect: s.aspect }] };
   const first = sceneSchema.parse({ ...base, cameras: [{ id: "cam", name: "tmp", rig: "tripod", sensor: "FF", keys: [{ t: 0, pos: [0, 1.5, 5], lookAt: [0, 1, 0], lensMm: 35, roll: 0 }] }] });
   const subject = s.cast.find((m) => m.kind === "person" && !m.rides) ?? s.cast[0];
   const subjectAt = (t: number) => { if (!subject) return { x: 0, z: 0 }; const p = subject.kind === "vehicle" ? vehicleAt(first.vehicles.find((v) => v.id === subject.id)!, t) : actorAt(first, first.actors.find((a) => a.id === subject.id)!, t); return { x: p.pos[0], z: p.pos[2] }; };

@@ -22,7 +22,8 @@ const chrome = process.env.SHOT_CHROME || readFileSync("/opt/eclipse/chrome_path
 mkdirSync("frames", { recursive: true });
 const browser = await chromium.launch({ executablePath: chrome, args: ["--no-sandbox", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 const page = await browser.newPage(); await page.setContent("<body style='margin:0'></body>"); await page.addScriptTag({ content: bundle });
-await page.evaluate(([s, w, h]) => { globalThis.__r = globalThis.ShotRender.build(s, w, h); }, [scene, w, h]);
+const models = {}; for (const [n, f] of [["xbot", "Xbot.glb"], ["chair", "SheenChair.glb"], ["sofa", "GlamVelvetSofa.glb"]]) { if (existsSync("models/" + f)) models[n] = readFileSync("models/" + f).toString("base64"); }
+await page.evaluate(async ([s, w, h, m]) => { const assets = await globalThis.ShotRender.loadAssets(m); globalThis.__r = globalThis.ShotRender.build(s, w, h, undefined, assets); }, [scene, w, h, models]);
 for (let f = 0; f < frames; f++) {
   const url = await page.evaluate(([a, b]) => globalThis.__r.frame(a, b), plan[f]);
   writeFileSync("frames/" + String(f).padStart(5, "0") + ".jpg", Buffer.from(url.split(",")[1], "base64"));

@@ -55,6 +55,7 @@ export const sceneSchema = z.object({
   id: z.string().min(1).max(60), version: z.literal(SCENE_VERSION), fps: z.number().int().min(12).max(60).default(24),
   durationS: z.number().min(1).max(120), seed: z.number().int().default(1), notes: z.string().max(4000).optional(),
   set: z.object({ groundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e9ecef"), groundSize: z.number().min(10).max(2000).default(120), sky: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#cfd8e3"), props: z.array(prop).max(400).default([]) }),
+  models: z.array(z.object({ id: z.string().min(1).max(40), type: z.enum(["chair", "sofa"]), pos: z.tuple([z.number(), z.number(), z.number()]), rotY: z.number().default(0), scale: z.number().min(0.2).max(4).default(1) })).max(40).default([]),
   actors: z.array(actor).max(40).default([]), vehicles: z.array(vehicle).max(20).default([]),
   cameras: z.array(camera).min(1).max(12), shots: z.array(shot).min(1).max(12),
 }).superRefine((s, ctx) => {

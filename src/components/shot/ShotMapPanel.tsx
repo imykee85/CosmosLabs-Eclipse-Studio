@@ -60,9 +60,12 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   useEffect(() => {
     const el = canvas.current; if (!el || flat) return;
     let r: Build | null = null, gone = false;
-    void import("@/lib/shot/render-page").then(({ build }) => {
+    void import("@/lib/shot/render-page").then(({ build, fetchAssets }) => {
       if (gone) return;
-      try { r = build(scene, 640, Math.round(640 / aspect), el) as unknown as Build; built.current = r; drawShot(r, scene, Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
+      const make = (assets?: import("@/lib/shot/render-page").Assets) => { r?.dispose(); r = build(scene, 640, Math.round(640 / aspect), el, assets) as unknown as Build; built.current = r; drawShot(r, scene, Math.min(tRef.current, T - 0.001)); };
+      try { make(); } catch { setFlat(true); return; }
+      // the stand-ins show at once; the real models replace them as soon as their files have loaded
+      void fetchAssets().then((a) => { if (!gone && Object.keys(a).length) { try { make(a); } catch { /* keep the stand-ins */ } } }).catch(() => undefined);
     }).catch(() => setFlat(true));
     return () => { gone = true; r?.dispose(); if (built.current === r) built.current = null; if (el) void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
   }, [scene, flat, aspect, T]);
@@ -71,9 +74,11 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
   useEffect(() => {
     const el = stageCanvas.current; if (view !== "stage" || !el || flat) return;
     let r: StageBuild | null = null, gone = false;
-    void import("@/lib/shot/render-page").then(({ buildStage, fitOrbit }) => {
+    void import("@/lib/shot/render-page").then(({ buildStage, fitOrbit, fetchAssets }) => {
       if (gone) return;
-      try { if (!orbit.current) orbit.current = fitOrbit(scene); r = buildStage(scene, el, 640, 512, orbit.current); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); } catch { setFlat(true); }
+      const make = (assets?: import("@/lib/shot/render-page").Assets) => { r?.dispose(); if (!orbit.current) orbit.current = fitOrbit(scene); r = buildStage(scene, el, 640, 512, orbit.current, assets); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); };
+      try { make(); } catch { setFlat(true); return; }
+      void fetchAssets().then((a) => { if (!gone && Object.keys(a).length) { try { make(a); } catch { /* keep the stand-ins */ } } }).catch(() => undefined);
     }).catch(() => setFlat(true));
     return () => { gone = true; r?.dispose(); if (stageBuilt.current === r) stageBuilt.current = null; void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
   }, [scene, view, flat, aspect, T]);

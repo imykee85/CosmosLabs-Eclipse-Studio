@@ -2,7 +2,41 @@
 // It is bundled for the render job and for the Phase 0 test script; the editor will reuse the same builders.
 import * as THREE from "three";
 import { BODY, actorAt, cameraAt, hipHeight, poseJoints, vehicleAt, type Joints } from "./engine";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { FURNITURE_HEIGHT, MODEL_FILES, MODEL_NAMES, XBOT_CLIP, type ModelName } from "./assets";
 import { ASPECTS, colorHex, type Actor, type AspectId, type Scene, type Vehicle } from "./schema";
+
+/** Parsed model files, by name. Anything missing is simply not used. */
+export type Assets = Partial<Record<ModelName, { scene: THREE.Object3D; animations: THREE.AnimationClip[] }>>;
+const b64ToBuffer = (b64: string) => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+/** Parses model files given as base64 (the render job) or as ArrayBuffers (the editor). A file that does not parse is left out. */
+export async function loadAssets(files: Partial<Record<ModelName, string | ArrayBuffer>>): Promise<Assets> {
+  const out: Assets = {}, loader = new GLTFLoader();
+  await Promise.all(MODEL_NAMES.map(async (n) => {
+    const f = files[n]; if (!f) return;
+    try { const g = await loader.parseAsync(typeof f === "string" ? b64ToBuffer(f) : f, ""); out[n] = { scene: g.scene, animations: g.animations }; } catch { /* keep the stand-in */ }
+  }));
+  return out;
+}
+let assetCache: Promise<Assets> | null = null;
+/** The editor's copy: fetches /shot-models once and keeps it. */
+export function fetchAssets(): Promise<Assets> {
+  assetCache ??= (async () => {
+    const files: Partial<Record<ModelName, ArrayBuffer>> = {};
+    await Promise.all(MODEL_NAMES.map(async (n) => { try { const r = await fetch(`/shot-models/${MODEL_FILES[n].file}`); if (r.ok) files[n] = await r.arrayBuffer(); } catch { /* offline: stand-ins */ } }));
+    return loadAssets(files);
+  })();
+  return assetCache;
+}
+const tintTo = (root: THREE.Object3D, hex: string) => root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = new THREE.MeshLambertMaterial({ color: hex }); });
+/** A copy of a loaded model scaled to `height` metres, standing on the ground with its middle at x 0, z 0. */
+function fitModel(src: THREE.Object3D, height: number, skinned: boolean) {
+  const root = skinned ? cloneSkinned(src) : src.clone(true), holder = new THREE.Group();
+  holder.add(root); holder.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(root, true), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const k = size.y > 0 ? height / size.y : 1; root.scale.multiplyScalar(k); root.position.set(-c.x * k, -box.min.y * k, -c.z * k);
+  return { holder, root };
+}
 
 const mat = (hex: string) => new THREE.MeshLambertMaterial({ color: hex });
 type Rig = { g: THREE.Group; h: number; pelvis: THREE.Group; torso: THREE.Group; hips: THREE.Group[]; knees: THREE.Group[]; shoulders: THREE.Group[]; elbows: THREE.Group[] };
@@ -69,14 +103,28 @@ const renderers = new WeakMap<HTMLCanvasElement, THREE.WebGLRenderer>();
 export function release(canvas: HTMLCanvasElement) { const r = renderers.get(canvas); if (r) { r.dispose(); r.forceContextLoss(); renderers.delete(canvas); } }
 
 /** Everything in the scene that is not the camera: light, ground, set pieces, people, vehicles. `pose(t)` places the people and vehicles at time t. */
-function populate(scene: Scene, three: THREE.Scene) {
+function populate(scene: Scene, three: THREE.Scene, assets: Assets = {}) {
   three.add(new THREE.AmbientLight(0xffffff, 0.85)); const sun = new THREE.DirectionalLight(0xffffff, 1.1); sun.position.set(-8, 14, 10); three.add(sun);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(scene.set.groundSize, scene.set.groundSize), mat(scene.set.groundColor)); ground.rotation.x = -Math.PI / 2; three.add(ground);
+  const modelled = new Set<string>();
+  for (const m of scene.models) {
+    const a = assets[m.type]; if (!a) continue;
+    const { holder } = fitModel(a.scene, FURNITURE_HEIGHT[m.type] * m.scale, false);
+    holder.position.set(...m.pos); holder.rotation.y = (m.rotY * Math.PI) / 180; three.add(holder); modelled.add(m.id + "-");
+  }
   for (const p of scene.set.props) {
+    if ([...modelled].some((x) => p.id.startsWith(x))) continue;
     const geo = p.kind === "cylinder" ? new THREE.CylinderGeometry(p.size[0] / 2, p.size[0] / 2, p.size[1], 24) : new THREE.BoxGeometry(...p.size);
     const pm = mat(p.color); if (p.opacity < 1) { pm.transparent = true; pm.opacity = p.opacity; pm.depthWrite = false; } const m = new THREE.Mesh(geo, pm); m.position.set(...p.pos); m.rotation.y = (p.rotY * Math.PI) / 180; three.add(m);
   }
-  const people = scene.actors.map((a) => ({ a, ...personMesh(a) })); for (const p of people) three.add(p.g);
+  const people = scene.actors.map((a) => {
+    const rig = personMesh(a), x = assets.xbot;
+    if (!x || !x.animations.length) return { a, ...rig, xg: null as THREE.Group | null, mixer: null as THREE.AnimationMixer | null, clips: new Map<string, THREE.AnimationClip>() };
+    const { holder, root } = fitModel(x.scene, a.heightM, true); tintTo(root, colorHex(a.color));
+    const mixer = new THREE.AnimationMixer(root), clips = new Map(x.animations.map((c) => [c.name, c] as const)); holder.visible = false;
+    return { a, ...rig, xg: holder, mixer, clips };
+  });
+  for (const p of people) { three.add(p.g); if (p.xg) three.add(p.xg); }
   const cars = scene.vehicles.map((v) => ({ v, g: vehicleMesh(v) })); for (const c of cars) three.add(c.g);
   return {
     pose(t: number) {
@@ -84,7 +132,11 @@ function populate(scene: Scene, three: THREE.Scene) {
       for (const p of people) {
         const pl = actorAt(scene, p.a, t);
         p.g.position.set(pl.pos[0], pl.pos[1], pl.pos[2]); p.g.rotation.y = pl.facing;
-        poseRig(p, poseJoints(pl.pose, pl.poseT, pl.walked * (pl.pose === "running" ? 2.1 : 4.5)));
+        const use = p.xg && p.mixer ? XBOT_CLIP[pl.pose] : undefined, clip = use ? p.clips.get(use.clip) : undefined;
+        if (p.xg && p.mixer && use && clip) {
+          p.g.visible = false; p.xg.visible = true; p.xg.position.set(pl.pos[0], pl.pos[1], pl.pos[2]); p.xg.rotation.y = pl.facing;
+          const tt = use.strideM ? (pl.walked / use.strideM) * clip.duration : pl.poseT; p.mixer.stopAllAction(); p.mixer.clipAction(clip).reset().play(); p.mixer.setTime(((tt % clip.duration) + clip.duration) % clip.duration);
+        } else { p.g.visible = true; if (p.xg) p.xg.visible = false; poseRig(p, poseJoints(pl.pose, pl.poseT, pl.walked * (pl.pose === "running" ? 2.1 : 4.5))); }
       }
     },
   };
@@ -92,12 +144,12 @@ function populate(scene: Scene, three: THREE.Scene) {
 const freeScene = (three: THREE.Scene) => three.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose?.(); const mt = m.material as THREE.Material | undefined; mt?.dispose?.(); });
 const rendererFor = (canvas: HTMLCanvasElement, preserve: boolean) => { const r = renderers.get(canvas) ?? new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: preserve }); renderers.set(canvas, r); return r; };
 
-export function build(scene: Scene, width: number, height: number, existing?: HTMLCanvasElement) {
+export function build(scene: Scene, width: number, height: number, existing?: HTMLCanvasElement, assets?: Assets) {
   const canvas = existing ?? document.createElement("canvas"); canvas.width = width; canvas.height = height; if (!existing) document.body.appendChild(canvas);
   const renderer = rendererFor(canvas, true);
   renderer.setSize(width, height, false); renderer.setPixelRatio(1);
   const three = new THREE.Scene(); three.background = new THREE.Color(scene.set.sky); three.fog = new THREE.Fog(scene.set.sky, 60, 220);
-  const pop = populate(scene, three);
+  const pop = populate(scene, three, assets);
   const cam = new THREE.PerspectiveCamera(40, width / height, 0.05, 600);
   return {
     /** Draws the shot at time t (seconds from the start of the shot) on the canvas. */
@@ -128,11 +180,11 @@ export function fitOrbit(scene: Scene): Orbit {
 
 /** The Stage view: the whole set seen from outside, the shot camera drawn as real equipment (body, lens, finder), the exact view it frames drawn as a pyramid,
  * and the path it travels. The camera follows the playhead with every move the shot has (path, lens, roll, shake). Drag to orbit, wheel or pinch to zoom. */
-export function buildStage(scene: Scene, canvas: HTMLCanvasElement, width: number, height: number, orbit: Orbit) {
+export function buildStage(scene: Scene, canvas: HTMLCanvasElement, width: number, height: number, orbit: Orbit, assets?: Assets) {
   canvas.width = width; canvas.height = height;
   const renderer = rendererFor(canvas, false); renderer.setSize(width, height, false); renderer.setPixelRatio(1);
   const three = new THREE.Scene(); three.background = new THREE.Color("#0d0d10");
-  const pop = populate(scene, three);
+  const pop = populate(scene, three, assets);
   const grid = new THREE.GridHelper(80, 80, 0x4a5080, 0x2a2e4a); grid.position.y = 0.02; (grid.material as THREE.Material).transparent = true; (grid.material as THREE.Material).opacity = 0.5; three.add(grid);
   const sh = scene.shots[0], camData = scene.cameras.find((c) => c.id === sh.cameraId)!, aspect = ASPECTS[sh.aspect as AspectId];
   // the camera: body, lens, rim, glass, finder and a red light, built like Change Camera's
@@ -183,4 +235,4 @@ export function buildStage(scene: Scene, canvas: HTMLCanvasElement, width: numbe
     dispose() { freeScene(three); },
   };
 }
-(globalThis as unknown as { ShotRender: unknown }).ShotRender = { build };
+(globalThis as unknown as { ShotRender: unknown }).ShotRender = { build, loadAssets };

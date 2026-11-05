@@ -1,4 +1,7 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { z } from "zod";
+import { MODEL_FILES } from "@/lib/shot/assets";
 import { db } from "@/lib/db";
 import { headObjectInfo, signedMediaUrl, signedPutUrl, storageEnabled, storageHost } from "@/lib/storage";
 import { RENDER_MJS } from "@/lib/shot/render-script";
@@ -34,6 +37,16 @@ set -euo pipefail
 curl -fsS --max-time 300 -X PUT -H "Content-Type: video/mp4" --upload-file guide/out.mp4 "$1" -o /dev/null
 `;
 
+/** The model files for the render, read from the deployed public folder, else from this deployment's own address. A file that cannot be read is left out: the guide keeps the stand-in. */
+async function modelFiles(): Promise<{ path: string; content: Buffer<ArrayBuffer>; mode?: undefined }[]> {
+  const out: { path: string; content: Buffer<ArrayBuffer>; mode?: undefined }[] = [];
+  for (const m of Object.values(MODEL_FILES)) {
+    let buf: Buffer | null = await readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "shot-models", m.file)).catch(() => null);
+    if (!buf && process.env.VERCEL_URL) { const r = await fetch(`https://${process.env.VERCEL_URL}/shot-models/${m.file}`).catch(() => null); if (r?.ok) buf = Buffer.from(await r.arrayBuffer()); }
+    if (buf) out.push({ path: `guide/models/${m.file}`, content: Buffer.from(buf) });
+  }
+  return out;
+}
 export const shotGuideEnabled = () => Boolean(process.env.SANDBOX_PROVIDER) && storageEnabled;
 /** Guide renders are free within fair use (the brief): a price can be set with SANDBOX_CREDITS_SHOTGUIDE. */
 const credits = () => (process.env.SANDBOX_CREDITS_SHOTGUIDE && Number(process.env.SANDBOX_CREDITS_SHOTGUIDE) >= 0 ? Math.floor(Number(process.env.SANDBOX_CREDITS_SHOTGUIDE)) : 0);
@@ -66,6 +79,7 @@ export const shotguide: KindDef<ShotGuideInput> = {
         { path: "guide/bundle.js", content: Buffer.from(SHOT_BUNDLE) }, { path: "guide/scene.json", content: Buffer.from(JSON.stringify(input.scene)) }, { path: "guide/render.mjs", content: Buffer.from(RENDER_MJS) },
         { path: "setup.sh", content: Buffer.from(SETUP_SH), mode: 0o755 }, { path: "render.sh", content: Buffer.from(RENDER_SH), mode: 0o755 }, { path: "upload.sh", content: Buffer.from(UPLOAD_SH), mode: 0o755 },
       ];
+      files.push(...(await modelFiles()));
       return { name: "setup", files, network: { kind: "allowlist", domains: ["registry.npmjs.org"] }, cmd: "bash", args: ["setup.sh"] };
     }
     if (i === 1) return { name: "render", network: { kind: "none" }, cmd: "bash", args: ["render.sh", input.res] };
