@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
 import { gateFeature } from "@/lib/access";
+import { getAdmin } from "@/lib/admin";
 import { BRAND_RULE } from "@/lib/brand";
 import { ChatMeter, chargeChat, chatRefusal } from "@/lib/chat-credits";
 import { apiModelFor } from "@/lib/connect-models";
@@ -34,15 +35,23 @@ export async function POST(req: Request) {
     if (!pics.ok) return NextResponse.json({ error: pics.error }, { status: 404 });
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
     const content: Anthropic.ContentBlockParam[] = [...pics.images.map((i) => ({ type: "image" as const, source: { type: "base64" as const, media_type: i.mediaType, data: i.data } })), { type: "text", text: prompt ? `Video prompt:\n${prompt}` : "There is no prompt: rebuild what the picture shows." }];
-    const res = await client.messages.create({ model: apiModelFor("claude-sonnet-5-5"), max_tokens: 2000, system: `${REBUILD_SYSTEM}\n\n${BRAND_RULE}`, tools: [REBUILD_TOOL], tool_choice: { type: "tool", name: "set_scene" }, messages: [{ role: "user", content }] });
+    const res = await client.messages.create({ model: apiModelFor("claude-sonnet-5-5"), max_tokens: 2000, system: `${REBUILD_SYSTEM}\n\n${BRAND_RULE}`, tools: [REBUILD_TOOL], messages: [{ role: "user", content }] });
     meter.add(res.model, res.usage);
     const call = res.content.find((b) => b.type === "tool_use");
-    if (!call || call.type !== "tool_use") return NextResponse.json({ error: "The scene could not be rebuilt. Please try again." }, { status: 502 });
-    const setup = setupFromRebuild(call.input, DEFAULT_SETUP);
+    let raw: unknown = call && call.type === "tool_use" ? call.input : null;
+    if (!raw) {
+      // No tool call (forcing one is refused when the model thinks first): read a JSON answer from the text instead.
+      const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n");
+      const m = text.match(/\{[\s\S]*\}/);
+      try { raw = m ? JSON.parse(m[0]) : null; } catch { raw = null; }
+    }
+    if (!raw) return NextResponse.json({ error: "The scene could not be rebuilt. Please try again." }, { status: 502 });
+    const setup = setupFromRebuild(raw, DEFAULT_SETUP);
     return NextResponse.json({ setup, people: setup.cast.filter((c) => c.kind === "person").length, objects: (setup.objects ?? []).length });
   } catch (err) {
     console.error("shot rebuild failed", err);
-    return NextResponse.json({ error: "The scene could not be rebuilt. Please try again." }, { status: 502 });
+    const why = (await getAdmin().catch(() => null)) && err instanceof Error ? ` (Owner only: ${err.message.slice(0, 300)})` : "";
+    return NextResponse.json({ error: `The scene could not be rebuilt. Please try again.${why}` }, { status: 502 });
   } finally {
     await chargeChat(u.userId, meter, "ShotMap rebuild");
   }
