@@ -66,9 +66,8 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
     void import("@/lib/shot/render-page").then(({ build, fetchAssets }) => {
       if (gone) return;
       const make = (assets?: import("@/lib/shot/render-page").Assets) => { r?.dispose(); r = build(sceneRef.current, 640, Math.round(640 / aspect), el, assets) as unknown as Build; built.current = r; r.setScene(sceneRef.current); drawShot(r, sceneRef.current, Math.min(tRef.current, T - 0.001)); };
-      try { make(); } catch { setFlat(true); return; }
-      // the stand-ins show at once; the real models replace them as soon as their files have loaded
-      void fetchAssets().then((a) => { if (!gone && Object.keys(a).length) { try { make(a); } catch { /* keep the stand-ins */ } } }).catch(() => undefined);
+      // the real models are waited for (up to 3 s) so the old stand-in figure never flashes before them; later builds find them already loaded
+      void Promise.race([fetchAssets().catch(() => ({})), new Promise<Record<string, never>>((res) => setTimeout(() => res({}), 3000))]).then((a) => { if (gone) return; try { make(Object.keys(a).length ? (a as import("@/lib/shot/render-page").Assets) : undefined); } catch { setFlat(true); } });
     }).catch(() => setFlat(true));
     return () => { gone = true; r?.dispose(); if (built.current === r) built.current = null; if (el) void import("@/lib/shot/render-page").then(({ release }) => { if (!el.isConnected) release(el); }); };
   }, [worldKey, flat, aspect]);
@@ -83,8 +82,7 @@ export default function ShotMapPanel({ projectId, initialPreset, onUse, onClose 
       void import("@/lib/shot/render-page").then(({ buildStage, fitOrbit, fetchAssets }) => {
         if (gone) return;
         const make = (assets?: import("@/lib/shot/render-page").Assets) => { const old = stageBuilt.current; const r = buildStage(sceneRef.current, el, 640, 512, orbit.current ?? (orbit.current = fitOrbit(sceneRef.current)), assets); stageBuilt.current = r; r.drawAt(Math.min(tRef.current, T - 0.001)); old?.dispose(); };
-        try { make(); } catch { setFlat(true); return; }
-        void fetchAssets().then((a) => { if (!gone && Object.keys(a).length) { try { make(a); } catch { /* keep the stand-ins */ } } }).catch(() => undefined);
+        void Promise.race([fetchAssets().catch(() => ({})), new Promise<Record<string, never>>((res) => setTimeout(() => res({}), 3000))]).then((a) => { if (gone) return; try { make(Object.keys(a).length ? (a as import("@/lib/shot/render-page").Assets) : undefined); } catch { setFlat(true); } });
       }).catch(() => setFlat(true));
     }, 70);
     return () => { gone = true; window.clearTimeout(timer); };

@@ -41,8 +41,8 @@
 
 .ve-grow { flex: 1; }
 .ve-thumb { display: inline-grid; place-items: center; background: var(--a-input); flex: none; }
-.ve-stage { display: grid; place-items: center; height: min(34dvh, 300px); padding: 8px; }
-.ve-stage canvas { max-width: 100%; max-height: 100%; border-radius: 8px; background: #000; }
+.ve-stage { display: grid; place-items: center; }
+.ve-stage canvas { display: block; height: auto; border-radius: 14px; background: #000; }
 .ve-bar { display: flex; align-items: center; gap: 8px; }
 .ve-icon { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--a-line); background: transparent; color: inherit; cursor: pointer; flex: none; }
 .ve-icon:disabled { opacity: .4; cursor: default; }

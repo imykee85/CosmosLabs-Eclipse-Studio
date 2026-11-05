@@ -6,7 +6,7 @@ import Bar from "../create/Bar";
 import { useRenders } from "@/lib/use-renders";
 import { uploadVideo } from "@/lib/use-uploads";
 import type { AudioItem } from "@/lib/audio/jobs";
-import { ASPECTS, clipDur, duplicateClip, emptyProject, fadeFactor, fmtTime, isVisual, layout, newClip, newText, removeClip, reorderVisual, sizeFor, splitAt, totalDur, trimEnd, trimStart, type Aspect, type Clip, type Project } from "@/lib/editor/model";
+import { activeVisual, ASPECTS, clipDur, duplicateClip, emptyProject, fadeFactor, fmtTime, isVisual, layout, newClip, newText, removeClip, reorderVisual, sizeFor, splitAt, totalDur, trimEnd, trimStart, type Aspect, type Clip, type Project } from "@/lib/editor/model";
 import { drawFrame, exportProject, type Media } from "@/lib/editor/render";
 import "./video-editor.css";
 
@@ -113,7 +113,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
       const d = clipDur(c);
       if (time >= c.start && time < c.start + d) {
         const want = c.in + (time - c.start) * c.speed;
-        if (Math.abs(el.currentTime - want) > (isPlaying ? 0.35 : 0.04)) el.currentTime = want;
+        if (!el.seeking && Math.abs(el.currentTime - want) > (isPlaying ? 0.35 : 0.04)) el.currentTime = want; // never ask again while a seek is still running: that is what made it stutter
         el.playbackRate = c.speed;
         el.volume = Math.max(0, Math.min(1, c.volume * fadeFactor(c, time - c.start)));
         if (isPlaying && el.paused) void el.play().catch(() => {});
@@ -129,9 +129,21 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
   useEffect(() => { if (!playing) { syncMedia(t, false); draw(); } }, [t, playing, project, syncMedia, draw]);
   useEffect(() => {
     if (!playing) return;
-    let raf = 0; const t0 = performance.now(); const base = tRef.current;
+    let raf = 0; let t0 = performance.now(); let base = tRef.current; let heldSince = 0;
     const tick = () => {
-      const now = base + (performance.now() - t0) / 1000;
+      let now = base + (performance.now() - t0) / 1000;
+      // Like a real player: the clip's own video is the clock. While it is still seeking or loading the clock waits (buffering); once it plays, the clock follows it.
+      const a = activeVisual(lpRef.current, now);
+      let held = false;
+      if (a && a.clip.kind === "video") {
+        const el = media.current.get(a.clip.id) as HTMLVideoElement | undefined;
+        if (el) {
+          if (el.seeking || el.readyState < 3) { held = heldSince === 0 || performance.now() - heldSince < 8000; if (!heldSince) heldSince = performance.now(); }
+          else { heldSince = 0; if (!el.paused) { const m = a.clip.start + (el.currentTime - a.clip.in) / a.clip.speed; if (Math.abs(m - now) < 1) now = m; } }
+        }
+      } else heldSince = 0;
+      if (held) now = tRef.current;
+      t0 = performance.now(); base = now;
       if (now >= total) { tRef.current = total; setT(total); setPlaying(false); return; }
       tRef.current = now; syncMedia(now, true); draw();
       if (headRef.current) headRef.current.style.left = `${now * pps}px`;
@@ -280,7 +292,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
           <button type="button" className="cr-var-x" onClick={onClose} disabled={!!busy} aria-label="Close"><X size={18} /></button>
         </div>
 
-        <div className="cr-cam-stage ve-stage"><canvas ref={canvas} width={cw} height={ch} aria-label="Preview" /></div>
+        <div className="ve-stage"><canvas ref={canvas} width={cw} height={ch} aria-label="Preview" style={{ aspectRatio: `${cw} / ${ch}`, width: `min(100%, calc(min(44dvh, 420px) * ${cw / ch}))` }} /></div>
 
         <div className="ve-bar">
           <button type="button" className="ve-play" onClick={() => { if (!total) return; if (!playing && tRef.current >= total - 0.05) seekTo(0); setPlaying((p) => !p); }} aria-label={playing ? "Pause" : "Play"} disabled={!total}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>

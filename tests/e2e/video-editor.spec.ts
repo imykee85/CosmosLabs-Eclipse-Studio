@@ -78,3 +78,24 @@ test("Editor works at a phone width without sideways page scroll", async ({ brow
   await page.screenshot({ path: process.env.VE_SHOT || "/tmp/ve-phone.png" });
   await ctx.close();
 });
+
+test("Editor plays the clip, and plays it again from the start without stalling", async ({ page }) => {
+  test.setTimeout(120_000);
+  await setup(page);
+  await page.goto("/generate");
+  await page.locator(".cr-earlier button").first().click();
+  await page.getByRole("toolbar", { name: "Video tools" }).getByRole("button", { name: /Editor/ }).click();
+  const dlg = page.getByRole("dialog", { name: "Video editor" });
+  await expect(dlg.locator(".ve-r1 .ve-block")).toHaveCount(1, { timeout: 20_000 });
+  const time = async () => parseFloat(((await dlg.locator(".ve-time").textContent()) ?? "0").split("/")[0].replace(/[^0-9.]/g, "").replace(/^0:/, "") || "0");
+  const play = dlg.getByRole("button", { name: "Play" });
+  await play.click();
+  await expect.poll(time, { timeout: 8000 }).toBeGreaterThan(1.2);
+  await expect(dlg.getByRole("button", { name: "Play" })).toBeVisible({ timeout: 8000 }); // reached the end and stopped
+  await dlg.getByRole("button", { name: "Play" }).click();
+  await expect.poll(time, { timeout: 8000 }).toBeGreaterThan(1.2); // the second run moves on too
+  // the picture is not boxed into a smaller black frame (it is as wide as the height allows, up to the panel)
+  const box = await dlg.locator("canvas").boundingBox();
+  const panel = await dlg.boundingBox();
+  expect(box!.width).toBeGreaterThan(Math.min(panel!.width - 60, 500));
+});
