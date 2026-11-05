@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { quoteUpscale } from "@/lib/topaz/jobs";
-import { getAdmin } from "@/lib/admin";
-import { topazConfigured, topazCreditUsd } from "@/lib/topaz/models";
+import { topazConfigured } from "@/lib/topaz/models";
 import { claimUsage } from "@/lib/usage";
 import { workspaceSession } from "@/lib/workspace";
 
@@ -11,12 +10,7 @@ export const maxDuration = 30;
 // What an upscale would give and cost, before anything is started. GET answers only whether Upscale is switched on.
 export async function GET() {
   const available = clerkEnabled && topazConfigured();
-  if (available) return NextResponse.json({ available });
-  // The owner is told which setting is missing (people see only "not available yet").
-  const missing = (await getAdmin().catch(() => null))
-    ? [...(clerkEnabled ? [] : ["sign-in (preview mode)"]), ...(process.env.TOPAZ_API_KEY ? [] : ["TOPAZ_API_KEY (Secret)"]), ...(topazCreditUsd() > 0 ? [] : ["TOPAZ_CREDIT_USD (Config value)"])]
-    : undefined;
-  return NextResponse.json({ available, ...(missing ? { missing } : {}) });
+  return NextResponse.json({ available });
 }
 
 export async function POST(req: Request) {

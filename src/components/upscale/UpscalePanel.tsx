@@ -20,12 +20,11 @@ export default function UpscalePanel({ source, onClose, onStarted }: { source: U
   const [creativity, setCreativity] = useState(3);
   const [quote, setQuote] = useState<Quote>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
-  const [missing, setMissing] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const seq = useRef(0);
 
-  useEffect(() => { fetch("/api/upscale/quote").then((r) => (r.ok ? r.json() : null)).then((d) => { setAvailable(!!d?.available); setMissing(Array.isArray(d?.missing) ? d.missing : []); }).catch(() => setAvailable(false)); }, []);
+  useEffect(() => { fetch("/api/upscale/quote").then((r) => (r.ok ? r.json() : null)).then((d) => { setAvailable(!!d?.available); }).catch(() => setAvailable(false)); }, []);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) onClose(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose, busy]);
 
   const body = () => ({ sourceId: source.id, preset, ...(video ? { target } : { scale }), ...(preset === "creative" ? { creativity: video ? creativity / 10 : creativity } : {}) });
@@ -53,7 +52,7 @@ export default function UpscalePanel({ source, onClose, onStarted }: { source: U
   }
 
   const ok = quote && quote.ok ? quote : null;
-  const note = available === false ? `Upscale isn't available yet.${missing.length ? ` (Owner only: not set: ${missing.join(", ")}.)` : ""}` : quote && !quote.ok ? quote.error : "";
+  const note = available === false ? "Upscale isn't available yet." : quote && !quote.ok ? quote.error : "";
   const size = source.width && source.height ? `${source.width} × ${source.height}` : "";
   return (
     <div className="cr-var-back" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
