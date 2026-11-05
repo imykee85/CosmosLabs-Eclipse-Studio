@@ -38,7 +38,7 @@ export async function streamStored(req: Request, key: string, contentType: strin
 // A request limit for the PUBLIC streams (share links, portfolio and certificate files, shared canvases): each request streams a file through our function,
 // so one address cannot ask for more than this many a minute. Returns a ready 429 answer when the limit is hit, else null.
 export async function publicStreamLimited(req: Request): Promise<Response | null> {
-  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
+  const ip = req.headers.get("x-real-ip") || (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
   const ok = await claimUsage(`pub:${ip}`, "public-stream", 240, 60_000).catch(() => true);
   return ok ? null : new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60" } });
 }

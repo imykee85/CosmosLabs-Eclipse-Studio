@@ -39,7 +39,14 @@ def authorised(header: str) -> bool:
     return bool(SECRET) and header.startswith("Bearer ") and hmac.compare_digest(header[7:], SECRET)
 
 
+def allowed_url(url: str) -> bool:
+    # https only; plain http to this machine is allowed solely for the tests (WORKER_ALLOW_LOOPBACK=1)
+    return url.startswith("https://") or (os.environ.get("WORKER_ALLOW_LOOPBACK") == "1" and url.startswith("http://127.0.0.1:"))
+
+
 def fetch(url: str, dest: str) -> None:
+    if not allowed_url(url):
+        raise ValueError("only https links can be fetched")
     with urllib.request.urlopen(url, timeout=120) as r, open(dest, "wb") as f:
         total = 0
         while chunk := r.read(1 << 20):
@@ -50,6 +57,8 @@ def fetch(url: str, dest: str) -> None:
 
 
 def push(url: str, path: str, content_type: str) -> None:
+    if not allowed_url(url):
+        raise ValueError("only https links can be uploaded to")
     with open(path, "rb") as f:
         req = urllib.request.Request(url, data=f.read(), method="PUT", headers={"Content-Type": content_type})
     urllib.request.urlopen(req, timeout=300).close()

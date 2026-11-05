@@ -20,3 +20,7 @@ PARTIAL COVERAGE. One hunter wave (4 hunters), no final critic wave, no independ
 
 ## Not covered
 Sandbox runner/core-session internals, kinetic spec checker, provider adapters, most agent/variations/memory routes line by line.
+
+## Follow-up fixes (same day)
+Fixed: Whop credit grant now trusts Whop's own plan id over metadata (credit amount from metadata only for inline custom top-ups); token endpoint limit is per client AND address; AES-GCM tag length pinned; IP limits prefer `x-real-ip`; memory and prompt text in Core's context cannot open or close tags and is labelled as information; worker accepts https links only.
+Still open (need a decision or bigger change): hold credits before chat turns; confirmation for Atlas remember/forget and Core generate_image; refund clawback for spent credits; OAuth redirect/client-name phishing; share-link revocation and field allowlist in the shared viewer; sandbox internals not reviewed.
