@@ -584,3 +584,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 /* Nothing generated and no prompt showing: the studio page stays fixed (no scrolling); it scrolls again once a result or prompt is shown. */
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cr-wrap.is-idle { padding-bottom: 0; max-height: calc(100dvh - 58px - env(safe-area-inset-top) - 76px); overflow: hidden; } }
 @media (min-width: 801px) and (pointer: fine) { .cr-wrap.is-idle { max-height: calc(100dvh - 63px - 56px); overflow: hidden; } .ws-main:has(> .cr-wrap.is-idle) { padding-bottom: 0; } }
+
+/* Idle studio: lock the document itself (iPhone Safari rubber-bands and scrolls the page even when the content fits). */
+html:has(.cr-wrap.is-idle, .vc.is-idle), html:has(.cr-wrap.is-idle, .vc.is-idle) body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
+html:has(.cr-wrap.is-idle, .vc.is-idle) body { position: fixed; inset: 0; width: 100%; }
