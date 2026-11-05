@@ -54,7 +54,7 @@ export async function deleteAccount(userId: string, opts: { closeSignIn?: boolea
   // 3. Files. A failure here stops everything, so nothing is left behind that we can no longer find.
   if (storageEnabled) {
     try {
-      for (const prefix of [`u/${userId}/`, `audio/${userId}/`, `thumbs/u/${userId}/`]) await deletePrefix(prefix);
+      for (const prefix of [`u/${userId}/`, `audio/${userId}/`, `video/${userId}/`, `thumbs/u/${userId}/`]) await deletePrefix(prefix);
     } catch (err) {
       console.error("account delete: files could not be removed", userId, err);
       return { ok: false, status: 502, error: "Your files could not be removed just now. Nothing else was deleted; please try again." };

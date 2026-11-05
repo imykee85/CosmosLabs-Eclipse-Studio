@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   if (body === undefined) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, { status: 400 });
   try {
     if (Array.isArray(body)) {
-      const out = (await Promise.all(body.slice(0, 20).map((m) => handleRpc(a.userId, m)))).filter(Boolean);
+      const out = (await Promise.all(body.slice(0, 3).map((m) => handleRpc(a.userId, m)))).filter(Boolean);
       return out.length ? NextResponse.json(out) : new NextResponse(null, { status: 202 });
     }
     const out = await handleRpc(a.userId, body);
