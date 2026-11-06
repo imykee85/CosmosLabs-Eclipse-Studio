@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { downloadObjectToFile, signedGetUrl, storageEnabled } from "@/lib/storage";
-import { frameAt, probeVideo, spacedTimes } from "@/lib/video-frames";
+import { frameAt, probeVideo, run, spacedTimes } from "@/lib/video-frames";
 import { storeUpload } from "@/lib/uploads";
 import { claimUsage } from "@/lib/usage";
 
@@ -59,9 +59,12 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
     let file = await signedGetUrl(clip.storageKey, 900);
     let info = await probeVideo(file);
     if (!info) {
+      // Compatibility copy: whatever the phone or camera made (MOV, HEVC, MP4 with the index at the end...), re-encode it to H.264 MP4 and read that.
+      const source = join(dir, "source.bin");
+      try { await downloadObjectToFile(clip.storageKey, source); } catch { return fail("The video is too large to open."); }
       file = join(dir, "clip.mp4");
-      try { await downloadObjectToFile(clip.storageKey, file); } catch { return fail("The video is too large to open."); }
-      info = await probeVideo(file);
+      const made = await run(["-y", "-i", source, "-vf", "scale='min(1280,iw)':-2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", file], 40_000).catch(() => null);
+      info = made?.code === 0 ? await probeVideo(file) : null;
     }
     const duration = info?.duration ?? clip.durationSec ?? null;
     if (!duration || duration <= 0) return fail("The video file could not be read.");
