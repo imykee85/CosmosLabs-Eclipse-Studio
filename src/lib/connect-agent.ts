@@ -89,7 +89,7 @@ const toParam = (r: { role: string; content: unknown }): Param => ({ role: r.rol
 
 /** One user turn: stores the message, runs the model and its tools until it answers, storing every step as it goes. */
 export async function runTurn(opts: {
-  userId: string; chatId: string | null; projectId: string | null; text: string; imageIds: string[]; clipId?: string | null; model: string; emit: (e: AgentEvent) => void;
+  userId: string; chatId: string | null; projectId: string | null; text: string; imageIds: string[]; clipId?: string | null; attached?: { type: "render" | "upload" | "video"; id: string; label: string }[]; model: string; emit: (e: AgentEvent) => void;
 }): Promise<void> {
   const { userId, projectId, emit } = opts;
   const started = Date.now();
@@ -128,7 +128,7 @@ export async function runTurn(opts: {
     if (w.ok) watched.push(...(w.blocks as Block[]));
     else watched.push({ type: "text", text: `The attached video could not be read: ${w.error}` });
   }
-  const content: Block[] = [...watched, ...(await imageBlocks(userId, opts.imageIds))];
+  const content: Block[] = [...(opts.attached?.length ? [{ type: "text", text: `<attached>${JSON.stringify(opts.attached)}</attached>` } as Block] : []), ...watched, ...(await imageBlocks(userId, opts.imageIds))];
   // The ids of the attached pictures, so the model can pass them to generate_image as references (a character sheet keeps the person's face).
   const pictureNote = opts.imageIds.slice(0, MAX_IMAGES).filter((id) => /^(up:)?[\w-]{1,64}$/.test(id)).map((id, i) => id.startsWith("up:")
     ? `Attached picture ${i + 1}: uploaded picture, reference {"type":"upload","id":"${id.slice(3)}"}`

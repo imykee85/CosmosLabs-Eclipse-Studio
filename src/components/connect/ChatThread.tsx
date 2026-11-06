@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Brain, Check, Folder, Image as ImageIcon, Loader2, Puzzle, Send, Square, Volume2, Wrench } from "lucide-react";
+import { AlertCircle, Brain, Check, Film, Folder, Image as ImageIcon, Loader2, Pencil, Puzzle, Send, Square, Volume2, Wrench } from "lucide-react";
+import { fallbackTo, thumbOf } from "@/lib/thumb-url";
 import type { Render } from "@/lib/use-renders";
 
-type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string } | { kind: "send"; id: string };
+export type Att = { type: "render" | "upload" | "video"; id: string; label: string };
+type Part = { kind: "text"; text: string } | { kind: "tool"; name: string } | { kind: "render"; id: string } | { kind: "send"; id: string } | { kind: "att"; items: Att[] };
 export type Line = { role: "user" | "assistant"; parts: Part[]; error?: string };
 
 const TOOL_LABEL: Record<string, string> = {
@@ -115,17 +117,33 @@ function ReadAloud({ text }: { text: string }) {
 }
 
 // grew: called when something in the thread changes size after it was added (a render finishing), so the screen can keep the end in view.
-export default function ChatThread({ lines, busy, grew }: { lines: Line[]; busy: boolean; grew: () => void }) {
+// What the person attached, as tiles in the transcript (pictures, a video as a tile with its name).
+function AttTiles({ items }: { items: Att[] }) {
+  return (
+    <div className="cn-att">
+      {items.map((a, i) => a.type === "video"
+        ? <span key={`${a.id}-${i}`} className="cn-att-tile is-video" title={a.label}><Film size={20} aria-hidden="true" /><b>{a.label}</b></span>
+        : <span key={`${a.id}-${i}`} className="cn-att-tile" title={a.label}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thumbOf(a.type === "render" ? "render" : "upload", a.id)} alt={a.label} onError={fallbackTo(`/api/${a.type === "render" ? "generations" : "uploads"}/${a.id}/file`)} />
+        </span>)}
+    </div>
+  );
+}
+
+export default function ChatThread({ lines, busy, grew, onEdit }: { lines: Line[]; busy: boolean; grew: () => void; onEdit?: (index: number) => void }) {
   return (
     <div className="cn-thread" aria-live="polite">
       {lines.map((l, i) => (
         <div key={i} className={`cn-msg is-${l.role}`}>
           {l.parts.map((p, k) =>
-            p.kind === "text" ? <p key={k} className="cn-text-part">{p.text}</p>
+            p.kind === "att" ? <AttTiles key={k} items={p.items} />
+            : p.kind === "text" ? <p key={k} className="cn-text-part">{p.text}</p>
             : p.kind === "tool" ? <span key={k} className="cn-tool">{TOOL_ICON[p.name] ?? <Wrench size={14} />}{TOOL_LABEL[p.name] ?? (p.name.startsWith("sandbox") ? "Worked in the build space" : "Used a tool")}<Check size={13} /></span>
             : p.kind === "send" ? <SendCard key={k} id={p.id} grew={grew} />
             : <RenderCard key={k} id={p.id} grew={grew} />,
           )}
+          {l.role === "user" && onEdit && !busy && <button type="button" className="cn-edit" aria-label="Edit this message" title="Edit this message" onClick={() => onEdit(i)}><Pencil size={14} /></button>}
           {l.error && <p className="cn-err" role="alert"><AlertCircle size={15} /> {l.error}</p>}
           {l.role === "assistant" && busy && i === lines.length - 1 && !l.error && <span className="cn-working"><Loader2 size={14} className="cn-spin" /> Working</span>}
           {l.role === "assistant" && !(busy && i === lines.length - 1) && <ReadAloud text={l.parts.map((p) => (p.kind === "text" ? p.text : "")).join(" ")} />}

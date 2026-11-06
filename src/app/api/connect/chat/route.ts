@@ -28,6 +28,11 @@ export async function POST(req: Request) {
   const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
   const clipId = typeof body?.clip === "string" && /^[\w-]{1,64}$/.test(body.clip) ? body.clip : null; // a video attached to the message, watched end to end
   const imageIds: string[] = Array.isArray(body?.images) ? body.images.filter((x: unknown): x is string => typeof x === "string").slice(0, 3) : [];
+  // What the person attached, for the transcript (tiles): pictures, a video, with their names. Only ids and short names are kept.
+  const attached: { type: "render" | "upload" | "video"; id: string; label: string }[] = Array.isArray(body?.attached)
+    ? body.attached.filter((a: unknown): a is { type: string; id: string; label?: unknown } => !!a && typeof a === "object" && typeof (a as { id?: unknown }).id === "string" && /^[\w-]{1,64}$/.test((a as { id: string }).id) && ["render", "upload", "video"].includes(String((a as { type?: unknown }).type)))
+      .slice(0, 12).map((a: { type: string; id: string; label?: unknown }) => ({ type: a.type as "render" | "upload" | "video", id: a.id, label: typeof a.label === "string" ? a.label.replace(/[<>]/g, "").slice(0, 80) : "" }))
+    : [];
 
   const broke = await chatRefusal(userId);
   if (broke) return NextResponse.json(broke, { status: 402 });
@@ -44,7 +49,7 @@ export async function POST(req: Request) {
       const emit = (e: AgentEvent) => { if (!open) return; try { controller.enqueue(enc.encode(JSON.stringify(e) + "\n")); } catch { open = false; } };
       try {
         // Keeps going (and saving) even if the browser disconnects, so a started render or sent message is never half-recorded.
-        await runTurn({ userId, chatId, projectId, text, imageIds, clipId, model: apiModelFor(body?.model), emit });
+        await runTurn({ userId, chatId, projectId, text, imageIds, clipId, attached, model: apiModelFor(body?.model), emit });
       } catch (err) {
         console.error("connect chat failed", err);
         const why = err instanceof Anthropic.RateLimitError ? "The assistant is busy right now. Try again in a minute."
