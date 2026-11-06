@@ -129,7 +129,11 @@ export async function runTurn(opts: {
     else watched.push({ type: "text", text: `The attached video could not be read: ${w.error}` });
   }
   const content: Block[] = [...watched, ...(await imageBlocks(userId, opts.imageIds))];
-  content.push({ type: "text", text: `${rows.length === 0 ? await contextDigest(userId, projectId) : ""}${opts.text}` });
+  // The ids of the attached pictures, so the model can pass them to generate_image as references (a character sheet keeps the person's face).
+  const pictureNote = opts.imageIds.slice(0, MAX_IMAGES).filter((id) => /^(up:)?[\w-]{1,64}$/.test(id)).map((id, i) => id.startsWith("up:")
+    ? `Attached picture ${i + 1}: uploaded picture, reference {"type":"upload","id":"${id.slice(3)}"}`
+    : `Attached picture ${i + 1}: finished render, reference {"type":"render","id":"${id}"}`).join("\n");
+  content.push({ type: "text", text: `${rows.length === 0 ? await contextDigest(userId, projectId) : ""}${pictureNote ? `${pictureNote}\n\n` : ""}${opts.text}` });
   await store("user", content);
   messages.push({ role: "user", content });
 
