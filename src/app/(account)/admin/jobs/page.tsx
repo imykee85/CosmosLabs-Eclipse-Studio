@@ -35,7 +35,7 @@ export default async function AdminJobsPage() {
                 <td style={cell}>{r.status}</td>
                 <td style={cell}>{r.creditsHeld ?? "-"}</td>
                 <td style={cell}>{r.durationSec ?? "-"}</td>
-                <td style={cell}>{(() => { const p = r.params && typeof r.params === "object" && !Array.isArray(r.params) ? (r.params as Record<string, unknown>) : {}; const said = typeof p.providerStatusAtTimeout === "string" ? p.providerStatusAtTimeout : ""; return said ? `${said}${p.startedAtProvider ? ", had started" : ", never started"}` : r.startedAt ? "started" : ""; })()}</td>
+                <td style={cell}>{(() => { const p = r.params && typeof r.params === "object" && !Array.isArray(r.params) ? (r.params as Record<string, unknown>) : {}; const said = typeof p.providerStatusAtTimeout === "string" ? p.providerStatusAtTimeout : ""; if (typeof p.providerError === "string" && p.providerError) return p.providerError; return said ? `${said}${p.startedAtProvider ? ", had started" : ", never started"}` : r.startedAt ? "started" : ""; })()}</td>
                 <td style={{ ...cell, wordBreak: "break-all", maxWidth: 160 }}>{r.requestId ?? ""}</td>
                 <td style={{ ...cell, maxWidth: 380, wordBreak: "break-word" }}>{r.error ?? ""}</td>
                 <td style={cell}>{r.userId.slice(-8)}</td>
