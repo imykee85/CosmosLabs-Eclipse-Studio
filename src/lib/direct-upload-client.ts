@@ -1,5 +1,7 @@
 "use client";
 
+import { videoUploadType } from "@/lib/upload-type";
+
 // Big files go from the browser straight to storage (see src/lib/direct-upload.ts for the server side). `unavailable` means the browser could not reach
 // storage at all (usually the bucket's CORS rule does not allow this site yet), so the caller may fall back to the small-file path.
 export type DirectResult<T> = { ok: true; item: T } | { ok: false; error: string; unavailable?: boolean };
@@ -18,8 +20,11 @@ function put(url: string, file: File, onProgress?: (fraction: number) => void): 
   });
 }
 
-export async function uploadDirect<T>(file: File, fileKind: "image" | "video", meta: { kind?: string; name: string; projectId: string | null }, onProgress?: (fraction: number) => void): Promise<DirectResult<T>> {
+export async function uploadDirect<T>(original: File, fileKind: "image" | "video", meta: { kind?: string; name: string; projectId: string | null }, onProgress?: (fraction: number) => void): Promise<DirectResult<T>> {
   try {
+    // Same bytes, a usable content type (see upload-type.ts). A File built from a File does not copy the data.
+    const type = fileKind === "video" ? videoUploadType(original) : original.type;
+    const file = type === original.type ? original : new File([original], original.name, { type });
     const start = await fetch("/api/uploads/direct/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileKind, contentType: file.type, size: file.size }) });
     const s = await start.json().catch(() => null);
     if (!start.ok || !s?.url) return { ok: false, error: s?.error ?? "Could not start the upload.", unavailable: start.status === 503 };

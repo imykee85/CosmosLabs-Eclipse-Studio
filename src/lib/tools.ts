@@ -4,7 +4,7 @@
 export type Tool = { id: string; name: string; blurb: string; kind: "Photo" | "Video"; image: string; headline: string; start: string };
 
 export const tools: Tool[] = [
-  { id: "sheet", name: "Character sheet", blurb: "One character, shown from every angle with close-ups and expressions.", kind: "Photo", image: "/carousel/card-6-poster.jpg", headline: "Character sheet", start: "Make a character sheet with the character sheet skill. Ask me which character first (a picture or a description), then which model to use, then make the sheet." },
+  { id: "sheet", name: "Character sheet", blurb: "One character, shown from every angle with close-ups and expressions.", kind: "Photo", image: "/carousel/card-6-poster.jpg", headline: "Character sheet", start: "Make a character sheet with the character sheet skill. Ask me which character first (a picture or a description), then make the sheet." },
   { id: "thumb", name: "Thumbnail maker", blurb: "Scroll-stopping thumbnails for your videos in a few taps.", kind: "Photo", image: "/carousel/card-4-poster.jpg", headline: "Thumbnail maker", start: "Help me make a thumbnail for my video. Ask what the video is about, then make three options." },
   { id: "story", name: "Storyboard", blurb: "Turn a script into a frame-by-frame board you can review.", kind: "Photo", image: "/carousel/card-8.jpg", headline: "Storyboard", start: "Turn my script into a storyboard. I will paste the script next; plan the frames and render them." },
   { id: "mock", name: "Product mockups", blurb: "Place your product in lifestyle scenes and packaging shots.", kind: "Photo", image: "/carousel/card-5.jpg", headline: "Product mockups", start: "Place my product in lifestyle scenes and packaging shots. Ask me what the product is." },
