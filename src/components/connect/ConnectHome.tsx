@@ -20,7 +20,7 @@ import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import BrandLogo from "./brands";
-import ChatThread, { type Line } from "./ChatThread";
+import ChatThread, { type Att, type Line } from "./ChatThread";
 import ModelPicker from "./ModelPicker";
 import "@/components/create/create.css"; // the Atlas widget and its menu are styled there (Treatment does the same)
 import "./connect.css";
@@ -51,6 +51,8 @@ function ConnectChat() {
   const [uploading, setUploading] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const [docs, setDocs] = useState<{ name: string; text: string }[]>([]); // text documents for the next message (kept in the chat)
+  const [uploads, setUploads] = useState<{ key: number; label: string; kind: "picture" | "video"; progress: number }[]>([]); // files on their way, shown as tiles with a progress bar
+  const uploadKey = useRef(0);
   const [clip, setClip] = useState<{ id: string; label: string } | null>(null); // one video, watched end to end when sent
   const [clipBusy, setClipBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
@@ -67,7 +69,7 @@ function ConnectChat() {
     setLines(data.lines);
   }, []);
 
-  const send = useCallback(async (message: string, images: string[] = []) => {
+  const send = useCallback(async (message: string, images: string[] = [], attached: Att[] = []) => {
     const clean = message.trim();
     if (!clean || busy) return;
     const clipId = clip?.id ?? null;
@@ -81,14 +83,14 @@ function ConnectChat() {
     setDocs([]);
     stopMic();
     const shown = [images.length ? `${clean}\n(${images.length} picture${images.length > 1 ? "s" : ""} attached)` : clean, ...sentDocs.map((d) => `(file: ${d.name})`)].join("\n");
-    setLines((l) => [...l, { role: "user", parts: [{ kind: "text", text: shown }] }, { role: "assistant", parts: [] }]);
+    setLines((l) => [...l, { role: "user", parts: [...(attached.length ? [{ kind: "att" as const, items: attached }] : []), { kind: "text" as const, text: shown }] }, { role: "assistant", parts: [] }]);
     const patch = (fn: (a: Line) => Line) => setLines((l) => { const c = [...l]; c[c.length - 1] = fn(c[c.length - 1]); return c; });
     try {
       let model = "auto";
       try { model = localStorage.getItem(MODEL_KEY) ?? "auto"; } catch {}
       const res = await fetch("/api/connect/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: clean + docText, chatId, model, images, clip: clipId, projectId: readCurrentProject()?.id }),
+        body: JSON.stringify({ message: clean + docText, chatId, model, images, clip: clipId, attached, projectId: readCurrentProject()?.id }),
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
@@ -166,17 +168,19 @@ function ConnectChat() {
   }
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     // Enter makes a new line (owner 2026-10-19); Ctrl or Cmd + Enter sends, like the other prompt boxes.
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(text, imageIds(picked)); }
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(text, imageIds(picked), attachedOf(picked, clip)); }
   }
   async function uploadClip(f: File | undefined) {
     if (!f) return;
     if (!f.type.startsWith("video/")) { setNotice("Only video files can be attached here."); return; }
     setClipBusy(true);
+    const key = ++uploadKey.current;
+    setUploads((l) => [...l, { key, label: f.name, kind: "video", progress: 0 }]);
     try {
-      const r = await uploadVideo<{ id: string }>(f, f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Video", readCurrentProject()?.id ?? null);
+      const r = await uploadVideo<{ id: string }>(f, f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Video", readCurrentProject()?.id ?? null, (p) => setUploads((l) => l.map((u) => (u.key === key ? { ...u, progress: p } : u))));
       if (!r.ok) { setNotice(r.error); return; }
       setClip({ id: r.item.id, label: f.name });
-    } finally { setClipBusy(false); }
+    } finally { setClipBusy(false); setUploads((l) => l.filter((u) => u.key !== key)); }
   }
 
   // The + takes any file: pictures go to Assets and into the message, videos are watched, text documents go with the message.
@@ -198,14 +202,35 @@ function ConnectChat() {
     if (f.size > PICK_LIMIT_BYTES) { setNotice("That picture is larger than 50 MB. Please use a smaller one."); return; }
     if (picked.length >= 3) { setNotice("You can add up to 3 pictures."); return; }
     setUploading((n) => n + 1);
+    const key = ++uploadKey.current;
+    setUploads((l) => [...l, { key, label: f.name, kind: "picture", progress: 0 }]);
     try {
       const fitted = await shrinkToFit(f);
       if (!fitted) { setNotice("Could not make that picture small enough. Please try another."); return; }
-      const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
+      const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null, (p) => setUploads((l) => l.map((u) => (u.key === key ? { ...u, progress: p } : u))));
       if (!r.ok) { setNotice(r.error); return; }
       if (r.item) setPicked((l) => [...l, { type: "upload" as const, id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }].slice(0, 3));
-    } finally { setUploading((n) => n - 1); }
+    } finally { setUploading((n) => n - 1); setUploads((l) => l.filter((u) => u.key !== key)); }
   }
+  // Editing a sent message: the thread is cut back before it on the server and on the screen, and its words and files go back into the box.
+  async function editLine(index: number) {
+    const line = lines[index];
+    if (!line || line.role !== "user" || busy || !chatId) return;
+    const n = lines.slice(0, index + 1).filter((l) => l.role === "user").length;
+    setNotice("");
+    const res = await fetch(`/api/connect/chats/${chatId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromUser: n }) });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setNotice(d.error ?? "That message could not be edited."); return; }
+    const att = line.parts.find((p): p is { kind: "att"; items: Att[] } => p.kind === "att")?.items ?? [];
+    const words = line.parts.filter((p): p is { kind: "text"; text: string } => p.kind === "text").map((p) => p.text).join("\n")
+      .replace(/\n\(\d+ pictures? attached\)$/, "").replace(/\n?\(file: [^)]*\)/g, "").trim();
+    setLines((l) => l.slice(0, index));
+    setText(words);
+    setPicked(att.filter((a) => a.type !== "video").map((a) => ({ type: a.type === "upload" ? "upload" as const : "render" as const, id: a.id, url: a.type === "upload" ? `/api/uploads/${a.id}/file` : `/api/generations/${a.id}/file`, label: a.label })));
+    const video = att.find((a) => a.type === "video");
+    setClip(video ? { id: video.id, label: video.label } : null);
+    box.current?.focus();
+  }
+
   const chatting = lines.length > 0;
 
   return (
@@ -217,7 +242,7 @@ function ConnectChat() {
 
       {chatting ? (
         <>
-          <ChatThread lines={lines} busy={busy} grew={scrollEnd} />
+          <ChatThread onEdit={editLine} lines={lines} busy={busy} grew={scrollEnd} />
         </>
       ) : (
         <div className="cn-hero">
@@ -239,9 +264,16 @@ function ConnectChat() {
           </Link>
         </div>
 
-        <form className="cn-box" onSubmit={(e) => { e.preventDefault(); send(text, imageIds(picked)); }}>
-          {(picked.length > 0 || clip) && (
+        <form className="cn-box" onSubmit={(e) => { e.preventDefault(); send(text, imageIds(picked), attachedOf(picked, clip)); }}>
+          {(picked.length > 0 || clip || uploads.length > 0) && (
             <div className="cn-picked">
+              {uploads.map((u) => (
+                <span key={u.key} className={`cn-up ${u.kind === "video" ? "is-video" : ""}`} role="status" aria-label={`Uploading ${u.label}, ${Math.round(u.progress * 100)}%`} title={u.label}>
+                  <Loader2 size={16} className="cn-spin" aria-hidden="true" />
+                  {u.kind === "video" && <b>{u.label}</b>}
+                  <span className="cn-up-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round(u.progress * 100))}%` }} /></span>
+                </span>
+              ))}
               {clip && (
                 <span className="cn-clip-tile" title={clip.label}>
                   <Film size={20} aria-hidden="true" />
@@ -288,6 +320,12 @@ function ConnectChat() {
     </div>
   );
 }
+
+// What is in the box, as the transcript shows it and the server keeps it: pictures from the device or the Library, and the video.
+const attachedOf = (pics: RefPick[], video: { id: string; label: string } | null): Att[] => [
+  ...pics.map((x) => ({ type: x.type === "upload" ? "upload" as const : "render" as const, id: x.id, label: x.label })),
+  ...(video ? [{ type: "video" as const, id: video.id, label: video.label }] : []),
+];
 
 export default function ConnectHome() {
   return <Suspense fallback={null}><ConnectChat /></Suspense>;
