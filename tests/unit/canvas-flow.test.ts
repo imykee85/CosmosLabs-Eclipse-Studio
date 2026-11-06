@@ -54,5 +54,5 @@ test("the new nodes: Image, Video, Character sheet and Video generator", async (
   const ins = inputsOf(nodes, edges, "v");
   assert.equal(ins.find((x) => x.port === "start")?.pic?.id, "u1");
   assert.equal(ins.find((x) => x.port === "clips")?.clip?.id, "v1");
-  assert.match(composePrompt("sheet", "a knight", [], [], 2000), /^a knight\. Character reference sheet/);
+  assert.match(composePrompt("sheet", "a knight", [], [], 2000), /^a knight\. Professional 9:16 character design reference sheet/);
 });
