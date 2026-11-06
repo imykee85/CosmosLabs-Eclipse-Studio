@@ -35,6 +35,7 @@ export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
         aspect_ratio: { type: "string", description: "For example 1:1, 4:5, 9:16 or 16:9. Must be supported by the model." },
         model: { type: "string", description: "Model id from list_image_models. Defaults to soul_v2." },
         project_id: { type: "string", description: "Save into this project instead of the one the user has open." },
+        references: { type: "array", description: "Pictures the image is made from, for example the character to keep. Each one: {\"type\":\"render\",\"id\":<generation_id from search_library or the chat>} or {\"type\":\"upload\",\"id\":<id of a picture in Ingredients or Assets>}. Only models that take pictures accept them.", items: { type: "object", properties: { type: { type: "string", enum: ["render", "upload"] }, id: { type: "string" } }, required: ["type", "id"] } },
       },
       required: ["prompt"],
     },
@@ -166,15 +167,13 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
     if (editToolNames.has(name)) return runEditTool(name, args, ctx.userId, ctx.projectId);
     switch (name) {
       case "list_image_models":
-        return { text: JSON.stringify(enabledModels().filter((m) => m.references.min === 0 && m.provider === "higgsfield").map((m) => ({ id: m.id, name: m.label, about: m.blurb, aspect_ratios: m.ratios, max_prompt_chars: m.maxPrompt }))) };
+        return { text: JSON.stringify(enabledModels().map((m) => ({ id: m.id, name: m.label, about: m.blurb, aspect_ratios: m.ratios, max_prompt_chars: m.maxPrompt, takes_pictures: m.references.max > 0, needs_picture: m.references.min > 0 }))) };
 
       case "generate_image": {
         const target = str(args.project_id, 64);
         if (target && !(await db.project.findFirst({ where: { id: target, userId: ctx.userId, deletedAt: null } }))) return { text: "No such project. Use list_projects.", isError: true };
-        // Google and OpenAI renders run inside the request and would outlast this chat turn's time budget.
-        const wanted = enabledModels().find((m) => m.id === (str(args.model, 80) || "soul_v2"));
-        if (wanted && wanted.provider !== "higgsfield") return { text: "That model is not available in chat yet. Pick one from list_image_models.", isError: true };
-        const r = await startRender({ userId: ctx.userId, prompt: args.prompt, model: str(args.model, 80) || "soul_v2", aspectRatio: args.aspect_ratio || undefined, projectId: target || ctx.projectId });
+        // Every model runs in the background now (direct providers too), so the chat turn does not wait for them.
+        const r = await startRender({ userId: ctx.userId, prompt: args.prompt, model: str(args.model, 80) || "soul_v2", aspectRatio: args.aspect_ratio || undefined, projectId: target || ctx.projectId, references: Array.isArray(args.references) ? args.references.slice(0, 16) : undefined });
         if (!r.ok) return { text: r.error, isError: true };
         ctx.onRender(r.item.id);
         return { text: JSON.stringify({ generation_id: r.item.id, status: "pending", note: "Rendering in the background. The user sees it appear in the chat when it finishes." }) };
