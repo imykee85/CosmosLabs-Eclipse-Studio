@@ -23,7 +23,8 @@ const VIDEO_TYPES: Record<string, string> = { "video/mp4": "mp4", "video/quickti
 export type StartInput = { fileKind: "image" | "video"; contentType: string; size: number };
 export function planUpload(i: StartInput): { ok: true; key: (userId: string) => string; ext: string } | { ok: false; error: string } {
   if (i.fileKind !== "image" && i.fileKind !== "video") return { ok: false, error: "Unknown kind of file." };
-  const typeOk = i.contentType.startsWith(`${i.fileKind}/`) || i.contentType === "";
+  // A video may come with a generic type (application/octet-stream); the bytes are checked at the end either way.
+  const typeOk = i.contentType.startsWith(`${i.fileKind}/`) || i.contentType === "" || (i.fileKind === "video" && i.contentType === "application/octet-stream");
   if (!typeOk) return { ok: false, error: `That file is not a ${i.fileKind} we can read.` };
   const table = i.fileKind === "image" ? IMAGE_TYPES : VIDEO_TYPES;
   const ext = table[i.contentType] ?? (i.fileKind === "image" ? "img" : "vid");

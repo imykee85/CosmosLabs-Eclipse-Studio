@@ -15,6 +15,9 @@ import MotionMenu, { type MotionMode } from "./MotionMenu";
 import VideoSettingsMenu from "./VideoSettingsMenu";
 import AgentWidget from "../create/AgentWidget";
 import ReferencePicker, { type ClipPick, type RefPick, type SoundPick } from "../create/ReferencePicker";
+import { VIDEO_LIMIT_MB } from "@/lib/direct-upload-client";
+
+const VIDEO_UPLOAD_LIMIT_BYTES = VIDEO_LIMIT_MB * 1024 * 1024;
 import PromptEdge, { type EdgeMessage } from "../create/PromptEdge";
 import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
 import { askConfirm } from "@/components/ConfirmHost";
@@ -38,7 +41,7 @@ import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
 import { useRenders, type Render } from "@/lib/use-renders";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
-import { uploadPicture } from "@/lib/use-uploads";
+import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { DEFAULT_VIDEO_MODEL, LONGEST_MODEL_LABEL, VIDEO_MODELS, capsFor, isLive, routeIdOf, videoModelById, videoPrice, workflowFor, type VideoModel } from "@/lib/video-models";
 import { refreshCredits } from "@/lib/use-credits";
 import "../create/create.css";
@@ -285,10 +288,24 @@ export default function VideoStudio() {
     try { localStorage.setItem(MODEL_KEY, m.id); } catch {}
   }
 
+  // A video from the device: uploaded to the person's videos, then added as a reference clip when the model takes clips (else a note says so).
+  async function uploadClipFromDevice(f: File) {
+    if (!caps.refVideoMax) { setError(`${model.label} takes no reference clips. Choose a model that does.`); return; }
+    if (f.size > VIDEO_UPLOAD_LIMIT_BYTES) { setError("That video is larger than 500 MB. Please use a smaller one."); return; }
+    setUploading((n) => n + 1);
+    try {
+      const r = await uploadVideo<{ id: string; imageUrl?: string | null; prompt: string; durationSec?: number | null }>(f, f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Uploaded video", readCurrentProject()?.id ?? null);
+      if (!r.ok) { setError(r.error); return; }
+      const clip: ClipPick = { type: "render", id: r.item.id, url: r.item.imageUrl ?? "", label: r.item.prompt, sec: r.item.durationSec ?? null };
+      setVrefs((l) => [...l.filter((c) => c.id !== clip.id), clip].slice(0, caps.refVideoMax));
+    } finally { setUploading((n) => n - 1); }
+  }
+
   async function uploadFromDevice(f: File | undefined) {
     if (!f) return;
     setError("");
-    if (attachKind(f) !== "picture") { setError("Pictures are added here. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
+    if (attachKind(f) === "video") { await uploadClipFromDevice(f); return; }
+    if (attachKind(f) !== "picture") { setError("Pictures and videos are added here. Documents go into a chat (Atlas, Core, Prompts or Treatment)."); return; }
     if (f.size > PICK_LIMIT_BYTES) { setError("That picture is larger than 50 MB. Please use a smaller one."); return; }
     setUploading((n) => n + 1);
     try {
