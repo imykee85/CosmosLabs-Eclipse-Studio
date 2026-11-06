@@ -5,7 +5,7 @@ import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Brain, Clock, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
+import { ArrowUp, Brain, Clock, Film, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
 import { attachKind, readDocument } from "@/lib/attach-file";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
@@ -240,8 +240,15 @@ function ConnectChat() {
         </div>
 
         <form className="cn-box" onSubmit={(e) => { e.preventDefault(); send(text, imageIds(picked)); }}>
-          {picked.length > 0 && (
+          {(picked.length > 0 || clip) && (
             <div className="cn-picked">
+              {clip && (
+                <span className="cn-clip-tile" title={clip.label}>
+                  <Film size={20} aria-hidden="true" />
+                  <b>{clip.label}</b>
+                  <button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={12} /></button>
+                </span>
+              )}
               {picked.map((p) => (
                 <span key={`${p.type}-${p.id}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -257,10 +264,10 @@ function ConnectChat() {
           <div className="cn-tools">
             <button type="button" className="cn-round" aria-label="Add a file" title="Add a file" onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
             <input ref={fileInput} type="file" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void addFile(f); e.target.value = ""; }} />
-            {docs.map((d, i) => <span key={`${d.name}-${i}`} className="cn-clip">{d.name}<button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}><X size={11} /></button></span>)}
-            {clip && <span className="cn-clip">{clip.label}<button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={11} /></button></span>}
-            <button type="button" className="cr-chip" title="Choose pictures from your Library" onClick={() => setPicking(true)}><Layers size={14} /> <span className="cr-aname">Ingredients{picked.length ? ` (${picked.length})` : ""}</span></button>
             <button type="button" className={`cn-round ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={17} /></button>
+            <button type="button" className="cn-round" aria-label={`Ingredients${picked.length ? ` (${picked.length})` : ""}`} title="Choose pictures from your Library" onClick={() => setPicking(true)}><Layers size={17} /></button>
+            <div className="cn-tools-more">
+            {docs.map((d, i) => <span key={`${d.name}-${i}`} className="cn-clip">{d.name}<button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}><X size={11} /></button></span>)}
             <ModelPicker />
             <div className="cr-grp">
               <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
@@ -268,6 +275,7 @@ function ConnectChat() {
               </button>
               <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help with this prompt" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
                 onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
+            </div>
             </div>
             <button type="submit" className="cn-send" aria-label="Send" disabled={busy || !text.trim()}><ArrowUp size={18} /></button>
           </div>
