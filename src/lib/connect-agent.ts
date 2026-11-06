@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { clipBlocks } from "@/lib/agent-video";
+import { VIDEO_TOOLS, VIDEO_TOOL_NAMES, clipBlocks, runVideoTool } from "@/lib/agent-video";
 import { db } from "@/lib/db";
 import { BRAND_RULE, leaked } from "@/lib/brand";
 import { loadPromptImages } from "@/lib/prompt-images";
@@ -136,6 +136,7 @@ export async function runTurn(opts: {
   const sdk = client();
   const meter = new ChatMeter();
   let said = ""; // what was streamed to the person, checked at the end for a repeat of the instructions
+  const videoState = { captures: 0 }; // capture_frame limit for this message
   try {
     const useFallback = opts.model !== "claude-haiku-5-5"; // Haiku has no server-side fallback
     for (let step = 0; step < MAX_STEPS; step++) {
@@ -148,7 +149,7 @@ export async function runTurn(opts: {
         max_tokens: 16000,
         // cache breakpoints: system + tools, and the last block of the history (moved forward every step); SYSTEM and BRAND_RULE stay byte-identical between calls
         system: cachedSystem(`${SYSTEM}\n\n${BRAND_RULE}`),
-        tools: toolDefs,
+        tools: [...toolDefs, ...VIDEO_TOOLS] as typeof toolDefs,
         messages: cacheLast(trimHistory(messages)) as Param[],
         ...(useFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
       });
@@ -166,6 +167,11 @@ export async function runTurn(opts: {
       const calls = msg.content.filter((b): b is Anthropic.Beta.Messages.BetaToolUseBlock => b.type === "tool_use");
       for (const c of calls) emit({ t: "tool", name: c.name });
       const results = await Promise.all(calls.map(async (c) => {
+        // Video tools (list_videos, watch_video, capture_frame) work the same as in Atlas: the person's own finished videos, frames with their times.
+        if ((VIDEO_TOOL_NAMES as readonly string[]).includes(c.name)) {
+          const v = await runVideoTool(userId, c.name, (c.input ?? {}) as Record<string, unknown>, videoState);
+          return { type: "tool_result" as const, tool_use_id: c.id, content: v.content, ...(v.isError ? { is_error: true } : {}) };
+        }
         const o = await runTool(c.name, c.input, { userId, projectId, chatId, onRender: (id) => emit({ t: "render", id }), onSend: (id) => emit({ t: "send", id }) });
         const content = o.image ? [{ type: "text" as const, text: o.text }, { type: "image" as const, source: { type: "base64" as const, media_type: o.image.mediaType, data: o.image.data } }] : o.text;
         return { type: "tool_result" as const, tool_use_id: c.id, content, ...(o.isError ? { is_error: true } : {}) };
