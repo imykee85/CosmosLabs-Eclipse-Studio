@@ -6,6 +6,7 @@ import { waitUntil } from "@vercel/functions";
 import { finalizeGeneration, purgeFailed, toItem } from "@/lib/generation-jobs";
 import { isLateWatch, rescueLateVideo, finalizeVideo } from "@/lib/video-jobs";
 import { workspaceSession } from "@/lib/workspace";
+import { getAdmin } from "@/lib/admin";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 100;
@@ -51,7 +52,17 @@ export async function GET(req: Request) {
         try { return await toItem(g); } catch { return null; }
       }
     }));
-    return NextResponse.json({ items: settled.filter((i) => i !== null) });
+    // The owner (ADMIN_EMAILS) also sees the provider's own reason on a failed render, marked as owner-only; nobody else ever does.
+    const admin = await getAdmin();
+    const items = settled.filter((i) => i !== null);
+    if (admin) {
+      for (const i of items) {
+        if (i.status !== "failed") continue;
+        const detail = (rows.find((r) => r.id === i.id)?.params as { providerError?: unknown } | null | undefined)?.providerError;
+        if (typeof detail === "string" && detail) i.error = `${i.error ?? ""} (Owner only: ${detail})`.trim();
+      }
+    }
+    return NextResponse.json({ items });
   } catch (err) {
     console.error("listing generations failed", err);
     return NextResponse.json({ error: "Could not load your renders. Please try again." }, { status: 500 });
