@@ -33,6 +33,7 @@ export const toolDefs: Anthropic.Beta.Messages.BetaTool[] = [
       properties: {
         prompt: { type: "string", description: "The full image prompt." },
         aspect_ratio: { type: "string", description: "For example 1:1, 4:5, 9:16 or 16:9. Must be supported by the model." },
+        resolution: { type: "string", description: "1k, 2k, 4k where the model has it. Use 2k for character sheets and finished images, the same as Image Studio. Leave out for the model default." },
         model: { type: "string", description: "Model id from list_image_models. Defaults to soul_v2." },
         project_id: { type: "string", description: "Save into this project instead of the one the user has open." },
         references: { type: "array", description: "Pictures the image is made from, for example the character to keep. Each one: {\"type\":\"render\",\"id\":<generation_id from search_library or the chat>} or {\"type\":\"upload\",\"id\":<id of a picture in Ingredients or Assets>}. Only models that take pictures accept them.", items: { type: "object", properties: { type: { type: "string", enum: ["render", "upload"] }, id: { type: "string" } }, required: ["type", "id"] } },
@@ -173,7 +174,7 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
         const target = str(args.project_id, 64);
         if (target && !(await db.project.findFirst({ where: { id: target, userId: ctx.userId, deletedAt: null } }))) return { text: "No such project. Use list_projects.", isError: true };
         // Every model runs in the background now (direct providers too), so the chat turn does not wait for them.
-        const r = await startRender({ userId: ctx.userId, prompt: args.prompt, model: str(args.model, 80) || "soul_v2", aspectRatio: args.aspect_ratio || undefined, projectId: target || ctx.projectId, references: Array.isArray(args.references) ? args.references.slice(0, 16) : undefined });
+        const r = await startRender({ userId: ctx.userId, prompt: args.prompt, model: str(args.model, 80) || "soul_v2", aspectRatio: args.aspect_ratio || undefined, resolution: str(args.resolution, 10) || undefined, projectId: target || ctx.projectId, references: Array.isArray(args.references) ? args.references.slice(0, 16) : undefined });
         if (!r.ok) return { text: r.error, isError: true };
         ctx.onRender(r.item.id);
         return { text: JSON.stringify({ generation_id: r.item.id, status: "pending", note: "Rendering in the background. The user sees it appear in the chat when it finishes." }) };
