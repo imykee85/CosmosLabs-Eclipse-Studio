@@ -238,7 +238,7 @@ function Generator({ id, data, selected, kind }: NodeProps<CNode> & { kind: "gen
   const agent = useAgent();
   const agentChip = useRef<HTMLButtonElement>(null);
 
-  const ratioWanted = data.ratio ?? (kind === "fullbody" ? "9:16" : kind === "sheet" ? "16:9" : "4:5");
+  const ratioWanted = data.ratio ?? (kind === "fullbody" ? "9:16" : kind === "sheet" ? "9:16" : "4:5");
   const qty = Math.min(MAX_QTY, Math.max(1, data.qty ?? 1));
   const tier = data.tier ?? "1k";
   const modelId = data.model && (data.model === AUTO || models?.some((m) => m.id === data.model)) ? data.model : AUTO;

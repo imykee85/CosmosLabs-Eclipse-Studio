@@ -101,7 +101,7 @@ export const STYLES = ["None", "Editorial", "Cinematic", "Minimal studio", "Film
 const uid = () => `n-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 export function newNode(kind: NodeKind, position: { x: number; y: number }, data: CanvasNodeData = {}): CNode {
-  const base: CanvasNodeData = kind === "generator" || kind === "fullbody" || kind === "sheet" ? { ratio: kind === "fullbody" ? "9:16" : kind === "sheet" ? "16:9" : "4:5" } : kind === "videogen" ? { ratio: "16:9" } : kind === "style" ? { style: "None" } : {};
+  const base: CanvasNodeData = kind === "generator" || kind === "fullbody" || kind === "sheet" ? { ratio: kind === "fullbody" ? "9:16" : kind === "sheet" ? "9:16" : "4:5" } : kind === "videogen" ? { ratio: "16:9" } : kind === "style" ? { style: "None" } : {};
   if (kind === "group") return { id: uid(), type: kind, position, width: 480, height: 340, zIndex: -1, data: { title: "Group", color: "slate", ...data } };
   return { id: uid(), type: kind, position, data: { ...base, ...data } };
 }
