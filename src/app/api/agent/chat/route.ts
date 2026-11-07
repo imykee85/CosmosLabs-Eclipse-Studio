@@ -7,8 +7,9 @@ import { gateFeature } from "@/lib/access";
 import type { Prisma } from "@prisma/client";
 import { prepareAgentTurn } from "@/lib/agent-turn";
 
-// 120 s: Atlas can watch a video (the file is copied and frames are read from it) before it answers.
-export const maxDuration = 120;
+// 300 s: Atlas can watch a video (the file is copied and frames are read from it) before it answers. The turn itself stops starting new steps
+// after about 200 s (agent-turn.ts), so it always writes its answer (or a plain failure) before the limit.
+export const maxDuration = 300;
 
 // The answer is produced by a job on the server: the browser starts it (`background`) and collects the result from /api/agent/runs, so leaving the page
 // or closing the browser does not stop it. A plain request still gets its answer in the same response. The conversation itself is in src/lib/agent-turn.ts.
