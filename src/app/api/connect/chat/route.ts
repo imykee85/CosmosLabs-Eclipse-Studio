@@ -23,7 +23,6 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const text = typeof body?.message === "string" ? body.message.trim() : "";
   if (!text) return NextResponse.json({ error: "Write a message first." }, { status: 400 });
-  if (text.length > 8000) return NextResponse.json({ error: "That message is too long." }, { status: 400 });
   const chatId = typeof body?.chatId === "string" ? body.chatId : null;
   const projectId = typeof body?.projectId === "string" && body.projectId.length <= 64 ? body.projectId : null;
   const clipId = typeof body?.clip === "string" && /^[\w-]{1,64}$/.test(body.clip) ? body.clip : null; // a video attached to the message, watched end to end
