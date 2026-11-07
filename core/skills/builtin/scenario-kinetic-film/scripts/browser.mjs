@@ -14,6 +14,8 @@ export const { chromium } = loadPlaywright();
 export async function launch() {
   const args = ['--run-all-compositor-stages-before-draw', '--disable-checker-imaging', '--ignore-gpu-blocklist', '--enable-gpu'];
   if (process.platform === 'darwin') args.push('--use-angle=metal');
+  // Linux sandboxes run as root or in containers: Chrome refuses to start there without --no-sandbox (the cloud computer is a throwaway machine).
+  if (process.platform === 'linux') args.push('--no-sandbox');
   try { return await chromium.launch({ channel: 'chrome', args }); } catch { return await chromium.launch({ args }); }
 }
 export const FILM_URL = (process.env.FILM_URL || 'http://127.0.0.1:5671/').replace(/\/?$/, '/');
