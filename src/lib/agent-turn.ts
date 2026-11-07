@@ -34,7 +34,7 @@ const MAX_ROUNDS = 5;
 const DEADLINE_MS = 200_000;
 // The whole reply must end (with an answer or a plain message) before the server limit; a tool call may use at most this much.
 export const REPLY_LIMIT_MS = 255_000;
-const TOOL_LIMIT_MS = 90_000;
+const TOOL_LIMIT_MS = 170_000;
 export const TOO_LONG: Out = { status: 502, json: { error: "The agent took too long to answer. Try again with a shorter video or fewer pictures." } };
 
 // Resolves with `fallback` if `p` has not settled within `ms`. The work keeps running in the background but its answer is no longer waited for.
