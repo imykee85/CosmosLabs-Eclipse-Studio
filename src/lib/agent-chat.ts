@@ -210,9 +210,13 @@ async function followRun(agent: string, runId: string, page: string) {
   }
 }
 // Stop: the reply being written for this chat is cancelled (the server drops its answer) and the chat is free to use again.
+// Stop also frees the chat at once (a new message can be sent straight away). If the reply has not been started on the server yet,
+// the start is cancelled as soon as it is.
+const stopRequested = new Set<string>();
 export async function stopAgent(agent: string) {
+  busyAgents.delete(agent);
   const mine = readRuns().filter((r) => r.agent === agent);
-  if (!mine.length) return;
+  if (!mine.length) { stopRequested.add(agent); window.dispatchEvent(new CustomEvent(EVENT, { detail: agent })); return; }
   writeRuns(readRuns().filter((r) => r.agent !== agent));
   for (const r of mine) {
     addTo(agent, { role: "agent", text: "Stopped.", note: true } as Omit<Msg, "id">);
@@ -253,7 +257,8 @@ export function useAgentChat(agent: string | null) {
 
   const send = useCallback(async (raw: string, atts: Attach[] = [], docs: AttachedDoc[] = []) => {
     const text = raw.trim();
-    if (!agent || !text || busyAgents.has(agent)) return;
+    if (!agent || !text) return;
+    if (busyAgents.has(agent) || hasPendingRun(agent)) { add({ role: "agent", text: "Still answering your last message. Press Stop to cancel it, or wait a moment.", note: true, error: true }); return; }
     add({ role: "user", text, ...(atts.length ? { attach: atts.map((a) => ({ kind: a.kind, name: a.name, id: a.id })) } : {}), ...(docs.length ? { docs: docs.map((d) => ({ name: d.name, text: d.text })) } : {}) });
     await ask(atts, docs);
   }, [agent, add]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -279,6 +284,12 @@ export function useAgentChat(agent: string | null) {
       const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, documents: pdfs, context: { page, ...base, pictures, videos, options: host?.controls?.options() } }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || typeof data.runId !== "string") { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
+      if (stopRequested.delete(agent)) {
+        // Stop was pressed before the reply started: it is cancelled on the server now.
+        await fetch(`/api/agent/runs/${data.runId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "stop" }) }).catch(() => {});
+        add({ role: "agent", text: "Stopped.", note: true });
+        return;
+      }
       await followRun(agent, data.runId, page);
     } catch {
       add({ role: "agent", text: "I couldn't reach the server. Check your connection and try again.", error: true });

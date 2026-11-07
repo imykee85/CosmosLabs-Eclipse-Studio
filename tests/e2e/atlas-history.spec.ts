@@ -90,6 +90,7 @@ test("after Stop, the next message gets its reply", async ({ page }) => {
   await expect(page.locator(".aw-panel .aw-stop, .aw-panel button[aria-label='Stop']")).toBeVisible();
   await page.locator(".aw-panel button[aria-label='Stop']").click();
   await expect(page.locator(".aw-panel")).toContainText("Stopped.");
+  // Stop frees the chat at once: the next message goes through straight away.
   await page.locator(".aw-panel textarea").fill("Second question");
   await page.keyboard.press("Control+Enter");
   await expect(page.locator(".aw-panel")).toContainText("Second reply arrived.", { timeout: 15000 });
