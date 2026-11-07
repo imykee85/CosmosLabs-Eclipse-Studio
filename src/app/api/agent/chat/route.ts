@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { workspaceSession } from "@/lib/workspace";
 import { gateFeature } from "@/lib/access";
 import type { Prisma } from "@prisma/client";
-import { prepareAgentTurn } from "@/lib/agent-turn";
+import { prepareAgentTurn, REPLY_LIMIT_MS, TOO_LONG, withTimeLimit } from "@/lib/agent-turn";
 
 // 300 s: Atlas can watch a video (the file is copied and frames are read from it) before it answers. The turn itself stops starting new steps
 // after about 200 s (agent-turn.ts), so it always writes its answer (or a plain failure) before the limit.
@@ -24,7 +24,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const prep = await prepareAgentTurn(userId, personId, body);
   if (!prep.ok) return NextResponse.json(prep.out.json, { status: prep.out.status });
-  const work = prep.work;
+  // Whatever happens inside, the reply is written (or a plain message is given) before the server limit.
+  const work = () => withTimeLimit(prep.work(), REPLY_LIMIT_MS, TOO_LONG);
 
   if (body?.background === true) {
     const run = await db.agentRun.create({ data: { userId, status: "pending" }, select: { id: true } });

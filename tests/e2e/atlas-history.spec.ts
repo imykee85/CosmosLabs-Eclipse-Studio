@@ -34,3 +34,30 @@ test("opening an earlier Atlas chat keeps every chat separate", async ({ page })
   const titles2 = await page.locator(".aw-past-row b").allInnerTexts();
   expect(titles2.sort()).toEqual(["A question", "Current question"].sort());
 });
+
+// A reply that the server ends with its time-limit message must show that message and free the chat for the next one.
+test("a reply that runs out of time shows its message and the chat takes the next message", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    localStorage.setItem("eclipse-agent", "Atlas");
+    localStorage.setItem("eclipse-agent-on", "1");
+  });
+  let asked = 0;
+  await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+  await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
+  await page.route("**/api/agent/chat", (r) => { asked++; return r.fulfill({ status: 202, json: { runId: `r${asked}` } }); });
+  await page.route("**/api/agent/runs/r*", (r) => r.request().method() === "DELETE"
+    ? r.fulfill({ json: { ok: true } })
+    : r.fulfill({ json: { status: "done", result: { status: 502, body: { error: "The agent took too long to answer. Try again with a shorter video or fewer pictures." } } } }));
+  await page.goto("/create");
+  await page.locator(".aw-btn").click();
+  await expect(page.locator(".aw-panel")).toBeVisible();
+  await page.locator(".aw-panel textarea").fill("Watch my video and give feedback");
+  await page.keyboard.press("Control+Enter");
+  await expect(page.locator(".aw-panel")).toContainText("took too long to answer");
+  await expect(page.locator(".aw-panel")).not.toContainText("Moving things around");
+  await page.locator(".aw-panel textarea").fill("Are you there?");
+  await page.keyboard.press("Control+Enter");
+  await expect.poll(() => asked).toBe(2);
+});

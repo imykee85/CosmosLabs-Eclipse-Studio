@@ -32,6 +32,17 @@ export type Out = { status: number; json: unknown };
 const MAX_ROUNDS = 5;
 // No new model call or tool round starts after this (the server limit is 300 s; see the chat route).
 const DEADLINE_MS = 200_000;
+// The whole reply must end (with an answer or a plain message) before the server limit; a tool call may use at most this much.
+export const REPLY_LIMIT_MS = 255_000;
+const TOOL_LIMIT_MS = 90_000;
+export const TOO_LONG: Out = { status: 502, json: { error: "The agent took too long to answer. Try again with a shorter video or fewer pictures." } };
+
+// Resolves with `fallback` if `p` has not settled within `ms`. The work keeps running in the background but its answer is no longer waited for.
+export function withTimeLimit<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<T>((resolve) => { timer = setTimeout(() => resolve(fallback), ms); });
+  return Promise.race([p, late]).finally(() => clearTimeout(timer));
+}
 
 
 // One turn of the conversation with a studio agent. The agent answers in words and may PROPOSE actions (generate, use a prompt, ask for approval); the browser shows them as
@@ -166,7 +177,9 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
           if (isServerTool(b.name)) {
             const input = (b.input ?? {}) as Record<string, unknown>;
             // the agent's own tools (library, memory) first; the video tools otherwise. Memory is the person's, the Library the workspace's.
-            const r = isCoreTool(b.name) ? await runCoreTool(userId, personId ?? userId, b.name, input) : await runVideoTool(userId, b.name, input, state);
+            const toolWork = isCoreTool(b.name) ? runCoreTool(userId, personId ?? userId, b.name, input) : runVideoTool(userId, b.name, input, state);
+            const budget = Math.max(5_000, Math.min(TOOL_LIMIT_MS, deadline + 40_000 - Date.now()));
+            const r = await withTimeLimit(toolWork, budget, { content: "This step took too long and was stopped. Tell the user, and suggest a shorter clip or fewer pictures.", isError: true } as Awaited<typeof toolWork>);
             if ("frames" in r && Array.isArray(r.frames)) frames.push(...(r.frames as Frame[]));
             results.push({ type: "tool_result", tool_use_id: b.id, content: r.content, is_error: r.isError });
           } else results.push({ type: "tool_result", tool_use_id: b.id, content: "Shown to the user as a button." });
