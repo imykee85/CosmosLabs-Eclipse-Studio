@@ -9,6 +9,7 @@ import type { AudioItem } from "@/lib/audio/jobs";
 import { activeVisual, ASPECTS, clipDur, duplicateClip, emptyProject, fadeFactor, fmtTime, isVisual, layout, newClip, newText, removeClip, reorderVisual, sizeFor, splitAt, totalDur, trimEnd, trimStart, type Aspect, type Clip, type Project } from "@/lib/editor/model";
 import { drawFrame, exportProject, type Media } from "@/lib/editor/render";
 import "./video-editor.css";
+import { useLeaveWarning } from "@/lib/leave-warning";
 
 type Sel = { type: "clip" | "text"; id: string } | null;
 type Pick = { kind: Clip["kind"]; src: string; name: string; dur: number | null };
@@ -46,6 +47,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
   const [playing, setPlaying] = useState(false);
   const [pps, setPps] = useState(60);
   const [busy, setBusy] = useState<{ f: number; label: string } | null>(null);
+  useLeaveWarning(!!busy);
   const [error, setError] = useState("");
   const [picker, setPicker] = useState(false);
   const [dragX, setDragX] = useState<{ id: string; dx: number } | null>(null);

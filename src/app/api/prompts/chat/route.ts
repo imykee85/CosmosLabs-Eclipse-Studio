@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const raw: unknown[] = Array.isArray(body?.messages) ? body.messages.slice(-MAX_TURNS) : [];
   const turns: { role: "user" | "assistant"; text: string }[] = [];
   for (const m of raw as { role?: string; text?: string }[]) {
-    const text = typeof m?.text === "string" ? m.text.trim().slice(0, 8000) : "";
+    const text = typeof m?.text === "string" ? m.text.trim() : "";
     if (!text || (m.role !== "user" && m.role !== "assistant")) continue;
     const last = turns[turns.length - 1];
     if (last && last.role === m.role) last.text += `\n\n${text}`; // the API wants alternating turns

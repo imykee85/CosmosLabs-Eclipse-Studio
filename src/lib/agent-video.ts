@@ -7,6 +7,7 @@ import { downloadObjectToFile, signedGetUrl, storageEnabled } from "@/lib/storag
 import { frameAt, probeVideo, run, spacedTimes } from "@/lib/video-frames";
 import { storeUpload } from "@/lib/uploads";
 import { claimUsage } from "@/lib/usage";
+import { accessFor } from "@/lib/access";
 
 // Atlas's eyes for video (Atlas only; custom agents are not given these tools). The model cannot take a video file, so a clip is watched as a set of still
 // frames spread across it, each labelled with its time. It sees no sound. Everything is owner-checked: the model names a clip by id, and only the signed-in
@@ -49,7 +50,9 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
   if (!clip?.storageKey) return fail("That video could not be found. Use list_videos to see the user's videos.");
   // Watching is costly (many pictures), so it has its own daily limit: AGENT_VIDEO_DAILY, 20 by default.
   const limit = Number(process.env.AGENT_VIDEO_DAILY) > 0 ? Math.floor(Number(process.env.AGENT_VIDEO_DAILY)) : 20;
-  if (name === "watch_video" && !(await claimUsage(userId, "agent-video", limit, 24 * 3600 * 1000))) return fail(`The daily limit of ${limit} video watches is used up. It resets on a rolling 24 hours.`);
+  // Scale and the owner have no daily limit on watching videos (owner 2026-11-07); other plans keep the daily count.
+  const unlimited = (await accessFor(userId, userId)).plan === "scale";
+  if (name === "watch_video" && !unlimited && !(await claimUsage(userId, "agent-video", limit, 24 * 3600 * 1000))) return fail(`The daily limit of ${limit} video watches is used up. It resets on a rolling 24 hours.`);
   if (name === "capture_frame" && state.captures >= MAX_CAPTURES_PER_TURN) return fail(`At most ${MAX_CAPTURES_PER_TURN} frames can be captured in one reply.`);
 
   const dir = await mkdtemp(join(tmpdir(), "eclipse-vid-"));

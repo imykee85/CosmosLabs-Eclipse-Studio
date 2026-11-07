@@ -418,7 +418,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                 {m.attach && m.attach.length > 0 && <div className="aw-attached">{m.attach.map((a, i) => (a.id ? <button key={a.id + i} type="button" className="aw-open" aria-label={`Open ${a.name}`} title="Open" onClick={() => setViewing({ kind: a.kind, id: a.id!, name: a.name })}><Thumb kind={a.kind} id={a.id} name={a.name} big /></button> : <span key={a.name + i} className="aw-att-name">{a.name}</span>))}</div>}
                 {editing?.id === m.id ? (
                   <form className="aw-edit" onSubmit={(e) => { e.preventDefault(); const t = editing.text; setEditing(null); void chat.resend(m.id, t); }}>
-                    <GrowArea rows={2} value={editing.text} maxLength={4000} aria-label="Edit your message" autoFocus onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                    <GrowArea rows={2} value={editing.text} aria-label="Edit your message" autoFocus onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
                       onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); const t = editing.text; setEditing(null); void chat.resend(m.id, t); } }} />
                     <div className="aw-edit-acts">
                       <button type="button" onClick={() => setEditing(null)}>Cancel</button>

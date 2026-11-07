@@ -17,6 +17,7 @@ import { useAgentHost } from "@/lib/agent-chat";
 import { readCurrentProject } from "@/lib/projects";
 import { useDictation } from "@/lib/use-dictation";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
+import { useLeaveWarning } from "@/lib/leave-warning";
 import { PICK_LIMIT_BYTES, shrinkToFit } from "@/lib/shrink-image";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import BrandLogo from "./brands";
@@ -53,6 +54,7 @@ function ConnectChat() {
   const [docs, setDocs] = useState<{ name: string; text: string }[]>([]); // text documents for the next message (kept in the chat)
   const [uploads, setUploads] = useState<{ key: number; label: string; kind: "picture" | "video"; progress: number }[]>([]); // files on their way, shown as tiles with a progress bar
   const uploadKey = useRef(0);
+  useLeaveWarning(busy || uploads.length > 0);
   const [clip, setClip] = useState<{ id: string; label: string } | null>(null); // one video, watched end to end when sent
   const [clipBusy, setClipBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
@@ -124,6 +126,8 @@ function ConnectChat() {
           else if (e.t === "error") patch((a) => ({ ...a, error: e.message }));
         }
       }
+      // The stream ended without any answer (the connection closed or the server stopped early): say so, so nothing looks silently stuck.
+      patch((a) => (a.parts.length || a.error ? a : { ...a, error: "No reply came back. Your message is saved: open this chat again in a moment, or send it once more." }));
     } catch {
       patch((a) => ({ ...a, error: "The connection dropped. Reload this chat to see what was saved." }));
     } finally {
@@ -290,7 +294,7 @@ function ConnectChat() {
               ))}
             </div>
           )}
-          <GrowArea ref={box} rows={2} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} aria-label="Message box" maxLength={8000}
+          <GrowArea ref={box} rows={2} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} aria-label="Message box"
             placeholder={chatting ? "Reply…" : "Ask for an image, run a skill, or send something to an app..."} />
           {notice && <p className="cn-err" role="alert">{notice}</p>}
           <div className="cn-tools">

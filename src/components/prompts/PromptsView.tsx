@@ -196,7 +196,7 @@ export default function PromptsView() {
           <div className={`pm-msg is-${m.role} ${m.error ? "is-error" : ""} ${editing?.id === m.id ? "is-editing" : ""}`}>
             {m.role === "user" && editing?.id === m.id ? (
               <form className="pm-edit" onSubmit={(e) => { e.preventDefault(); resend(); }}>
-                <GrowArea rows={2} value={editing.text} maxLength={6000} aria-label="Edit your message" autoFocus onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                <GrowArea rows={2} value={editing.text} aria-label="Edit your message" autoFocus onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
                   onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); resend(); } }} />
                 <div className="pm-edit-acts">
                   <button type="button" onClick={() => setEditing(null)}>Cancel</button>
@@ -254,7 +254,7 @@ export default function PromptsView() {
               ))}
             </div>
           )}
-          <GrowArea rows={2} value={text} maxLength={6000} aria-label="Describe your idea" placeholder={engine.forModel === "video" ? "Describe the video you want…" : "Describe the image you want…"}
+          <GrowArea rows={2} value={text} aria-label="Describe your idea" placeholder={engine.forModel === "video" ? "Describe the video you want…" : "Describe the image you want…"}
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
           <div className="pm-tools">
             <button type="button" className="pm-tool" aria-label="Add a file" title="Add a file" onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
