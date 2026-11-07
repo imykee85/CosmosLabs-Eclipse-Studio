@@ -20,7 +20,8 @@ export type AgentEvent =
   | { t: "error"; message: string }
   | { t: "done" };
 
-const MAX_CHAT_MESSAGES = 120; // stored rows per chat; past this a new chat is needed (the stored chat is never trimmed; what is SENT shortens old pictures and big results, see prompt-cache.ts)
+// No limit on how long a chat is (owner 2026-11-07). Every message stays stored. What is SENT to the model is the most recent part of the chat (MODEL_WINDOW rows, cut at a person's message so tool calls and results stay paired) plus the shortening in prompt-cache.ts.
+const MODEL_WINDOW = 300;
 const MAX_STEPS = 8;
 const TIME_BUDGET_MS = 48_000; // no new step after this; the route may run 120 s (a build-machine step can take 25 s)
 const MAX_IMAGES = 3;
@@ -88,6 +89,14 @@ async function imageBlocks(userId: string, ids: string[]): Promise<Block[]> {
 const toParam = (r: { role: string; content: unknown }): Param => ({ role: r.role === "assistant" ? "assistant" : "user", content: r.content as Block[] });
 
 /** One user turn: stores the message, runs the model and its tools until it answers, storing every step as it goes. */
+// The most recent part of the chat that is sent to the model: from a person's message, so tool results never lose their tool call.
+function windowFrom(messages: Param[]): Param[] {
+  if (messages.length <= MODEL_WINDOW) return messages;
+  let start = messages.length - MODEL_WINDOW;
+  while (start < messages.length && !(messages[start].role === "user" && typeof messages[start].content === "string" || (messages[start].role === "user" && Array.isArray(messages[start].content) && (messages[start].content as Block[]).some((b) => b.type === "text")))) start++;
+  return messages.slice(start);
+}
+
 export async function runTurn(opts: {
   userId: string; chatId: string | null; projectId: string | null; text: string; imageIds: string[]; clipId?: string | null; attached?: { type: "render" | "upload" | "video"; id: string; label: string }[]; model: string; emit: (e: AgentEvent) => void;
 }): Promise<void> {
@@ -101,7 +110,6 @@ export async function runTurn(opts: {
   const chatId = chat.id;
 
   const rows = await db.connectMessage.findMany({ where: { chatId }, orderBy: { seq: "asc" } });
-  if (rows.length >= MAX_CHAT_MESSAGES) return emit({ t: "error", message: "This chat has gotten long. Start a new chat to keep going; your memory carries over." });
   let seq = rows.length ? rows[rows.length - 1].seq : 0;
   const messages: Param[] = rows.map(toParam);
 
@@ -154,7 +162,7 @@ export async function runTurn(opts: {
         // cache breakpoints: system + tools, and the last block of the history (moved forward every step); SYSTEM and BRAND_RULE stay byte-identical between calls
         system: cachedSystem(`${SYSTEM}\n\n${BRAND_RULE}`),
         tools: [...toolDefs, ...VIDEO_TOOLS] as typeof toolDefs,
-        messages: cacheLast(trimHistory(messages)) as Param[],
+        messages: cacheLast(trimHistory(windowFrom(messages))) as Param[],
         ...(useFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
       });
       stream.on("text", (d) => { said += d; emit({ t: "text", d }); });
