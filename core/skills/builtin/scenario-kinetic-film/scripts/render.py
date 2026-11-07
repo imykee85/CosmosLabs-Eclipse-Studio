@@ -30,7 +30,13 @@ for i in range(workers):
         jobs.append((p, subprocess.Popen([sys.executable, '-I', os.path.join(here, 'post.py'), str(dsf), str(s), str(e), p, str(fps)], env=env, stdout=log, stderr=subprocess.STDOUT)))
 try: bad = [p for p, j in jobs if j.wait() != 0]
 finally: srv.shutdown()
-if bad: sys.exit(f'frames missing in {bad}: see the .log beside each part')
+if bad:
+    # Show the reason from each failed part's own log, so the job error says what went wrong (not only that frames are missing).
+    for p in bad:
+        try: tail = open(p[:-4] + '.log', encoding='utf-8', errors='replace').read()[-900:]
+        except Exception as e: tail = f'(no log: {e})'
+        print(f'part {os.path.basename(p)} failed:\n{tail}', file=sys.stderr)
+    sys.exit(f'frames missing in {bad}: see the .log beside each part')
 lst = os.path.join(parts, 'list.txt')
 with open(lst, 'w') as fh: fh.write(''.join(f"file '{os.path.basename(p)}'\n" for p, _ in jobs))
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', lst, '-c', 'copy', '-movflags', '+faststart', out], check=True)
