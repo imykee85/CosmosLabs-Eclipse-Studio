@@ -28,8 +28,8 @@ export async function POST(req: Request) {
   if (body?.background === true) {
     const run = await db.agentRun.create({ data: { userId, status: "pending" }, select: { id: true } });
     waitUntil(work().then(
-      (out) => db.agentRun.update({ where: { id: run.id }, data: { status: out.status === 200 ? "done" : "failed", result: { status: out.status, body: out.json } as Prisma.InputJsonValue } }),
-      () => db.agentRun.update({ where: { id: run.id }, data: { status: "failed", result: { status: 502, body: { error: "The agent couldn't answer. Please try again." } } as Prisma.InputJsonValue } }),
+      (out) => db.agentRun.updateMany({ where: { id: run.id, status: "pending" }, data: { status: out.status === 200 ? "done" : "failed", result: { status: out.status, body: out.json } as Prisma.InputJsonValue } }),
+      () => db.agentRun.updateMany({ where: { id: run.id, status: "pending" }, data: { status: "failed", result: { status: 502, body: { error: "The agent couldn't answer. Please try again." } } as Prisma.InputJsonValue } }),
     ).catch((err) => console.error("agent run could not be saved", run.id, err)));
     return NextResponse.json({ runId: run.id }, { status: 202 });
   }
