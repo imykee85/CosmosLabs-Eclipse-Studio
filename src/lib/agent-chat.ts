@@ -107,7 +107,7 @@ let busyAgents = new Set<string>();
 
 // Replies being written on the server. Kept in this browser so that a reply started on one page is collected on the next, even after the browser was closed.
 const RUNS = "eclipse-agent-runs";
-type PendingRun = { agent: string; runId: string; page: string };
+type PendingRun = { agent: string; runId: string; page: string, at?: number };
 function readRuns(): PendingRun[] {
   try { const raw = JSON.parse(localStorage.getItem(RUNS) ?? "[]"); return Array.isArray(raw) ? raw.filter((r) => r && typeof r.runId === "string" && typeof r.agent === "string") : []; } catch { return []; }
 }
@@ -176,9 +176,11 @@ export function cancelPlan(agent: string, msgId: string) {
 async function followRun(agent: string, runId: string, page: string) {
   if (following.has(runId)) return;
   following.add(runId);
-  if (!readRuns().some((r) => r.runId === runId)) writeRuns([...readRuns(), { agent, runId, page }]);
+  if (!readRuns().some((r) => r.runId === runId)) writeRuns([...readRuns(), { agent, runId, page, at: Date.now() }]);
   try {
-    for (let i = 0; i < 400; i++) {
+    let done = false;
+    // About four and a half minutes at most. A reply that is still not ready then is given up on, so the chat is never stuck (and New chat works again).
+    for (let i = 0; i < 90; i++) {
       await new Promise((r) => setTimeout(r, i < 10 ? 1500 : 3000));
       let d: { status?: string; result?: { status: number; body: Record<string, unknown> } };
       try {
@@ -188,8 +190,13 @@ async function followRun(agent: string, runId: string, page: string) {
       } catch { continue; }
       if (d.status === "pending" || !d.result) continue;
       showReply(agent, page, d.result.status, d.result.body);
+      done = true;
       await fetch(`/api/agent/runs/${runId}`, { method: "DELETE" }).catch(() => {});
       break;
+    }
+    if (!done) {
+      addTo(agent, { role: "agent", text: "That reply took too long and was stopped. Please send your message again.", error: true });
+      await fetch(`/api/agent/runs/${runId}`, { method: "DELETE" }).catch(() => {});
     }
   } finally {
     following.delete(runId);
@@ -199,7 +206,10 @@ async function followRun(agent: string, runId: string, page: string) {
 }
 // Replies still being written when the app opens again are picked up here.
 if (typeof window !== "undefined") {
-  for (const r of readRuns()) void followRun(r.agent, r.runId, r.page);
+  // A reply left from long ago is not waited for again (it would hold the chat shut); the server drops it on its own.
+  const fresh = readRuns().filter((r) => !r.at || Date.now() - r.at < 5 * 60_000);
+  if (fresh.length !== readRuns().length) writeRuns(fresh);
+  for (const r of fresh) void followRun(r.agent, r.runId, r.page);
 }
 
 export function useAgentChat(agent: string | null) {
