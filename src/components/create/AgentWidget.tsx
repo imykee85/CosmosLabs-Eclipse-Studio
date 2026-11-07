@@ -3,7 +3,7 @@
 import GrowArea from "@/components/GrowArea";
 import { thumbOf, fallbackTo } from "@/lib/thumb-url";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Pencil, Plus, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
+import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Pencil, Plus, RotateCcw, Square, SquarePen, Trash2, X } from "lucide-react";
 import AgentIcon from "../AgentIcon";
 import { canUseFrame, hostPage, readHostContext, useAgentChat, type Attach, type AttachedDoc } from "@/lib/agent-chat";
 import { diffWords, thinkingLines, type Proposal } from "@/lib/agent-proposal";
@@ -477,8 +477,10 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           <form className="aw-input" onSubmit={submit}>
             <input ref={fileIn} type="file" hidden multiple onChange={(e) => void addFiles(e.target.files)} />
             <button type="button" className="aw-clip" aria-label="Add a file" title="Add a file" disabled={chat.busy || atts.length + docs.length >= 8} onClick={() => fileIn.current?.click()}><Plus size={15} /></button>
-            <GrowArea noExpand value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} maxLength={2000} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
-            <button type="submit" aria-label="Send" disabled={!draft.trim() || chat.busy || uploading !== null}><ArrowUp size={16} /></button>
+            <GrowArea noExpand value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
+            {chat.busy
+              ? <button type="button" aria-label="Stop" title="Stop" onClick={() => chat.stop()}><Square size={14} /></button>
+              : <button type="submit" aria-label="Send" disabled={!draft.trim() || uploading !== null}><ArrowUp size={16} /></button>}
           </form>
         </div>
       )}

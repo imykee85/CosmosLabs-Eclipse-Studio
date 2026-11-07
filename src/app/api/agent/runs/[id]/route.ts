@@ -15,6 +15,18 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   return NextResponse.json({ status: run.status, result: run.result });
 }
 
+// Stop: a reply still being written is marked canceled. Its answer is then never shown, and the chat is free again.
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  if (!clerkEnabled) return NextResponse.json({ ok: true });
+  const { workspaceId: userId } = await workspaceSession();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await req.json().catch(() => null);
+  if (body?.action !== "stop") return NextResponse.json({ error: "Unknown action." }, { status: 400 });
+  const { id } = await props.params;
+  await db.agentRun.updateMany({ where: { id, userId, status: "pending" }, data: { status: "canceled" } });
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
   if (!clerkEnabled) return NextResponse.json({ ok: true });
   const { workspaceId: userId } = await workspaceSession();

@@ -179,6 +179,7 @@ async function followRun(agent: string, runId: string, page: string) {
   if (!readRuns().some((r) => r.runId === runId)) writeRuns([...readRuns(), { agent, runId, page, at: Date.now() }]);
   try {
     let done = false;
+    let stopped = false;
     // About four and a half minutes at most. A reply that is still not ready then is given up on, so the chat is never stuck (and New chat works again).
     for (let i = 0; i < 90; i++) {
       await new Promise((r) => setTimeout(r, i < 10 ? 1500 : 3000));
@@ -188,13 +189,14 @@ async function followRun(agent: string, runId: string, page: string) {
         if (res.status === 404) break; // gone (or not yours): nothing more to wait for
         d = await res.json();
       } catch { continue; }
+      if (d.status === "canceled") { stopped = true; break; }
       if (d.status === "pending" || !d.result) continue;
       showReply(agent, page, d.result.status, d.result.body);
       done = true;
       await fetch(`/api/agent/runs/${runId}`, { method: "DELETE" }).catch(() => {});
       break;
     }
-    if (!done) {
+    if (!done && !stopped) {
       addTo(agent, { role: "agent", text: "That reply took too long and was stopped. Please send your message again.", error: true });
       await fetch(`/api/agent/runs/${runId}`, { method: "DELETE" }).catch(() => {});
     }
@@ -204,6 +206,18 @@ async function followRun(agent: string, runId: string, page: string) {
     refreshCredits();
   }
 }
+// Stop: the reply being written for this chat is cancelled (the server drops its answer) and the chat is free to use again.
+export async function stopAgent(agent: string) {
+  const mine = readRuns().filter((r) => r.agent === agent);
+  if (!mine.length) return;
+  writeRuns(readRuns().filter((r) => r.agent !== agent));
+  for (const r of mine) {
+    addTo(agent, { role: "agent", text: "Stopped.", note: true } as Omit<Msg, "id">);
+    await fetch(`/api/agent/runs/${r.runId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "stop" }) }).catch(() => {});
+  }
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: agent }));
+}
+
 // Replies still being written when the app opens again are picked up here.
 if (typeof window !== "undefined") {
   // A reply left from long ago is not waited for again (it would hold the chat shut); the server drops it on its own.
@@ -354,7 +368,7 @@ export function useAgentChat(agent: string | null) {
     write(agent, hit.messages);
   }, [agent]);
   const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
-  return { messages, busy, send, approvePlan: (id: string) => approvePlan(agent ?? "", id), cancelPlan: (id: string) => cancelPlan(agent ?? "", id), retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
+  return { messages, busy, stop: () => void stopAgent(agent ?? ""), send, approvePlan: (id: string) => approvePlan(agent ?? "", id), cancelPlan: (id: string) => cancelPlan(agent ?? "", id), retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
 }
 
 /** True when the screen the user is on can take a captured frame into its prompt box. */
