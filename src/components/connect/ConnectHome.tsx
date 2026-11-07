@@ -7,6 +7,7 @@ import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } fro
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, Brain, Clock, Film, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
 import { attachKind, readDocument } from "@/lib/attach-file";
+import { videoUploadType } from "@/lib/upload-type";
 import AgentIcon from "../AgentIcon";
 import AgentMenu from "../create/AgentMenu";
 import AgentWidget from "../create/AgentWidget";
@@ -176,7 +177,8 @@ function ConnectChat() {
   }
   async function uploadClip(f: File | undefined) {
     if (!f) return;
-    if (!f.type.startsWith("video/")) { setNotice("Only video files can be attached here."); return; }
+    // iPhone videos often arrive with no type: the same type the upload sends is used for this check.
+    if (!videoUploadType(f).startsWith("video/")) { setNotice("Only video files can be attached here."); return; }
     setClipBusy(true);
     const key = ++uploadKey.current;
     setUploads((l) => [...l, { key, label: f.name, kind: "video", progress: 0 }]);

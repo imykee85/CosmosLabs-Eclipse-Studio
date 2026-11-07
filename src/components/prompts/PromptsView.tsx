@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Check, Clapperboard, Copy, Layers, Loader2, Mic, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { attachKind, readDocument, type DocumentRead } from "@/lib/attach-file";
+import { videoUploadType } from "@/lib/upload-type";
 import { PROMPT_ENGINES, type PromptEngine } from "@/lib/prompt-engines";
 import { readCurrentProject } from "@/lib/projects";
 import { useDraftText } from "@/lib/use-draft-text";
@@ -128,7 +129,7 @@ export default function PromptsView() {
   async function uploadClip(f: File | undefined) {
     if (!f) return;
     setNote("");
-    if (!f.type.startsWith("video/")) { setNote("Only video files can be added here."); return; }
+    if (!videoUploadType(f).startsWith("video/")) { setNote("Only video files can be added here."); return; }
     setClipBusy(true);
     try {
       const r = await uploadVideo<{ id: string }>(f, f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Video", readCurrentProject()?.id ?? null);
