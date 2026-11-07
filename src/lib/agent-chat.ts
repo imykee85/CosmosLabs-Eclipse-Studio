@@ -116,7 +116,7 @@ function writeRuns(list: PendingRun[]) {
   window.dispatchEvent(new CustomEvent(EVENT, { detail: "" }));
 }
 // A reply counts as running only while it is recent: an old record left behind (no start time, or more than five minutes ago) must never keep the chat showing "thinking".
-const RUN_FRESH_MS = 5 * 60_000;
+const RUN_FRESH_MS = 6 * 60_000;
 const isFresh = (r: PendingRun) => !!r.at && Date.now() - r.at < RUN_FRESH_MS;
 export function hasPendingRun(agent: string): boolean {
   return readRuns().some((r) => r.agent === agent && isFresh(r));
@@ -184,7 +184,7 @@ async function followRun(agent: string, runId: string, page: string) {
     let done = false;
     let stopped = false;
     // About four and a half minutes at most. A reply that is still not ready then is given up on, so the chat is never stuck (and New chat works again).
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 110; i++) {
       await new Promise((r) => setTimeout(r, i < 10 ? 1500 : 3000));
       let d: { status?: string; result?: { status: number; body: Record<string, unknown> } };
       try {

@@ -28,6 +28,7 @@ export type ToolRun = { content: Anthropic.ToolResultBlockParam["content"]; fram
 const WATCH_FRAME_WIDTH = 768;
 const DEFAULT_FRAMES = 16;
 const MAX_CAPTURES_PER_TURN = 6;
+const PROXY_LIMIT_MS = 150_000;
 
 const fail = (text: string): ToolRun => ({ content: text, isError: true });
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -61,14 +62,20 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
     // work in this environment, a copy of up to 300 MB is made in the temp folder instead.
     let file = await signedGetUrl(clip.storageKey, 900);
     let info = await probeVideo(file);
-    if (!info) {
-      // Compatibility copy: whatever the phone or camera made (MOV, HEVC, MP4 with the index at the end...), re-encode it to H.264 MP4 and read that.
+    // Compatibility copy: whatever the phone or camera made (MOV, HEVC 10-bit, 4K, MP4 with the index at the end...) is re-encoded to H.264 MP4 and read
+    // from that. A phone-length 4K clip takes about 40 s to re-encode on a fast machine, so the limit is well above that.
+    let proxied = false;
+    const storageKey = clip.storageKey;
+    const makeProxy = async (): Promise<boolean> => {
+      if (proxied) return false;
+      proxied = true;
       const source = join(dir, "source.bin");
-      try { await downloadObjectToFile(clip.storageKey, source); } catch { return fail("The video is too large to open."); }
+      try { await downloadObjectToFile(storageKey, source); } catch { return false; }
       file = join(dir, "clip.mp4");
-      const made = await run(["-y", "-i", source, "-vf", "scale='min(1280,iw)':-2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", file], 40_000).catch(() => null);
-      info = made?.code === 0 ? await probeVideo(file) : null;
-    }
+      const made = await run(["-y", "-i", source, "-vf", "scale='min(960,iw)':-2", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", file], PROXY_LIMIT_MS).catch(() => null);
+      return made?.code === 0;
+    };
+    if (!info && await makeProxy()) info = await probeVideo(file);
     const duration = info?.duration ?? clip.durationSec ?? null;
     if (!duration || duration <= 0) return fail("The video file could not be read.");
 
@@ -77,8 +84,10 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
       const to = Math.min(Math.max(num(input.to_sec) ?? duration, from), duration);
       const count = Math.min(24, Math.max(4, Math.floor(num(input.frames) ?? DEFAULT_FRAMES)));
       const times = spacedTimes(from, to === from ? Math.min(duration, from + 0.5) : to, count);
-      const shots = await Promise.all(times.map((t) => frameAt(file, t, WATCH_FRAME_WIDTH).then((b) => ({ t, b })).catch(() => null)));
-      const good = shots.filter((s): s is { t: number; b: Buffer } => !!s);
+      const readFrames = () => Promise.all(times.map((t) => frameAt(file, t, WATCH_FRAME_WIDTH).then((b) => ({ t, b })).catch(() => null)));
+      let good = (await readFrames()).filter((s): s is { t: number; b: Buffer } => !!s);
+      // The file opened but no picture could be read from it: try the H.264 copy once before giving up.
+      if (!good.length && await makeProxy()) good = (await readFrames()).filter((s): s is { t: number; b: Buffer } => !!s);
       if (!good.length) return fail("No frames could be read from this video.");
       const content: Anthropic.ToolResultBlockParam["content"] = [{ type: "text", text: `Video of ${duration.toFixed(1)} s. ${good.length} frames from ${from.toFixed(1)} s to ${to.toFixed(1)} s follow, each labelled with its time. There is no sound.` }];
       for (const s of good) {
