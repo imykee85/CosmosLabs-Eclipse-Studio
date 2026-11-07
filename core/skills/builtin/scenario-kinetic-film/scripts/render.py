@@ -27,7 +27,7 @@ for i in range(workers):
     if s >= e: continue
     p = os.path.join(parts, f'part{i}.mp4')
     with open(os.path.join(parts, f'part{i}.log'), 'w') as log:  # the worker keeps its own copy of the handle
-        jobs.append((p, subprocess.Popen([sys.executable, '-I', os.path.join(here, 'post.py'), str(dsf), str(s), str(e), p, str(fps)], env=env, stdout=log, stderr=subprocess.STDOUT)))
+        jobs.append((p, subprocess.Popen([sys.executable, os.path.join(here, 'post.py'), str(dsf), str(s), str(e), p, str(fps)], env=env, stdout=log, stderr=subprocess.STDOUT)))
 try: bad = [p for p, j in jobs if j.wait() != 0]
 finally: srv.shutdown()
 if bad:
