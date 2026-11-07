@@ -1,0 +1,36 @@
+import { test, expect } from "@playwright/test";
+
+// Owner report: opening an earlier Atlas chat made the history show the current chat in place of the others. This seeds three chats and checks each stays itself.
+test("opening an earlier Atlas chat keeps every chat separate", async ({ page }) => {
+  const msg = (id: string, role: "user" | "agent", text: string) => ({ id, role, text });
+  const pastA = { id: "pa", at: Date.now() - 3000, title: "A question", messages: [msg("a1", "user", "A question"), msg("a2", "agent", "A answer")] };
+  const pastB = { id: "pb", at: Date.now() - 2000, title: "B question", messages: [msg("b1", "user", "B question"), msg("b2", "agent", "B answer")] };
+  await page.addInitScript((seed) => {
+    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    localStorage.setItem("eclipse-agent", "Atlas");
+    localStorage.setItem("eclipse-agent-on", "1");
+    localStorage.setItem("eclipse-agent-history-Atlas", JSON.stringify([seed.pastA, seed.pastB]));
+    localStorage.setItem("eclipse-agent-chat-Atlas", JSON.stringify([{ id: "c1", role: "user", text: "Current question" }, { id: "c2", role: "agent", text: "Current answer" }]));
+  }, { pastA, pastB });
+  await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+  await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
+  await page.goto("/create");
+  await page.locator(".aw-btn").click();
+  await expect(page.locator(".aw-panel")).toBeVisible();
+  await page.click("button[aria-label='Chat history']");
+  await expect(page.locator(".aw-past-row")).toHaveCount(2);
+  await page.click(".aw-past-row button >> text=A question");
+  // The open chat is A, not the current one.
+  await expect(page.locator(".aw-panel")).toContainText("A answer");
+  await expect(page.locator(".aw-panel")).not.toContainText("Current answer");
+  // History now holds B and the current chat (filed in place of A).
+  await page.click("button[aria-label='Chat history']");
+  const titles = await page.locator(".aw-past-row b").allInnerTexts();
+  expect(titles.sort()).toEqual(["B question", "Current question"].sort());
+  await page.locator(".aw-past-row button", { hasText: "B question" }).click();
+  await expect(page.locator(".aw-panel")).toContainText("B answer");
+  await page.click("button[aria-label='Chat history']");
+  const titles2 = await page.locator(".aw-past-row b").allInnerTexts();
+  expect(titles2.sort()).toEqual(["A question", "Current question"].sort());
+});

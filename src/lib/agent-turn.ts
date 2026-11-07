@@ -30,6 +30,8 @@ const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n);
 // prepareAgentTurn checks the request and returns the work to run; the caller decides how to run it (now, or as a background job).
 export type Out = { status: number; json: unknown };
 const MAX_ROUNDS = 5;
+// No new model call or tool round starts after this (the server limit is 300 s; see the chat route).
+const DEADLINE_MS = 200_000;
 
 
 // One turn of the conversation with a studio agent. The agent answers in words and may PROPOSE actions (generate, use a prompt, ask for approval); the browser shows them as
@@ -84,6 +86,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
   const canSet = Array.isArray(c.options) && c.options.length > 0;
 
   const work = async (): Promise<Out> => {
+    const turnStarted = Date.now();
     // The newest pictures of earlier messages are read again from our storage, so the agent can compare them with what it is shown now.
     const messages = buildMessages(turns, await loadHistoryImages(userId, historyPictures(turns), loadPromptImages));
     // The pictures attached to the box are shown to the agent (up to 8, ids only, owner-checked, read from our own storage).
@@ -114,7 +117,9 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     // Paid in Eclipse credits from what the reply really used (every model call, video frames included), charged once when it ends.
     const meter = new ChatMeter();
     try {
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
+      // Each model call has its own time limit, and the whole turn stops starting new steps after DEADLINE_MS, so the answer is always written before the server limit.
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 110_000 });
+      const deadline = turnStarted + DEADLINE_MS;
       const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
       // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
       const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
@@ -154,7 +159,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const state = { captures: 0 };
       let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
       meter.add(res.model, res.usage);
-      for (let round = 1; round < MAX_ROUNDS && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
+      for (let round = 1; round < MAX_ROUNDS && Date.now() < deadline && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
         const results: Anthropic.ToolResultBlockParam[] = [];
         for (const b of res.content) {
           if (b.type !== "tool_use") continue;
@@ -176,7 +181,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       }
       // A long answer that ran into the length limit is finished in more parts (up to four more), so it is never cut off.
       const pieces: string[] = [];
-      for (let part = 0; part < 4 && res.stop_reason === "max_tokens"; part++) {
+      for (let part = 0; part < 4 && res.stop_reason === "max_tokens" && Date.now() < deadline; part++) {
         pieces.push(res.content.map((b) => (b.type === "text" ? b.text : "")).join(""));
         convo.push({ role: "assistant", content: res.content }, { role: "user", content: "Continue exactly where you stopped." });
         res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
