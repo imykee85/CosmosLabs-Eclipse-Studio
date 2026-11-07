@@ -61,3 +61,37 @@ test("a reply that runs out of time shows its message and the chat takes the nex
   await page.keyboard.press("Control+Enter");
   await expect.poll(() => asked).toBe(2);
 });
+
+// Owner report: after Stop, the next chat got stuck. A stopped reply must not block the chat that follows.
+test("after Stop, the next message gets its reply", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    localStorage.setItem("eclipse-agent", "Atlas");
+    localStorage.setItem("eclipse-agent-on", "1");
+  });
+  let asked = 0;
+  const stopped: string[] = [];
+  await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+  await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
+  await page.route("**/api/agent/chat", (r) => { asked++; return r.fulfill({ status: 202, json: { runId: `s${asked}` } }); });
+  await page.route("**/api/agent/runs/s*", (r) => {
+    const id = r.request().url().split("/").pop() ?? "";
+    if (r.request().method() === "POST") { stopped.push(id); return r.fulfill({ json: { ok: true } }); }
+    if (r.request().method() === "DELETE") return r.fulfill({ json: { ok: true } });
+    // The first reply never arrives until it is stopped; the second one is answered.
+    if (id === "s1") return r.fulfill({ json: stopped.includes("s1") ? { status: "canceled" } : { status: "pending" } });
+    return r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Second reply arrived." } } } });
+  });
+  await page.goto("/create");
+  await page.locator(".aw-btn").click();
+  await page.locator(".aw-panel textarea").fill("First question");
+  await page.keyboard.press("Control+Enter");
+  await expect(page.locator(".aw-panel .aw-stop, .aw-panel button[aria-label='Stop']")).toBeVisible();
+  await page.locator(".aw-panel button[aria-label='Stop']").click();
+  await expect(page.locator(".aw-panel")).toContainText("Stopped.");
+  await page.locator(".aw-panel textarea").fill("Second question");
+  await page.keyboard.press("Control+Enter");
+  await expect(page.locator(".aw-panel")).toContainText("Second reply arrived.", { timeout: 15000 });
+  expect(asked).toBe(2);
+});
