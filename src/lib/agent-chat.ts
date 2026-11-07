@@ -115,8 +115,11 @@ function writeRuns(list: PendingRun[]) {
   try { localStorage.setItem(RUNS, JSON.stringify(list)); } catch {}
   window.dispatchEvent(new CustomEvent(EVENT, { detail: "" }));
 }
+// A reply counts as running only while it is recent: an old record left behind (no start time, or more than five minutes ago) must never keep the chat showing "thinking".
+const RUN_FRESH_MS = 5 * 60_000;
+const isFresh = (r: PendingRun) => !!r.at && Date.now() - r.at < RUN_FRESH_MS;
 export function hasPendingRun(agent: string): boolean {
-  return readRuns().some((r) => r.agent === agent);
+  return readRuns().some((r) => r.agent === agent && isFresh(r));
 }
 const following = new Set<string>();
 function addTo(agent: string, m: Omit<Msg, "id">) { write(agent, [...read(agent), { ...m, id: uid() } as Msg]); }
@@ -221,7 +224,7 @@ export async function stopAgent(agent: string) {
 // Replies still being written when the app opens again are picked up here.
 if (typeof window !== "undefined") {
   // A reply left from long ago is not waited for again (it would hold the chat shut); the server drops it on its own.
-  const fresh = readRuns().filter((r) => !r.at || Date.now() - r.at < 5 * 60_000);
+  const fresh = readRuns().filter(isFresh);
   if (fresh.length !== readRuns().length) writeRuns(fresh);
   for (const r of fresh) void followRun(r.agent, r.runId, r.page);
 }
