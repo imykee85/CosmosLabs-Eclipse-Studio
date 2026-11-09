@@ -3,6 +3,7 @@
 const VIDEO_BY_EXT: Record<string, string> = {
   mp4: "video/mp4", m4v: "video/x-m4v", mov: "video/quicktime", webm: "video/webm", mkv: "video/x-matroska", avi: "video/x-msvideo",
   "3gp": "video/3gpp", mpg: "video/mpeg", mpeg: "video/mpeg", ts: "video/mp2t", mts: "video/mp2t", m2ts: "video/mp2t", wmv: "video/x-ms-wmv", flv: "video/x-flv",
+  qt: "video/quicktime", "3g2": "video/3gpp2", m2v: "video/mpeg", vob: "video/mpeg", asf: "video/x-ms-asf", f4v: "video/x-f4v", ogv: "video/ogg",
 };
 
 /** The content type to upload a video with: the browser's own when it is a real video type, else one worked out from the file name. */

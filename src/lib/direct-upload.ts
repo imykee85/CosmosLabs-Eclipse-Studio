@@ -4,7 +4,7 @@ import { readImageSize } from "@/lib/image-info";
 import { copyObjectIfMatch, deleteObject, getObjectBytes, getObjectHead, headObjectInfo, putObject, signedGetUrl, signedPutUrl, storageEnabled } from "@/lib/storage";
 import { MAX_UPLOADS_PER_USER, convertPicture, isUploadKind, sniffImageType, type UploadKind } from "@/lib/uploads";
 import { scanUpload } from "@/lib/upload-scan";
-import { frameAt, probeVideo, shrinkPicture, spacedTimes } from "@/lib/video-frames";
+import { probeVideo, readFrames, shrinkPicture, spacedTimes } from "@/lib/video-frames";
 
 // Big uploads go from the browser straight to storage (a one-time signed link), because the host rejects any request to our own server over about 4.5 MB.
 // Two steps: `startUpload` checks the plan and hands out the link; `finishUpload` runs AFTER the file is in storage: it reads the real type from the file's
@@ -112,10 +112,22 @@ export async function finishImage(userId: string, originalKey: string, meta: { k
   return { ok: true as const, item: row };
 }
 
-// MP4, MOV, M4V, 3GP (ftyp box), Matroska and WebM (EBML), AVI (RIFF). ffmpeg reads them all; the providers take the ones they accept.
-const sniffVideo = (b: Uint8Array) => (b.length > 12 && String.fromCharCode(b[4], b[5], b[6], b[7]) === "ftyp")
-  || (b.length > 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3)
-  || (b.length > 12 && String.fromCharCode(b[0], b[1], b[2], b[3]) === "RIFF" && String.fromCharCode(b[8], b[9], b[10], b[11]) === "AVI ");
+// What counts as a video file, read from its first bytes. Every binary video container ffmpeg reads is accepted: MP4, MOV, M4V, 3GP (ISO/QuickTime boxes;
+// QuickTime files from phone apps can start with a wide, free, skip or mdat box instead of ftyp), Matroska and WebM (EBML), AVI (RIFF), MPEG transport
+// streams (.ts, .mts, .m2ts: sync byte 0x47 every 188 or 192 bytes), MPEG program streams (.mpg, .vob), FLV, WMV/ASF and Ogg. Text formats ffmpeg can
+// also open (HLS playlists, concat lists...) are NOT accepted: they can make it fetch other addresses from this server.
+export function sniffVideo(b: Uint8Array): boolean {
+  const tag = (at: number) => (b.length >= at + 4 ? String.fromCharCode(b[at], b[at + 1], b[at + 2], b[at + 3]) : "");
+  if (["ftyp", "moov", "mdat", "wide", "free", "skip", "pnot", "uuid"].includes(tag(4))) return true;
+  if (b.length > 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return true;
+  if (tag(0) === "RIFF" && tag(8) === "AVI ") return true;
+  if (b.length > 376 && b[0] === 0x47 && b[188] === 0x47 && b[376] === 0x47) return true;
+  if (b.length > 388 && b[4] === 0x47 && b[196] === 0x47 && b[388] === 0x47) return true;
+  if (b.length > 4 && b[0] === 0 && b[1] === 0 && b[2] === 1 && (b[3] === 0xba || b[3] === 0xb3)) return true;
+  if (tag(0).startsWith("FLV")) return true;
+  if (b.length > 8 && b[0] === 0x30 && b[1] === 0x26 && b[2] === 0xb2 && b[3] === 0x75 && b[4] === 0x8e && b[5] === 0x66 && b[6] === 0xcf && b[7] === 0x11) return true;
+  return tag(0) === "OggS";
+}
 
 const ratioOf = (w: number, h: number) => {
   const r = w / h;
@@ -133,7 +145,7 @@ export async function finishVideo(userId: string, startKey: string, meta: { name
   const head = await headObjectInfo(key);
   if (!head) return { ok: false as const, status: 404, error: "The upload did not arrive. Please try again." };
   if (head.size <= 0 || head.size > MAX_VIDEO_BYTES) return refuse(key, 413, `That video is larger than ${MAX_VIDEO_BYTES / 1024 / 1024} MB. Please use a smaller one.`);
-  if (!sniffVideo(await getObjectHead(key, 64))) return refuse(key, 400, "That file is not a video we can read.");
+  if (!sniffVideo(await getObjectHead(key, 512))) return refuse(key, 400, "That file is not a video we can read.");
 
   // ffmpeg reads the file straight from storage through a short-lived link (range requests), so a 500 MB video is never copied to this server.
   const src = await signedGetUrl(key, 900);
@@ -142,8 +154,8 @@ export async function finishVideo(userId: string, startKey: string, meta: { name
   if (info.duration > MAX_VIDEO_SECONDS) return refuse(key, 400, `That video is longer than ${MAX_VIDEO_SECONDS / 60} minutes. Please trim it.`);
 
   // The automatic content check looks at frames spread across the video (it is a safety net, not proof of ownership).
-  const shots = await Promise.all(spacedTimes(0, info.duration, SCAN_FRAMES).map((t) => frameAt(src, t, 768).catch(() => null)));
-  const frames = shots.filter((s): s is Buffer => !!s);
+  // readFrames copes with videos from phone editors (CapCut, InShot...), whose keyframes can be far apart.
+  const frames = (await readFrames(src, spacedTimes(0, info.duration, SCAN_FRAMES), 768)).map((f) => f.b);
   if (!frames.length) return refuse(key, 400, "That video could not be read. Try exporting it again as an MP4 (H.264).");
   for (const f of frames) {
     const scan = await scanUpload(new Uint8Array(f), "image/jpeg");

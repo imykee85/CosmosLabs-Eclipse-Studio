@@ -1,7 +1,7 @@
 // Every + button takes any file. A file is sorted by its name and type into a picture, a video or a document; pictures and videos go to storage
 // (see use-uploads.ts), documents go to the chat as an attachment and are kept with that chat only.
 const PICTURE = /\.(png|jpe?g|webp|gif|heic|heif|avif|bmp|tiff?|svg|ico|jxl)$/i;
-const VIDEO = /\.(mp4|m4v|mov|webm|mkv|avi|3gp|mpe?g|wmv|flv|ts|mts|m2ts)$/i;
+const VIDEO = /\.(mp4|m4v|mov|qt|webm|mkv|avi|3gp|3g2|mpe?g|m2v|vob|wmv|asf|flv|f4v|ogv|ts|mts|m2ts)$/i;
 const DOCX = /\.docx$/i;
 const PDF = /\.pdf$/i;
 const MAX_TEXT = 60_000;     // characters of a document sent with one message

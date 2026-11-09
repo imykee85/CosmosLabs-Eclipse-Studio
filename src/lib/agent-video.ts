@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { downloadObjectToFile, signedGetUrl, storageEnabled } from "@/lib/storage";
-import { frameAt, probeVideo, run, spacedTimes } from "@/lib/video-frames";
+import { frameAt, probeVideo, readFrames, run, spacedTimes } from "@/lib/video-frames";
 import { storeUpload } from "@/lib/uploads";
 import { claimUsage } from "@/lib/usage";
 import { accessFor } from "@/lib/access";
@@ -72,7 +72,7 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
       const source = join(dir, "source.bin");
       try { await downloadObjectToFile(storageKey, source); } catch { return false; }
       file = join(dir, "clip.mp4");
-      const made = await run(["-y", "-i", source, "-vf", "scale='min(960,iw)':-2", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", file], PROXY_LIMIT_MS).catch(() => null);
+      const made = await run(["-y", "-i", source, "-vf", "scale='min(960,iw)':-2", "-map", "0:V:0", "-an", "-sn", "-dn", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-g", "30", "-pix_fmt", "yuv420p", "-movflags", "+faststart", file], PROXY_LIMIT_MS).catch(() => null);
       return made?.code === 0;
     };
     if (!info && await makeProxy()) info = await probeVideo(file);
@@ -84,10 +84,10 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
       const to = Math.min(Math.max(num(input.to_sec) ?? duration, from), duration);
       const count = Math.min(24, Math.max(4, Math.floor(num(input.frames) ?? DEFAULT_FRAMES)));
       const times = spacedTimes(from, to === from ? Math.min(duration, from + 0.5) : to, count);
-      const readFrames = () => Promise.all(times.map((t) => frameAt(file, t, WATCH_FRAME_WIDTH).then((b) => ({ t, b })).catch(() => null)));
-      let good = (await readFrames()).filter((s): s is { t: number; b: Buffer } => !!s);
+      // Quick jumps for videos with frequent keyframes, one pass through the file for phone-edited videos (see readFrames).
+      let good = await readFrames(file, times, WATCH_FRAME_WIDTH);
       // The file opened but no picture could be read from it: try the H.264 copy once before giving up.
-      if (!good.length && await makeProxy()) good = (await readFrames()).filter((s): s is { t: number; b: Buffer } => !!s);
+      if (!good.length && await makeProxy()) good = await readFrames(file, times, WATCH_FRAME_WIDTH);
       if (!good.length) return fail("No frames could be read from this video.");
       const content: Anthropic.ToolResultBlockParam["content"] = [{ type: "text", text: `Video of ${duration.toFixed(1)} s. ${good.length} frames from ${from.toFixed(1)} s to ${to.toFixed(1)} s follow, each labelled with its time. There is no sound.` }];
       for (const s of good) {
@@ -99,8 +99,9 @@ export async function runVideoTool(userId: string, name: string, input: Record<s
 
     // capture_frame
     const sec = Math.min(Math.max(num(input.time_sec) ?? 0, 0), Math.max(0, duration - 0.05));
-    let jpeg = await frameAt(file, sec, 1920, 2);
-    if (jpeg.byteLength > 3.9 * 1024 * 1024) jpeg = await frameAt(file, sec, 1280, 5);
+    // One frame can mean decoding from far back when keyframes are sparse (phone-edited videos), so it may take longer than a normal jump.
+    let jpeg = await frameAt(file, sec, 1920, 2, 120_000).catch(async () => (await makeProxy()) ? frameAt(file, sec, 1920, 2, 120_000) : Promise.reject(new Error("no frame")));
+    if (jpeg.byteLength > 3.9 * 1024 * 1024) jpeg = await frameAt(file, sec, 1280, 5, 120_000);
     const stored = await storeUpload(userId, new Uint8Array(jpeg));
     if ("error" in stored) return fail(stored.error);
     const label = (typeof input.name === "string" && input.name.trim() ? slug(input.name) : `Frame at ${sec.toFixed(1)} s - ${slug(clip.prompt)}`).slice(0, 80);
