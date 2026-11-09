@@ -11,6 +11,7 @@ import { SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT, DOC
 import { MOTION_CRAFT, wantsMotion } from "@/lib/motion-knowledge";
 import { AD_DIRECTOR, CINEMA_CRAFT, UGC_CRAFT, STYLE_TEMPLATE_CRAFT, MARKETING_CRAFT, CREATOR_CRAFT, wantsMarketing, wantsCreator, wantsAds, wantsCinema, wantsUgc, wantsStyleTemplate } from "@/lib/craft-knowledge";
 import { FASHION_DIRECTOR, wantsFashion } from "@/lib/fashion-knowledge";
+import { ADD_MOTION_CRAFT, PRODUCT_VIDEO_CRAFT, wantsAddMotion, wantsProductVideo } from "@/lib/product-knowledge";
 import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
 import { claimUsage } from "@/lib/usage";
 import { accessFor, atlasDailyLimit } from "@/lib/access";
@@ -155,8 +156,11 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const documentary = isAtlas && wantsDocumentary(messages, ctx) ? `\n\n${DOCUMENTARY_CRAFT}` : "";
       const marketing = isAtlas && wantsMarketing(messages, ctx) ? `\n\n${MARKETING_CRAFT}` : "";
       const creator = isAtlas && wantsCreator(messages, ctx) ? `\n\n${CREATOR_CRAFT}` : "";
+      // Product Video Craft (about 3,600 tokens) on creator-style product video talk; Add Motion Craft (about 1,400) on animate-a-picture talk. Atlas only.
+      const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
+      const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}` : "";
-      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
       const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
