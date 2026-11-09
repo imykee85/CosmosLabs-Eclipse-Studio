@@ -25,6 +25,12 @@ function load(): Promise<void> {
 /** Asks for a fresh answer (after a purchase, a team switch, sign-out). */
 export function refreshAccess() { cache = null; inflight = null; if (typeof window !== "undefined") void load(); }
 
+/** Whether the plan has been fetched yet. */
+export const accessKnown = () => !!cache;
+
+/** Waits until the plan is known (or the request failed). */
+export const ensureAccess = (): Promise<void> => load();
+
 /** True unless the plan is known and lacks the feature. */
 export function allowedNow(feature: Feature): boolean {
   if (!cache) return true;

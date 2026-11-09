@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import CollectionView from "@/components/collections/CollectionView";
+import PremiumGuard from "@/components/collections/PremiumGuard";
 import { PREMIUM_COLLECTIONS, findCollection, itemsOf } from "@/lib/premium";
 
 export function generateStaticParams() {
@@ -10,5 +11,5 @@ export default async function CollectionPage(props: { params: Promise<{ slug: st
   const { slug } = await props.params;
   const c = findCollection(slug);
   if (!c) notFound();
-  return <CollectionView collection={c} items={itemsOf(slug)} />;
+  return <PremiumGuard><CollectionView collection={c} items={itemsOf(slug)} /></PremiumGuard>;
 }
