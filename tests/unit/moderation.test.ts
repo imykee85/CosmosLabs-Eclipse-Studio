@@ -40,3 +40,15 @@ test("spaced capitals in an ordinary prompt are left alone", () => {
   assert.equal(checkPrompt("A B C D E F G H").ok, true);
   assert.equal(checkPrompt("I M A G E of Essex castle at dawn").ok, true);
 });
+
+test("casting wording is not read as minors or sexual content (Create a model skill)", () => {
+  for (const ok of [
+    "Agency casting portrait, natural freckling, minor skin imperfections. Age: 23\nSex: Female\nBody type: Slim",
+    "Full body, visible pores and minor blemishes. Sex: male. Sex - non-binary.",
+    "Fix the minor details and minor changes in the product label.",
+  ]) assert.equal(checkPrompt(ok).ok, true, ok);
+  for (const bad of [
+    "nude minor", "naked minors", "sex with a minor", "sexy minor girl", "a minor, naked", "Sex: Female, minor, nude",
+    "sex scene with a child", "explicit sex, 15 years old",
+  ]) assert.equal(checkPrompt(bad).ok, false, bad);
+});
