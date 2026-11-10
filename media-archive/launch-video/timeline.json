@@ -22,7 +22,7 @@
     { "id": "finale", "start": 600, "end": 660 },
     { "id": "endcard", "start": 660, "end": 720 }
   ],
-  "popins": [127, 147, 163, 178, 190, 200],
+  "popins": [127, 150, 172],
   "line2": 687,
   "fade": 705
 }

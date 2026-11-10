@@ -138,9 +138,9 @@ function cascade(f) {
 }
 // what floats around the eclipse: name, position (fraction of frame), height (of M), pop frame, base turn
 const FLOAT = TALL ? [
-  ["astronaut-standing", 0.5, 0.8, 0.5, 0], ["astronaut-reach", 0.22, 0.33, 0.24, -0.2], ["astronaut-tumble", 0.8, 0.3, 0.22, 0.3], ["paraglider", 0.2, 0.62, 0.26, 0.05], ["race-car", 0.78, 0.63, 0.34, -0.1], ["rocket-fictional", 0.5, 0.2, 0.26, 0.5],
+  ["astronaut-standing", 0.5, 0.8, 0.5, 0], ["astronaut-reach", 0.22, 0.33, 0.24, -0.2], ["astronaut-tumble", 0.8, 0.3, 0.22, 0.3],
 ] : [
-  ["astronaut-standing", 0.5, 0.86, 0.56, 0], ["astronaut-reach", 0.2, 0.34, 0.34, -0.2], ["astronaut-tumble", 0.8, 0.3, 0.3, 0.3], ["paraglider", 0.14, 0.72, 0.34, 0.05], ["race-car", 0.84, 0.74, 0.42, -0.1], ["rocket-fictional", 0.66, 0.16, 0.3, 0.9],
+  ["astronaut-standing", 0.5, 0.86, 0.56, 0], ["astronaut-reach", 0.2, 0.34, 0.34, -0.2], ["astronaut-tumble", 0.8, 0.3, 0.3, 0.3],
 ];
 const CORE = [0.5, TALL ? 0.497 : 0.496];
 function heroBase(f) {
@@ -211,10 +211,10 @@ function shotmap(f) {
   windowShot(IM["cap-shotmap-stage"], TALL ? [900, 600, 1080, 1010] : [905, 570, 1070, 1030], f, s.start, s.end, { light: true });
   label("SHOTMAP", "Direct the camera in 3D, then generate.", f, s.start, s.end, false);
 }
-const BURST = [["o", "rocket-fictional", PAPER], ["p", "out-0"], ["o", "race-car", INK], ["p", "out-1"], ["o", "rocket-shuttle", DEEP], ["p", "out-2"], ["o", "paraglider", PAPER], ["p", "out-3"], ["o", "camera-tripod", PAPER], ["p", "out-4"], ["o", "rocket-steel", INK], ["p", "out-6"]];
+const BURST = [["o", "rocket-fictional", PAPER], ["p", "out-0"], ["o", "race-car", INK], ["p", "out-1"], ["o", "rocket-shuttle", DEEP], ["p", "out-2"], ["o", "paraglider", PAPER], ["p", "out-3"], ["o", "camera-tripod", PAPER], ["p", "out-4"], ["o", "rocket-steel", INK], ["p", "out-6", "neg"]];
 function burst(f) {
   const s = S.burst, p = pick(BURST, f, s.start, s.end), it = p.item, z = eOut(p.local);
-  if (it[0] === "p") { cover(IM[it[1]], 1.12 - 0.08 * z, 0.5, 0.45); }
+  if (it[0] === "p") { cover(IM[it[1]], 1.12 - 0.08 * z, 0.5, 0.45); if (it[2] === "neg" && !SAFE) invert(); }
   else { fill(it[2]); const im = IM[it[1]], wide = im.width > im.height, hh = wide ? (TALL ? W * 0.9 : W * 0.62) * im.height / im.width : H * (TALL ? 0.62 : 0.84);
     if (it[2] === INK) glow(W / 2, H / 2, M * 0.7, "rgba(192,7,7,0.6)", 0.6);
     const rise = /rocket/.test(it[1]) ? lerp(H * 0.08, -H * 0.03, z) : 0, slide = it[1] === "race-car" ? lerp(W * 0.12, -W * 0.03, z) : 0;
