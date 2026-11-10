@@ -210,7 +210,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-empty { margin: 0; color: var(--a-muted); font-size: 13px; }
 .aw-msg { max-width: 92%; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; background: var(--a-hover); color: var(--a-fg); }
 .aw-msg p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.aw-msg.is-user { justify-self: end; background: #c00707; color: #fff; }
+.aw-msg.is-user { justify-self: end; background: var(--a-active); color: var(--a-fg); }
 .aw-msg.is-note { background: transparent; border: 1px dashed var(--a-line2); color: var(--a-muted); font-size: 12.5px; }
 .aw-msg.is-error { border: 1px solid #c00707; color: var(--a-fg); }
 .aw-typing { display: flex; align-items: center; gap: 6px; color: var(--a-muted); }
@@ -588,3 +588,10 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 /* Idle studio: lock the document itself (iPhone Safari rubber-bands and scrolls the page even when the content fits). */
 html:has(.cr-wrap.is-idle, .vc.is-idle), html:has(.cr-wrap.is-idle, .vc.is-idle) body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
 html:has(.cr-wrap.is-idle, .vc.is-idle) body { position: fixed; inset: 0; width: 100%; }
+
+/* Files on their way into the Atlas chat: a tile with a progress bar each, like Core's. */
+.aw-up { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 10px; background: var(--a-hover); color: var(--a-fg2); overflow: hidden; }
+.aw-up.is-video { width: 88px; align-content: center; justify-items: center; gap: 4px; padding: 4px; }
+.aw-up.is-video b { font-size: 10px; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--a-fg); }
+.aw-up-bar { position: absolute; left: 6px; right: 6px; bottom: 5px; height: 4px; border-radius: 4px; background: var(--a-line3); overflow: hidden; }
+.aw-up-bar i { display: block; height: 100%; background: #c00707; border-radius: 4px; transition: width .2s ease; }

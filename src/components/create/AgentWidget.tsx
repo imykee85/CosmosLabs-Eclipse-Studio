@@ -174,8 +174,9 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   // Pictures and videos added in the chat itself (paperclip): uploaded at once, sent with the next message.
   const [atts, setAtts] = useState<Attach[]>([]);
   const [docs, setDocs] = useState<AttachedDoc[]>([]);
-  const [uploading, setUploading] = useState<number | null>(null);
-  const uploadsRunning = useRef(0); // picks still uploading; the spinner clears only when the last one ends
+  const [ups, setUps] = useState<{ key: number; label: string; kind: "picture" | "video"; progress: number }[]>([]); // files on their way, shown as tiles with a progress bar (as in Core)
+  const uploadKey = useRef(0);
+  const uploading = ups.length > 0 ? 0 : null;
   const [attErr, setAttErr] = useState("");
   const fileIn = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
@@ -316,29 +317,34 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     if (!list.length) return;
     setAttErr("");
     const projectId = readCurrentProject()?.id ?? null;
-    uploadsRunning.current += 1;
-    for (const f of list) {
+    // Every file uploads at once with its own tile and progress bar, the same as the + in Core.
+    await Promise.all(list.map(async (f) => {
       const name = f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Attachment";
       const kind = attachKind(f);
-      setUploading(0);
       if (kind === "document") {
         const r = await readDocument(f);
         if (r.ok) setDocs((d) => [...d, { name: r.name, text: r.text, pdf: r.pdf }].slice(-4));
         else setAttErr(r.error);
-        continue;
+        return;
       }
-      if (kind === "video") {
-        const r = await uploadVideo<{ id: string }>(f, name, projectId, setUploading);
-        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "video" as const, id: r.item.id, name }].slice(-4));
-        else setAttErr(r.ok ? "Could not add that video." : r.error);
-      } else {
-        const r = await uploadPicture(f, "asset", name, projectId, setUploading);
-        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "picture" as const, id: r.item!.id, name }].slice(-4));
-        else setAttErr(r.ok ? "Could not add that picture." : r.error);
+      const key = ++uploadKey.current;
+      const isVideo = kind === "video";
+      setUps((l) => [...l, { key, label: name, kind: isVideo ? "video" : "picture", progress: 0 }]);
+      const onProgress = (p: number) => setUps((l) => l.map((u) => (u.key === key ? { ...u, progress: p } : u)));
+      try {
+        if (isVideo) {
+          const r = await uploadVideo<{ id: string }>(f, name, projectId, onProgress);
+          if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "video" as const, id: r.item.id, name }].slice(-8));
+          else setAttErr(r.ok ? "Could not add that video." : r.error);
+        } else {
+          const r = await uploadPicture(f, "asset", name, projectId, onProgress);
+          if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "picture" as const, id: r.item!.id, name }].slice(-8));
+          else setAttErr(r.ok ? "Could not add that picture." : r.error);
+        }
+      } finally {
+        setUps((l) => l.filter((u) => u.key !== key));
       }
-    }
-    uploadsRunning.current -= 1;
-    if (uploadsRunning.current === 0) setUploading(null);
+    }));
   }
 
   function down(e: React.PointerEvent<HTMLButtonElement>) {
@@ -470,7 +476,13 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
               {docs.map((d, i) => (
                 <span key={`${d.name}-${i}`} className="aw-att" title={d.name}>{d.name}<button type="button" aria-label={`Remove ${d.name}`} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}><X size={12} /></button></span>
               ))}
-              {uploading !== null && <span className="aw-att"><Loader2 size={12} className="cr-spin" />{uploading > 0 && uploading < 1 ? `${Math.round(uploading * 100)}%` : "Adding…"}</span>}
+              {ups.map((u) => (
+                <span key={u.key} className={`aw-up ${u.kind === "video" ? "is-video" : ""}`} role="status" aria-label={`Uploading ${u.label}, ${Math.round(u.progress * 100)}%`} title={u.label}>
+                  <Loader2 size={16} className="cr-spin" aria-hidden="true" />
+                  {u.kind === "video" && <b>{u.label}</b>}
+                  <span className="aw-up-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round(u.progress * 100))}%` }} /></span>
+                </span>
+              ))}
               {attErr && <span className="aw-att is-error">{attErr}</span>}
             </div>
           )}
