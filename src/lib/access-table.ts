@@ -51,7 +51,7 @@ export const ATLAS_DAILY_STARTER_DEFAULT = 30;
 export const CORE_DAILY_GROWTH_DEFAULT = 150;
 
 // The benefit list on the paid plan cards (owner 2026-10-21: every paid card lists ALL of them, the ones a plan lacks are greyed with a lock).
-export type Benefit = { label: string; min: PlanId; soon?: boolean };
+export type Benefit = { label: string; min: PlanId; soon?: boolean; labelAt?: Partial<Record<PlanId, string>> }; // labelAt: the wording a higher plan sees instead (a card never shows a limit and its removal as two lines)
 export const BENEFITS: Benefit[] = [
   { label: "Image, Video and Audio Studios", min: "starter" },
   { label: "Lower-cost video models", min: "starter" },
@@ -61,8 +61,7 @@ export const BENEFITS: Benefit[] = [
   { label: "Top up credits", min: "starter" },
   { label: "API and MCP access", min: "starter" },
   { label: "Teams", min: "starter" },
-  { label: "Atlas, your creative agent (30 messages a day)", min: "starter" },
-  { label: "No daily limit on Atlas", min: "growth" },
+  { label: "Atlas, your creative agent (30 messages a day)", min: "starter", labelAt: { growth: "Atlas, your creative agent (no daily limit)", scale: "Atlas, your creative agent (no daily limit)" } },
   { label: "Mid-priced video models, Seedance 2.5 at 720p", min: "growth" },
   { label: "Canvas", min: "growth" },
   { label: "ShotMap: direct a shot in 3D first", min: "growth" },
