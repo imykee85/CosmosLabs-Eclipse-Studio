@@ -72,7 +72,7 @@
 
 /* Header buttons and the history list */
 .pm-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.pm-hbtns { display: flex; gap: 8px; }
+.pm-hbtns { display: flex; gap: 8px; margin-left: auto; }
 .pm-tool.is-on { border-color: var(--a-fg2); }
 .pm-past { display: grid; gap: 6px; margin: 14px 0 4px; }
 .pm-past-empty { margin: 0; color: var(--a-muted); font-size: 13.5px; }

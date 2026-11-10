@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LegalPage, { Contact } from "@/components/legal/LegalPage";
 
-export const metadata: Metadata = { title: "Privacy Policy — Eclipse" };
+export const metadata: Metadata = { title: "Privacy Policy — Eclipse", description: "How Eclipse Studio handles your data: what we collect, who processes it, how long we keep it and how to delete it." };
 
 export default function PrivacyPage() {
   return (

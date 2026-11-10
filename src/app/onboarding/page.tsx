@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
@@ -6,6 +7,8 @@ import { db } from "@/lib/db";
 import { requireTermsForNewAccount } from "@/lib/terms-db";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Welcome", description: "Tell us what you want to make so Eclipse can set up your studio.", robots: { index: false } };
 
 export default async function OnboardingPage() {
   if (clerkEnabled) {
