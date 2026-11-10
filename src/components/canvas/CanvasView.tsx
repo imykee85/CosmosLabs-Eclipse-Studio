@@ -597,13 +597,13 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
               <button type="button" className="cv-back" onClick={onBack} aria-label="Back to your canvases" title="All canvases"><ArrowLeft size={16} /></button>
               <input className="cv-name" value={name} maxLength={60} aria-label="Canvas name" onChange={(e) => setName(e.target.value)} onBlur={commitName} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
               <span className={`cv-status is-${status}`} aria-live="polite" title={status === "local" ? "Kept in this browser. It will be sent to your account on the next change." : undefined}>{status === "saving" ? "Saving…" : status === "local" ? "Saved on this device" : "Saved"}</span>
-              {phone && histBtns}
             </div>
             {!phone && toolbar}
           </Panel>
           {phone && <Panel position="bottom-center" className="cv-panel cv-dock">{toolbar}</Panel>}
           <Panel position="top-right" className="cv-panel cv-right">
             {!phone && <>{extraBtns}{settingsBtn}</>}
+            {phone && histBtns}
             <button type="button" className="cv-fit" onClick={() => setFull((f) => !f)} aria-pressed={full} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen (Esc)" : "Full screen"}>
               {full ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
