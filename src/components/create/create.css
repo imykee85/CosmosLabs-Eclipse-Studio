@@ -210,7 +210,7 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .aw-empty { margin: 0; color: var(--a-muted); font-size: 13px; }
 .aw-msg { max-width: 92%; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; background: var(--a-hover); color: var(--a-fg); }
 .aw-msg p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.aw-msg.is-user { justify-self: end; background: #c00707; color: #fff; }
+.aw-msg.is-user { justify-self: end; background: var(--a-active); color: var(--a-fg); }
 .aw-msg.is-note { background: transparent; border: 1px dashed var(--a-line2); color: var(--a-muted); font-size: 12.5px; }
 .aw-msg.is-error { border: 1px solid #c00707; color: var(--a-fg); }
 .aw-typing { display: flex; align-items: center; gap: 6px; color: var(--a-muted); }
