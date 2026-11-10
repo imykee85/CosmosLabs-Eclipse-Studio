@@ -273,13 +273,7 @@ function ConnectChat() {
         <form className="cn-box" onSubmit={(e) => { e.preventDefault(); send(text, imageIds(picked), attachedOf(picked, clip)); }}>
           {(picked.length > 0 || clip || uploads.length > 0) && (
             <div className="cn-picked">
-              {uploads.map((u) => (
-                <span key={u.key} className={`cn-up ${u.kind === "video" ? "is-video" : ""}`} role="status" aria-label={`Uploading ${u.label}, ${Math.round(u.progress * 100)}%`} title={u.label}>
-                  <Loader2 size={16} className="cn-spin" aria-hidden="true" />
-                  {u.kind === "video" && <b>{u.label}</b>}
-                  <span className="cn-up-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round(u.progress * 100))}%` }} /></span>
-                </span>
-              ))}
+              {uploads.length > 0 && (() => { const p = uploads.reduce((m, u) => Math.min(m, u.progress), 1); return <span className="cn-adding" role="status"><Loader2 size={12} className="cn-spin" aria-hidden="true" />{p > 0 && p < 1 ? `${Math.round(p * 100)}%` : "Adding…"}</span>; })()}
               {clip && (
                 <span className="cn-clip-tile" title={clip.label}>
                   <Film size={20} aria-hidden="true" />
