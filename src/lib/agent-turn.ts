@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
 import { DIRECTOR_CRAFT, wantsDirector } from "@/lib/director-knowledge";
+import { directorLensBlock, pickDirector } from "@/lib/director-lens";
 import { SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT, DOCUMENTARY_CRAFT, wantsDocumentary, wantsShortForm, wantsScreenwriting, wantsBrainstorm, wantsProduction } from "@/lib/story-knowledge";
 import { MOTION_CRAFT, wantsMotion } from "@/lib/motion-knowledge";
 import { AD_DIRECTOR, CINEMA_CRAFT, UGC_CRAFT, STYLE_TEMPLATE_CRAFT, MARKETING_CRAFT, CREATOR_CRAFT, wantsMarketing, wantsCreator, wantsAds, wantsCinema, wantsUgc, wantsStyleTemplate } from "@/lib/craft-knowledge";
@@ -146,6 +147,8 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const cinema = isAtlas && wantsCinema(messages, ctx) ? `\n\n${CINEMA_CRAFT}` : "";
       // Director Craft (about 3,500 tokens) on video-problem talk; short-form craft and screenwriting craft (about 1,200 each) on script and story talk. Atlas only.
       const directorCraft = isAtlas && wantsDirector(messages, ctx) ? `\n\n${DIRECTOR_CRAFT}` : "";
+      const lensPick = isAtlas ? pickDirector(messages, ctx) : null; // a named director: that one full module, as the owner wrote it (about 7,000 tokens)
+      const directorLens = lensPick ? `\n\n${directorLensBlock(lensPick)}` : "";
       const shortForm = isAtlas && wantsShortForm(messages, ctx) ? `\n\n${SHORT_FORM_CRAFT}` : "";
       const screenCraft = isAtlas && wantsScreenwriting(messages, ctx) ? `\n\n${SCREEN_CRAFT}` : "";
       const brainstorm = isAtlas && wantsBrainstorm(messages, ctx) ? `\n\n${BRAINSTORM_CRAFT}` : "";
@@ -160,7 +163,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
       const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}` : "";
-      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
       const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;

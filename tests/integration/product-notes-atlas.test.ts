@@ -56,3 +56,13 @@ test("Add Motion Craft loads when someone wants to animate a still in Video Stud
   assert.ok(!s.includes("video generation is not connected yet"), "Atlas is never told video is unavailable");
   assert.match(s, /video generation works here/);
 });
+
+test("a named director brings that one full module (and Director Craft) into Atlas's instructions, and no other director", { skip }, async () => {
+  const s = await ask("Plan a 10 second shot of a man walking down a corridor, in the style of Villeneuve", { page: "video", model: "Kling 3.0 Pro" });
+  assert.match(s, /DIRECTOR LENS: Denis Villeneuve/);
+  assert.match(s, /style_id: villeneuve/);
+  assert.match(s, /DIRECTOR CRAFT/);
+  assert.doesNotMatch(s, /style_id: nolan|style_id: kubrick/);
+  const none = await ask("Write a prompt for a red cup on marble", { page: "create" });
+  assert.doesNotMatch(none, /DIRECTOR LENS:/);
+});
