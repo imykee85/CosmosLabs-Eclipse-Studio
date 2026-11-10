@@ -13,10 +13,17 @@ import { findVideoModel, videoPrice } from "./video-models";
 import { safeText } from "./safe-text";
 import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from "./storage";
 
+// A draft whose final video was started: the draft's button goes away only while that final is running or finished. If it failed or was deleted the draft can be finished again.
+async function finalStillCounts(g: Generation): Promise<boolean> {
+  const id = g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Record<string, unknown>).finalId : null;
+  if (typeof id !== "string") return false;
+  return !!(await db.generation.findFirst({ where: { id, userId: g.userId, deletedAt: null, status: { not: "failed" } }, select: { id: true } }));
+}
+
 // The price of the 1080p video made from a finished draft: the same 1080p rate the server charges in startDraftFinal (src/lib/video-draft.ts).
 function draftFinalCredits(g: Generation): number | null {
   const p = g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Record<string, unknown>) : null;
-  if (process.env.CREDITS_ENABLED !== "1" || !p || p.draft !== true || p.finalId || g.status !== "completed") return null;
+  if (process.env.CREDITS_ENABLED !== "1" || !p || p.draft !== true || g.status !== "completed") return null;
   const model = findVideoModel("seedance_2_5");
   if (!model?.live) return null;
   try { return videoPrice(model, "1080p", g.durationSec ?? 5, g.hasAudio !== false, g.provider === "higgsfield" ? "higgsfield" : "direct", typeof p.inputVideoSec === "number" ? p.inputVideoSec : undefined); } catch { return null; }
@@ -202,7 +209,7 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     hasAudio: g.hasAudio,
     uploaded: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).uploaded === true),
     draft: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).draft === true),
-    finalMade: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).finalId),
+    finalMade: await finalStillCounts(g),
     finalCredits: draftFinalCredits(g),
     credits: g.creditsHeld,
     startedAt: g.startedAt,

@@ -275,6 +275,16 @@ test("draft mode: a 480p draft task, then the final 1080p from the draft id; no 
   assert.deepEqual(f.content, [{ type: "draft_task", draft_task: { id: row.requestId } }]); assert.equal(f.resolution, "1080p"); assert.equal(hfSent.length, 0);
   const again = await startDraftFinal({ userId: A, draftId: d.item.id });
   assert.equal(again.ok, false); assert.equal(again.status, 409);
+  // No time limit: a draft made a month ago can still be finished, and the draft stays next to its final (two videos kept).
+  // A final that FAILED does not use the draft up: it can be made again.
+  await lib.db.generation.update({ where: { id: row.id }, data: { createdAt: new Date(Date.now() - 30 * 24 * 3600_000) } });
+  const firstFinal = (await lib.db.generation.findUnique({ where: { id: row.id } })).params.finalId as string;
+  await lib.db.generation.update({ where: { id: firstFinal }, data: { status: "failed", error: "x" } });
+  await lib.db.usageEvent.deleteMany({ where: { userId: `draft:${row.id}` } }); // the 2-minute double-tap guard
+  const retry = await startDraftFinal({ userId: A, draftId: d.item.id });
+  assert.equal(retry.ok, true, retry.ok ? "" : retry.error);
+  assert.ok(await lib.db.generation.findUnique({ where: { id: row.id } }), "the draft is still there");
+  assert.ok(await lib.db.generation.findUnique({ where: { id: retry.ok ? retry.item.id : "" } }), "and so is the final");
   const other = await make({ draft: true, model: "seedance_2_0" });
   assert.equal(other.ok, false, "drafts are Seedance 2.5 only");
 });
