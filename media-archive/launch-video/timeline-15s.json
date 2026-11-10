@@ -1,0 +1,6 @@
+{
+  "fps": 30,
+  "frames": 450,
+  "note": "The 15 s cut plays these pieces of the 24 s film one after another: [first frame, frame after the last].",
+  "segments": [[0, 315], [525, 585], [636, 660], [669, 720]]
+}
