@@ -35,8 +35,8 @@ async function page_(browser) {
     : { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: "dark" });
   const page = await ctx.newPage();
   await page.addInitScript(() => {
-    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Skincare launch" }));
-    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Skincare launch", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Power broker" }));
+    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Power broker", updatedAt: new Date().toISOString(), deletedAt: null }]));
     localStorage.setItem("eclipse-first-tour", "1"); localStorage.setItem("eclipse-welcome-offer", "1");
     localStorage.setItem("eclipse-agent", "Atlas");
     localStorage.setItem("eclipse-theme", "dark");
@@ -60,12 +60,12 @@ const screens = {
     let asked = 0;
     await page.route("**/api/agent/chat", (r) => r.fulfill({ json: { runId: "r1" } }));
     await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE" ? r.fulfill({ json: { ok: true } })
-      : (++asked < 4 ? r.fulfill({ json: { status: "running" } }) : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is a stronger direction for the teaser.", actions: [{ kind: "use_prompt", label: "Use this prompt", prompt: "A product launch teaser for a skincare brand: the amber serum bottle on wet black stone, one slow push in, warm window light, water beads catching the light" }], controls: { ratio: "9:16" } } } } })));
+      : (++asked < 4 ? r.fulfill({ json: { status: "running" } }) : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is a sharper direction.", actions: [{ kind: "use_prompt", label: "Use this prompt", prompt: "A 90s power broker in a grey pinstripe suit: double-breasted, black roll-neck, oxblood leather gloves, seated in a wood-panelled waiting room, direct flash, editorial fashion photograph" }], controls: { ratio: "2:3" } } } } })));
     await page.goto(BASE + "/create"); await page.waitForTimeout(1200); await tidy(page);
-    await page.fill("form.cr-box textarea", "Make a product launch teaser for a skincare brand");
+    await page.fill("form.cr-box textarea", "A 90s power broker in a grey pinstripe suit");
     await page.click(".aw-btn"); await page.waitForSelector(".aw-panel");
     await shot(page, "atlas-1-open");
-    await page.fill(".aw-panel textarea", "Make a product launch teaser for a skincare brand");
+    await page.fill(".aw-panel textarea", "A 90s power broker in a grey pinstripe suit");
     await page.keyboard.press("Control+Enter"); await page.waitForTimeout(700);
     await shot(page, "atlas-2-working");
     await page.waitForSelector(".aw-prop", { timeout: 30000 }); await page.waitForTimeout(500);
@@ -113,7 +113,7 @@ const screens = {
     await page.goto(BASE + "/voice"); await page.waitForTimeout(1800); await tidy(page);
     await shot(page, "audio-0");
     await page.getByText("Ana", { exact: true }).click().catch(() => {});
-    await page.locator("textarea").first().fill("Your skin, at its calmest. [whispers] Meet the new Glow Berry mist.");
+    await page.locator("textarea").first().fill("He never raised his voice. [whispers] He never had to.");
     await page.waitForTimeout(800);
     await shot(page, "audio-1");
   },
