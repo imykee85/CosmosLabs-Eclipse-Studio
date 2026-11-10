@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Award, GraduationCap, LayoutGrid, LogOut, Settings } from "lucide-react";
+import { Award, GraduationCap, Headset, LayoutGrid, LogOut, Settings } from "lucide-react";
 import { AccountName, SignOutButton } from "@/components/account";
 import Avatar from "@/components/Avatar";
 import SoonTag from "@/components/SoonTag";
@@ -15,6 +15,7 @@ const ITEMS = [
   { label: "Academy", href: "", icon: GraduationCap, soon: false },
   { label: "Portfolio", href: "/portfolio", icon: LayoutGrid, soon: false },
   { label: "Certificates", href: "/certificates", icon: Award, soon: false },
+  { label: "Support", href: "/support", icon: Headset, soon: false },
   { label: "Settings", href: "/settings", icon: Settings, soon: false },
 ];
 

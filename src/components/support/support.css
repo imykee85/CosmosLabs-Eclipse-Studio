@@ -1,0 +1,16 @@
+.sp-contact, .sp-card { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid var(--a-line, #2a2a2a); border-radius: 14px; background: var(--a-card, #141414); }
+.sp-contact { margin-top: 20px; }
+.sp-contact > div, .sp-card > div { flex: 1; min-width: 0; }
+.sp-contact b, .sp-card b { font-size: 16px; font-weight: 600; }
+.sp-contact p, .sp-card p { margin: 4px 0 0; color: var(--a-sub, #888); font-size: 14px; line-height: 1.5; }
+.sp-contact p a { color: inherit; text-decoration: underline; }
+.sp-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #c00707; color: #fff; }
+.sp-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.sp-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--a-line2, #2a2a2a); background: transparent; color: inherit; border-radius: 999px; padding: 9px 16px; font: 500 14px/1 inherit; text-decoration: none; white-space: nowrap; }
+.sp-btn:hover { border-color: var(--a-fg2, #888); }
+@media (max-width: 800px) {
+  .sp-contact, .sp-card { flex-wrap: wrap; }
+  .sp-contact > div, .sp-card > div { flex-basis: calc(100% - 64px); }
+  .sp-card > div { flex-basis: 100%; }
+  .sp-btn { width: 100%; }
+}
