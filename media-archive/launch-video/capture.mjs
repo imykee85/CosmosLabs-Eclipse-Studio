@@ -72,14 +72,39 @@ const screens = {
     await shot(page, "atlas-3-answer");
   },
   async canvas(page) {
+    // the owner's pictures sit in real nodes: a template saved in this browser, with the pictures answered by the mocked file routes
+    const C = path.join(HERE, "assets/canvas"), files = { u1: "character.jpg", u2: "product-1.png", u3: "product-2.jpg", u4: "product-3.png", u5: "product-4.jpg", g1: "fullbody.jpg", g2: "final.png" };
+    for (const [id, f] of Object.entries(files)) await page.route(new RegExp(`/api/(uploads|generations)/${id}/(file|thumb)`), (r) => r.fulfill({ body: fs.readFileSync(path.join(C, f)), contentType: f.endsWith("png") ? "image/png" : "image/jpeg" }));
+    const gen = (id, w, h) => ({ id, prompt: "Editorial portrait", model: "auto", modelLabel: "Auto", status: "completed", error: null, credits: 1, createdAt: new Date().toISOString(), deletedAt: null, references: null, seed: null, seedLocked: false, projectId: "p1", fileName: id + ".png", contentType: "image/png", sizeBytes: 10, width: w, height: h, resolution: "2k", startedAt: null, imageUrl: `/api/generations/${id}/file`, kind: "image", aspectRatio: "3:4" });
+    await page.route(/\/api\/generations\/g1$/, (r) => r.fulfill({ json: gen("g1", 1494, 1992) }));
+    await page.route(/\/api\/generations\/g2$/, (r) => r.fulfill({ json: gen("g2", 1342, 1992) }));
+    await page.addInitScript(() => {
+      const n = (id, type, x, y, data) => ({ id, type, position: { x, y }, data });
+      const e = (a, b, port) => ({ id: `e-${a}-${b}-${port}`, source: a, sourceHandle: "out", target: b, targetHandle: port });
+      const up = (id, label) => ({ type: "upload", id, label });
+      const nodes = [
+        n("c", "character", 0, 0, { ref: up("u1", "Marcus"), desc: "Marcus, late 20s, short fade, goatee" }),
+        n("t", "text", 0, 480, { text: "He walks through a grey studio on an old brick phone, 90s power-broker energy, editorial fashion photograph." }),
+        n("p1", "product", 440, -200, { ref: up("u2", "Grey pinstripe suit"), desc: "Double-breasted grey pinstripe suit" }),
+        n("p2", "product", 800, -200, { ref: up("u3", "Black boots"), desc: "Black leather Chelsea boots" }),
+        n("p3", "product", 440, 340, { ref: up("u4", "Black roll-neck"), desc: "Black roll-neck knit" }),
+        n("p4", "product", 800, 340, { ref: up("u5", "Oxblood gloves"), desc: "Oxblood leather gloves" }),
+        n("b", "fullbody", 1260, -120, { ratio: "3:4", gens: ["g1"], pick: "g1", prompt: "Full body, walking, studio grey" }),
+        n("g", "generator", 1700, -60, { ratio: "2:3", gens: ["g2"], pick: "g2", prompt: "Seated in a wood-panelled waiting room, direct flash" }),
+      ];
+      const edges = [e("c", "b", "character"), e("t", "b", "description"), e("p1", "b", "product"), e("p2", "b", "product"), e("p3", "b", "product"), e("p4", "b", "product"), e("b", "g", "ingredients"), e("p1", "g", "product"), e("p4", "g", "product")];
+      localStorage.setItem("eclipse-canvas-templates", JSON.stringify([{ id: "camp", name: "Campaign", nodes, edges }]));
+    });
     await page.goto(BASE + "/canvas"); await page.getByRole("button", { name: /New canvas/ }).first().click(); await page.waitForSelector(".cv-wrap"); await tidy(page);
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.addStyleTag({ content: ".cv-wrap{position:fixed!important;inset:0!important;z-index:999;border-radius:0!important;width:100vw!important;height:100vh!important;max-width:none!important}" });
+    await page.waitForTimeout(600);
     await page.getByRole("button", { name: /Templates/ }).click(); await page.waitForTimeout(400);
-    await shot(page, "canvas-0-templates");
-    await page.getByText("Starter flow").click(); await page.waitForTimeout(600);
+    await page.getByText("Campaign").click(); await page.waitForTimeout(600);
     await page.getByRole("button", { name: /Templates/ }).click().catch(() => {});
     await page.addStyleTag({ content: ".cv-wrap .react-flow__panel.top,.react-flow__minimap,.react-flow__controls{visibility:hidden!important}" });
     await page.locator(".react-flow__controls-fitview").click({ force: true }).catch(() => {});
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(2500);
     await shot(page, "canvas-1-flow");
   },
   async audio(page) {

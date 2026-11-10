@@ -15,7 +15,7 @@
     { "id": "redout", "start": 249, "end": 270, "blur": true },
     { "id": "core", "start": 270, "end": 315 },
     { "id": "atlas", "start": 315, "end": 375, "blur": true },
-    { "id": "canvas", "start": 375, "end": 435, "blur": true },
+    { "id": "canvas", "start": 375, "end": 435 },
     { "id": "audio", "start": 435, "end": 480, "blur": true },
     { "id": "shotmap", "start": 480, "end": 525, "blur": true },
     { "id": "burst", "start": 525, "end": 600, "blur": true },

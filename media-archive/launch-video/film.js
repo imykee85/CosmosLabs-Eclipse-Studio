@@ -194,11 +194,14 @@ function atlas(f) {
   windowShot(IM[st], TALL ? [1880, 130, 1000, 1670] : [X0, 0, 2880 - X0, 1800], f, s.start, s.end, { light: true });
   label("ATLAS", "Your creative partner. He proposes, you approve.", f, s.start, s.end, false);
 }
+// the canvas fills the frame; the camera travels from the ingredients to the finished picture
 function canvasS(f) {
-  const s = S.canvas, t = prog(f, s.start, s.end); fill(INK);
-  g.filter = "brightness(1.35) contrast(1.15)";
-  windowShot(IM["cap-canvas-1-flow"], TALL ? [lerp(940, 1500, eIO(t)), 270, 1000, 1330] : [lerp(900, 1330, eIO(t)), 250, 1200, 720], f, s.start, s.end);
-  g.filter = "none";
+  const s = S.canvas, t = eIO(prog(f, s.start + 4, s.end - 6)); fill(INK);
+  const inn = eExpo(prog(f, s.start, s.start + 10)), out = eIn(prog(f, s.end - (SAFE ? 8 : 5), s.end));
+  g.save(); g.translate((1 - inn) * W * 0.9 - out * W * 0.9, 0);
+  cover(IM["cap-canvas-1-flow"], TALL ? 1.0 : lerp(1.75, 1.5, t), lerp(TALL ? 0.16 : 0.3, TALL ? 0.84 : 0.72, t), TALL ? 0.5 : lerp(0.52, 0.47, t));
+  g.restore();
+  const gr = g.createLinearGradient(0, H * 0.7, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.75)"); if (!TALL) { g.fillStyle = gr; g.fillRect(0, H * 0.7, W, H * 0.3); }
   label("CANVAS", "Wire characters, products and scenes into one flow.", f, s.start, s.end);
 }
 function audio(f) {
