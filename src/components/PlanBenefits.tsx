@@ -23,7 +23,7 @@ export default function PlanBenefits({ planId }: { planId: PlanId }) {
           return (
             <li key={b.label} className={b.soon ? "is-soon" : has ? "" : "is-locked"}>
               {b.soon ? <Clock size={14} aria-hidden="true" /> : has ? <Check size={15} aria-hidden="true" /> : <Lock size={14} aria-hidden="true" />}
-              <span>{b.label}</span>
+              <span>{b.labelAt?.[planId] ?? b.label}</span>
               {b.soon && <span className="pb-soon">Soon</span>}
               {!has && !b.soon && <span className="pb-sr"> (not included)</span>}
             </li>
