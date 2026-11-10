@@ -34,7 +34,7 @@ test.describe("Core attachments", () => {
     await expect.poll(() => patched.length).toBe(1);
     expect(patched[0]).toEqual({ fromUser: 1 });
     await expect(page.locator(".cn-box textarea")).toHaveValue("Make a sheet of him");
-    await expect(page.locator(".cn-clip-tile")).toContainText("reference.mp4");
+    await expect(page.locator(".cn-clip-tile")).toHaveAttribute("title", "reference.mp4");
     await expect(page.locator(".cn-msg.is-user")).toHaveCount(0);
   });
 });

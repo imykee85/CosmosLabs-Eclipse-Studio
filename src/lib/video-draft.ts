@@ -18,9 +18,8 @@ import type { Route } from "@/lib/routes";
 // Two providers run drafts, and the final always goes back to the one that made the draft (a draft id only exists there):
 //  - BytePlus: its task id is sent as a `draft_task` item; everything else is reused and must not be sent again (docs/video-providers/byteplus-seedance-25.md).
 //  - Higgsfield: its job id is sent as `draft_job_id` with `resolution: "1080p"` (the Seedance 2.5 schema, `draft_job_id`). The rest of the body is not sent again.
-// The draft id lives 7 days. A BytePlus draft is finished at BytePlus only when its direct route can take it now. PRICE: the 1080p rate for the draft's length on the
+// Eclipse sets NO time limit: the draft stays in the Gallery and Library and its final can be made whenever the person wants (if the video maker has dropped its own draft id by then, its refusal is shown). A BytePlus draft is finished at BytePlus only when its direct route can take it now. PRICE: the 1080p rate for the draft's length on the
 // route used (BytePlus bills step 2 at the 1080p rate, with the token rate chosen by whether step 1 had an input video). NOT tested live.
-const DRAFT_DAYS = 7;
 
 export type FinalInput = { userId: string; personId?: string | null; draftId: unknown; confirm?: unknown };
 export type FinalResult = { ok: true; item: RenderItem } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string };
@@ -33,8 +32,11 @@ export async function startDraftFinal(input: FinalInput): Promise<FinalResult> {
   const draft = id ? await db.generation.findFirst({ where: { id, userId, kind: "video", status: "completed", deletedAt: null, provider: { in: ["byteplus", "higgsfield"] } } }) : null;
   const p = draft?.params && typeof draft.params === "object" && !Array.isArray(draft.params) ? (draft.params as Record<string, unknown>) : null;
   if (!draft || !p || p.draft !== true || !draft.requestId) return { ok: false, status: 404, error: "That draft could not be found." };
-  if (p.finalId) return { ok: false, status: 409, error: "The final video for this draft was already started." };
-  if (Date.now() - draft.createdAt.getTime() > DRAFT_DAYS * 24 * 3600_000) return { ok: false, status: 410, error: "This draft is older than 7 days and can no longer be made into a final video." };
+  // A final that was started and then failed (or was deleted) does not use up the draft: it can be made again. A running or finished final does.
+  if (p.finalId) {
+    const f = await db.generation.findFirst({ where: { id: String(p.finalId), userId, deletedAt: null, status: { not: "failed" } }, select: { id: true } });
+    if (f) return { ok: false, status: 409, error: "The final video for this draft was already started." };
+  }
 
   const model = findVideoModel("seedance_2_5");
   if (!model?.live) return { ok: false, status: 503, error: "Seedance 2.5 is not connected." };

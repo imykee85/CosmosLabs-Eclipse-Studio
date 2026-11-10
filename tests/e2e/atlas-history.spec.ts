@@ -9,7 +9,7 @@ test("opening an earlier Atlas chat keeps every chat separate", async ({ page })
     localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
     localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
     localStorage.setItem("eclipse-agent", "Atlas");
-    localStorage.setItem("eclipse-agent-on", "1");
+    for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
     localStorage.setItem("eclipse-agent-history-Atlas", JSON.stringify([seed.pastA, seed.pastB]));
     localStorage.setItem("eclipse-agent-chat-Atlas", JSON.stringify([{ id: "c1", role: "user", text: "Current question" }, { id: "c2", role: "agent", text: "Current answer" }]));
   }, { pastA, pastB });
@@ -41,7 +41,7 @@ test("a reply that runs out of time shows its message and the chat takes the nex
     localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
     localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
     localStorage.setItem("eclipse-agent", "Atlas");
-    localStorage.setItem("eclipse-agent-on", "1");
+    for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
   });
   let asked = 0;
   await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
@@ -68,7 +68,7 @@ test("after Stop, the next message gets its reply", async ({ page }) => {
     localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
     localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
     localStorage.setItem("eclipse-agent", "Atlas");
-    localStorage.setItem("eclipse-agent-on", "1");
+    for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
   });
   let asked = 0;
   const stopped: string[] = [];
@@ -95,4 +95,26 @@ test("after Stop, the next message gets its reply", async ({ page }) => {
   await page.keyboard.press("Control+Enter");
   await expect(page.locator(".aw-panel")).toContainText("Second reply arrived.", { timeout: 15000 });
   expect(asked).toBe(2);
+});
+
+// Owner rule: Atlas stays on only on the screen where he was switched on.
+test("Atlas switched on in Image Studio is off in Core and Video Studio", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    localStorage.setItem("eclipse-agent", "Atlas");
+    localStorage.setItem("eclipse-agent-on:create", "1");
+  });
+  await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
+  await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
+  await page.goto("/create");
+  await expect(page.locator(".aw-btn")).toBeVisible();
+  await page.goto("/connect");
+  await expect(page.locator(".cn-box")).toBeVisible();
+  await expect(page.locator(".aw-btn")).toHaveCount(0);
+  await page.goto("/generate");
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator(".aw-btn")).toHaveCount(0);
+  await page.goto("/create");
+  await expect(page.locator(".aw-btn")).toBeVisible();
 });

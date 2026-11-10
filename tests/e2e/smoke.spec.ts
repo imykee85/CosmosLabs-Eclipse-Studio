@@ -186,7 +186,7 @@ test.describe("prompt box messages", () => {
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
       localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
       localStorage.setItem("eclipse-agent", "Atlas");
-      localStorage.setItem("eclipse-agent-on", "1");
+      for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
     });
     await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
     await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [{ id: "m", label: "Model", blurb: "x", ratios: ["1:1"], resolutions: [], maxBatch: 4, maxPrompt: 2000, verified: true, autoPick: true, seed: { supported: false }, maxReferences: 0, requiresReference: false, credits: null }] } }));
@@ -216,7 +216,7 @@ test.describe("Atlas chat attachments", () => {
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
       localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
       localStorage.setItem("eclipse-agent", "Atlas");
-      localStorage.setItem("eclipse-agent-on", "1");
+      for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
     });
     await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
     await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
@@ -243,7 +243,7 @@ test.describe("Atlas panel", () => {
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
       localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
       localStorage.setItem("eclipse-agent", "Atlas");
-      localStorage.setItem("eclipse-agent-on", "1");
+      for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
     });
     await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
     await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
@@ -280,7 +280,7 @@ test.describe("Atlas plans", () => {
       localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
       localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
       localStorage.setItem("eclipse-agent", "Atlas");
-      localStorage.setItem("eclipse-agent-on", "1");
+      for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
     });
     await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0 } }));
     await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [{ id: "nano_banana_pro", label: "Nano", blurb: "x", ratios: ["16:9", "9:16"], resolutions: [], maxBatch: 4, maxPrompt: 2000, verified: true, autoPick: true, seed: { supported: false }, maxReferences: 8, requiresReference: false, credits: null }] } }));
