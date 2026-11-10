@@ -276,16 +276,15 @@ function ConnectChat() {
               {uploads.length > 0 && (() => { const p = uploads.reduce((m, u) => Math.min(m, u.progress), 1); return <span className="cn-adding" role="status"><Loader2 size={12} className="cn-spin" aria-hidden="true" />{p > 0 && p < 1 ? `${Math.round(p * 100)}%` : "Adding…"}</span>; })()}
               {clip && (
                 <span className="cn-clip-tile" title={clip.label}>
-                  <Film size={20} aria-hidden="true" />
-                  <b>{clip.label}</b>
-                  <button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={12} /></button>
+                  <video src={`/api/generations/${clip.id}/file#t=0.1`} muted playsInline preload="metadata" aria-label={clip.label} />
+                  <button type="button" aria-label="Remove the video" onClick={() => setClip(null)}><X size={11} /></button>
                 </span>
               )}
               {picked.map((p) => (
                 <span key={`${p.type}-${p.id}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.type === "upload" ? `/api/uploads/${p.id}/file` : `/api/generations/${p.id}/file`} alt={p.label} />
-                  <button type="button" aria-label="Remove picture" onClick={() => setPicked((l) => l.filter((x) => !(x.type === p.type && x.id === p.id)))}><X size={12} /></button>
+                  <button type="button" aria-label="Remove picture" onClick={() => setPicked((l) => l.filter((x) => !(x.type === p.type && x.id === p.id)))}><X size={11} /></button>
                 </span>
               ))}
             </div>
