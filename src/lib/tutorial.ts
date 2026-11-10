@@ -20,6 +20,7 @@ const ORIGINS: Record<string, string> = {
   "/tools": "Tools",
   "/portfolio": "Portfolio",
   "/certificates": "Certificates",
+  "/support": "Support",
   "/settings": "Settings",
 };
 
