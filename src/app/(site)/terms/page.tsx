@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LegalPage, { Contact } from "@/components/legal/LegalPage";
 
-export const metadata: Metadata = { title: "Terms of Use — Eclipse" };
+export const metadata: Metadata = { title: "Terms of Use — Eclipse", description: "The terms for using Eclipse Studio: your account, credits, what you create, and the rules for the service." };
 
 export default function TermsPage() {
   return (

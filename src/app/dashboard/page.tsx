@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import DashboardView from "@/components/dashboard/DashboardView";
@@ -5,6 +6,8 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Dashboard", description: "Your Eclipse Studio projects.", robots: { index: false } };
 
 export default async function DashboardPage() {
   if (clerkEnabled) {
