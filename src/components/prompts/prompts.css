@@ -26,7 +26,9 @@
 .pm-block-acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 12px 12px; }
 .pm-block-acts button { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border: 1px solid var(--a-line2); border-radius: 999px; background: transparent; color: var(--a-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .pm-block-acts button:hover { border-color: var(--a-fg2); }
-.pm-dock { margin-top: 20px; }
+.pm-dock { margin-top: 20px; position: sticky; bottom: 12px; z-index: 10; }
+/* The thread must never show beside or under the prompt box (owner 2026-11-10, same as Core): the dock paints the page colour out to the screen edges, with a soft fade above it. */
+.pm-dock::before { content: ""; position: absolute; z-index: -1; left: -40px; right: -40px; top: -28px; bottom: -14px; background: linear-gradient(to bottom, transparent 0, var(--a-bg) 28px); pointer-events: none; }
 .pm-note { margin: 0 0 8px; padding: 0 4px; color: var(--a-muted); font-size: 13px; }
 .pm-box { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--a-line2); border-radius: 22px; background: var(--a-input); }
 .pm-box:focus-within { border-color: var(--a-fg2); }
@@ -49,6 +51,7 @@
   .pm-engines::-webkit-scrollbar { display: none; }
   .pm-engine { flex: none; }
   .pm-dock { position: fixed; left: 18px; right: 18px; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; margin: 0; padding-top: 6px; background: var(--a-bg); }
+  .pm-dock::before { left: -18px; right: -18px; bottom: -12px; }
 }
 
 /* Under each message: edit and resend (your messages), try again (the latest or a failed answer) */
@@ -66,3 +69,16 @@
 /* An attached video: its name and a remove button. */
 .pm-clip { display: flex; align-items: center; gap: 6px; margin: 0; padding: 2px 4px; color: var(--a-muted); font-size: 12px; }
 .pm-clip button { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+
+/* Header buttons and the history list */
+.pm-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pm-hbtns { display: flex; gap: 8px; }
+.pm-tool.is-on { border-color: var(--a-fg2); }
+.pm-past { display: grid; gap: 6px; margin: 14px 0 4px; }
+.pm-past-empty { margin: 0; color: var(--a-muted); font-size: 13.5px; }
+.pm-past-row { display: flex; align-items: stretch; gap: 6px; }
+.pm-past-row > button:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 9px 12px; border: 1px solid var(--a-line); border-radius: 12px; background: var(--a-card); color: var(--a-fg); text-align: left; cursor: pointer; font: inherit; }
+.pm-past-row > button:first-child b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
+.pm-past-row > button:first-child span { font-size: 12px; color: var(--a-muted); }
+.pm-past-del { display: grid; place-items: center; width: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--a-muted); cursor: pointer; }
+.pm-past-del:hover { background: var(--a-hover); color: var(--a-fg); }

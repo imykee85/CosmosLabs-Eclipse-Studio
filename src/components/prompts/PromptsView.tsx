@@ -3,7 +3,7 @@
 import GrowArea from "@/components/GrowArea";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, Clapperboard, Copy, Layers, Loader2, Mic, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { ArrowUp, Check, Clapperboard, Clock, Copy, Layers, Loader2, Mic, Pencil, Plus, RotateCcw, SquarePen, Trash2, X } from "lucide-react";
 import { attachKind, readDocument, type DocumentRead } from "@/lib/attach-file";
 import { videoUploadType } from "@/lib/upload-type";
 import { PROMPT_ENGINES, type PromptEngine } from "@/lib/prompt-engines";
@@ -32,6 +32,14 @@ const picUrl = (p: Pic) => (p.type === "upload" ? `/api/uploads/${p.id}/file` : 
 function load(engine: string): Msg[] {
   try { const raw = JSON.parse(localStorage.getItem(KEY(engine)) ?? "[]"); return Array.isArray(raw) ? raw.filter((m) => m && typeof m.text === "string").slice(-40) : []; } catch { return []; }
 }
+// Earlier chats of one engine: "New chat" files the current one here (the newest first, up to 30) and History brings any of them back. Kept in the account like the chats.
+type Past = { id: string; at: number; title: string; messages: Msg[] };
+const HKEY = (engine: string) => `eclipse-prompts-history-${engine}`;
+function loadPast(engine: string): Past[] {
+  try { const raw = JSON.parse(localStorage.getItem(HKEY(engine)) ?? "[]"); return Array.isArray(raw) ? raw.filter((c) => c && typeof c.id === "string" && Array.isArray(c.messages)).slice(0, 30) : []; } catch { return []; }
+}
+function savePast(engine: string, list: Past[]) { try { localStorage.setItem(HKEY(engine), JSON.stringify(list.slice(0, 30))); } catch {} }
+const titleOf = (list: Msg[]) => (list.find((m) => m.role === "user")?.text ?? "Chat").replace(/\s+/g, " ").trim().slice(0, 60) || "Chat";
 function save(engine: string, list: Msg[]) { try { localStorage.setItem(KEY(engine), JSON.stringify(list.slice(-40))); } catch {} }
 
 // An answer is split into the prompts to copy (fenced code blocks; for a one-prompt engine the whole answer) and the words around them.
@@ -70,14 +78,16 @@ export default function PromptsView() {
   const [note, setNote] = useState("");
   const [copied, setCopied] = useState("");
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [past, setPast] = useState<Past[]>([]);
+  const [showPast, setShowPast] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const mic = useDictation(text, setText, setNote);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => { try { const e = localStorage.getItem("eclipse-prompts-engine"); if (e && PROMPT_ENGINES.some((x) => x.id === e && x.available)) setEngineId(e as PromptEngine["id"]); } catch {} }, []);
-  useEffect(() => { setMsgs(load(engineId)); setNote(""); try { localStorage.setItem("eclipse-prompts-engine", engineId); } catch {} }, [engineId]);
+  useEffect(() => { setMsgs(load(engineId)); setPast(loadPast(engineId)); setShowPast(false); setNote(""); try { localStorage.setItem("eclipse-prompts-engine", engineId); } catch {} }, [engineId]);
   // Chats fetched from the account (another device, or after logging in again) replace what is on screen.
-  useEffect(() => { const on = (e: Event) => { const keys = (e as CustomEvent<string[]>).detail ?? []; if (keys.includes(KEY(engineId))) setMsgs(load(engineId)); }; window.addEventListener("eclipse-sync-pulled", on); return () => window.removeEventListener("eclipse-sync-pulled", on); }, [engineId]);
+  useEffect(() => { const on = (e: Event) => { const keys = (e as CustomEvent<string[]>).detail ?? []; if (keys.includes(KEY(engineId))) setMsgs(load(engineId)); if (keys.includes(HKEY(engineId))) setPast(loadPast(engineId)); }; window.addEventListener("eclipse-sync-pulled", on); return () => window.removeEventListener("eclipse-sync-pulled", on); }, [engineId]);
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, busy]);
   // A treatment sent over from the Treatment step arrives as the first message to write.
   useEffect(() => { try { const t = sessionStorage.getItem("eclipse-treatment-handoff"); if (t) { sessionStorage.removeItem("eclipse-treatment-handoff"); setText(`Write the video prompt for this treatment:\n${t}`.slice(0, 4000)); } } catch {} }, [setText]);
@@ -172,12 +182,44 @@ export default function PromptsView() {
     void navigator.clipboard?.writeText(value).then(() => { setCopied(id); window.setTimeout(() => setCopied(""), 1400); }).catch(() => {});
   }
   const carry = (value: string) => router.push(`${engine.forModel === "video" ? "/generate" : "/create"}?prompt=${encodeURIComponent(value.slice(0, 4000))}`);
-  const clear = () => { commit([]); setNote(""); };
+  // The current chat goes into the history (when it has something in it) and a blank one starts.
+  const filed = (current: Msg[], list: Past[]): Past[] => (current.length ? [{ id: uid(), at: Date.now(), title: titleOf(current), messages: current }, ...list].slice(0, 30) : list);
+  function newChat() {
+    if (busy) return;
+    const next = filed(msgs, past);
+    setPast(next); savePast(engineId, next);
+    commit([]); setNote(""); setEditing(null); setShowPast(false);
+  }
+  function openPast(id: string) {
+    if (busy) return;
+    const hit = past.find((c) => c.id === id);
+    if (!hit) return;
+    const next = filed(msgs, past.filter((c) => c.id !== id));
+    setPast(next); savePast(engineId, next);
+    commit(hit.messages); setNote(""); setEditing(null); setShowPast(false);
+  }
+  function deletePast(id: string) { const next = past.filter((c) => c.id !== id); setPast(next); savePast(engineId, next); }
 
   return (
     <div className="pm-wrap">
       <header className="pm-head">
-        <h1 className="pg-title">Prompts</h1>
+        <div className="pm-title">
+          <h1 className="pg-title">Prompts</h1>
+          <div className="pm-hbtns">
+            <button type="button" className={`pm-tool ${showPast ? "is-on" : ""}`} aria-label="Chat history" aria-expanded={showPast} title="History" onClick={() => setShowPast((v) => !v)}><Clock size={15} /></button>
+            <button type="button" className="pm-tool" aria-label="New chat" title="New chat" disabled={busy || msgs.length === 0} onClick={newChat}><SquarePen size={15} /></button>
+          </div>
+        </div>
+        {showPast && (
+          <div className="pm-past" role="region" aria-label="Earlier chats">
+            {past.length === 0 ? <p className="pm-past-empty">No earlier chats yet. Press New chat to keep this one and start another.</p> : past.map((c) => (
+              <div key={c.id} className="pm-past-row">
+                <button type="button" onClick={() => openPast(c.id)}><b>{c.title}</b><span>{new Date(c.at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {c.messages.filter((m) => m.role === "user").length} message{c.messages.filter((m) => m.role === "user").length === 1 ? "" : "s"}</span></button>
+                <button type="button" className="pm-past-del" aria-label={`Delete ${c.title}`} title="Delete" onClick={() => deletePast(c.id)}><Trash2 size={14} /></button>
+              </div>
+            ))}
+          </div>
+        )}
         <p>Describe the idea, add reference pictures if you have them, and get a production-ready prompt back.</p>
       </header>
 
@@ -261,8 +303,7 @@ export default function PromptsView() {
             <button type="button" className="pm-tool" aria-label="Add a file" title="Add a file" onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={15} className="cr-spin" /> : <Plus size={16} />}</button>
             <input ref={fileInput} type="file" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void addFile(f); e.target.value = ""; }} />
             <button type="button" className={`pm-tool ${mic.listening ? "is-live" : ""}`} aria-label={mic.listening ? "Stop voice input" : "Voice input"} title={mic.listening ? "Stop" : "Talk instead of typing"} aria-pressed={mic.listening} onClick={mic.toggle}><Mic size={15} /></button>
-            <button type="button" className="pm-tool pm-wide" onClick={() => setPicking(true)} title="Choose pictures you already have"><Layers size={14} /> Ingredients{pics.length ? ` (${pics.length})` : ""}</button>
-            {msgs.length > 0 && <button type="button" className="pm-tool" aria-label="Clear the conversation" title="Clear the conversation" onClick={clear}><Trash2 size={15} /></button>}
+            <button type="button" className="pm-tool" aria-label={`Ingredients${pics.length ? ` (${pics.length})` : ""}`} title="Choose pictures from your Library" onClick={() => setPicking(true)}><Layers size={15} /></button>
             <button type="submit" className="pm-send" disabled={!text.trim() || busy} aria-label="Send">{busy ? <Loader2 size={16} className="cr-spin" /> : <ArrowUp size={18} />}</button>
           </div>
         </form>
