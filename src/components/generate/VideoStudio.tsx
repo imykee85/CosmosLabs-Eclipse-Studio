@@ -483,7 +483,7 @@ export default function VideoStudio() {
               onLoadedMetadata={(e) => { const v = e.currentTarget; if (v.videoWidth && v.videoHeight) setNatural({ id: active.id, ratio: `${v.videoWidth}:${v.videoHeight}` }); }} />
           ) : null}
           {active?.status === "completed" && active.draft && !active.finalMade && (
-            <button type="button" className="vs-final" disabled={makingFinal === active.id} onClick={() => void makeFinal(active)}>{makingFinal === active.id ? "Starting…" : "Make final 1080p"}{active.finalCredits != null && makingFinal !== active.id && <span className="vs-final-cost"><CoinIcon size={12} />{fmtCredits(active.finalCredits)}</span>}</button>
+            <button type="button" className="vs-final" disabled={makingFinal === active.id} onClick={() => void makeFinal(active)}>{makingFinal === active.id ? "Starting…" : "Generate in 1080p"}{active.finalCredits != null && makingFinal !== active.id && <span className="vs-final-cost"><CoinIcon size={12} />{fmtCredits(active.finalCredits)}</span>}</button>
           )}
         </div>
         {done.length > 0 && (
