@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors, Grid3x3, Pencil, Wrench } from "lucide-react";
+import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors, Grid3x3, Pencil, Wrench, Film } from "lucide-react";
+import { refreshCredits } from "@/lib/use-credits";
 import { getCertificate } from "@/lib/certificate-client";
 import { trashRender } from "@/lib/render-actions";
 import AddSoundDialog from "../voice/AddSoundDialog";
@@ -32,6 +33,30 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
   const [editing, setEditing] = useState(false);
   const [varying, setVarying] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [finalBusy, setFinalBusy] = useState(false);
+
+  // A finished Seedance 2.5 draft (480p preview): the same video in 1080p, nothing else changes. Asks first when the price is above the confirm line.
+  async function makeFinal() {
+    setNote(""); setFinalBusy(true);
+    try {
+      let confirm = false;
+      for (;;) {
+        const res = await fetch("/api/video/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draftId: g.id, confirm: confirm || undefined }) });
+        const d = await res.json().catch(() => ({}));
+        if (res.status === 409 && d.needsConfirm && !confirm) {
+          if (!window.confirm(`The final 1080p video costs ${fmtCredits(d.cost)} credits. Start it?`)) return;
+          confirm = true;
+          continue;
+        }
+        if (!res.ok || typeof d.id !== "string") { setNote(typeof d.error === "string" ? d.error : "The final video could not be started. Please try again."); return; }
+        refreshCredits();
+        setNote("Started. The 1080p video appears in your Gallery and Library when it is ready.");
+        onStarted?.();
+        return;
+      }
+    } catch { setNote("Could not reach the server. Check your connection and try again."); }
+    finally { setFinalBusy(false); }
+  }
 
   async function certify() {
     if (cert.code) { window.open(`/c/${cert.code}`, "_blank"); return; }
@@ -122,6 +147,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
         <button type="button" className="rd-btn" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={15} /> : <Copy size={15} />}<span className="rd-lbl">{copied ? "Copied" : "Copy prompt"}</span></button>
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined} aria-label="Download" title="Download"><Download size={15} /><span className="rd-lbl">Download</span></a>
         <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>
+        {g.kind === "video" && g.draft && !g.finalMade && <button type="button" className="rd-btn" onClick={() => void makeFinal()} disabled={finalBusy} aria-label="Make final 1080p" title="The same video in 1080p, nothing else changes"><Film size={15} /><span className="rd-lbl">{finalBusy ? "Starting…" : "Make final 1080p"}{g.finalCredits != null && !finalBusy ? ` · ${fmtCredits(g.finalCredits)}` : ""}</span></button>}
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setSound(true)} aria-label="Add sound" title="Add sound to this video"><Volume2 size={15} /><span className="rd-lbl">Add sound</span></button>}
         {!collapsible && <button type="button" className="rd-btn" onClick={() => router.push(`${g.kind === "video" ? "/generate" : "/create"}?tool=${g.id}`)} aria-label="Tools" title={g.kind === "video" ? "Open this video in Video Studio with its tools (upscale, relight, edit)" : "Open this picture in Image Studio with its tools (upscale, edit, relight, variations)"}><Wrench size={15} /><span className="rd-lbl">Tools</span></button>}
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setEditing(true)} aria-label="Edit video" title="Edit or extend this video"><Scissors size={15} /><span className="rd-lbl">Edit video</span></button>}

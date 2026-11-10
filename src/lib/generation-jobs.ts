@@ -9,9 +9,18 @@ import type { Prisma } from "@prisma/client";
 import { higgsfield } from "./higgsfield";
 import { targetOf, ratioString } from "./conform";
 import { chargeFor, getModelById } from "./models";
-import { findVideoModel } from "./video-models";
+import { findVideoModel, videoPrice } from "./video-models";
 import { safeText } from "./safe-text";
 import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from "./storage";
+
+// The price of the 1080p video made from a finished draft: the same 1080p rate the server charges in startDraftFinal (src/lib/video-draft.ts).
+function draftFinalCredits(g: Generation): number | null {
+  const p = g.params && typeof g.params === "object" && !Array.isArray(g.params) ? (g.params as Record<string, unknown>) : null;
+  if (process.env.CREDITS_ENABLED !== "1" || !p || p.draft !== true || p.finalId || g.status !== "completed") return null;
+  const model = findVideoModel("seedance_2_5");
+  if (!model?.live) return null;
+  try { return videoPrice(model, "1080p", g.durationSec ?? 5, g.hasAudio !== false, g.provider === "higgsfield" ? "higgsfield" : "direct", typeof p.inputVideoSec === "number" ? p.inputVideoSec : undefined); } catch { return null; }
+}
 
 const GIVE_UP_AFTER_MS = 15 * 60 * 1000;
 const SAVING_STALE_MS = 2 * 60 * 1000;
@@ -50,6 +59,7 @@ export type RenderItem = {
   deletedAt: Date | null;
   draft?: boolean;
   finalMade?: boolean;
+  finalCredits?: number | null; // a finished draft: what its final 1080p video costs (ledger units), or null when credits are off
 };
 
 const REASONS: Record<string, string> = {
@@ -193,6 +203,7 @@ export async function toItem(g: Generation): Promise<RenderItem> {
     uploaded: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).uploaded === true),
     draft: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).draft === true),
     finalMade: !!(g.params && typeof g.params === "object" && (g.params as Record<string, unknown>).finalId),
+    finalCredits: draftFinalCredits(g),
     credits: g.creditsHeld,
     startedAt: g.startedAt,
     createdAt: g.createdAt,
