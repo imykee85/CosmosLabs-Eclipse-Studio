@@ -4,8 +4,8 @@
 // each rule is written to refuse clear requests and to leave ordinary creative work alone, so a few things will get through and a few unusual
 // phrasings may be refused; the person is told which kind of request it was so they can rephrase.
 
-const MINOR = /\b(child|children|kid|kids|minor|minors|underage|under[\s-]?age|preteen|pre[\s-]?teen|toddler|infant|schoolboy|schoolgirl|school\s?(boy|girl)|loli|lolita|shota|teen|teens|teenager|teenage|(1[0-7]|[0-9])[\s-]?(yo|y\/o|years?[\s-]?old))\b/;
-const SEXUAL = /\b(nude|nudes|naked|nsfw|porn|porno|pornographic|sex|sexual|sexy|erotic|explicit|topless|genitals?|fetish|hentai|undress(ed|ing)?|lingerie)\b/;
+const MINOR = /\b(child|children|kid|kids|minor(?!\s+(?:skin|imperfections?|blemish\w*|flaws?|details?|changes?|adjustments?|edits?|tweaks?|scratch\w*|wear|marks?|issues?|errors?|variations?|differences?|key|chords?|role|league)\b)|minors|underage|under[\s-]?age|preteen|pre[\s-]?teen|toddler|infant|schoolboy|schoolgirl|school\s?(boy|girl)|loli|lolita|shota|teen|teens|teenager|teenage|(1[0-7]|[0-9])[\s-]?(yo|y\/o|years?[\s-]?old))\b/;
+const SEXUAL = /\b(nude|nudes|naked|nsfw|porn|porno|pornographic|sex(?!\s*[:=-]?\s*(?:female|male|woman|man|f|m|non[\s-]?binary)\b)|sexual|sexy|erotic|explicit|topless|genitals?|fetish|hentai|undress(ed|ing)?|lingerie)\b/;
 const REAL_PERSON = /\b(deepfake|deep fake|face ?swap|celebrity|celebrities|real person|real people|my (ex|boss|coworker|teacher|neighbou?r|classmate|sister|mother|mom|wife|girlfriend)|ex[\s-]?(girlfriend|boyfriend|wife|husband))\b/;
 const FORGERY = /\b(fake|forged|counterfeit|fraudulent)\s+(passports?|ids?|identity cards?|driver'?s? licen[cs]es?|visas?|bank ?notes?|money|currency|dollar bills?|checks?|cheques?|prescriptions?)\b/;
 const HARM: RegExp[] = [
