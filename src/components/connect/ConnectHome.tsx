@@ -5,7 +5,7 @@ import GrowArea from "@/components/GrowArea";
 import Link from "next/link";
 import { KeyboardEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, Brain, Clock, Film, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
+import { ArrowUp, Brain, Clock, Layers, Loader2, Mic, Plus, Puzzle, SquarePen, Wrench, X } from "lucide-react";
 import { attachKind, readDocument } from "@/lib/attach-file";
 import { videoUploadType } from "@/lib/upload-type";
 import AgentIcon from "../AgentIcon";
