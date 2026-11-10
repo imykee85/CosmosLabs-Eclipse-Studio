@@ -205,10 +205,6 @@ export default function PromptsView() {
       <header className="pm-head">
         <div className="pm-title">
           <h1 className="pg-title">Prompts</h1>
-          <div className="pm-hbtns">
-            <button type="button" className={`pm-tool ${showPast ? "is-on" : ""}`} aria-label="Chat history" aria-expanded={showPast} title="History" onClick={() => setShowPast((v) => !v)}><Clock size={15} /></button>
-            <button type="button" className="pm-tool" aria-label="New chat" title="New chat" disabled={busy || msgs.length === 0} onClick={newChat}><SquarePen size={15} /></button>
-          </div>
         </div>
         {showPast && (
           <div className="pm-past" role="region" aria-label="Earlier chats">
@@ -223,12 +219,18 @@ export default function PromptsView() {
         <p>Describe the idea, add reference pictures if you have them, and get a production-ready prompt back.</p>
       </header>
 
+      <div className="pm-enginebar">
       <div className="pm-engines" role="tablist" aria-label="Prompt engine">
         {PROMPT_ENGINES.map((e) => (
           <button key={e.id} type="button" role="tab" aria-selected={e.id === engineId} className={`pm-engine ${e.id === engineId ? "is-on" : ""}`} onClick={() => (e.available ? setEngineId(e.id) : setNote(`${e.name} is coming soon.`))}>
             {e.forModel === "video" ? <Clapperboard size={14} /> : <ImageStudioIcon size={14} />} {e.name} {!e.available && <SoonTag />}
           </button>
         ))}
+      </div>
+        <div className="pm-hbtns">
+            <button type="button" className={`pm-tool ${showPast ? "is-on" : ""}`} aria-label="Chat history" aria-expanded={showPast} title="History" onClick={() => setShowPast((v) => !v)}><Clock size={15} /></button>
+            <button type="button" className="pm-tool" aria-label="New chat" title="New chat" disabled={busy || msgs.length === 0} onClick={newChat}><SquarePen size={15} /></button>
+          </div>
       </div>
       <p className="pm-blurb">{engine.blurb}</p>
 

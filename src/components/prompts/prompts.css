@@ -47,6 +47,7 @@
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .pm-wrap { padding-bottom: 230px; }
   .pm-head p { margin-top: 0; }
+  .pm-enginebar { margin-top: 14px; }
   .pm-engines { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 14px; }
   .pm-engines::-webkit-scrollbar { display: none; }
   .pm-engine { flex: none; }
@@ -72,7 +73,9 @@
 
 /* Header buttons and the history list */
 .pm-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.pm-hbtns { display: flex; gap: 8px; margin-left: auto; }
+.pm-enginebar { display: flex; align-items: center; gap: 10px; margin-top: 22px; }
+.pm-enginebar .pm-engines { flex: 1; min-width: 0; margin-top: 0; }
+.pm-hbtns { display: flex; flex: none; gap: 8px; margin-left: auto; }
 .pm-tool.is-on { border-color: var(--a-fg2); }
 .pm-past { display: grid; gap: 6px; margin: 14px 0 4px; }
 .pm-past-empty { margin: 0; color: var(--a-muted); font-size: 13.5px; }
