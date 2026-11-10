@@ -168,7 +168,7 @@ function redout(f) {
 }
 // Memory page: the orb sits at (1336, 1102) in the 2880x1800 capture
 function memoryShot(k, f, a = 1) {
-  const im = IM["cap-memory"], fx = 1336 / 2880, fy = 1102 / 1800, z = lerp(TALL ? 9 : 7, TALL ? 2.4 : 1.22, eOut(k));
+  const im = IM["cap-memory"], fx = 1336 / 2880, fy = 1102 / 1800, z = lerp(TALL ? 9 : 7, TALL ? 2.4 : 1.9, eOut(k));
   cover(im, z, fx, fy, a, 0, TALL ? 0 : 0);
   const pulse = 0.5 + 0.5 * Math.sin(f / 9); glow(W / 2, H / 2, M * 0.16 * z * (1 + 0.05 * pulse), "rgba(255,30,20,0.55)", a * (0.35 + 0.25 * pulse));
 }
