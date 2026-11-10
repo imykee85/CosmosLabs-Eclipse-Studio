@@ -491,7 +491,15 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     <>
           <button type="button" className="cv-add" aria-expanded={panel === "share"} aria-haspopup="dialog" onClick={() => openPanel("share")} title="Share a view-only link"><Share2 size={16} /> Share</button>
           <button type="button" className="cv-add cv-hist" aria-expanded={panel === "comments"} aria-haspopup="dialog" aria-label={`Comments${openCommentCount ? `, ${openCommentCount} open` : ""}`} title="Comments" onClick={() => openPanel("comments")}><MessageSquareText size={16} />{openCommentCount > 0 ? openCommentCount : ""}</button>
-          <button type="button" className="cv-add cv-hist" aria-label="Canvas settings" title="Canvas settings" onClick={() => { setPanel(null); setShowSettings(true); }}><Settings size={16} /></button>
+    </>
+  );
+  const settingsBtn = <button type="button" className="cv-add cv-hist" aria-label="Canvas settings" title="Canvas settings" onClick={() => { setPanel(null); setShowSettings(true); }}><Settings size={16} /></button>;
+
+  const histBtns = (
+    <>
+          <button type="button" className="cv-add cv-hist" disabled={!canUndo} onClick={undoStep} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={16} /></button>
+          <button type="button" className="cv-add cv-hist" disabled={!canRedo} onClick={redoStep} aria-label="Redo" title="Redo (Shift+Ctrl+Z)"><Redo2 size={16} /></button>
+          <button type="button" className={`cv-add cv-hist ${tool === "select" ? "is-on" : ""}`} aria-pressed={tool === "select"} onClick={() => setTool((t) => (t === "select" ? "pan" : "select"))} aria-label={tool === "select" ? "Select mode: drag a box round nodes" : "Pan mode: drag to move the board"} title={tool === "select" ? "Select (V): drag a box round nodes. Press H for pan." : "Pan (H). Press V to select several nodes."}>{tool === "select" ? <MousePointer2 size={16} /> : <Hand size={16} />}</button>
     </>
   );
 
@@ -499,9 +507,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     <>
         <div className="cv-btns">
           <button type="button" className="cv-add" aria-expanded={panel === "nodes"} aria-haspopup="dialog" onClick={() => openPanel("nodes")} title="Add node (N)"><Plus size={16} /> Add node</button>
-          <button type="button" className="cv-add cv-hist" disabled={!canUndo} onClick={undoStep} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={16} /></button>
-          <button type="button" className="cv-add cv-hist" disabled={!canRedo} onClick={redoStep} aria-label="Redo" title="Redo (Shift+Ctrl+Z)"><Redo2 size={16} /></button>
-          <button type="button" className={`cv-add cv-hist ${tool === "select" ? "is-on" : ""}`} aria-pressed={tool === "select"} onClick={() => setTool((t) => (t === "select" ? "pan" : "select"))} aria-label={tool === "select" ? "Select mode: drag a box round nodes" : "Pan mode: drag to move the board"} title={tool === "select" ? "Select (V): drag a box round nodes. Press H for pan." : "Pan (H). Press V to select several nodes."}>{tool === "select" ? <MousePointer2 size={16} /> : <Hand size={16} />}</button>
+          {!phone && histBtns}
           {selectedCount > 0 && <button type="button" className="cv-add cv-hist" onClick={groupSelected} aria-label="Group the selected nodes" title="Group the selected nodes (Ctrl+G)"><Group size={16} /></button>}
           {selectedCount > 1 && <button type="button" className="cv-add cv-hist cv-danger" onClick={deleteSelected} aria-label={`Delete ${selectedCount} selected nodes`} title="Delete the selected nodes"><Trash2 size={16} />{selectedCount}</button>}
           <button type="button" className="cv-add" aria-expanded={panel === "templates"} aria-haspopup="dialog" onClick={() => openPanel("templates")}><LayoutTemplate size={16} /> Templates</button>
@@ -591,15 +597,17 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
               <button type="button" className="cv-back" onClick={onBack} aria-label="Back to your canvases" title="All canvases"><ArrowLeft size={16} /></button>
               <input className="cv-name" value={name} maxLength={60} aria-label="Canvas name" onChange={(e) => setName(e.target.value)} onBlur={commitName} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
               <span className={`cv-status is-${status}`} aria-live="polite" title={status === "local" ? "Kept in this browser. It will be sent to your account on the next change." : undefined}>{status === "saving" ? "Saving…" : status === "local" ? "Saved on this device" : "Saved"}</span>
+              {phone && histBtns}
             </div>
             {!phone && toolbar}
           </Panel>
           {phone && <Panel position="bottom-center" className="cv-panel cv-dock">{toolbar}</Panel>}
           <Panel position="top-right" className="cv-panel cv-right">
-            {!phone && extraBtns}
+            {!phone && <>{extraBtns}{settingsBtn}</>}
             <button type="button" className="cv-fit" onClick={() => setFull((f) => !f)} aria-pressed={full} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen (Esc)" : "Full screen"}>
               {full ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
+            {phone && settingsBtn}
           </Panel>
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} />
           {guides && (

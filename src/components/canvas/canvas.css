@@ -136,7 +136,7 @@
 .cv-top { display: flex; align-items: center; gap: 8px; }
 .cv-back { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); cursor: pointer; }
 .cv-back:hover { border-color: var(--a-line4); }
-.cv-name { width: 190px; max-width: 42vw; height: 36px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 600; }
+.cv-name { width: 130px; max-width: 30vw; height: 36px; padding: 0 12px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; font-weight: 600; }
 .cv-name:hover { border-color: var(--a-line4); } .cv-name:focus { outline: 0; border-color: var(--a-line4); }
 .cv-status { color: var(--a-muted); font-size: 12px; white-space: nowrap; }
 .cv-status.is-local { color: var(--a-danger); }
@@ -272,6 +272,10 @@
   .cv-dock { margin-bottom: 10px; }
   .cv-dock .cv-btns { justify-content: center; flex-wrap: wrap; }
   .cv-dock .cv-add { height: 44px; min-width: 44px; justify-content: center; }
+  .react-flow__panel.cv-dock { z-index: 7; }
+  .cv-wrap .react-flow__panel.top { z-index: 8; }
+  .cv-top .cv-hist { width: 36px; padding: 0; justify-content: center; }
+  .cv-top { gap: 6px; }
   .cv-scrim { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); }
   .react-flow__panel.cv-dock.bottom.center { left: 0; right: 0; transform: none; display: flex; justify-content: center; }
   .cv-dock .cv-pop { position: fixed; z-index: 41; left: 0; right: 0; bottom: calc(82px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: min(72dvh, 560px); border-radius: 18px 18px 0 0; }
