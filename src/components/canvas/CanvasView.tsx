@@ -99,6 +99,14 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const [undo, setUndo] = useState<{ nodes: CNode[]; edges: Edge[] } | null>(null); // what was just deleted, for the Undo bar
   const [name, setName] = useState(meta.name);
   const [status, setStatus] = useState<"saved" | "saving" | "local">("saved");
+  const [showSaved, setShowSaved] = useState(false); // "Saved" only flashes, then goes
+  const [savedTick, setSavedTick] = useState(0); // counts finished saves, so each one flashes even when the save is instant
+  useEffect(() => {
+    if (savedTick === 0) return;
+    setShowSaved(true);
+    const t = setTimeout(() => setShowSaved(false), 1400);
+    return () => clearTimeout(t);
+  }, [savedTick]);
   const phone = usePhone();
   const [tool, setTool] = useState<"pan" | "select">("pan"); // Pan: drag the board. Select: drag a box round nodes (the only way to do it with a finger).
   const [cat, setCat] = useState<string>("All");           // node list category
@@ -137,7 +145,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     timer.current = null;
     const l = latest.current;
     setStatus("saving");
-    void saveCanvasDoc(projectId, canvasId, l.nodes, l.edges, l.viewport).then((r) => setStatus(r));
+    void saveCanvasDoc(projectId, canvasId, l.nodes, l.edges, l.viewport).then((r) => { setStatus(r); if (r === "saved") setSavedTick((n) => n + 1); });
   }, [projectId, canvasId]);
   const persist = useCallback(() => {
     try { latest.current.viewport = getViewport(); } catch {}
@@ -490,8 +498,10 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
   const extraBtns = (
     <>
           <button type="button" className="cv-add" aria-expanded={panel === "share"} aria-haspopup="dialog" onClick={() => openPanel("share")} title="Share a view-only link"><Share2 size={16} /> Share</button>
-          <button type="button" className="cv-add cv-hist" aria-expanded={panel === "comments"} aria-haspopup="dialog" aria-label={`Comments${openCommentCount ? `, ${openCommentCount} open` : ""}`} title="Comments" onClick={() => openPanel("comments")}><MessageSquareText size={16} />{openCommentCount > 0 ? openCommentCount : ""}</button>
     </>
+  );
+  const commentsBtn = (
+          <button type="button" className="cv-add cv-hist" aria-expanded={panel === "comments"} aria-haspopup="dialog" aria-label={`Comments${openCommentCount ? `, ${openCommentCount} open` : ""}`} title="Comments" onClick={() => openPanel("comments")}><MessageSquareText size={16} />{openCommentCount > 0 ? openCommentCount : ""}</button>
   );
   const settingsBtn = <button type="button" className="cv-add cv-hist" aria-label="Canvas settings" title="Canvas settings" onClick={() => { setPanel(null); setShowSettings(true); }}><Settings size={16} /></button>;
 
@@ -596,14 +606,14 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
             <div className="cv-top">
               <button type="button" className="cv-back" onClick={onBack} aria-label="Back to your canvases" title="All canvases"><ArrowLeft size={16} /></button>
               <input className="cv-name" value={name} maxLength={60} aria-label="Canvas name" onChange={(e) => setName(e.target.value)} onBlur={commitName} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
-              <span className={`cv-status is-${status}`} aria-live="polite" title={status === "local" ? "Kept in this browser. It will be sent to your account on the next change." : undefined}>{status === "saving" ? "Saving…" : status === "local" ? "Saved on this device" : "Saved"}</span>
+              <span className={`cv-status is-${status}`} aria-live="polite" title={status === "local" ? "Kept in this browser. It will be sent to your account on the next change." : undefined}>{status === "saving" ? "Saving…" : status === "local" ? "Saved on this device" : showSaved ? "Saved" : ""}</span>
             </div>
             {!phone && toolbar}
           </Panel>
           {phone && <Panel position="bottom-center" className="cv-panel cv-dock">{toolbar}</Panel>}
           <Panel position="top-right" className="cv-panel cv-right">
-            {!phone && <>{extraBtns}{settingsBtn}</>}
-            {phone && histBtns}
+            {!phone && <>{extraBtns}{commentsBtn}{settingsBtn}</>}
+            {phone && <>{histBtns}{commentsBtn}</>}
             <button type="button" className="cv-fit" onClick={() => setFull((f) => !f)} aria-pressed={full} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen (Esc)" : "Full screen"}>
               {full ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
