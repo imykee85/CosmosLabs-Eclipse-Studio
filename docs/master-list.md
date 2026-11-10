@@ -65,6 +65,7 @@ Completeness basis (2026-11-04 sweep): every "NOT built / NOT tested / NOT verif
 | 44 | Neon and Vercel load: generation-list `select`, Core chat history window, ledger replay caching, static public pages | Not immediately necessary | Cuts database transfer and CPU; riskier changes I have not made. | Owner's go, then me |
 | 45 | "Eclipse Vizo" renaming of the Seedance entries (check provider terms, trademark and the Privacy wording first) | Not immediately necessary | Parked until you raise it. | Owner |
 | 46 | Offered but never chosen: fold Gallery and Assets into Library, a "My voices" view, keep picture metadata when redrawing, tell the assistants the person's language, right-to-left languages, Tavus live agent | Not immediately necessary | Each was offered and not picked; tell me yes or no. | Owner |
+| 64 | Eclipse Motion (template motion-design videos: title cards, kinetic text, logo reveals, lower thirds, social ads, stats, montages, captions; brief in `docs/eclipse-MOTION-brief.md`): do not start until you say so. Phase 0 needs your renderer choice (Remotion may need a paid company licence) | Not immediately necessary | Not built. Needs the media worker host (item 12) and the answers to the brief's section 8. | Owner decision, then me |
 
 ## D. After launch (V2, details in `docs/v2.md`)
 | # | Item | Priority | Why it matters | Who |
