@@ -7,7 +7,7 @@ const g = cv.getContext("2d");
 const BG = "#060606", PAPER = "#F4F1ED", RED = "#c00707", MUTE = "rgba(244,241,237,0.5)";
 const S = Object.fromEntries(TL.scenes.map((s) => [s.id, s]));
 const IM = {};
-const CARDS = 35, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
+const CARDS = 36, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
 
 // ---------- helpers ----------
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -48,7 +48,7 @@ function text(str, x, y, px, col, o = {}) {
 }
 // a line that arrives word by word; `dim` words stay grey
 function line(str, f, a, b, o = {}) {
-  const words = str.split(" "), px = o.px ?? M * (TALL ? 0.064 : 0.06), y = o.y ?? H * (TALL ? 0.86 : 0.875), out = 1 - prog(f, b - 8, b - 1);
+  const words = str.split(" "), px = o.px ?? M * (TALL ? 0.058 : 0.06), y = o.y ?? H * (TALL ? 0.86 : 0.875), out = 1 - prog(f, b - 8, b - 1);
   g.save(); g.font = `${o.w || 600} ${px}px Inter`; g.letterSpacing = -px * 0.035 + "px"; g.textBaseline = "middle";
   const sp = g.measureText(" ").width, ws = words.map((w) => g.measureText(w.replace(/[\[\]]/g, "")).width), tot = ws.reduce((p, c) => p + c, 0) + sp * (words.length - 1);
   let x = (o.x ?? W / 2) - tot / 2;
@@ -93,7 +93,7 @@ const FAN = TALL ? [[0.5, 0.36, 0.62], [0.27, 0.66, 0.4], [0.73, 0.66, 0.4], [0.
 function sImages(f) {
   const s = S.images, up = eIO(prog(f, s.start, s.start + 12));
   promptBox(W / 2, lerp(H / 2, H * (TALL ? 0.075 : 0.105), up), W * (TALL ? 0.92 : 0.64) * lerp(1, 0.62, up), PROMPT, { a: lerp(1, 0.75, up) * (1 - prog(f, s.end - 8, s.end)), hot: false });
-  const order = [1, 2, 0], pics = [IM["card-0"], IM["card-1"], IM["card-3"]], out = eIn(prog(f, s.end - 9, s.end));
+  const order = [1, 2, 0], pics = [IM["card-0"], IM["card-1"], IM["v2-marcus-floor"]], out = eIn(prog(f, s.end - 9, s.end));
   order.forEach((k) => { const st = s.start + 8 + (k === 0 ? 0 : k * 9 + 12), t = spring(prog(f, st, st + 18)), p = FAN[k], hh = M * p[2] * (TALL ? 1 : 1.12) * t * (1 - out * 0.4);
     card(pics[k], W * p[0] + (k === 1 ? -1 : k === 2 ? 1 : 0) * out * W * 0.5, H * (p[1] + 0.03) + (1 - t) * M * 0.08, hh * 0.72, hh, { rot: (k === 1 ? -0.07 : k === 2 ? 0.07 : 0) * t, a: clamp(t * 3) * (1 - out) }); });
   line("Images that look [directed.]", f, s.start + 30, s.end);
@@ -106,14 +106,14 @@ function sHits(f) {
   line("Any style. [Any era.]", f, s.start + 4, s.end + 20);
 }
 // the dashboard's product shots and beauty pictures rise as a row of cards
-const SHOP = 7;
+const SHOP = 5;
 function sShop(f) {
   const s = S.shop, drift = lerp(1, -1, prog(f, s.start, s.end)) * M * 0.05;
   for (let i = 0; i < SHOP; i++) {
     const st = s.start + i * 3, t = spring(prog(f, st, st + 18));
     let x, y, h;
-    if (TALL) { const row = i < 4 ? 0 : 1, col = row ? i - 4 : i, n = row ? 3 : 4; h = M * (row ? 0.5 : 0.42); x = W * ((col + 0.5) / n) + drift * (row ? -1 : 1); y = H * (row ? 0.56 : 0.3); }
-    else { h = M * (i % 2 ? 0.4 : 0.46); x = W * ((i + 0.5) / SHOP) + drift; y = H * (i % 2 ? 0.45 : 0.42); }
+    if (TALL) { const row = i < 3 ? 0 : 1, col = row ? i - 3 : i, n = row ? 2 : 3; h = M * (row ? 0.6 : 0.5); x = W * ((col + 0.5) / n) + drift * (row ? -1 : 1); y = H * (row ? 0.56 : 0.3); }
+    else { h = M * (i % 2 ? 0.5 : 0.58); x = W * ((i + 0.5) / SHOP) + drift; y = H * (i % 2 ? 0.44 : 0.41); }
     card(IM[`shop-${i}`], x, y + (1 - t) * H * 0.35, h * 0.78, h, { a: clamp(t * 3), rot: (i % 2 ? 0.035 : -0.035) * t, fy: 0.45 });
   }
   line("Shots that [sell.]", f, s.start + 16, s.end + 10);
@@ -123,8 +123,8 @@ function sVideo(f) {
   // two side clips, then the hero clip grows to fill the frame
   const sideA = (1 - ex) * clamp(spring(prog(f, s.start + 8, s.start + 24)) * 3), hs = M * (TALL ? 0.34 : 0.5);
   if (sideA > 0) { const t = spring(prog(f, s.start + 8, s.start + 24));
-    card(seq("camp", lf), W * (TALL ? 0.24 : 0.2) - ex * W * 0.4, H * (TALL ? 0.68 : 0.5), hs * 0.5625 * t, hs * t, { a: sideA, rot: -0.06 });
-    card(seq("film", lf), W * (TALL ? 0.76 : 0.8) + ex * W * 0.4, H * (TALL ? 0.68 : 0.5), hs * 0.5625 * t, hs * t, { a: sideA, rot: 0.06 }); }
+    card(seq("camp", lf), W * (TALL ? 0.24 : 0.2) - ex * W * 0.4, H * (TALL ? 0.68 : 0.5), hs * 0.5625 * t, hs * t, { a: sideA });
+    card(seq("film", lf), W * (TALL ? 0.76 : 0.8) + ex * W * 0.4, H * (TALL ? 0.68 : 0.5), hs * 0.5625 * t, hs * t, { a: sideA }); }
   const t = spring(prog(f, s.start, s.start + 18)), h0 = M * (TALL ? 0.56 : 0.72) * t, w0 = h0 * 0.5625, w = lerp(w0, W * 1.02, ex), h = lerp(h0, H * 1.02, ex);
   card(seq("hero", lf), W / 2, lerp(H * (TALL ? 0.36 : 0.47), H / 2, ex), w, h, { r: lerp(Math.min(w0, h0) * 0.06, 0, ex), a: clamp(t * 3), fy: 0.45 });
   if (ex > 0.5) { const gr = g.createLinearGradient(0, H * 0.6, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.7)"); g.globalAlpha = (ex - 0.5) * 2; g.fillStyle = gr; g.fillRect(0, H * 0.6, W, H * 0.4); g.globalAlpha = 1; }
@@ -167,16 +167,63 @@ function atlasBall(cx, cy, r, f) { // Atlas: a white ball with two eyes that bli
   for (const sx of [-1, 1]) { g.beginPath(); g.ellipse(cx + sx * r * 0.27 + look, cy - r * 0.08, r * 0.13, r * 0.26 * blink, 0, 0, 7); g.fill(); }
 }
 function sAtlas(f) {
-  const s = S.atlas, drop = spring(prog(f, s.start, s.start + 20)), r = M * (TALL ? 0.1 : 0.115);
-  const side = eIO(prog(f, s.start + 40, s.start + 58)), bx = TALL ? W / 2 : lerp(W / 2, W * 0.27, side), by = TALL ? lerp(H * 0.45, H * 0.2, side) : H * 0.45;
-  atlasBall(bx, by - (1 - drop) * H * 0.5 + Math.sin(f / 9) * M * 0.008, r, f);
-  const pt = spring(prog(f, s.start + 52, s.start + 72)), pw = (TALL ? W * 0.84 : W * 0.34) * pt;
-  shot(IM["cap-atlas-3-answer"], [2127, 532, 645, 645], TALL ? W / 2 : W * 0.64, TALL ? H * 0.54 : H * 0.45, pw, { a: clamp(pt * 3) });
-  if (f < s.start + 46) line("Meet [Atlas.]", f, s.start + 14, s.start + 46); else line("He proposes. [You approve.]", f, s.start + 60, s.end);
+  const s = S.atlas, drop = spring(prog(f, s.start, s.start + 20)), r = M * (TALL ? 0.12 : 0.14);
+  atlasBall(W / 2, H * 0.44 - (1 - drop) * H * 0.5 + Math.sin(f / 9) * M * 0.008, r, f);
+  line("Meet [Atlas.]", f, s.start + 12, s.end + 6);
+}
+// a capture drawn full frame with a camera: centre (cx, cy) in capture pixels, zoom 1 = the capture fills the frame
+function camShot(im, cx, cy, z, a = 1) { const sc = Math.max(W / im.width, H / im.height) * z; g.globalAlpha = a; g.drawImage(im, W / 2 - cx * sc, H * 0.46 - cy * sc, im.width * sc, im.height * sc); g.globalAlpha = 1; return (x, y) => [W / 2 + (x - cx) * sc, H * 0.46 + (y - cy) * sc, sc]; }
+// Image Studio with Atlas: show him a look, he writes the prompt, Apply and generate, the picture appears in the preview
+const SK = TALL
+  ? [[0, 1440, 900, 0.75], [10, 2488, 820, 1.2], [46, 2488, 900, 1.2], [76, 2488, 980, 1.35], [92, 1712, 760, 1.5], [128, 1712, 738, 2.1], [150, 1712, 738, 2.9]]
+  : [[0, 1440, 900, 1.0], [10, 2480, 640, 1.85], [46, 2470, 960, 1.75], [76, 2520, 1110, 2.0], [92, 1712, 760, 1.6], [128, 1712, 738, 2.4], [150, 1712, 738, 3.5]];
+const PREV = [1580, 501, 265, 474]; // the 9:16 preview frame in the capture
+function sStudio(f) {
+  const s = S.studio, lf = f - s.start; let i = 0; while (i < SK.length - 1 && lf >= SK[i + 1][0]) i++;
+  const a = SK[i], b = SK[Math.min(i + 1, SK.length - 1)], t = b === a ? 1 : eIO(clamp((lf - a[0]) / Math.min(16, b[0] - a[0])));
+  const cx = lerp(a[1], b[1], t), cy = lerp(a[2], b[2], t), z = lerp(a[3], b[3], t);
+  const im = lf < 46 ? IM["st-1"] : lf < 90 ? IM["st-2"] : IM["st-3"], X = camShot(im, cx, cy, z);
+  if (lf >= 46 && lf < 52) camShot(IM["st-1"], cx, cy, z, 1 - (lf - 46) / 6); if (lf >= 90 && lf < 96) camShot(IM["st-2"], cx, cy, z, 1 - (lf - 90) / 6);
+  if (lf < 92) { const pt = eIO(prog(lf, 58, 80)), [px, py, sc] = X(lerp(2700, 2565, pt), lerp(1500, 1212, pt)), press = lf >= 82 && lf < 86 ? 0.85 : 1; if (lf > 54) pointer(px, py, press * sc / 1.6);
+    if (lf >= 82) glow(px, py, M * 0.2 * eOut(prog(lf, 82, 92)), "rgba(192,7,7,0.9)", 0.6 * (1 - prog(lf, 82, 92))); }
+  if (lf >= 92) { // the picture being made: a soft scan from top to bottom, sharpening as it lands
+    const [x, y, sc] = X(PREV[0], PREV[1]), w = PREV[2] * sc, h = PREV[3] * sc, r = 22 * sc, tr = eIO(prog(lf, 96, 124)), pic = IM["v2-fur"];
+    g.save(); rr(x, y, w, h, r); g.clip(); g.fillStyle = "#151515"; g.fillRect(x, y, w, h);
+    const ps = Math.max(w / pic.width, h / pic.height), sw = w / ps, sh = h / ps;
+    g.save(); g.beginPath(); g.rect(x, y, w, h * tr); g.clip(); g.filter = `blur(${(1 - tr) * 14 * sc / 2}px)`; g.drawImage(pic, (pic.width - sw) / 2, (pic.height - sh) / 2, sw, sh, x, y, w, h); g.filter = "none"; g.restore();
+    if (tr < 1) { const ly = y + h * tr, lg = g.createLinearGradient(0, ly - h * 0.08, 0, ly); lg.addColorStop(0, "rgba(255,255,255,0)"); lg.addColorStop(1, "rgba(255,255,255,0.55)"); g.fillStyle = lg; g.fillRect(x, ly - h * 0.08, w, h * 0.08); }
+    g.restore();
+  }
+  const gr = g.createLinearGradient(0, H * 0.7, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(0.7, "rgba(0,0,0,0.85)"); gr.addColorStop(1, "rgba(0,0,0,0.92)"); g.fillStyle = gr; g.fillRect(0, H * 0.7, W, H * 0.3);
+  if (lf < 46) line("Show Atlas [a look.]", f, s.start + 12, s.start + 46); else if (lf < 92) line("He writes [the prompt.]", f, s.start + 50, s.start + 92); else line("Image Studio [makes it.]", f, s.start + 98, s.end + 4);
+}
+// director styles: the names arrive one after another, kinetic, then the line
+const DIRS = ["Kubrick", "Wong Kar-wai", "Villeneuve", "Hitchcock", "Fincher", "Kurosawa", "Nolan", "Park Chan-wook"];
+function sDirectors(f) {
+  const s = S.directors, lf = f - s.start, step = 5, k = Math.min(DIRS.length - 1, Math.floor(lf / step)), lt = (lf - k * step) / step;
+  text("Direct it like", W / 2, H * 0.34, M * 0.04, MUTE, { w: 500, a: eOut(prog(lf, 0, 8)) * (1 - prog(lf, DIRS.length * 5, DIRS.length * 5 + 6)) });
+  const settle = lf >= DIRS.length * step, name = DIRS[k], px = M * (TALL ? 0.11 : 0.13);
+  if (!settle) { const t = eExpo(lt); text(name, W / 2, H * 0.47 + (1 - t) * px * 0.5, px, PAPER, { w: 700, a: clamp(t * 2) }); }
+  else text(DIRS[DIRS.length - 1], W / 2, H * 0.47, px, PAPER, { w: 700, a: 1 - eIn(prog(lf, DIRS.length * step, DIRS.length * step + 6)) });
+  if (settle) { if (TALL) { line("Twenty director lenses.", f, s.start + DIRS.length * step + 4, s.end + 4, { y: H * 0.47 }); line("[Built into Atlas.]", f, s.start + DIRS.length * step + 10, s.end + 4, { y: H * 0.53 }); } else line("Twenty director lenses. [Built into Atlas.]", f, s.start + DIRS.length * step + 4, s.end + 4, { y: H * 0.5 }); }
+}
+// Relight: the same shot, lit again; a sweep of light carries the new lighting across the picture
+function sRelight(f) {
+  const s = S.relight, lf = f - s.start, t = spring(prog(lf, 0, 16)), h = M * (TALL ? 0.66 : 0.8) * t, w = h * 1116 / 2000, cx = W / 2, cy = H * (TALL ? 0.42 : 0.45);
+  const A = IM["v2-relight-before"], B = IM["v2-relight-after"], sw = eIO(prog(lf, 18, 42));
+  card(A, cx, cy, w, h, { a: clamp(t * 3) });
+  if (sw > 0) { g.save(); rr(cx - w / 2, cy - h / 2, w, h, Math.min(w, h) * 0.06); g.clip(); g.beginPath(); g.rect(cx - w / 2, cy - h / 2, w * sw, h); g.clip();
+    const s2 = Math.max(w / B.width, h / B.height), bw = w / s2, bh = h / s2; g.drawImage(B, (B.width - bw) / 2, (B.height - bh) * 0.4, bw, bh, cx - w / 2, cy - h / 2, w, h); g.restore();
+    if (sw < 1) { const ex = cx - w / 2 + w * sw; glow(ex, cy, h * 0.55, "rgba(255,160,70,0.85)", 0.7); g.fillStyle = "rgba(255,240,220,0.85)"; g.fillRect(ex - 1.5, cy - h / 2, 3, h); } }
+  // the tool pill, as in Image Studio's tray
+  const pa = eOut(prog(lf, 6, 16)), pw = M * 0.16, ph = M * 0.055, py = cy - h / 2 - ph * 1.1; g.globalAlpha = pa; rr(cx - pw / 2, py - ph / 2, pw, ph, ph / 2); g.fillStyle = "#1c1c1c"; g.fill(); g.strokeStyle = "rgba(192,7,7,0.9)"; g.lineWidth = 2; g.stroke(); g.globalAlpha = 1;
+  text("Relight", cx, py, ph * 0.42, PAPER, { w: 600, a: pa });
+  line("Relight [any shot.]", f, s.start + 20, s.end + 4);
 }
 function sShotmap(f) {
   const s = S.shotmap, t = spring(prog(f, s.start, s.start + 18)), z = lerp(1, 1.06, prog(f, s.start, s.end));
-  shot(IM["cap-shotmap-stage"], [905, 610, 1070, 800], W / 2, H * (TALL ? 0.42 : 0.44), (TALL ? W * 0.9 : M * 0.98) * t * z, { a: clamp(t * 3) });
+  shot(IM["cap-shotmap-stage"], [905, 610, 1070, 800], W / 2, H * (TALL ? 0.44 : 0.5), (TALL ? W * 0.9 : M * 0.9) * t * z, { a: clamp(t * 3) });
+  text("ShotMap", W / 2, H * (TALL ? 0.16 : 0.09), M * 0.07, PAPER, { w: 700, a: eOut(prog(f, s.start + 4, s.start + 14)) });
   line("Place the camera. [Then generate.]", f, s.start + 14, s.end);
 }
 function sCore(f) {
@@ -204,7 +251,7 @@ function sEnd(f) {
   text(TL.url, W / 2, H * 0.93, M * 0.02, MUTE, { a: eOut(prog(f, s.start + 44, s.start + 58)), ls: M * 0.001 });
   g.fillStyle = "#000"; g.globalAlpha = eIO(prog(f, s.end - 12, s.end - 1)); g.fillRect(0, 0, W, H); g.globalAlpha = 1;
 }
-const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, shop: sShop, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
+const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, shop: sShop, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, studio: sStudio, directors: sDirectors, relight: sRelight, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
 const acc = document.createElement("canvas"); acc.width = W; acc.height = H; const ag = acc.getContext("2d");
 const JOIN = new Set(["images", "end"]); // these continue the scene before them, so no cut-through into them
 function drawAt(n) {
@@ -224,7 +271,7 @@ window.renderFrame = (n, fast) => {
 };
 window.ready = (async () => {
   const ff = await new FontFace("Inter", "url(fonts/Inter-latin.woff2)", { weight: "100 900" }).load(); document.fonts.add(ff);
-  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
+  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ["st-1", "work/cap-studio-1-request.png"], ["st-2", "work/cap-studio-2-answer.png"], ["st-3", "work/cap-studio-3-done.png"], ...["fur", "marcus-floor", "relight-before", "relight-after"].map((n) => [`v2-${n}`, `work/v2-${n}.jpg`]), ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
     ...["character", "product-1", "product-2", "product-3", "product-4"].map((n) => [`cv-${n}`, `work/cv-${n}.jpg`]),
     ...Array.from({ length: CARDS }, (_, i) => [`card-${i}`, `work/card-${i}.jpg`]),
     ...Object.entries(SEQ).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
