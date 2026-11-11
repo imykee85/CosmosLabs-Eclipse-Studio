@@ -35,8 +35,8 @@ async function page_(browser) {
     : { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: "dark" });
   const page = await ctx.newPage();
   await page.addInitScript(() => {
-    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Skincare launch" }));
-    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Skincare launch", updatedAt: new Date().toISOString(), deletedAt: null }]));
+    localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Power broker" }));
+    localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Power broker", updatedAt: new Date().toISOString(), deletedAt: null }]));
     localStorage.setItem("eclipse-first-tour", "1"); localStorage.setItem("eclipse-welcome-offer", "1");
     localStorage.setItem("eclipse-agent", "Atlas");
     localStorage.setItem("eclipse-theme", "dark");
@@ -60,12 +60,12 @@ const screens = {
     let asked = 0;
     await page.route("**/api/agent/chat", (r) => r.fulfill({ json: { runId: "r1" } }));
     await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE" ? r.fulfill({ json: { ok: true } })
-      : (++asked < 4 ? r.fulfill({ json: { status: "running" } }) : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is a stronger direction for the teaser.", actions: [{ kind: "use_prompt", label: "Use this prompt", prompt: "A product launch teaser for a skincare brand: the amber serum bottle on wet black stone, one slow push in, warm window light, water beads catching the light" }], controls: { ratio: "9:16" } } } } })));
+      : (++asked < 4 ? r.fulfill({ json: { status: "running" } }) : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is a sharper direction.", actions: [{ kind: "use_prompt", label: "Use this prompt", prompt: "A 90s power broker in a grey pinstripe suit: double-breasted, black roll-neck, oxblood leather gloves, seated in a wood-panelled waiting room, direct flash, editorial fashion photograph" }], controls: { ratio: "2:3" } } } } })));
     await page.goto(BASE + "/create"); await page.waitForTimeout(1200); await tidy(page);
-    await page.fill("form.cr-box textarea", "Make a product launch teaser for a skincare brand");
+    await page.fill("form.cr-box textarea", "A 90s power broker in a grey pinstripe suit");
     await page.click(".aw-btn"); await page.waitForSelector(".aw-panel");
     await shot(page, "atlas-1-open");
-    await page.fill(".aw-panel textarea", "Make a product launch teaser for a skincare brand");
+    await page.fill(".aw-panel textarea", "A 90s power broker in a grey pinstripe suit");
     await page.keyboard.press("Control+Enter"); await page.waitForTimeout(700);
     await shot(page, "atlas-2-working");
     await page.waitForSelector(".aw-prop", { timeout: 30000 }); await page.waitForTimeout(500);
@@ -107,13 +107,48 @@ const screens = {
     await page.waitForTimeout(2500);
     await shot(page, "canvas-1-flow");
   },
+  // Image Studio with Atlas: a picture is sent to Atlas, he writes the prompt, the picture is made. Three states, plus where the preview sits.
+  // Image Studio with Atlas docked on the right (full height, like the sidebar on the left; Image Studio centred between them).
+  // The person types a rough description, Atlas answers with the full prompt, Apply and generate, the picture is made.
+  async studio(page) {
+    const FUR = path.join(HERE, "assets/v2/fur.png"), PROMPT = "Editorial fashion portrait: a young woman with slicked-back hair in an oversized honey-gold fox fur coat, sheer black tights and gold-toe pumps, seated on a gilded chair in a sculptor's studio among plaster busts and classical statues, plastic sheeting over a worn wooden floor, soft daylight, direct gaze, 35 mm film grain";
+    const ASK = "woman in a big fur coat sitting on a chair, old statues behind her, moody fashion shot";
+    await page.route(/\/api\/generations\/g6\/(file|thumb)/, (r) => r.fulfill({ body: fs.readFileSync(FUR), contentType: "image/png" }));
+    const user = { id: "m1", role: "user", text: ASK };
+    const agent = (applied) => ({ id: "m2", role: "agent", text: "Here is the full direction.", actions: [], proposal: { page: "create", prompt: PROMPT, controls: { ratio: "9:16" }, settings: [{ label: "Aspect ratio", from: "1:1", to: "9:16" }], before: "", ...(applied ? { applied } : {}) } });
+    const DOCK = ".aw-card.aw-panel{top:0!important;bottom:0!important;right:0!important;height:100vh!important;width:400px!important;border-radius:0!important;border-top:0!important;border-right:0!important;border-bottom:0!important} .ws-content{padding-right:400px!important}";
+    const open = async (msgs, opts = {}) => {
+      await page.addInitScript(({ msgs, opts }) => {
+        localStorage.clear();
+        localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Power broker" }));
+        localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Power broker", updatedAt: new Date().toISOString(), deletedAt: null }]));
+        localStorage.setItem("eclipse-first-tour", "1"); localStorage.setItem("eclipse-welcome-offer", "1"); localStorage.setItem("eclipse-agent", "Atlas"); localStorage.setItem("eclipse-theme", "dark");
+        localStorage.setItem("eclipse-agent-on:create", "1");
+        localStorage.setItem("eclipse-agent-chat-Atlas", JSON.stringify(msgs));
+        if (opts.prompt) localStorage.setItem("eclipse-draft-create", JSON.stringify({ prompt: opts.prompt, ratio: "9:16", qty: 1, tier: "2k" }));
+      }, { msgs, opts });
+      if (opts.done) await page.route("**/api/generations?**", (r) => r.fulfill({ json: { items: [{ id: "g6", prompt: PROMPT, model: "auto", modelLabel: "Auto", status: "completed", error: null, credits: 1, createdAt: new Date().toISOString(), deletedAt: null, references: null, seed: null, seedLocked: false, projectId: "p1", fileName: "g6.png", contentType: "image/png", sizeBytes: 10, width: 1125, height: 2000, resolution: "2k", startedAt: null, imageUrl: "/api/generations/g6/file", kind: "image", aspectRatio: "9:16" }] } }));
+      await page.goto(BASE + "/create"); await page.waitForTimeout(1500); await tidy(page); await page.addStyleTag({ content: DOCK });
+      await page.click(".aw-btn").catch(() => {}); await page.waitForSelector(".aw-panel"); await page.waitForTimeout(900);
+    };
+    const rect = async (sel) => { const b = await page.locator(sel).first().boundingBox().catch(() => null); return b && [b.x * 2, b.y * 2, b.width * 2, b.height * 2]; };
+    const R = {};
+    await open([]); R.input = await rect(".aw-panel .aw-input textarea"); R.inputBox = await rect(".aw-panel .aw-input"); await shot(page, "studio-0-empty");
+    await open([user]); R.user = await rect(".aw-msg.is-user"); await shot(page, "studio-1-request");
+    await open([user, agent()]); R.prop = await rect(".aw-prop"); R.go = await rect(".aw-prop button:last-of-type"); await shot(page, "studio-2-answer");
+    await open([user, agent("generate")], { prompt: PROMPT, done: true }); await page.waitForTimeout(1500);
+    // the preview card: the biggest image-shaped box inside the preview
+    R.preview = await page.evaluate(() => { let best = null; for (const el of document.querySelectorAll(".cr-preview *")) { const b = el.getBoundingClientRect(); if (b.width > 100 && b.height > b.width && (!best || b.width * b.height > best[2] * best[3])) best = [b.x * 2, b.y * 2, b.width * 2, b.height * 2]; } return best; });
+    R.ask = ASK; fs.writeFileSync(path.join(OUT, "studio-rects.json"), JSON.stringify(R, null, 1));
+    await shot(page, "studio-3-done");
+  },
   async audio(page) {
     await page.route("**/api/audio/models", (r) => r.fulfill({ json: { models: voiceModels } }));
     await page.route("**/api/audio/voices**", (r) => r.fulfill({ json: { voices: [{ voiceId: "v1", name: "Ana", accent: "british", gender: "female" }, { voiceId: "v2", name: "Marcus", accent: "american", gender: "male" }, { voiceId: "v3", name: "Leila", accent: "french", gender: "female" }, { voiceId: "v4", name: "Kofi", accent: "ghanaian", gender: "male" }], ready: true } }));
     await page.goto(BASE + "/voice"); await page.waitForTimeout(1800); await tidy(page);
     await shot(page, "audio-0");
     await page.getByText("Ana", { exact: true }).click().catch(() => {});
-    await page.locator("textarea").first().fill("Your skin, at its calmest. [whispers] Meet the new Glow Berry mist.");
+    await page.locator("textarea").first().fill("He never raised his voice. [whispers] He never had to.");
     await page.waitForTimeout(800);
     await shot(page, "audio-1");
   },

@@ -1,11 +1,8 @@
-import type { Metadata } from "next";
-import AboutPage from "@/components/about/AboutPage";
+import { notFound } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Why Eclipse — Eclipse",
-  description: "Eclipse brings images, video, voice and AI agents into one creative studio, so an idea can go from a sentence to finished work.",
-};
-
+// The About page is switched off: "Why Eclipse?" on the homepage now opens a film instead. The page itself is kept, unlinked,
+// in src/components/about/ (AboutPage.tsx, AboutCta.tsx, about.css). To bring it back, render <AboutPage /> here again,
+// restore the sitemap entry and add the link back in Landing.tsx.
 export default function Page() {
-  return <AboutPage />;
+  notFound();
 }

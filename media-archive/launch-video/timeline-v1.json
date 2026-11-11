@@ -1,0 +1,28 @@
+{
+  "fps": 30,
+  "frames": 720,
+  "note": "Edit start/end (frames at 30 fps; each scene must start where the one before ends) and re-run render.mjs. blur = camera-shutter smear on that scene.",
+  "scenes": [
+    { "id": "warning", "start": 0, "end": 14 },
+    { "id": "astronaut", "start": 14, "end": 23 },
+    { "id": "cells", "start": 23, "end": 40 },
+    { "id": "walkers", "start": 40, "end": 60 },
+    { "id": "brain", "start": 60, "end": 72 },
+    { "id": "runner", "start": 72, "end": 82, "blur": true },
+    { "id": "dissolve", "start": 82, "end": 93, "blur": true },
+    { "id": "cascade", "start": 93, "end": 121, "blur": true },
+    { "id": "hero", "start": 121, "end": 249 },
+    { "id": "redout", "start": 249, "end": 270, "blur": true },
+    { "id": "core", "start": 270, "end": 315 },
+    { "id": "atlas", "start": 315, "end": 375, "blur": true },
+    { "id": "canvas", "start": 375, "end": 435 },
+    { "id": "audio", "start": 435, "end": 480, "blur": true },
+    { "id": "shotmap", "start": 480, "end": 525, "blur": true },
+    { "id": "burst", "start": 525, "end": 600, "blur": true },
+    { "id": "finale", "start": 600, "end": 660 },
+    { "id": "endcard", "start": 660, "end": 720 }
+  ],
+  "popins": [127, 150, 172],
+  "line2": 687,
+  "fade": 705
+}

@@ -15,6 +15,7 @@ import PriceBadge from "@/components/i18n/PriceBadge";
 import PlanBenefits from "@/components/PlanBenefits";
 import LanguageMenu from "@/components/i18n/LanguageMenu";
 import HeroImage from "./HeroImage";
+import WhyVideo from "./WhyVideo";
 import NavFit from "./NavFit";
 import CanvasCarousel from "./CanvasCarousel";
 import AtlasWorkflow from "./AtlasWorkflow";
@@ -255,7 +256,7 @@ export default function Landing() {
           <Cta glint />
           <SignedOut><p className="hero-trial">Start free trial</p></SignedOut>
         </div>
-        <IndustryStrip above={<Link className="hero-why" href="/about"><Play size={16} fill="currentColor" strokeWidth={0} aria-hidden="true" />Why Eclipse?</Link>} />
+        <IndustryStrip above={<WhyVideo />} />
         <div className="scroll-cue"><ArrowDown size={16} /> scroll to explore</div>
       </section>
 

@@ -966,3 +966,10 @@ html[data-app-theme="light"] .auth-accept a { color: #141414; }
 @media (min-width: 1101px) { .pricing-section { padding-bottom: 33px; } }
 @media (min-width: 1101px) { .pricing-section .price-list dl { row-gap: 10px; } .pricing-section { padding-bottom: 23px; } }
 .price-list .eyebrow, .price-list .pl-sub { text-align: center; }
+
+/* "Why Eclipse?" film pop-up */
+button.hero-why { font-family: inherit; cursor: pointer; }
+.why-back { position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.86); }
+.why-box { position: relative; width: min(1100px, 100%); }
+.why-video { display: block; width: 100%; max-height: 82vh; border-radius: 16px; background: #000; }
+.why-x { position: absolute; top: -52px; right: 0; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }

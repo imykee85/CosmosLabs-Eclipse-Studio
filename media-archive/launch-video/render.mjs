@@ -19,7 +19,7 @@ const page = await browser.newPage({ viewport: { width: 800, height: 600 } }); p
 await page.goto(`http://localhost:${port}/film.html?w=${w}&h=${h}&safe=${cut === "safe" ? 1 : 0}`); await page.evaluate(() => window.boot);
 fs.mkdirSync(path.join(HERE, "out"), { recursive: true });
 const name = sheet ? `sheet-${cut}-${shape}` : `launch-${cut}-${shape}${len === "15" ? "-15s" : ""}`;
-const audio = path.join(HERE, "out", len === "15" ? "bed-15s.m4a" : "bed-24s.m4a"), hasAudio = !sheet && !fr && fs.existsSync(audio);
+const audio = path.join(HERE, "out", len === "15" ? "bed-15s.m4a" : "bed-full.m4a"), hasAudio = !sheet && !fr && fs.existsSync(audio);
 const args = sheet
   ? ["-y", "-f", "image2pipe", "-c:v", "mjpeg", "-i", "-", "-vf", `scale=${shape === "9x16" ? 180 : 384}:-1,tile=${shape === "9x16" ? 15 : 8}x${Math.ceil(frames.length / (shape === "9x16" ? 15 : 8))}`, "-frames:v", "1", "-update", "1", "-q:v", "3", path.join(HERE, "out", name + (fr ? "-" + fr : "") + ".jpg")]
   : ["-y", "-f", "image2pipe", "-framerate", "30", "-c:v", "mjpeg", "-i", "-", ...(hasAudio ? ["-i", audio] : []), "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", ...(hasAudio ? ["-c:a", "copy", "-shortest"] : []), "-movflags", "+faststart", path.join(HERE, "out", name + (fr ? "-" + fr : "") + ".mp4")];
