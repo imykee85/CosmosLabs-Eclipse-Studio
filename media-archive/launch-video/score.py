@@ -138,7 +138,11 @@ for j in range(len(P)):
     if P[j] == " ": continue
     put(keytap(), sec(a0 + (a1 - a0) * (j + 1) / len(P)) + rng.normal(0, 0.006), 0.42, pan=rng.uniform(-0.15, 0.15))
 put(click(), sec(TL["click"]), 0.9); put(pop(520), sec(TL["click"]) + 0.02, 0.35)
-put(click(), sec(S["studio"]["start"] + 82), 0.9); put(pop(520), sec(S["studio"]["start"] + 82) + 0.02, 0.35)
+ASK = json.load(open(os.path.join(HERE, "captures", "studio-rects.json")))["ask"]; b0 = S["studio"]["start"]
+for j in range(len(ASK)):
+    if ASK[j] != " ": put(keytap(), sec(b0 + 10 + 34 * (j + 1) / len(ASK)) + rng.normal(0, 0.006), 0.38, pan=0.3)
+put(click(), sec(b0 + 48), 0.7); put(swoosh(0.3, False), sec(b0 + 49), 0.2)
+put(click(), sec(b0 + 90), 0.9); put(pop(520), sec(b0 + 90) + 0.02, 0.35)
 # a swoosh on every cut (the zoom-through), not into the scenes that continue the one before
 JOIN = {"images", "end"}
 for s in TL["scenes"][1:]:
@@ -147,13 +151,13 @@ for s in TL["scenes"][1:]:
 # cards landing
 im = S["images"]["start"]
 for f in (im + 8, im + 29, im + 38): put(pop(760), sec(f + 4), 0.3)
-for i in range(5): put(pop(700 + 70 * i), sec(S["shop"]["start"] + i * 3 + 4), 0.25, pan=-0.4 + 0.2 * i)
+put(swoosh(1.6), sec(S["shop"]["start"]), 0.22)
 for f in range(S["hits"]["start"], S["hits"]["end"], 12): put(thump(), sec(f), 0.55)
 for f in (30, 62, 92, 122): put(pop(640), sec(S["canvas"]["start"] + f + 6), 0.25)
 for k in range(5): put(pop(600 + 60 * k), sec(S[f"for{k}"]["start"] + 5), 0.3); put(click(), sec(S[f"for{k}"]["start"] + 3), 0.3)
 put(pop(380), sec(S["atlas"]["start"] + 10), 0.5)  # Atlas drops in
-for i in range(8): put(click(1.2), sec(S["directors"]["start"] + i * 5), 0.35, pan=rng.uniform(-0.3, 0.3))
-put(shimmer(1.1), sec(S["studio"]["start"] + 94), 0.6)  # the picture being made
+for i in (6, 15, 24, 36): put(thump(), sec(S["directors"]["start"] + i), 0.4)
+put(shimmer(1.2), sec(S["studio"]["start"] + 98), 0.6)  # the picture being made
 put(shimmer(0.9), sec(S["relight"]["start"] + 17), 0.5)  # the light sweep
 put(riser(1.6), sec(S["prompt"]["end"]) - 1.6, 0.25)  # into the drop
 put(riser(1.2), sec(S["canvas"]["start"]) - 1.2, 0.2)

@@ -107,15 +107,20 @@ function sHits(f) {
 }
 // the dashboard's product shots and beauty pictures rise as a row of cards
 const SHOP = 5;
+// the homepage carousel: cards on the inside of a ring with the camera at its centre, so middle cards are smallest and the sides grow,
+// each card's outer edge taller than its inner edge (same numbers as CanvasCarousel: camera 0.52 x width, card 0.2 x 0.283, 3 degree gap)
+function ringCard(im, deg, Rr, w, h, cx, cy, a) {
+  const th = deg * Math.PI / 180, N = 28, sw = im.width, sh = im.height, s0 = Math.max(w / sw, h / sh), cw = w / s0, ch = h / s0, ox = (sw - cw) / 2, oy = (sh - ch) * 0.45;
+  const pts = []; for (let i = 0; i <= N; i++) { const u = -w / 2 + (w * i) / N, d = Rr * Math.cos(th) - u * Math.sin(th); pts.push([cx + Rr * (Rr * Math.sin(th) + u * Math.cos(th)) / d, (h / 2) * Rr / d]); }
+  g.save(); g.globalAlpha = a; g.beginPath(); pts.forEach(([x, hh], i) => (i ? g.lineTo(x, cy - hh) : g.moveTo(x, cy - hh))); for (let i = N; i >= 0; i--) g.lineTo(pts[i][0], cy + pts[i][1]); g.closePath(); g.clip();
+  for (let i = 0; i < N; i++) { const [x0, h0] = pts[i], [x1, h1] = pts[i + 1], hh = Math.max(h0, h1); g.drawImage(im, ox + (cw * i) / N, oy, cw / N + 0.5, ch, x0, cy - hh, x1 - x0 + 0.8, hh * 2); }
+  g.restore(); g.globalAlpha = 1;
+}
 function sShop(f) {
-  const s = S.shop, drift = lerp(1, -1, prog(f, s.start, s.end)) * M * 0.05;
-  for (let i = 0; i < SHOP; i++) {
-    const st = s.start + i * 3, t = spring(prog(f, st, st + 18));
-    let x, y, h;
-    if (TALL) { const row = i < 3 ? 0 : 1, col = row ? i - 3 : i, n = row ? 2 : 3; h = M * (row ? 0.6 : 0.5); x = W * ((col + 0.5) / n) + drift * (row ? -1 : 1); y = H * (row ? 0.56 : 0.3); }
-    else { h = M * (i % 2 ? 0.5 : 0.58); x = W * ((i + 0.5) / SHOP) + drift; y = H * (i % 2 ? 0.44 : 0.41); }
-    card(IM[`shop-${i}`], x, y + (1 - t) * H * 0.35, h * 0.78, h, { a: clamp(t * 3), rot: (i % 2 ? 0.035 : -0.035) * t, fy: 0.45 });
-  }
+  const s = S.shop, base = TALL ? W * 1.35 : Math.min(W, 1600), Rr = base * 0.52, w = base * 0.2, h = base * 0.283, step = 2 * Math.atan(w / 2 / Rr) * 180 / Math.PI + 3;
+  const slots = SHOP * 2, pos = lerp(0.2, 2.2, prog(f, s.start, s.end)), inn = eOut(prog(f, s.start, s.start + 14)), cy = H * (TALL ? 0.42 : 0.45);
+  const list = []; for (let j = 0; j < slots; j++) { let k = (j - pos) % slots; if (k >= slots / 2) k -= slots; if (k < -slots / 2) k += slots; const deg = k * step; if (Math.abs(deg) <= 64) list.push([deg, j]); }
+  list.sort((p, q) => Math.abs(q[0]) - Math.abs(p[0])).forEach(([deg, j]) => ringCard(IM[`shop-${j % SHOP}`], deg, Rr, w, h * lerp(0.85, 1, inn), W / 2, cy + (1 - inn) * H * 0.08, inn));
   line("Shots that [sell.]", f, s.start + 16, s.end + 10);
 }
 // who it is for: one audience per beat, a picture or clip on one side, the line on the other
@@ -204,38 +209,46 @@ function sAtlas(f) {
 // a capture drawn full frame with a camera: centre (cx, cy) in capture pixels, zoom 1 = the capture fills the frame
 function camShot(im, cx, cy, z, a = 1) { const sc = Math.max(W / im.width, H / im.height) * z; g.globalAlpha = a; g.drawImage(im, W / 2 - cx * sc, H * 0.46 - cy * sc, im.width * sc, im.height * sc); g.globalAlpha = 1; return (x, y) => [W / 2 + (x - cx) * sc, H * 0.46 + (y - cy) * sc, sc]; }
 // Image Studio with Atlas: show him a look, he writes the prompt, Apply and generate, the picture appears in the preview
-const SK = TALL
-  ? [[0, 1440, 900, 0.75], [8, 2488, 820, 1.2], [46, 2488, 900, 1.2], [62, 2488, 980, 1.35], [92, 1712, 760, 1.5], [128, 1712, 738, 2.4]]
-  : [[0, 1440, 900, 1.0], [8, 2480, 700, 1.75], [46, 2470, 960, 1.75], [62, 2520, 1080, 2.0], [92, 1712, 760, 1.6], [128, 1712, 738, 3.0]];
-const PREV = [1580, 501, 265, 474]; // the 9:16 preview frame in the capture
+// Image Studio with Atlas docked on the right: the person types a rough idea, Atlas answers with the full prompt, Apply and generate, the picture is made.
+// Positions come from captures/studio-rects.json (capture pixels, measured by capture.mjs).
+let SR = null, INPUT_BG = "#1b1b1b";
+const ctr = (r) => [r[0] + r[2] / 2, r[1] + r[3] / 2];
+function studioKeys() {
+  const [ix, iy] = ctr(SR.inputBox), [ux, uy] = ctr(SR.user), [px, py] = ctr(SR.prop), [vx, vy] = ctr(SR.preview), zP = TALL ? 1.2 : 2.3, zV = TALL ? 2.25 : 2.3;
+  return [[0, 1440, 900, TALL ? 0.75 : 1.0], [8, ix, iy - 60, zP], [50, ix, uy + 140, zP], [64, px, py + 110, TALL ? 1.25 : 2.0], [96, vx, vy, zV], [140, vx, vy, zV * 1.25]];
+}
 function sStudio(f) {
-  const s = S.studio, lf = f - s.start; let i = 0; while (i < SK.length - 1 && lf >= SK[i + 1][0]) i++;
+  const s = S.studio, lf = f - s.start, SK = studioKeys(); let i = 0; while (i < SK.length - 1 && lf >= SK[i + 1][0]) i++;
   const a = SK[Math.max(0, i - 1)], b = SK[i], t = i === 0 ? 1 : eIO(clamp((lf - b[0]) / 14));
   const cx = lerp(a[1], b[1], t), cy = lerp(a[2], b[2], t), z = lerp(a[3], b[3], t);
-  const im = lf < 46 ? IM["st-1"] : lf < 90 ? IM["st-2"] : IM["st-3"], X = camShot(im, cx, cy, z);
-  if (lf >= 46 && lf < 52) camShot(IM["st-1"], cx, cy, z, 1 - (lf - 46) / 6); if (lf >= 90 && lf < 96) camShot(IM["st-2"], cx, cy, z, 1 - (lf - 90) / 6);
-  if (lf < 92) { const pt = eIO(prog(lf, 58, 80)), [px, py, sc] = X(lerp(2700, 2565, pt), lerp(1500, 1212, pt)), press = lf >= 82 && lf < 86 ? 0.85 : 1; if (lf > 54) pointer(px, py, press * sc / 1.6);
-    if (lf >= 82) glow(px, py, M * 0.2 * eOut(prog(lf, 82, 92)), "rgba(192,7,7,0.9)", 0.6 * (1 - prog(lf, 82, 92))); }
-  if (lf >= 92) { // the picture being made: a soft scan from top to bottom, sharpening as it lands
-    const [x, y, sc] = X(PREV[0], PREV[1]), w = PREV[2] * sc, h = PREV[3] * sc, r = 22 * sc, tr = eIO(prog(lf, 96, 124)), pic = IM["v2-fur"];
+  const im = lf < 49 ? IM["st-0"] : lf < 62 ? IM["st-1"] : lf < 96 ? IM["st-2"] : IM["st-3"], X = camShot(im, cx, cy, z);
+  if (lf >= 62 && lf < 68) camShot(IM["st-1"], cx, cy, z, 1 - (lf - 62) / 6); if (lf >= 96 && lf < 102) camShot(IM["st-2"], cx, cy, z, 1 - (lf - 96) / 6);
+  if (lf < 49) { // the rough idea, typed into Atlas's message box
+    const [bx, by, bw, bh] = SR.input, [x0, y0, sc] = X(bx, by), n = Math.round(SR.ask.length * prog(Math.floor(lf), 10, 44)), txt = SR.ask.slice(0, n), px = 31 * sc;
+    if (n > 0) { g.save(); g.beginPath(); g.rect(x0, y0, bw * sc, bh * sc); g.clip(); g.fillStyle = INPUT_BG; g.fillRect(x0, y0, bw * sc, bh * sc);
+      g.font = `400 ${px}px Inter`; g.textBaseline = "middle"; const tw = g.measureText(txt).width, sx = Math.min(0, bw * sc - tw - px * 0.4);
+      g.fillStyle = PAPER; g.fillText(txt, x0 + sx, y0 + (bh * sc) / 2); if (Math.floor(lf / 6) % 2 === 0 || n < SR.ask.length) { g.fillStyle = RED; g.fillRect(x0 + sx + tw + px * 0.08, y0 + bh * sc * 0.22, Math.max(2, px * 0.08), bh * sc * 0.56); } g.restore(); } }
+  if (lf >= 70 && lf < 96) { const [gx, gy] = ctr(SR.go), pt = eIO(prog(lf, 70, 88)), [qx, qy, sc] = X(lerp(gx + 150, gx, pt), lerp(gy + 260, gy, pt)), press = lf >= 90 ? 0.85 : 1; pointer(qx, qy, press * sc / 1.6);
+    if (lf >= 90) glow(qx, qy, M * 0.2 * eOut(prog(lf, 90, 96)), "rgba(192,7,7,0.9)", 0.6 * (1 - prog(lf, 90, 96))); }
+  if (lf >= 96) { // the picture being made: a soft scan from top to bottom, sharpening as it lands
+    const [x, y, sc] = X(SR.preview[0], SR.preview[1]), w = SR.preview[2] * sc, h = SR.preview[3] * sc, r = 24 * sc, tr = eIO(prog(lf, 100, 130)), pic = IM["v2-fur"];
     g.save(); rr(x, y, w, h, r); g.clip(); g.fillStyle = "#151515"; g.fillRect(x, y, w, h);
     const ps = Math.max(w / pic.width, h / pic.height), sw = w / ps, sh = h / ps;
-    g.save(); g.beginPath(); g.rect(x, y, w, h * tr); g.clip(); g.filter = `blur(${(1 - tr) * 14 * sc / 2}px)`; g.drawImage(pic, (pic.width - sw) / 2, (pic.height - sh) / 2, sw, sh, x, y, w, h); g.filter = "none"; g.restore();
+    g.save(); g.beginPath(); g.rect(x, y, w, h * tr); g.clip(); g.filter = `blur(${(1 - tr) * 7 * sc}px)`; g.drawImage(pic, (pic.width - sw) / 2, (pic.height - sh) / 2, sw, sh, x, y, w, h); g.filter = "none"; g.restore();
     if (tr < 1) { const ly = y + h * tr, lg = g.createLinearGradient(0, ly - h * 0.08, 0, ly); lg.addColorStop(0, "rgba(255,255,255,0)"); lg.addColorStop(1, "rgba(255,255,255,0.55)"); g.fillStyle = lg; g.fillRect(x, ly - h * 0.08, w, h * 0.08); }
     g.restore();
   }
   const gr = g.createLinearGradient(0, H * 0.7, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(0.7, "rgba(0,0,0,0.85)"); gr.addColorStop(1, "rgba(0,0,0,0.92)"); g.fillStyle = gr; g.fillRect(0, H * 0.7, W, H * 0.3);
-  if (lf < 46) line("Show Atlas [a look.]", f, s.start + 12, s.start + 46); else if (lf < 92) line("He writes [the prompt.]", f, s.start + 50, s.start + 92); else line("Image Studio [makes it.]", f, s.start + 98, s.end + 4);
+  if (lf < 56) line("Describe it [roughly.]", f, s.start + 8, s.start + 56); else if (lf < 98) line("Atlas writes [the full prompt.]", f, s.start + 64, s.start + 98); else line("Image Studio [makes it.]", f, s.start + 102, s.end + 4);
 }
 // director styles: the names arrive one after another, kinetic, then the line
-const DIRS = ["Kubrick", "Wong Kar-wai", "Villeneuve", "Hitchcock", "Fincher", "Kurosawa", "Nolan", "Park Chan-wook"];
+const DIRS = ["Spielberg.", "Kubrick.", "Nolan."];
 function sDirectors(f) {
-  const s = S.directors, lf = f - s.start, step = 5, k = Math.min(DIRS.length - 1, Math.floor(lf / step)), lt = (lf - k * step) / step;
-  text("Direct it like", W / 2, H * 0.34, M * 0.04, MUTE, { w: 500, a: eOut(prog(lf, 0, 8)) * (1 - prog(lf, DIRS.length * 5, DIRS.length * 5 + 6)) });
-  const settle = lf >= DIRS.length * step, name = DIRS[k], px = M * (TALL ? 0.11 : 0.13);
-  if (!settle) { const t = eExpo(lt); text(name, W / 2, H * 0.47 + (1 - t) * px * 0.5, px, PAPER, { w: 700, a: clamp(t * 2) }); }
-  else text(DIRS[DIRS.length - 1], W / 2, H * 0.47, px, PAPER, { w: 700, a: 1 - eIn(prog(lf, DIRS.length * step, DIRS.length * step + 6)) });
-  if (settle) { if (TALL) { line("Twenty director lenses.", f, s.start + DIRS.length * step + 4, s.end + 4, { y: H * 0.47 }); line("[Built into Atlas.]", f, s.start + DIRS.length * step + 10, s.end + 4, { y: H * 0.53 }); } else line("Twenty director lenses. [Built into Atlas.]", f, s.start + DIRS.length * step + 4, s.end + 4, { y: H * 0.5 }); }
+  const s = S.directors, lf = f - s.start, px = M * (TALL ? 0.1 : 0.115), gap = px * 1.08, y0 = H * (TALL ? 0.4 : 0.36), out = 1 - eIn(prog(lf, 58, 66));
+  text("Direct it like", W / 2, y0 - gap * 1.05, M * 0.04, MUTE, { w: 500, a: eOut(prog(lf, 0, 8)) * out });
+  DIRS.forEach((n, i) => { const t = eExpo(prog(lf, 6 + i * 9, 18 + i * 9)); text(n, W / 2, y0 + i * gap + (1 - t) * px * 0.6, px, PAPER, { w: 700, a: clamp(t * 2) * out }); });
+  const m = eExpo(prog(lf, 36, 48)); text("and many more.", W / 2, y0 + 3 * gap + (1 - m) * px * 0.4, px * 0.55, MUTE, { w: 600, a: clamp(m * 2) * out });
+  line("Director lenses, [built into Atlas.]", f, s.start + 44, s.end + 4);
 }
 // Relight: the same shot, lit again; a sweep of light carries the new lighting across the picture
 function sRelight(f) {
@@ -300,11 +313,13 @@ window.renderFrame = (n, fast) => {
   return cv.toDataURL("image/jpeg", 0.95).slice(23);
 };
 window.ready = (async () => {
+  SR = await (await fetch("captures/studio-rects.json")).json();
   const ff = await new FontFace("Inter", "url(fonts/Inter-latin.woff2)", { weight: "100 900" }).load(); document.fonts.add(ff);
-  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ["st-1", "work/cap-studio-1-request.png"], ["st-2", "work/cap-studio-2-answer.png"], ["st-3", "work/cap-studio-3-done.png"], ...["fur", "marcus-floor", "relight-before", "relight-after", "perfume"].map((n) => [`v2-${n}`, `work/v2-${n}.jpg`]), ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
+  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ["st-0", "work/cap-studio-0-empty.png"], ["st-1", "work/cap-studio-1-request.png"], ["st-2", "work/cap-studio-2-answer.png"], ["st-3", "work/cap-studio-3-done.png"], ...["fur", "marcus-floor", "relight-before", "relight-after", "perfume"].map((n) => [`v2-${n}`, `work/v2-${n}.jpg`]), ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
     ...["character", "product-1", "product-2", "product-3", "product-4"].map((n) => [`cv-${n}`, `work/cv-${n}.jpg`]),
     ...Array.from({ length: CARDS }, (_, i) => [`card-${i}`, `work/card-${i}.jpg`]),
     ...Object.entries({ ...SEQ, ...SEQ2 }).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
   await Promise.all(list.map(([n, src]) => new Promise((ok, no) => { const i = new Image(); i.onload = () => { IM[n] = i; ok(); }; i.onerror = () => no(new Error("missing " + src)); i.src = src; })));
+  { const c = document.createElement("canvas"); c.width = c.height = 4; const x = c.getContext("2d"); x.drawImage(IM["st-0"], SR.input[0] + 4, SR.input[1] + 4, 4, 4, 0, 0, 4, 4); const d = x.getImageData(1, 1, 1, 1).data; INPUT_BG = `rgb(${d[0]},${d[1]},${d[2]})`; }
   return true;
 })();
