@@ -1,25 +1,26 @@
 {
   "fps": 30,
-  "frames": 918,
+  "frames": 972,
   "note": "Version 2. Edit start/end (frames at 30 fps; each scene starts where the one before ends) and re-run render.mjs.",
   "prompt": "A 90s power broker. Grey pinstripe. Oxblood gloves.",
   "url": "eclipse.cosmoslabsai.com",
   "typed": 62,
   "click": 76,
-  "expand": 270,
-  "collapse": 840,
+  "expand": 324,
+  "collapse": 894,
   "scenes": [
     { "id": "prompt", "start": 0, "end": 88 },
     { "id": "images", "start": 88, "end": 180 },
     { "id": "hits", "start": 180, "end": 228 },
-    { "id": "video", "start": 228, "end": 336 },
-    { "id": "sound", "start": 336, "end": 396 },
-    { "id": "one", "start": 396, "end": 432 },
-    { "id": "canvas", "start": 432, "end": 582 },
-    { "id": "atlas", "start": 582, "end": 684 },
-    { "id": "shotmap", "start": 684, "end": 744 },
-    { "id": "core", "start": 744, "end": 804 },
-    { "id": "swarm", "start": 804, "end": 858 },
-    { "id": "end", "start": 858, "end": 918 }
+    { "id": "shop", "start": 228, "end": 282 },
+    { "id": "video", "start": 282, "end": 390 },
+    { "id": "sound", "start": 390, "end": 450 },
+    { "id": "one", "start": 450, "end": 486 },
+    { "id": "canvas", "start": 486, "end": 636 },
+    { "id": "atlas", "start": 636, "end": 738 },
+    { "id": "shotmap", "start": 738, "end": 798 },
+    { "id": "core", "start": 798, "end": 858 },
+    { "id": "swarm", "start": 858, "end": 912 },
+    { "id": "end", "start": 912, "end": 972 }
   ]
 }

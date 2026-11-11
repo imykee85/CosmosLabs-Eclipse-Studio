@@ -7,7 +7,7 @@ const g = cv.getContext("2d");
 const BG = "#060606", PAPER = "#F4F1ED", RED = "#c00707", MUTE = "rgba(244,241,237,0.5)";
 const S = Object.fromEntries(TL.scenes.map((s) => [s.id, s]));
 const IM = {};
-const CARDS = 28, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
+const CARDS = 35, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
 
 // ---------- helpers ----------
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -105,6 +105,19 @@ function sHits(f) {
   const gr = g.createLinearGradient(0, H * 0.6, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.65)"); g.fillStyle = gr; g.fillRect(0, H * 0.6, W, H * 0.4);
   line("Any style. [Any era.]", f, s.start + 4, s.end + 20);
 }
+// the dashboard's product shots and beauty pictures rise as a row of cards
+const SHOP = 7;
+function sShop(f) {
+  const s = S.shop, drift = lerp(1, -1, prog(f, s.start, s.end)) * M * 0.05;
+  for (let i = 0; i < SHOP; i++) {
+    const st = s.start + i * 3, t = spring(prog(f, st, st + 18));
+    let x, y, h;
+    if (TALL) { const row = i < 4 ? 0 : 1, col = row ? i - 4 : i, n = row ? 3 : 4; h = M * (row ? 0.5 : 0.42); x = W * ((col + 0.5) / n) + drift * (row ? -1 : 1); y = H * (row ? 0.56 : 0.3); }
+    else { h = M * (i % 2 ? 0.4 : 0.46); x = W * ((i + 0.5) / SHOP) + drift; y = H * (i % 2 ? 0.45 : 0.42); }
+    card(IM[`shop-${i}`], x, y + (1 - t) * H * 0.35, h * 0.78, h, { a: clamp(t * 3), rot: (i % 2 ? 0.035 : -0.035) * t, fy: 0.45 });
+  }
+  line("Shots that [sell.]", f, s.start + 16, s.end + 10);
+}
 function sVideo(f) {
   const s = S.video, ex = eIO(prog(f, TL.expand, TL.expand + 16)), lf = f - s.start;
   // two side clips, then the hero clip grows to fill the frame
@@ -191,7 +204,7 @@ function sEnd(f) {
   text(TL.url, W / 2, H * 0.93, M * 0.02, MUTE, { a: eOut(prog(f, s.start + 44, s.start + 58)), ls: M * 0.001 });
   g.fillStyle = "#000"; g.globalAlpha = eIO(prog(f, s.end - 12, s.end - 1)); g.fillRect(0, 0, W, H); g.globalAlpha = 1;
 }
-const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
+const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, shop: sShop, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
 const acc = document.createElement("canvas"); acc.width = W; acc.height = H; const ag = acc.getContext("2d");
 const JOIN = new Set(["images", "end"]); // these continue the scene before them, so no cut-through into them
 function drawAt(n) {
@@ -211,7 +224,7 @@ window.renderFrame = (n, fast) => {
 };
 window.ready = (async () => {
   const ff = await new FontFace("Inter", "url(fonts/Inter-latin.woff2)", { weight: "100 900" }).load(); document.fonts.add(ff);
-  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]),
+  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
     ...["character", "product-1", "product-2", "product-3", "product-4"].map((n) => [`cv-${n}`, `work/cv-${n}.jpg`]),
     ...Array.from({ length: CARDS }, (_, i) => [`card-${i}`, `work/card-${i}.jpg`]),
     ...Object.entries(SEQ).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
