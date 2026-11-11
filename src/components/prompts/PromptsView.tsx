@@ -17,6 +17,7 @@ import ImageStudioIcon from "../ImageStudioIcon";
 import ReferencePicker, { type RefPick } from "../create/ReferencePicker";
 import SoonTag from "../SoonTag";
 import "./prompts.css";
+import { MAX_ATTACH } from "@/lib/limits";
 
 // The Prompts page (VIDEO step 2): a prompt engineer. Pick an engine, add reference pictures if you have them, describe the idea, and get a production-ready
 // prompt back to copy or carry on to Video Studio or Image Studio. The chat is kept in this browser, one per engine.
@@ -25,7 +26,7 @@ type Msg = { id: string; role: "user" | "assistant"; text: string; pics?: Pic[];
 type Doc = Extract<DocumentRead, { ok: true }>;
 
 const KEY = (engine: string) => `eclipse-prompts-${engine}`;
-const MAX_PICS = 4;
+const MAX_PICS = MAX_ATTACH;
 const uid = () => Math.random().toString(36).slice(2, 10);
 const picUrl = (p: Pic) => (p.type === "upload" ? `/api/uploads/${p.id}/file` : `/api/generations/${p.id}/file`);
 
@@ -156,7 +157,7 @@ export default function PromptsView() {
     if (kind === "document") {
       setNote("");
       const r = await readDocument(f);
-      if (r.ok) setDocs((d) => [...d, r].slice(-4));
+      if (r.ok) setDocs((d) => [...d, r].slice(-MAX_ATTACH));
       else setNote(r.error);
       return;
     }

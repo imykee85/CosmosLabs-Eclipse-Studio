@@ -1,6 +1,7 @@
 "use client";
 
 import "@xyflow/react/dist/style.css";
+import { MAX_ATTACH } from "@/lib/limits";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge, Background, BackgroundVariant, ConnectionLineType, Controls, getNodesBounds, getViewportForBounds, MiniMap, Panel, ReactFlow, ReactFlowProvider, SelectionMode, useEdgesState, useNodesState, useReactFlow, useStoreApi, ViewportPortal,
@@ -381,8 +382,7 @@ function Inner({ projectId, canvasId, meta, doc, onBack }: { projectId: string; 
     if (!askNode || ask?.kind !== "refs" || !models) return -1;
     const wired = picturesOf(inputsOf(nodes, edges, askNode.id)).length;
     const mid = modelOf(askNode.data);
-    const cap = mid === AUTO ? Math.max(0, ...models.filter((m) => !m.requiresReference).map((m) => m.maxReferences)) : models.find((m) => m.id === mid)?.maxReferences ?? 0;
-    return Math.max(0, cap - wired);
+    return Math.max(0, MAX_ATTACH - wired); // the node warns when the model takes fewer (tooMany); nothing is refused here
   })();
   const patchNode = (id: string, data: Partial<CanvasNodeData>) => setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...data } } : n)));
   useEffect(() => {

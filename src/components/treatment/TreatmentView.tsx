@@ -20,6 +20,7 @@ import { useDraftText } from "@/lib/use-draft-text";
 import { cleanTreatment, EMPTY_TREATMENT, hasTreatment, treatmentText, type Treatment } from "@/lib/treatment";
 import "@/components/create/create.css";
 import "./treatment.css";
+import { MAX_ATTACH } from "@/lib/limits";
 
 type Mode = "brief" | "concept" | "guide";
 
@@ -268,7 +269,7 @@ export default function TreatmentView() {
             {active.media && (
               <div className="tr-media">
                 <span>Add media:</span>
-                {MEDIA.map((x) => <button key={x.label} type="button" className="tr-chip" onClick={() => { if (pics.length >= 4) { setError("Four pictures per message at most."); return; } setPickRole(x.label); }}>{x.icon}{x.label}</button>)}
+                {MEDIA.map((x) => <button key={x.label} type="button" className="tr-chip" onClick={() => { setPickRole(x.label); }}>{x.icon}{x.label}</button>)}
               </div>
             )}
           </div>
@@ -349,9 +350,9 @@ export default function TreatmentView() {
       </section>
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {pickRole && (
-        <ReferencePicker max={Math.max(1, 4 - pics.length) + pics.filter((p) => p.role === pickRole).length} picked={pics.filter((p) => p.role === pickRole)}
+        <ReferencePicker max={Math.max(1, MAX_ATTACH - pics.length) + pics.filter((p) => p.role === pickRole).length} picked={pics.filter((p) => p.role === pickRole)}
           note={`Pictures of the ${pickRole.toLowerCase()} for the planner to look at.`}
-          onChange={(next) => setPics((cur) => [...cur.filter((p) => p.role !== pickRole), ...next.map((n) => ({ ...n, role: pickRole }))].slice(0, 4))}
+          onChange={(next) => setPics((cur) => [...cur.filter((p) => p.role !== pickRole), ...next.map((n) => ({ ...n, role: pickRole }))].slice(0, MAX_ATTACH))}
           onClose={() => setPickRole(null)} />
       )}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}

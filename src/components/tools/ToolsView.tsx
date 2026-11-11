@@ -1,6 +1,7 @@
 "use client";
 
 import GrowArea from "@/components/GrowArea";
+import { MAX_ATTACH } from "@/lib/limits";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownAZ, ArrowUp, ChevronLeft, ChevronRight, Film, Image as ImageIcon, Inbox, LayoutGrid, List, Plus, Search, Shapes, Type, Wrench } from "lucide-react";
@@ -34,7 +35,7 @@ export default function ToolsView() {
   const [picked, setPicked] = useState<string[]>([]);
   const { renders } = useRenders(attachOpen || picked.length ? undefined : null, 16, false, true);
   const done = (renders ?? []).filter((r) => r.status === "completed" && r.kind !== "video" && r.imageUrl).slice(0, 12);
-  const togglePick = (id: string) => setPicked((l) => (l.includes(id) ? l.filter((x) => x !== id) : l.length < 3 ? [...l, id] : l));
+  const togglePick = (id: string) => setPicked((l) => (l.includes(id) ? l.filter((x) => x !== id) : l.length < MAX_ATTACH ? [...l, id] : l));
   const [recent, setRecent] = useState<string[]>([]);
   useEffect(() => { try { setRecent(JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]")); } catch {} }, []);
   function openTool(t: Tool) {
@@ -97,7 +98,7 @@ export default function ToolsView() {
         </form>
         {attachOpen && (
           <div className="cn-pop cn-attach tl-attach" role="dialog" aria-label="Attach pictures from your Library">
-            <p className="cn-pop-note">Pick up to 3 pictures from your Library</p>
+            <p className="cn-pop-note">Pick pictures from your Library</p>
             {renders === null ? <p className="cn-pop-note">Loading…</p> : done.length === 0 ? <p className="cn-pop-note">You have no finished renders yet.</p> : (
               <div className="cn-grid">
                 {done.map((r) => (

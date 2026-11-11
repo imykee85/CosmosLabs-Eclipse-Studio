@@ -2,6 +2,7 @@ import { documentBlocks, documentText, parseDocuments } from "@/lib/documents";
 import { cacheLast, cachedSystem } from "@/lib/prompt-cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE, guardText } from "@/lib/brand";
+import { MAX_ATTACH } from "@/lib/limits";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { connectModels } from "@/lib/connect-models";
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
   if (!check.ok) return NextResponse.json({ error: check.reason }, { status: 422 });
 
   // What rides with the latest message: pictures (ids, owner-checked) with their role, up to 2 links read here, and one PDF the model reads itself.
-  const rawPics = Array.isArray(body?.pictures) ? body.pictures.slice(0, 4) : [];
+  const rawPics = Array.isArray(body?.pictures) ? body.pictures.slice(0, MAX_ATTACH) : [];
   const refs = parseImageRefs(rawPics.map((p: { type?: unknown; id?: unknown }) => ({ type: p?.type, id: p?.id })));
   if (!refs) return NextResponse.json({ error: "Those pictures could not be read." }, { status: 400 });
   const roles = rawPics.map((p: { role?: unknown }) => (typeof p?.role === "string" ? p.role.slice(0, 20) : "Reference"));

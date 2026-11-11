@@ -1,13 +1,14 @@
 import { db } from "@/lib/db";
+import { MAX_ATTACH } from "@/lib/limits";
 import { sniffImageType } from "@/lib/uploads";
 import { shrinkPicture } from "@/lib/video-frames";
 import { getObjectBytes, openImage, storageEnabled } from "@/lib/storage";
 
 // The pictures a person attaches on the Prompts page: ids only (never addresses), owner-checked, read from our own storage and handed to the
-// model as images. At most 4 pictures of 3 MB each, PNG, JPEG or WebP.
+// model as images. At most 50 pictures of 3 MB each (drawn smaller when there are more than 6), PNG, JPEG or WebP.
 export type ImageRef = { type: "upload" | "render"; id: string };
 export type PromptImage = { mediaType: "image/png" | "image/jpeg" | "image/webp"; data: string; label: string };
-const MAX_PICTURES = 8;
+const MAX_PICTURES = MAX_ATTACH;
 const MAX_BYTES = 3_000_000;
 
 export function parseImageRefs(input: unknown): ImageRef[] | null {
@@ -47,8 +48,10 @@ export async function loadPromptImages(userId: string, refs: ImageRef[]): Promis
     let type = sniffImageType(bytes);
     if (!type || bytes.byteLength === 0) return { ok: false, error: "One of your pictures is not a PNG, JPEG or WebP." };
     // Uploads can be up to 4 MB but the model takes less per picture: a larger one is redrawn smaller (JPEG, at most 1568 px wide) instead of being refused.
-    if (bytes.byteLength > MAX_BYTES) {
-      const small = await shrinkPicture(bytes);
+    // With many pictures in one message every one is drawn smaller (the model request has a total size limit), so a full box still goes through.
+    const many = refs.length > 6;
+    if (many || bytes.byteLength > MAX_BYTES) {
+      const small = await shrinkPicture(bytes, many ? 900 : 1568, many ? 6 : 3);
       if (!small || small.byteLength > MAX_BYTES) return { ok: false, error: "One of your pictures is too large to show and could not be made smaller." };
       bytes = new Uint8Array(small);
       type = "image/jpeg";

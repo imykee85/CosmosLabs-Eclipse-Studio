@@ -15,6 +15,7 @@ import { attachKind, readDocument } from "@/lib/attach-file";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
 import { CUE_EVENT, takeCue } from "@/lib/use-agent";
+import { MAX_ATTACH } from "@/lib/limits";
 
 const SIZE = 64;
 
@@ -284,7 +285,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
     if (!open) return;
     const read = () => {
       const pics = readHostContext()?.pictures ?? [];
-      setRefs((cur) => (JSON.stringify(cur) === JSON.stringify(pics) ? cur : pics.slice(0, 8)));
+      setRefs((cur) => (JSON.stringify(cur) === JSON.stringify(pics) ? cur : pics.slice(0, MAX_ATTACH)));
     };
     read();
     const id = window.setInterval(read, 800);
@@ -311,7 +312,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   }
 
   async function addFiles(files: FileList | null) {
-    const list = Array.from(files ?? []).slice(0, 8);
+    const list = Array.from(files ?? []).slice(0, MAX_ATTACH);
     if (fileIn.current) fileIn.current.value = "";
     if (!list.length) return;
     setAttErr("");
@@ -323,17 +324,17 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
       setUploading(0);
       if (kind === "document") {
         const r = await readDocument(f);
-        if (r.ok) setDocs((d) => [...d, { name: r.name, text: r.text, pdf: r.pdf }].slice(-4));
+        if (r.ok) setDocs((d) => [...d, { name: r.name, text: r.text, pdf: r.pdf }].slice(-MAX_ATTACH));
         else setAttErr(r.error);
         continue;
       }
       if (kind === "video") {
         const r = await uploadVideo<{ id: string }>(f, name, projectId, setUploading);
-        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "video" as const, id: r.item.id, name }].slice(-4));
+        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "video" as const, id: r.item.id, name }].slice(-MAX_ATTACH));
         else setAttErr(r.ok ? "Could not add that video." : r.error);
       } else {
         const r = await uploadPicture(f, "asset", name, projectId, setUploading);
-        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "picture" as const, id: r.item!.id, name }].slice(-4));
+        if (r.ok && r.item?.id) setAtts((a) => [...a, { kind: "picture" as const, id: r.item!.id, name }].slice(-MAX_ATTACH));
         else setAttErr(r.ok ? "Could not add that picture." : r.error);
       }
     }
@@ -403,7 +404,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                   <i>{i + 1}</i>
                 </span>
               ))}
-              <button type="button" className="aw-ref-add" aria-label="Add a picture or video" title="Add a picture or video" disabled={chat.busy || atts.length + docs.length >= 8} onClick={() => fileIn.current?.click()}><Plus size={16} /></button>
+              <button type="button" className="aw-ref-add" aria-label="Add a picture or video" title="Add a picture or video" disabled={chat.busy || atts.length + docs.length >= MAX_ATTACH} onClick={() => fileIn.current?.click()}><Plus size={16} /></button>
             </div>
           )}
           <div className="aw-msgs" ref={list} aria-live="polite">
@@ -476,7 +477,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
           )}
           <form className="aw-input" onSubmit={submit}>
             <input ref={fileIn} type="file" hidden multiple onChange={(e) => void addFiles(e.target.files)} />
-            <button type="button" className="aw-clip" aria-label="Add a file" title="Add a file" disabled={chat.busy || atts.length + docs.length >= 8} onClick={() => fileIn.current?.click()}><Plus size={15} /></button>
+            <button type="button" className="aw-clip" aria-label="Add a file" title="Add a file" disabled={chat.busy || atts.length + docs.length >= MAX_ATTACH} onClick={() => fileIn.current?.click()}><Plus size={15} /></button>
             <GrowArea noExpand value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Message ${name}…`} aria-label={`Message ${name}`} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
             {chat.busy
               ? <button type="button" aria-label="Stop" title="Stop" onClick={() => chat.stop()}><Square size={14} /></button>

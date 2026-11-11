@@ -17,6 +17,7 @@ import { useRenders, type Render } from "@/lib/use-renders";
 import { fmtCredits, creditsText } from "@/lib/credit-units";
 import { useCredits } from "@/lib/use-credits";
 import RenderDetails from "../library/RenderDetails";
+import { MAX_ATTACH } from "@/lib/limits";
 import ReferencePicker, { type RefPick } from "./ReferencePicker";
 import PromptEdge, { type EdgeMessage } from "./PromptEdge";
 import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
@@ -66,7 +67,7 @@ export default function CreateStudio() {
       if (typeof d.ratio === "string") setRatio(d.ratio);
       if (Number.isInteger(d.qty) && (d.qty as number) >= 1 && (d.qty as number) <= 4) setQty(d.qty as number);
       if (typeof d.tier === "string") setTier(d.tier);
-      const picks = cleanPicks(d.refs, 10);
+      const picks = cleanPicks(d.refs, MAX_ATTACH);
       if (picks.length) setRefs(picks.map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r) })));
     }
     setDraftReady(true);
@@ -173,13 +174,19 @@ export default function CreateStudio() {
   }, [model, tier]);
 
   // A model takes only so many reference pictures; keep the choice within its limit.
-  useEffect(() => { if (model && refs.length > model.maxReferences) setRefs((r) => r.slice(0, model.maxReferences)); }, [model, refs.length]);
+  // The box holds any number of pictures (up to MAX_ATTACH) whatever the model; what the model can take is checked at Generate and said plainly, never by dropping pictures.
+  const refCap = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => m.autoPick && !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
+  const refsOver = !!models && refs.length > refCap && (modelId === AUTO || !!model);
+  const refsOverText = refCap === 0
+    ? `${modelId === AUTO ? "No model fits" : model?.label + " does not take reference pictures"}, and the box holds ${refs.length}. Remove them or choose a model that does${(models ?? []).filter((m) => m.maxReferences > 0).length ? `, such as ${(models ?? []).filter((m) => m.maxReferences > 0).slice(0, 3).map((m) => m.label).join(", ")}` : ""}.`
+    : modelId === AUTO ? `No model takes more than ${refCap} reference pictures and the box holds ${refs.length}. Remove ${refs.length - refCap} to continue.`
+    : `${model?.label} takes up to ${refCap} reference pictures and the box holds ${refs.length}. Remove ${refs.length - refCap}, or choose a model that takes more.`;
   const needsRef = !!model?.requiresReference && refs.length === 0;
   useEffect(() => { setNoRefs(false); }, [modelId]);
   const refModels = (models ?? []).filter((m) => m.maxReferences > 0).map((m) => m.label);
 
   function openIngredients() {
-    if (modelId === AUTO || (model?.maxReferences ?? 0) > 0) { setNoRefs(false); setPicking(true); } else setNoRefs(true);
+    setNoRefs(false); setPicking(true);
   }
 
   // The + in the prompt box: pick a picture from this device and attach it right away as an ingredient (it is saved to Assets).
@@ -201,13 +208,12 @@ export default function CreateStudio() {
       if (!r.ok) { setError(r.error); return; }
       if (!r.item) return;
       const copy: RefPick = { type: "upload", id: r.item.id, url: r.item.imageUrl, label: r.item.name };
-      const maxRefs = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
       setRefs((l) => {
         const at = l.findIndex((x) => x.type === orig.type && x.id === orig.id);
         if (at < 0) return l;
         const n = [...l];
         if (isMarked(orig)) n[at] = copy; // marking a marked copy again replaces it
-        else if (l.length < maxRefs) n.splice(at + 1, 0, copy);
+        else if (l.length < MAX_ATTACH) n.splice(at + 1, 0, copy);
         else n[at] = copy;
         return n;
       });
@@ -236,9 +242,7 @@ export default function CreateStudio() {
       if (!fitted) { setError("Could not make that picture small enough. Please try another."); return; }
       const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
       if (!r.ok) { setError(r.error); return; }
-      const maxRefs = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
-      if (r.item && maxRefs > 0) { setNoRefs(false); setRefs((l) => (l.length < maxRefs ? [...l, { type: "upload", id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }] : l)); }
-      else if (maxRefs === 0) setNoRefs(true);
+      if (r.item) { setNoRefs(false); setRefs((l) => (l.length < MAX_ATTACH ? [...l, { type: "upload", id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }] : l)); }
     } finally { setUploading((n) => n - 1); }
   }
 
@@ -252,6 +256,7 @@ export default function CreateStudio() {
   async function generate(over?: { prompt?: string; count?: number }): Promise<string> {
     const text = (over?.prompt ?? prompt).trim();
     const count = over?.count ?? qty;
+    if (refsOver && text) { setError(refsOverText); return refsOverText; }
     if (!text || submitting || !model) return !text ? "There is no prompt yet." : submitting ? "Another render is still starting." : "No model is ready yet.";
     if (needsRef) return `${model.label} needs an ingredient picture first.`;
     setError("");
@@ -281,7 +286,8 @@ export default function CreateStudio() {
 
   // The one message shown on the top edge of the prompt box (errors first, then notices). It is also what the agent sees there.
   const edge: EdgeMessage =
-    error || lastFailed ? { kind: "error", text: error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}` }
+    refsOver ? { kind: "error", text: refsOverText }
+    : error || lastFailed ? { kind: "error", text: error || `Your last image could not be made: ${lastFailed?.error ?? "please try again."}` }
     : seedBad && seedSpec ? { kind: "error", text: `Use a whole number from ${seedSpec.min.toLocaleString("en-US")} to ${seedSpec.max.toLocaleString("en-US")} for this model.` }
     : needsRef ? { kind: "note", text: `${model?.label} edits a picture. Choose one with Ingredients first.` }
     : noRefs ? { kind: "note", text: `${model?.label} does not use reference pictures. Choose a model that does${refModels.length ? `, such as ${refModels.slice(0, 3).join(", ")}` : ""}.` }
@@ -348,8 +354,7 @@ export default function CreateStudio() {
     },
     // A frame Atlas captured from a video becomes an ingredient (Image Studio has no start frame).
     useFrame: (f) => {
-      const max = modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0);
-      if (max <= refs.length) return max === 0 ? "This model can't take pictures. Choose another model first." : "The box already holds as many pictures as this model takes.";
+      if (refs.length >= MAX_ATTACH) return `The box already holds ${MAX_ATTACH} pictures.`;
       setNoRefs(false);
       setRefs((l) => [...l, { type: "upload", id: f.id, url: `/api/uploads/${f.id}/file`, label: f.label }]);
       return "";
@@ -669,7 +674,7 @@ export default function CreateStudio() {
       {varOpen && toolPic?.imageUrl && <VariationsTool reference={{ type: "render", id: toolPic.id }} onClose={() => setVarOpen(false)} onUseAsReference={(id) => { setRefs([{ type: "render", id, url: `/api/generations/${id}/file`, label: "Variation" }]); box.current?.focus(); }} onUpscale={(id) => void upscaleId(id)} />}
       {camOpen && toolPic?.imageUrl && <SheetPortal><CameraPanel thumb={thumbOf("render", toolPic.id)} tiers={camTiers} unit={(t) => (camModel ? imageCost(camModel, camModel.resolutions.length ? tierResolution(camModel.resolutions, t) : undefined, 1) : null)} freeLeft={creditInfo?.freeImages ?? 0} busy={submitting} error={camError} onRun={(r) => void runCamera(r)} onClose={() => setCamOpen(false)} /></SheetPortal>}
       {marking !== null && refs[marking] && <SheetPortal><MarkDialog url={refs[marking].url} label={refs[marking].label.replace(/ \(marked\)$/, "")} onCancel={() => setMarking(null)} onDone={(f) => void saveMarked(marking, f)} /></SheetPortal>}
-      {picking && (model || modelId === AUTO) && <ReferencePicker max={modelId === AUTO ? Math.max(...(models ?? []).filter((m) => !m.requiresReference).map((m) => m.maxReferences), 0) : (model?.maxReferences ?? 0)} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
+      {picking && (model || modelId === AUTO) && <ReferencePicker max={MAX_ATTACH} picked={refs} onChange={setRefs} onClose={() => setPicking(false)} />}
       {agentActive && agent && <AgentWidget name={agent} watch={pending || submitting ? ".cr-stage" : null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent} onPick={(n) => pickAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {soulOpen && soulVersion && <SoulIdDialog version={soulVersion} selected={soul?.id ?? null} strength={soulStrength} onPick={pickSoul} onStrength={setSoulStrength} onClose={() => setSoulOpen(false)} />}
