@@ -7,7 +7,7 @@ const g = cv.getContext("2d");
 const BG = "#060606", PAPER = "#F4F1ED", RED = "#c00707", MUTE = "rgba(244,241,237,0.5)";
 const S = Object.fromEntries(TL.scenes.map((s) => [s.id, s]));
 const IM = {};
-const CARDS = 24, SEQ = { hero: 120, camp: 90, film: 90 };
+const CARDS = 28, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
 
 // ---------- helpers ----------
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -97,6 +97,13 @@ function sImages(f) {
   order.forEach((k) => { const st = s.start + 8 + (k === 0 ? 0 : k * 9 + 12), t = spring(prog(f, st, st + 18)), p = FAN[k], hh = M * p[2] * (TALL ? 1 : 1.12) * t * (1 - out * 0.4);
     card(pics[k], W * p[0] + (k === 1 ? -1 : k === 2 ? 1 : 0) * out * W * 0.5, H * (p[1] + 0.03) + (1 - t) * M * 0.08, hh * 0.72, hh, { rot: (k === 1 ? -0.07 : k === 2 ? 0.07 : 0) * t, a: clamp(t * 3) * (1 - out) }); });
   line("Images that look [directed.]", f, s.start + 30, s.end);
+}
+// four full-screen pictures in quick succession
+function sHits(f) {
+  const s = S.hits, step = (s.end - s.start) / HITS.length, i = Math.min(HITS.length - 1, Math.floor((f - s.start) / step)), t = (f - s.start - i * step) / step, im = IM[`hit-${HITS[i]}`];
+  const sc = Math.max(W / im.width, H / im.height) * (1.1 - 0.06 * eOut(t)), w = im.width * sc, h = im.height * sc; g.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+  const gr = g.createLinearGradient(0, H * 0.6, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.65)"); g.fillStyle = gr; g.fillRect(0, H * 0.6, W, H * 0.4);
+  line("Any style. [Any era.]", f, s.start + 4, s.end + 20);
 }
 function sVideo(f) {
   const s = S.video, ex = eIO(prog(f, TL.expand, TL.expand + 16)), lf = f - s.start;
@@ -189,7 +196,7 @@ function sEnd(f) {
   text(TL.url, W / 2, H * 0.93, M * 0.02, MUTE, { a: eOut(prog(f, s.start + 44, s.start + 58)), ls: M * 0.001 });
   g.fillStyle = "#000"; g.globalAlpha = eIO(prog(f, s.end - 12, s.end - 1)); g.fillRect(0, 0, W, H); g.globalAlpha = 1;
 }
-const DRAW = { prompt: sPrompt, images: sImages, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
+const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
 window.renderFrame = (n) => {
   const sc = TL.scenes.find((s) => n >= s.start && n < s.end) || TL.scenes[TL.scenes.length - 1];
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; g.filter = "none";
@@ -198,7 +205,7 @@ window.renderFrame = (n) => {
 };
 window.ready = (async () => {
   const ff = await new FontFace("Inter", "url(fonts/Inter-latin.woff2)", { weight: "100 900" }).load(); document.fonts.add(ff);
-  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"],
+  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]),
     ...["character", "product-1", "product-2", "product-3", "product-4"].map((n) => [`cv-${n}`, `work/cv-${n}.jpg`]),
     ...Array.from({ length: CARDS }, (_, i) => [`card-${i}`, `work/card-${i}.jpg`]),
     ...Object.entries(SEQ).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
