@@ -20,6 +20,7 @@ import { VIDEO_LIMIT_MB } from "@/lib/direct-upload-client";
 const VIDEO_UPLOAD_LIMIT_BYTES = VIDEO_LIMIT_MB * 1024 * 1024;
 import PromptEdge, { type EdgeMessage } from "../create/PromptEdge";
 import { cleanPicks, pickUrl, readDraft, writeDraft } from "@/lib/draft";
+import { MAX_ATTACH } from "@/lib/limits";
 import { askConfirm } from "@/components/ConfirmHost";
 import RenderDetails from "../library/RenderDetails";
 import OrderedRefs, { type RefItem } from "./OrderedRefs";
@@ -97,6 +98,8 @@ export default function VideoStudio() {
   const [target, setTarget] = useState<Target | null>(null);
   const [pickingModel, setPickingModel] = useState(false);
   const [vrefs, setVrefs] = useState<ClipPick[]>([]);        // reference clips: the person's own finished videos
+  const startNow = useRef<RefPick | null>(null); // the start frame as of this moment (several pictures can arrive at once, before a re-render)
+  startNow.current = start;
   const [arefs, setArefs] = useState<SoundPick[]>([]);       // reference sounds: the person's own Audio Studio takes (Seedance)
   const [shots, setShots] = useState<{ prompt: string; duration: number }[] | null>(null); // multi-shot (Kling 3.0); null = off
   // The box survives a refresh: text, settings, start and end frames, pictures, clips and the Motion choice are kept as they change and put back on the next visit.
@@ -113,8 +116,8 @@ export default function VideoStudio() {
       const st = one(d.start), en = one(d.end);
       if (st) setStart({ type: st.type, id: st.id, label: st.label, url: pickUrl(st) });
       if (en) setEnd({ type: en.type, id: en.id, label: en.label, url: pickUrl(en) });
-      setRefs(cleanPicks(d.refs, 30).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r) })));
-      setVrefs(cleanPicks(d.vrefs, 10).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r), sec: r.sec ?? null })));
+      setRefs(cleanPicks(d.refs, MAX_ATTACH).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r) })));
+      setVrefs(cleanPicks(d.vrefs, MAX_ATTACH).map((r) => ({ type: r.type, id: r.id, label: r.label, url: pickUrl(r), sec: r.sec ?? null })));
       if (d.motion === "subject" || d.motion === "scene") setMotion(d.motion);
       if (d.mcEngine === "kling3" || d.mcEngine === "kling26" || d.mcEngine === "genjutsu" || d.mcEngine === "eclone") setMcEngine(d.mcEngine);
       if (d.mcTier === "pro" || d.mcTier === "std") setMcTier(d.mcTier);
@@ -176,7 +179,17 @@ export default function VideoStudio() {
   const [motionAnchor, setMotionAnchor] = useState<DOMRect | null>(null);
   const agentChip = useRef<HTMLButtonElement>(null);
   // The one message on the top edge of the prompt box (an error, else a notice); it is also what the agent sees there.
-  const edge: EdgeMessage = error ? { kind: "error", text: error } : note ? { kind: "note", text: note } : null;
+  // What the model takes versus what the box holds: said plainly at Generate, never fixed by throwing the person's uploads away.
+  const overLimit = (() => {
+    if (mc) return "";
+    const kinds: [string, number, number][] = [["reference pictures", refs.length, caps.refMax], ["reference clips", vrefs.length, caps.refVideoMax], ["reference sounds", arefs.length, caps.refAudioMax]];
+    for (const [what, have, cap] of kinds) {
+      if (have <= cap) continue;
+      return cap === 0 ? `${model.label} does not take ${what}, and the box holds ${have}. Remove ${have === 1 ? "it" : "them"} or choose a model that does.` : `${model.label} takes up to ${cap} ${what} and the box holds ${have}. Remove ${have - cap}, or choose a model that takes more.`;
+    }
+    return "";
+  })();
+  const edge: EdgeMessage = error ? { kind: "error", text: error } : overLimit ? { kind: "error", text: overLimit } : note ? { kind: "note", text: note } : null;
   useAgentHost({
     page: "video",
     context: () => ({
@@ -250,9 +263,9 @@ export default function VideoStudio() {
         if (!model.startFrame) return `${model.label} can't take a start frame.`;
         setStart(pic); return "";
       }
-      if (caps.refMax > 0) { setRefs((l) => [...l, pic].slice(0, caps.refMax)); return ""; }
+      if (caps.refMax > 0) { setRefs((l) => [...l, pic].slice(0, MAX_ATTACH)); return ""; }
       if (model.startFrame) { setStart(pic); return ""; }
-      return `${model.label} can't take pictures.`;
+      setRefs((l) => [...l, pic].slice(0, MAX_ATTACH)); return ""; // the box keeps it; Generate says what this model can take
     } });
 
   useEffect(() => { try { const m = localStorage.getItem(MODEL_KEY); if (m && VIDEO_MODELS.some((x) => x.id === m && !x.hidden)) setModelId(m); } catch {} }, []);
@@ -266,9 +279,7 @@ export default function VideoStudio() {
     if (caps.negativePrompt == null) setNegative("");
     if (!caps.cfgScale) setCreative(null);
     if (!model.startFrame) setStart(null);
-    if (!caps.refMax) setRefs([]); else setRefs((r) => r.slice(0, caps.refMax));
-    if (!caps.refVideoMax) setVrefs([]); else setVrefs((r) => r.slice(0, caps.refVideoMax));
-    if (!caps.refAudioMax) setArefs([]); else setArefs((r) => r.slice(0, caps.refAudioMax));
+    // Pictures, clips and sounds in the box are never trimmed or cleared when the model changes: Generate says what the model takes (see `overLimit`).
     if (!caps.multiShot) setShots(null);
   }, [model, wf]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -290,14 +301,13 @@ export default function VideoStudio() {
 
   // A video from the device: uploaded to the person's videos, then added as a reference clip when the model takes clips (else a note says so).
   async function uploadClipFromDevice(f: File) {
-    if (!caps.refVideoMax) { setError(`${model.label} takes no reference clips. Choose a model that does.`); return; }
     if (f.size > VIDEO_UPLOAD_LIMIT_BYTES) { setError("That video is larger than 500 MB. Please use a smaller one."); return; }
     setUploading((n) => n + 1);
     try {
       const r = await uploadVideo<{ id: string; imageUrl?: string | null; prompt: string; durationSec?: number | null }>(f, f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Uploaded video", readCurrentProject()?.id ?? null);
       if (!r.ok) { setError(r.error); return; }
       const clip: ClipPick = { type: "render", id: r.item.id, url: r.item.imageUrl ?? "", label: r.item.prompt, sec: r.item.durationSec ?? null };
-      setVrefs((l) => [...l.filter((c) => c.id !== clip.id), clip].slice(0, caps.refVideoMax));
+      setVrefs((l) => [...l.filter((c) => c.id !== clip.id), clip].slice(0, MAX_ATTACH));
     } finally { setUploading((n) => n - 1); }
   }
 
@@ -317,11 +327,10 @@ export default function VideoStudio() {
       const pic: RefPick = { type: "upload", id: r.item.id, url: r.item.imageUrl, label: r.item.name };
       // A model that takes reference pictures (Seedance) gets the + picture as a reference, like Higgsfield; the start frame stays the person's own choice (unless one is already set). Other models: start frame, else reference, else a note.
       const modelRefMax = model.live?.endpoints.ref ? model.live.refs?.max ?? 0 : 0;
-      if (modelRefMax > 0 && !start) setRefs((l) => [...l, pic].slice(0, modelRefMax));
-      else if (refs.length > 0 && caps.refMax) setRefs((l) => [...l, pic].slice(0, caps.refMax));
-      else if (model.startFrame) setStart(pic);
-      else if (caps.refMax > 0) setRefs((l) => [...l, pic].slice(0, caps.refMax));
-      else setNote(`${model.label} makes video from text only. Choose a model that takes a start frame or pictures.`);
+      if (modelRefMax > 0 && !startNow.current) setRefs((l) => [...l, pic].slice(0, MAX_ATTACH));
+      else if (refs.length > 0 && caps.refMax) setRefs((l) => [...l, pic].slice(0, MAX_ATTACH));
+      else if (model.startFrame && !startNow.current) { startNow.current = pic; setStart(pic); } // only the FIRST picture becomes the start frame; the rest stay in the box as pictures
+      else setRefs((l) => [...l, pic].slice(0, MAX_ATTACH)); // the box keeps it; Generate says what this model can take
     } finally { setUploading((n) => n - 1); }
   }
 
@@ -355,6 +364,7 @@ export default function VideoStudio() {
     if (config?.paused) { setError("Video generation is paused right now. Please try again later."); return; }
     if (caps.promptRequired && !prompt.trim()) { setError("Describe the clip first."); return; }
     if (seedBad) { setError(`The seed must be a whole number from ${caps.seed!.min.toLocaleString("en-US")} to ${caps.seed!.max.toLocaleString("en-US")}.`); return; }
+    if (overLimit) { setError(overLimit); return; }
     setSubmitting(true);
     try {
       const res = await fetch("/api/video", {
@@ -382,7 +392,7 @@ export default function VideoStudio() {
       await reload();
     } catch { setError("Could not reach the server. Check your connection and try again."); }
     finally { setSubmitting(false); }
-  }, [live, model.label, config?.paused, config?.creditsOn, caps, prompt, seedBad, model.id, mc, mcOrient, mcSound, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, refs, vrefs, arefs, shotList, shotSum, reload]);
+  }, [overLimit, live, model.label, config?.paused, config?.creditsOn, caps, prompt, seedBad, model.id, mc, mcOrient, mcSound, duration, quality, ratio, sound, seedLocked, seedNumber, negative, creative, start, end, refs, vrefs, arefs, shotList, shotSum, reload]);
 
   // A finished draft (Seedance 2.5, 480p preview) is made into its final 1080p video once. Asks first when the price is above the confirm line.
   const [makingFinal, setMakingFinal] = useState<string | null>(null);
@@ -634,7 +644,7 @@ export default function VideoStudio() {
         </form>
       </div>
 
-      {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : caps.refMax) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? caps.refVideoMax : 0} pickedVideos={vrefs} onVideosChange={setVrefs} audioMax={target === "refs" && !mc ? caps.refAudioMax : 0} pickedAudio={arefs} onAudioChange={setArefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose a picture (who or what appears in the result) and one of your finished videos (its movement is copied). One of each, in either order." : undefined} />}
+      {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : MAX_ATTACH) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? (mc ? caps.refVideoMax : MAX_ATTACH) : 0} pickedVideos={vrefs} onVideosChange={setVrefs} audioMax={target === "refs" && !mc ? MAX_ATTACH : 0} pickedAudio={arefs} onAudioChange={setArefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose a picture (who or what appears in the result) and one of your finished videos (its movement is copied). One of each, in either order." : undefined} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => {
         if (m === "scene") { setMotion(null); setNote("3D scene isn't connected yet."); return; }

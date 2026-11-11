@@ -26,6 +26,7 @@ import ModelPicker from "./ModelPicker";
 import "@/components/create/create.css"; // the Atlas widget and its menu are styled there (Treatment does the same)
 import "./connect.css";
 import { refreshCredits } from "@/lib/use-credits";
+import { MAX_ATTACH } from "@/lib/limits";
 
 
 // Pictures go to the assistant as ids: a finished render's id, or "up:<id>" for a picture added from the device.
@@ -141,7 +142,7 @@ function ConnectChat() {
     started.current = true;
     const c = params.get("chat");
     const s = params.get("start");
-    const attach = (params.get("attach") ?? "").split(",").filter((x) => /^[\w-]{1,64}$/.test(x)).slice(0, 3); // pictures picked on the Tools page
+    const attach = (params.get("attach") ?? "").split(",").filter((x) => /^[\w-]{1,64}$/.test(x)).slice(0, MAX_ATTACH); // pictures picked on the Tools page
     if (c) open(c);
     else if (s) { router.replace("/connect"); send(s, attach); }
   }, [params, open, router, send]);
@@ -205,7 +206,6 @@ function ConnectChat() {
     if (!f) return;
     setNotice("");
     if (f.size > PICK_LIMIT_BYTES) { setNotice("That picture is larger than 50 MB. Please use a smaller one."); return; }
-    if (picked.length >= 3) { setNotice("You can add up to 3 pictures."); return; }
     setUploading((n) => n + 1);
     const key = ++uploadKey.current;
     setUploads((l) => [...l, { key, label: f.name, kind: "picture", progress: 0 }]);
@@ -214,7 +214,7 @@ function ConnectChat() {
       if (!fitted) { setNotice("Could not make that picture small enough. Please try another."); return; }
       const r = await uploadPicture(fitted, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null, (p) => setUploads((l) => l.map((u) => (u.key === key ? { ...u, progress: p } : u))));
       if (!r.ok) { setNotice(r.error); return; }
-      if (r.item) setPicked((l) => [...l, { type: "upload" as const, id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }].slice(0, 3));
+      if (r.item) setPicked((l) => [...l, { type: "upload" as const, id: r.item!.id, url: r.item!.imageUrl, label: r.item!.name }].slice(0, MAX_ATTACH));
     } finally { setUploading((n) => n - 1); setUploads((l) => l.filter((u) => u.key !== key)); }
   }
   // Editing a sent message: the thread is cut back before it on the server and on the screen, and its words and files go back into the box.
@@ -311,7 +311,7 @@ function ConnectChat() {
           </div>
         </form>
       </div>
-      {picking && <ReferencePicker max={3} picked={picked} onChange={setPicked} onClose={() => setPicking(false)} />}
+      {picking && <ReferencePicker max={MAX_ATTACH} picked={picked} onChange={setPicked} onClose={() => setPicking(false)} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       <div ref={end} />

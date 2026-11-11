@@ -3,6 +3,8 @@ import { VIDEO_TOOLS, VIDEO_TOOL_NAMES, clipBlocks, runVideoTool } from "@/lib/a
 import { db } from "@/lib/db";
 import { BRAND_RULE, leaked } from "@/lib/brand";
 import { loadPromptImages } from "@/lib/prompt-images";
+import { MAX_ATTACH } from "@/lib/limits";
+import { shrinkPicture } from "@/lib/video-frames";
 import { ChatMeter, chargeChat } from "@/lib/chat-credits";
 import { runTool, toolDefs } from "@/lib/connect-tools";
 import { cacheLast, cachedSystem, trimHistory } from "@/lib/prompt-cache";
@@ -24,7 +26,7 @@ export type AgentEvent =
 const MODEL_WINDOW = 300;
 const MAX_STEPS = 8;
 const TIME_BUDGET_MS = 48_000; // no new step after this; the route may run 120 s (a build-machine step can take 25 s)
-const MAX_IMAGES = 3;
+const MAX_IMAGES = MAX_ATTACH;
 const MAX_IMAGE_BYTES = 3_000_000;
 export const dailyLimit = () => Number(process.env.CONNECT_DAILY_MESSAGES) || 100;
 
@@ -71,15 +73,21 @@ async function imageBlocks(userId: string, ids: string[]): Promise<Block[]> {
     // "up:<id>": a picture added from the device (an Assets upload) rather than a finished render.
     if (id.startsWith("up:")) {
       const got = await loadPromptImages(userId, [{ type: "upload", id: id.slice(3) }]).catch(() => null);
-      if (got?.ok && got.images[0]) out.push({ type: "image", source: { type: "base64", media_type: got.images[0].mediaType, data: got.images[0].data } });
+      if (got?.ok && got.images[0]) {
+        let im = got.images[0];
+        if (ids.length > 6) { const small = await shrinkPicture(Buffer.from(im.data, "base64"), 900, 6); if (small) im = { ...im, mediaType: "image/jpeg", data: small.toString("base64") }; }
+        out.push({ type: "image", source: { type: "base64", media_type: im.mediaType, data: im.data } });
+      }
       continue;
     }
     const g = await db.generation.findFirst({ where: { id, userId, deletedAt: null, status: "completed" } });
     if (!g) continue;
     const res = await openImage(g);
     if (!res.ok) continue;
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    const type = (g.contentType ?? res.headers.get("content-type") ?? "").split(";")[0];
+    let bytes = new Uint8Array(await res.arrayBuffer());
+    let type = (g.contentType ?? res.headers.get("content-type") ?? "").split(";")[0];
+    // Many pictures, or a big one: drawn smaller instead of dropped.
+    if (ids.length > 6 || bytes.length > MAX_IMAGE_BYTES) { const small = await shrinkPicture(bytes, ids.length > 6 ? 900 : 1568, ids.length > 6 ? 6 : 3); if (!small) continue; bytes = new Uint8Array(small); type = "image/jpeg"; }
     if (bytes.length > MAX_IMAGE_BYTES || !["image/png", "image/jpeg", "image/webp"].includes(type)) continue;
     out.push({ type: "image", source: { type: "base64", media_type: type as "image/png", data: Buffer.from(bytes).toString("base64") } });
   }
