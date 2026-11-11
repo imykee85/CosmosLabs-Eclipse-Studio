@@ -7,7 +7,7 @@ const g = cv.getContext("2d");
 const BG = "#060606", PAPER = "#F4F1ED", RED = "#c00707", MUTE = "rgba(244,241,237,0.5)";
 const S = Object.fromEntries(TL.scenes.map((s) => [s.id, s]));
 const IM = {};
-const CARDS = 36, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
+const SEQ2 = { infl: 60 }, CARDS = 36, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
 
 // ---------- helpers ----------
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -17,7 +17,7 @@ const eOut = (t) => 1 - Math.pow(1 - t, 3), eIn = (t) => t * t * t, eIO = (t) =>
 const eExpo = (t) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
 const spring = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.exp(-7 * t) * Math.cos(9 * t)); // settles with one small overshoot
 const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-const seq = (name, f) => IM[`${name}-${String(1 + (Math.max(0, Math.floor(f)) % SEQ[name])).padStart(3, "0")}`];
+const seq = (name, f) => IM[`${name}-${String(1 + (Math.max(0, Math.floor(f)) % (SEQ[name] ?? SEQ2[name]))).padStart(3, "0")}`];
 function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
 function bg(f) {
   g.fillStyle = BG; g.fillRect(0, 0, W, H);
@@ -118,6 +118,36 @@ function sShop(f) {
   }
   line("Shots that [sell.]", f, s.start + 16, s.end + 10);
 }
+// who it is for: one audience per beat, a picture or clip on one side, the line on the other
+const FOR = [
+  ["FILMMAKERS", "Shoot the film [before the funding.]", (f) => seq("hero", f)],
+  ["BRANDS ON A BUDGET", "Campaign shots. [Not campaign costs.]", () => IM["v2-perfume"]],
+  ["FASHION LABELS", "A lookbook [in an afternoon.]", () => IM["card-0"]],
+  ["CREATORS", "Post every day. [Never run dry.]", (f) => seq("infl", f)],
+  ["AGENCIES", "Ten clients. [One studio.]", null],
+];
+function sFor(f, k) {
+  const s = S[`for${k}`], lf = f - s.start, [who, txt, pic] = FOR[k], t = spring(prog(lf, 0, 16));
+  const cardAt = (cx, cy, h) => { if (pic) { card(pic(lf), cx, cy, h * 0.66 * t, h * t, { a: clamp(t * 3), fy: 0.35 }); return; }
+    // agencies: four different clients' work in one frame
+    const tiles = ["v2-perfume", "card-4", "card-5", "shop-0"], gw = h * 0.66, gh = h, gap = h * 0.025, tw = (gw - gap) / 2, th = (gh - gap) / 2;
+    tiles.forEach((n, j) => { const tt = spring(prog(lf, j * 3, j * 3 + 16)); card(IM[n], cx + (j % 2 ? 1 : -1) * (tw + gap) / 2, cy + (j < 2 ? -1 : 1) * (th + gap) / 2, tw * tt, th * tt, { a: clamp(tt * 3), fy: 0.4 }); }); };
+  const split = txt.indexOf("["), a = txt.slice(0, split).trim(), b = txt.slice(split).trim();
+  if (TALL) {
+    cardAt(W / 2, H * 0.34, H * 0.5);
+    text(who, W / 2, H * 0.64, M * 0.026, RED, { w: 700, ls: M * 0.005, a: eOut(prog(lf, 3, 10)) });
+    line(a, f, s.start + 6, s.end + 4, { y: H * 0.69, px: M * 0.066 }); line(b, f, s.start + 12, s.end + 4, { y: H * 0.735, px: M * 0.066 });
+  } else {
+    cardAt(W * 0.7, H * 0.5, H * 0.78);
+    text(who, W * 0.08, H * 0.42, M * 0.024, RED, { w: 700, align: "left", ls: M * 0.005, a: eOut(prog(lf, 3, 10)) });
+    line(a, f, s.start + 6, s.end + 4, { x: W * 0.08 + measure(a, M * 0.07) / 2, y: H * 0.52, px: M * 0.07 });
+    line(b, f, s.start + 12, s.end + 4, { x: W * 0.08 + measure(b.replace(/[\[\]]/g, ""), M * 0.07) / 2, y: H * 0.61, px: M * 0.07 });
+  }
+}
+function measure(str, px) { g.save(); g.font = `600 ${px}px Inter`; g.letterSpacing = -px * 0.035 + "px"; const w = g.measureText(str).width; g.restore(); return w; }
+function sPayoff(f) { const s = S.payoff;
+  line("A full production team.", f, s.start + 2, s.end + 4, { y: H * 0.46, px: M * (TALL ? 0.058 : 0.085) });
+  line("[Without the production budget.]", f, s.start + 14, s.end + 4, { y: TALL ? H * 0.52 : H * 0.56, px: M * (TALL ? 0.058 : 0.085) }); }
 function sVideo(f) {
   const s = S.video, ex = eIO(prog(f, TL.expand, TL.expand + 16)), lf = f - s.start;
   // two side clips, then the hero clip grows to fill the frame
@@ -251,7 +281,7 @@ function sEnd(f) {
   text(TL.url, W / 2, H * 0.93, M * 0.02, MUTE, { a: eOut(prog(f, s.start + 44, s.start + 58)), ls: M * 0.001 });
   g.fillStyle = "#000"; g.globalAlpha = eIO(prog(f, s.end - 12, s.end - 1)); g.fillRect(0, 0, W, H); g.globalAlpha = 1;
 }
-const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, shop: sShop, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, studio: sStudio, directors: sDirectors, relight: sRelight, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
+const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, shop: sShop, for0: (f) => sFor(f, 0), for1: (f) => sFor(f, 1), for2: (f) => sFor(f, 2), for3: (f) => sFor(f, 3), for4: (f) => sFor(f, 4), payoff: sPayoff, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, studio: sStudio, directors: sDirectors, relight: sRelight, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
 const acc = document.createElement("canvas"); acc.width = W; acc.height = H; const ag = acc.getContext("2d");
 const JOIN = new Set(["images", "end"]); // these continue the scene before them, so no cut-through into them
 function drawAt(n) {
@@ -271,10 +301,10 @@ window.renderFrame = (n, fast) => {
 };
 window.ready = (async () => {
   const ff = await new FontFace("Inter", "url(fonts/Inter-latin.woff2)", { weight: "100 900" }).load(); document.fonts.add(ff);
-  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ["st-1", "work/cap-studio-1-request.png"], ["st-2", "work/cap-studio-2-answer.png"], ["st-3", "work/cap-studio-3-done.png"], ...["fur", "marcus-floor", "relight-before", "relight-after"].map((n) => [`v2-${n}`, `work/v2-${n}.jpg`]), ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
+  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ["st-1", "work/cap-studio-1-request.png"], ["st-2", "work/cap-studio-2-answer.png"], ["st-3", "work/cap-studio-3-done.png"], ...["fur", "marcus-floor", "relight-before", "relight-after", "perfume"].map((n) => [`v2-${n}`, `work/v2-${n}.jpg`]), ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
     ...["character", "product-1", "product-2", "product-3", "product-4"].map((n) => [`cv-${n}`, `work/cv-${n}.jpg`]),
     ...Array.from({ length: CARDS }, (_, i) => [`card-${i}`, `work/card-${i}.jpg`]),
-    ...Object.entries(SEQ).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
+    ...Object.entries({ ...SEQ, ...SEQ2 }).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
   await Promise.all(list.map(([n, src]) => new Promise((ok, no) => { const i = new Image(); i.onload = () => { IM[n] = i; ok(); }; i.onerror = () => no(new Error("missing " + src)); i.src = src; })));
   return true;
 })();

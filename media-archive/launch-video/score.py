@@ -150,6 +150,7 @@ for f in (im + 8, im + 29, im + 38): put(pop(760), sec(f + 4), 0.3)
 for i in range(5): put(pop(700 + 70 * i), sec(S["shop"]["start"] + i * 3 + 4), 0.25, pan=-0.4 + 0.2 * i)
 for f in range(S["hits"]["start"], S["hits"]["end"], 12): put(thump(), sec(f), 0.55)
 for f in (30, 62, 92, 122): put(pop(640), sec(S["canvas"]["start"] + f + 6), 0.25)
+for k in range(5): put(pop(600 + 60 * k), sec(S[f"for{k}"]["start"] + 5), 0.3); put(click(), sec(S[f"for{k}"]["start"] + 3), 0.3)
 put(pop(380), sec(S["atlas"]["start"] + 10), 0.5)  # Atlas drops in
 for i in range(8): put(click(1.2), sec(S["directors"]["start"] + i * 5), 0.35, pan=rng.uniform(-0.3, 0.3))
 put(shimmer(1.1), sec(S["studio"]["start"] + 94), 0.6)  # the picture being made
