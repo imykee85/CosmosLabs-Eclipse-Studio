@@ -7,7 +7,7 @@ const g = cv.getContext("2d");
 const BG = "#060606", PAPER = "#F4F1ED", RED = "#c00707", MUTE = "rgba(244,241,237,0.5)";
 const S = Object.fromEntries(TL.scenes.map((s) => [s.id, s]));
 const IM = {};
-const SEQ2 = { infl: 60 }, CARDS = 36, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
+const SEQ2 = { infl: 60, dir: 72 }, CARDS = 36, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
 
 // ---------- helpers ----------
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -245,9 +245,12 @@ function sStudio(f) {
 const DIRS = ["Spielberg.", "Kubrick.", "Nolan."];
 function sDirectors(f) {
   const s = S.directors, lf = f - s.start, px = M * (TALL ? 0.1 : 0.115), gap = px * 1.08, y0 = H * (TALL ? 0.4 : 0.36), out = 1 - eIn(prog(lf, 58, 66));
-  text("Direct it like", W / 2, y0 - gap * 1.05, M * 0.04, MUTE, { w: 500, a: eOut(prog(lf, 0, 8)) * out });
+  // the owner's clip (her take-off and the sand spray, slowed) plays full frame behind the names
+  { const im = seq("dir", Math.min(71, Math.max(0, Math.floor(lf)))); camShot(im, im.width * (TALL ? 0.5 : 0.5), im.height * 0.46, 1.04 + 0.05 * prog(lf, 0, 72));
+    g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(0, 0, W, H); const v = g.createRadialGradient(W / 2, y0 + gap, M * 0.1, W / 2, y0 + gap, Math.hypot(W, H) * 0.6); v.addColorStop(0, "rgba(0,0,0,0.38)"); v.addColorStop(1, "rgba(0,0,0,0.5)"); g.fillStyle = v; g.fillRect(0, 0, W, H); }
+  text("Direct it like", W / 2, y0 - gap * 1.05, M * 0.04, "rgba(244,241,237,0.8)", { w: 500, a: eOut(prog(lf, 0, 8)) * out });
   DIRS.forEach((n, i) => { const t = eExpo(prog(lf, 6 + i * 9, 18 + i * 9)); text(n, W / 2, y0 + i * gap + (1 - t) * px * 0.6, px, PAPER, { w: 700, a: clamp(t * 2) * out }); });
-  const m = eExpo(prog(lf, 36, 48)); text("and many more.", W / 2, y0 + 3 * gap + (1 - m) * px * 0.4, px * 0.55, MUTE, { w: 600, a: clamp(m * 2) * out });
+  const m = eExpo(prog(lf, 36, 48)); text("and many more.", W / 2, y0 + 3 * gap + (1 - m) * px * 0.4, px * 0.55, "rgba(244,241,237,0.8)", { w: 600, a: clamp(m * 2) * out });
   line("Director lenses, [built into Atlas.]", f, s.start + 44, s.end + 4);
 }
 // Relight: the same shot, lit again; a sweep of light carries the new lighting across the picture

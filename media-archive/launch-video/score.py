@@ -157,6 +157,7 @@ for f in (30, 62, 92, 122): put(pop(640), sec(S["canvas"]["start"] + f + 6), 0.2
 for k in range(5): put(pop(600 + 60 * k), sec(S[f"for{k}"]["start"] + 5), 0.3); put(click(), sec(S[f"for{k}"]["start"] + 3), 0.3)
 put(pop(380), sec(S["atlas"]["start"] + 10), 0.5)  # Atlas drops in
 for i in (6, 15, 24, 36): put(thump(), sec(S["directors"]["start"] + i), 0.4)
+n_ = int(1.6 * SR); put(lowpass(rng.standard_normal(n_), 900 + 2500 * np.exp(-np.arange(n_) / SR / 0.4)) * env(n_, 0.03, 0.5), sec(S["directors"]["start"] + 18), 0.5)  # the sand spray
 put(shimmer(1.2), sec(S["studio"]["start"] + 98), 0.6)  # the picture being made
 put(shimmer(0.9), sec(S["relight"]["start"] + 17), 0.5)  # the light sweep
 put(riser(1.6), sec(S["prompt"]["end"]) - 1.6, 0.25)  # into the drop
