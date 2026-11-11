@@ -48,11 +48,11 @@ function text(str, x, y, px, col, o = {}) {
 }
 // a line that arrives word by word; `dim` words stay grey
 function line(str, f, a, b, o = {}) {
-  const words = str.split(" "), px = o.px ?? M * (TALL ? 0.058 : 0.05), y = o.y ?? H * (TALL ? 0.86 : 0.875), out = 1 - prog(f, b - 8, b - 1);
-  g.save(); g.font = `${o.w || 500} ${px}px Inter`; g.letterSpacing = -px * 0.025 + "px"; g.textBaseline = "middle";
+  const words = str.split(" "), px = o.px ?? M * (TALL ? 0.064 : 0.06), y = o.y ?? H * (TALL ? 0.86 : 0.875), out = 1 - prog(f, b - 8, b - 1);
+  g.save(); g.font = `${o.w || 600} ${px}px Inter`; g.letterSpacing = -px * 0.035 + "px"; g.textBaseline = "middle";
   const sp = g.measureText(" ").width, ws = words.map((w) => g.measureText(w.replace(/[\[\]]/g, "")).width), tot = ws.reduce((p, c) => p + c, 0) + sp * (words.length - 1);
   let x = (o.x ?? W / 2) - tot / 2;
-  let dimOn = false; words.forEach((w, i) => { const t = eOut(prog(f, a + i * 3, a + i * 3 + 9)); if (w.startsWith("[")) dimOn = true; const dim = dimOn; if (w.endsWith("]")) dimOn = false; g.globalAlpha = t * out; g.fillStyle = dim ? MUTE : PAPER; g.fillText(w.replace(/[\[\]]/g, ""), x, y + (1 - t) * px * 0.35); x += ws[i] + sp; });
+  let dimOn = false; words.forEach((w, i) => { const t = spring(prog(f, a + i * 2.5, a + i * 2.5 + 14)); if (w.startsWith("[")) dimOn = true; const dim = dimOn; if (w.endsWith("]")) dimOn = false; g.globalAlpha = clamp(t * 2.5) * out; g.fillStyle = dim ? MUTE : PAPER; g.fillText(w.replace(/[\[\]]/g, ""), x, y + (1 - t) * px * 0.9); x += ws[i] + sp; });
   g.restore();
 }
 function tag(str, x, y, a = 1) { text(str, x, y, M * 0.017, MUTE, { a, w: 600, ls: M * 0.003 }); }
@@ -101,7 +101,7 @@ function sImages(f) {
 // four full-screen pictures in quick succession
 function sHits(f) {
   const s = S.hits, step = (s.end - s.start) / HITS.length, i = Math.min(HITS.length - 1, Math.floor((f - s.start) / step)), t = (f - s.start - i * step) / step, im = IM[`hit-${HITS[i]}`];
-  const sc = Math.max(W / im.width, H / im.height) * (1.1 - 0.06 * eOut(t)), w = im.width * sc, h = im.height * sc; g.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+  const sc = Math.max(W / im.width, H / im.height) * (1.16 - 0.14 * eExpo(t)), w = im.width * sc, h = im.height * sc; g.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
   const gr = g.createLinearGradient(0, H * 0.6, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.65)"); g.fillStyle = gr; g.fillRect(0, H * 0.6, W, H * 0.4);
   line("Any style. [Any era.]", f, s.start + 4, s.end + 20);
 }
@@ -133,24 +133,19 @@ function sOne(f) { const s = S.one; line("One studio.", f, s.start + 2, s.end, {
 // Canvas: the character and the products are wired into every shot
 function wire(x1, y1, x2, y2, t) { if (t <= 0) return; const mx = (x1 + x2) / 2; g.save(); g.beginPath(); const N = 40, k = Math.ceil(N * t);
   for (let i = 0; i <= k; i++) { const u = Math.min(t, i / N), a = 1 - u, x = a * a * a * x1 + 3 * a * a * u * mx + 3 * a * u * u * mx + u * u * u * x2, y = a * a * a * y1 + 3 * a * a * u * y1 + 3 * a * u * u * y2 + u * u * u * y2; i ? g.lineTo(x, y) : g.moveTo(x, y); if (i === k) { g.strokeStyle = "rgba(244,241,237,0.42)"; g.lineWidth = Math.max(2, M * 0.0022); g.stroke(); g.beginPath(); g.arc(x, y, M * 0.006, 0, 7); g.fillStyle = RED; g.fill(); } } g.restore(); }
+// Canvas: the real screen. The camera jumps node to node (character, products, full-body generator, image generator), then pulls back to the whole flow.
+const CAM = TALL
+  ? [[0, 530, 900, 1.7], [30, 1545, 1010, 1.0], [62, 2590, 960, 1.45], [92, 3300, 1080, 1.45], [122, 1920, 1080, 0.32]]
+  : [[0, 530, 900, 2.7], [30, 1545, 1010, 1.7], [62, 2590, 960, 2.0], [92, 3300, 1080, 2.0], [122, 1920, 1080, 1.0]];
+const CAMLINE = ["One character.", "Real products.", "A full-body look.", "Then every shot.", "Same face. Same suit. [Every shot.]"];
 function sCanvas(f) {
-  const s = S.canvas, u = M, L = TALL
-    ? { ch: [0.2, 0.2, 0.2], pr: [[0.2, 0.42], [0.2, 0.56], [0.2, 0.7], [0.2, 0.84]], ps: 0.115, r1: [0.56, 0.36, 0.44], r2: [0.74, 0.7, 0.4] }
-    : { ch: [0.14, 0.3, 0.24], pr: [[0.32, 0.2], [0.32, 0.4], [0.32, 0.6], [0.32, 0.8]], ps: 0.15, r1: [0.58, 0.47, 0.62], r2: [0.84, 0.47, 0.62] };
-  const k = (TALL ? W : H); const X = (v) => W * v, Y = (v) => (TALL ? H * (0.08 + v * 0.74) : H * (v * 0.86 + 0.02));
-  const st = s.start, tc = spring(prog(f, st, st + 16)), chS = u * L.ch[2] * tc;
-  // wires first, under the cards
-  const r1x = X(L.r1[0]), r1y = Y(L.r1[1]), r2x = X(L.r2[0]), r2y = Y(L.r2[1]), r1h = u * L.r1[2], r2h = u * L.r2[2];
-  wire(X(L.ch[0]) + chS / 2, Y(L.ch[1]), r1x - r1h * 0.36, r1y - r1h * 0.2, eIO(prog(f, st + 40, st + 58)));
-  L.pr.forEach((p, i) => wire(X(p[0]) + u * L.ps / 2, Y(p[1]), r1x - r1h * 0.36, r1y + r1h * (-0.05 + i * 0.1), eIO(prog(f, st + 44 + i * 4, st + 62 + i * 4))));
-  wire(r1x + r1h * 0.36, r1y, r2x - r2h * 0.36, r2y, eIO(prog(f, st + 84, st + 100)));
-  card(IM["cv-character"], X(L.ch[0]), Y(L.ch[1]), chS, chS * 1.2, { a: clamp(tc * 3), fy: 0.3 }); tag("CHARACTER", X(L.ch[0]), Y(L.ch[1]) - chS * 0.6 - u * 0.022, clamp(tc * 3));
-  L.pr.forEach((p, i) => { const t = spring(prog(f, st + 12 + i * 5, st + 28 + i * 5)), z = u * L.ps * t; card(IM[`cv-product-${i + 1}`], X(p[0]), Y(p[1]), z, z, { a: clamp(t * 3), fy: 0.5 }); });
-  tag("PRODUCTS", X(L.pr[0][0]), Y(L.pr[0][1]) - u * L.ps * 0.5 - u * 0.022, clamp(spring(prog(f, st + 12, st + 28)) * 3));
-  const t1 = spring(prog(f, st + 62, st + 80)), t2 = spring(prog(f, st + 100, st + 118));
-  card(IM["card-1"], r1x, r1y, r1h * 0.72 * t1, r1h * t1, { a: clamp(t1 * 3), fy: 0.3 }); card(IM["card-0"], r2x, r2y, r2h * 0.72 * t2, r2h * t2, { a: clamp(t2 * 3), fy: 0.2 });
-  if (t1 > 0.5 && t1 < 1) glow(r1x, r1y, r1h * 0.8, "rgba(255,255,255,0.5)", (1 - t1)); if (t2 > 0.5 && t2 < 1) glow(r2x, r2y, r2h * 0.8, "rgba(255,255,255,0.5)", (1 - t2));
-  line("Same face. Same suit. [Every shot.]", f, st + 50, s.end);
+  const s = S.canvas, im = IM["cap-canvas"], lf = f - s.start; let i = 0; while (i < CAM.length - 1 && lf >= CAM[i + 1][0]) i++;
+  const a = CAM[Math.max(0, i - 1)], b = CAM[i], t = i === 0 ? 1 : eIO(prog(lf, b[0], b[0] + 13)), hold = clamp((lf - b[0]) / 40);
+  g.fillStyle = "#040404"; g.fillRect(-W, -H, W * 3, H * 3);
+  const cx = lerp(a[1], b[1], t), cy = lerp(a[2], b[2], t), z = lerp(a[3], b[3], t) * (1 + 0.035 * hold), sc = Math.max(W / im.width, H / im.height) * z;
+  g.drawImage(im, W / 2 - cx * sc, H * (TALL ? 0.44 : 0.47) - cy * sc, im.width * sc, im.height * sc);
+  const gr = g.createLinearGradient(0, H * 0.68, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(0.75, "rgba(0,0,0,0.85)"); gr.addColorStop(1, "rgba(0,0,0,0.92)"); g.fillStyle = gr; g.fillRect(0, H * 0.68, W, H * 0.32);
+  const end = i < CAM.length - 1 ? s.start + CAM[i + 1][0] : s.end; line(CAMLINE[i], f, s.start + b[0] + 6, end + (i < CAM.length - 1 ? 4 : 0));
 }
 function atlasBall(cx, cy, r, f) { // Atlas: a white ball with two eyes that blinks and glances
   const gr = g.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r); gr.addColorStop(0, "#ffffff"); gr.addColorStop(0.7, "#e9e6e1"); gr.addColorStop(1, "#a9a49d");
@@ -197,15 +192,26 @@ function sEnd(f) {
   g.fillStyle = "#000"; g.globalAlpha = eIO(prog(f, s.end - 12, s.end - 1)); g.fillRect(0, 0, W, H); g.globalAlpha = 1;
 }
 const DRAW = { prompt: sPrompt, images: sImages, hits: sHits, video: sVideo, sound: sSound, one: sOne, canvas: sCanvas, atlas: sAtlas, shotmap: sShotmap, core: sCore, swarm: sSwarm, end: sEnd };
-window.renderFrame = (n) => {
-  const sc = TL.scenes.find((s) => n >= s.start && n < s.end) || TL.scenes[TL.scenes.length - 1];
+const acc = document.createElement("canvas"); acc.width = W; acc.height = H; const ag = acc.getContext("2d");
+const JOIN = new Set(["images", "end"]); // these continue the scene before them, so no cut-through into them
+function drawAt(n) {
+  const k = TL.scenes.findIndex((s) => n >= s.start && n < s.end), sc = TL.scenes[k < 0 ? TL.scenes.length - 1 : k], next = TL.scenes[k + 1];
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; g.filter = "none";
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  const inn = JOIN.has(sc.id) || k === 0 ? 1 : eExpo(prog(n, sc.start, sc.start + 12)), out = !next || JOIN.has(next.id) ? 0 : eIn(prog(n, sc.end - 7, sc.end));
+  const z = lerp(1.22, 1, inn) * (1 + 0.02 * prog(n, sc.start, sc.end)) * (1 + 0.9 * out);
+  g.translate(W / 2, H / 2); g.scale(z, z); g.translate(-W / 2, -H / 2);
   if (sc.id !== "video" || n < TL.expand + 16) bg(n); DRAW[sc.id](n);
+  g.setTransform(1, 0, 0, 1, 0, 0); const veil = Math.max(1 - clamp(inn * 1.6), out); if (veil > 0) { g.globalAlpha = veil; g.fillStyle = "#000"; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+}
+window.renderFrame = (n, fast) => {
+  const SUB = fast ? 1 : 10;
+  if (SUB === 1) drawAt(n); else { for (let k = 0; k < SUB; k++) { drawAt(Math.min(n + (k / SUB) * 0.55, TL.frames - 0.01)); ag.globalAlpha = 1 / (k + 1); ag.drawImage(cv, 0, 0); } ag.globalAlpha = 1; g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "copy"; g.drawImage(acc, 0, 0); g.globalCompositeOperation = "source-over"; }
   return cv.toDataURL("image/jpeg", 0.95).slice(23);
 };
 window.ready = (async () => {
   const ff = await new FontFace("Inter", "url(fonts/Inter-latin.woff2)", { weight: "100 900" }).load(); document.fonts.add(ff);
-  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]),
+  const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]),
     ...["character", "product-1", "product-2", "product-3", "product-4"].map((n) => [`cv-${n}`, `work/cv-${n}.jpg`]),
     ...Array.from({ length: CARDS }, (_, i) => [`card-${i}`, `work/card-${i}.jpg`]),
     ...Object.entries(SEQ).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
