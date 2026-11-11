@@ -37,12 +37,15 @@ test.describe("public site", () => {
     }
   });
 
-  test("the Why Eclipse? button on the homepage opens the About page", async ({ page }) => {
+  test("the Why Eclipse? button opens the film in a pop-up and the About page is switched off", async ({ page, request }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /Why Eclipse\?/ }).click();
-    await expect(page).toHaveURL(/\/about$/);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("One studio for everything you make");
-    await expect(page.getByRole("heading", { name: "Image Studio" })).toBeVisible();
+    await page.getByRole("button", { name: /Why Eclipse\?/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Why Eclipse" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("video")).toHaveAttribute("src", "/landing/why-eclipse.mp4");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    expect((await request.get("/about")).status()).toBe(404);
   });
 
   test("search and sharing files are public and sensible", async ({ request }) => {
