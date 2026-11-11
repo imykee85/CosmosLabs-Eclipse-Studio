@@ -175,12 +175,12 @@ function sAtlas(f) {
 function camShot(im, cx, cy, z, a = 1) { const sc = Math.max(W / im.width, H / im.height) * z; g.globalAlpha = a; g.drawImage(im, W / 2 - cx * sc, H * 0.46 - cy * sc, im.width * sc, im.height * sc); g.globalAlpha = 1; return (x, y) => [W / 2 + (x - cx) * sc, H * 0.46 + (y - cy) * sc, sc]; }
 // Image Studio with Atlas: show him a look, he writes the prompt, Apply and generate, the picture appears in the preview
 const SK = TALL
-  ? [[0, 1440, 900, 0.75], [10, 2488, 820, 1.2], [46, 2488, 900, 1.2], [76, 2488, 980, 1.35], [92, 1712, 760, 1.5], [128, 1712, 738, 2.1], [150, 1712, 738, 2.9]]
-  : [[0, 1440, 900, 1.0], [10, 2480, 640, 1.85], [46, 2470, 960, 1.75], [76, 2520, 1110, 2.0], [92, 1712, 760, 1.6], [128, 1712, 738, 2.4], [150, 1712, 738, 3.5]];
+  ? [[0, 1440, 900, 0.75], [8, 2488, 820, 1.2], [46, 2488, 900, 1.2], [62, 2488, 980, 1.35], [92, 1712, 760, 1.5], [128, 1712, 738, 2.4]]
+  : [[0, 1440, 900, 1.0], [8, 2480, 700, 1.75], [46, 2470, 960, 1.75], [62, 2520, 1080, 2.0], [92, 1712, 760, 1.6], [128, 1712, 738, 3.0]];
 const PREV = [1580, 501, 265, 474]; // the 9:16 preview frame in the capture
 function sStudio(f) {
   const s = S.studio, lf = f - s.start; let i = 0; while (i < SK.length - 1 && lf >= SK[i + 1][0]) i++;
-  const a = SK[i], b = SK[Math.min(i + 1, SK.length - 1)], t = b === a ? 1 : eIO(clamp((lf - a[0]) / Math.min(16, b[0] - a[0])));
+  const a = SK[Math.max(0, i - 1)], b = SK[i], t = i === 0 ? 1 : eIO(clamp((lf - b[0]) / 14));
   const cx = lerp(a[1], b[1], t), cy = lerp(a[2], b[2], t), z = lerp(a[3], b[3], t);
   const im = lf < 46 ? IM["st-1"] : lf < 90 ? IM["st-2"] : IM["st-3"], X = camShot(im, cx, cy, z);
   if (lf >= 46 && lf < 52) camShot(IM["st-1"], cx, cy, z, 1 - (lf - 46) / 6); if (lf >= 90 && lf < 96) camShot(IM["st-2"], cx, cy, z, 1 - (lf - 90) / 6);
