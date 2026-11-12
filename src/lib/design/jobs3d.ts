@@ -17,7 +17,7 @@ import { claimUsage } from "../usage";
 import { MAX_PROMPT_3D, buildBody3D, cleanOptions, find3D, isOn3D, path3D, price3D, type Mode3D } from "./models3d";
 import { ARK_PREFIX, glbFromZip, statusArk, submitArk } from "./ark3d";
 
-const TIMEOUT_MS = 20 * 60_000, SAVING_STALE_MS = 5 * 60_000, START_GRACE_MS = 2 * 60_000, MAX_FILE = 80 * 1024 * 1024;
+const TIMEOUT_MS = 30 * 60_000, SAVING_STALE_MS = 5 * 60_000, START_GRACE_MS = 2 * 60_000, MAX_FILE = 80 * 1024 * 1024;
 export const MAX_RUNNING_3D = 2;
 
 export type Item3D = { id: string; model: string; modelLabel: string; mode: string; name: string; prompt: string; status: string; error: string | null; sizeBytes: number | null; createdAt: string; fileUrl: string | null; inputs: ReferenceRef[] };
@@ -50,7 +50,7 @@ export async function start3D(i: { userId: string; model: unknown; mode: unknown
     urls = await deliverReferences(r.items);
   }
   const options = cleanOptions(m, i.options);
-  const cost = creditsOn() ? price3D(m) : 0;
+  const cost = creditsOn() ? price3D(m, options) : 0;
   const name = typeof i.name === "string" && i.name.trim() ? i.name.trim().slice(0, 80) : prompt.slice(0, 60) || "3D model";
   const idemKey = crypto.randomUUID();
   const data = { userId: i.userId, projectId: typeof i.projectId === "string" ? i.projectId.slice(0, 80) : null, model: m.id, mode, name, prompt, inputs: refs as object, params: { options } as object, idemKey, creditsHeld: cost || null };
@@ -106,7 +106,8 @@ async function fetchGlb(url: string, zipped = false): Promise<Uint8Array> {
   if (len > (zipped ? 2 * MAX_FILE : MAX_FILE)) throw new Error("file too large");
   let buf: Uint8Array = new Uint8Array(await res.arrayBuffer());
   if (buf.length > (zipped ? 2 * MAX_FILE : MAX_FILE)) throw new Error("file too large");
-  if (zipped) buf = glbFromZip(buf, MAX_FILE); // the ByteDance cloud answers with a zip holding the file
+  // The ByteDance cloud's link points at the model file itself (a GLB); if it is a zip, the .glb is taken out. (A USDZ is itself a zip, but we only ask for GLB.)
+  if (zipped && buf[0] === 0x50 && buf[1] === 0x4b) buf = glbFromZip(buf, MAX_FILE);
   if (buf.length < 12 || String.fromCharCode(buf[0], buf[1], buf[2], buf[3]) !== "glTF") throw new Error("not a glb file");
   return buf;
 }

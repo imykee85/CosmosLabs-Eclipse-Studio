@@ -32,7 +32,7 @@ before(async () => {
   delete process.env.ENABLED_MODELS;
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const u = String(input instanceof Request ? input.url : input);
-    if (u.startsWith("https://ark-files.test/")) return new Response(u.endsWith("empty.zip") ? Buffer.from(zipSync({ "a.txt": new Uint8Array([1]) })) : ZIP, { status: 200 });
+    if (u.startsWith("https://ark-files.test/")) return new Response(u.endsWith("empty.zip") ? Buffer.from(zipSync({ "a.txt": new Uint8Array([1]) })) : u.endsWith("plain.glb") ? Buffer.from(GLB) : ZIP, { status: 200 });
     return realFetch(input, init);
   }) as typeof fetch;
   lib = { jobs: await import("../../src/lib/design/jobs3d"), m: await import("../../src/lib/design/models3d"), cr: await import("../../src/lib/credits"), db: (await import("../../src/lib/db")).db };
@@ -73,6 +73,19 @@ test("a task is created with the model id and text flags, the price held, then s
   assert.equal(done.status, "completed"); assert.equal(done.sizeBytes, GLB.length); assert.equal(done.params.usage.total_tokens, 30000);
   assert.ok([...stored.keys()].some((k) => k.includes(`${row.id}.glb`)));
   assert.equal(await lib.cr.getBalance(A), 10000 - lib.m.price3D(lib.m.find3D("seed3d_2_0")), "charged exactly once");
+});
+
+test("Hitem3D: a plain GLB link is saved as is, and the price follows the mode", { skip }, async () => {
+  const hi = lib.m.find3D("hitem3d_2_0");
+  assert.equal(lib.m.price3D(hi, { textured: false, detailed: false }) < lib.m.price3D(hi, { textured: true, detailed: false }), true);
+  assert.equal(lib.m.price3D(hi, { textured: true, detailed: true }) > lib.m.price3D(hi, { textured: true, detailed: false }), true);
+  const r = await go("hitem3d_2_0", { options: { textured: false, detailed: false } });
+  assert.equal(r.ok, true, r.error);
+  const row = await lib.db.model3D.findUnique({ where: { id: r.item.id } });
+  assert.equal(row.creditsHeld, lib.m.price3D(hi, { textured: false, detailed: false }));
+  taskAnswer = { status: "succeeded", content: { file_url: "https://ark-files.test/plain.glb" } };
+  await lib.jobs.finalize3D(row);
+  assert.equal((await lib.db.model3D.findUnique({ where: { id: row.id } })).status, "completed");
 });
 
 test("a failed task and a zip with no model charge nothing", { skip }, async () => {

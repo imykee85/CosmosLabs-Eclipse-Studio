@@ -1,7 +1,7 @@
 // 3D models on ByteDance's cloud (Volcano Ark / BytePlus ModelArk): a task API. From the owner's brief of 2026-11-12; NOT run against the live API (the sandbox cannot reach it).
 //   create  POST {base}/contents/generations/tasks   { model, content: [...] }  ->  { id }
-//   query   GET  {base}/contents/generations/tasks/<id>  ->  { status: queued | running | succeeded | failed, content.file_url (a .zip), error { code, message }, usage }
-// The result link lasts 24 hours and holds a ZIP: it is downloaded at once, the .glb inside is taken out and kept in our own storage. A status we do not know counts as still running.
+//   query   GET  {base}/contents/generations/tasks/<id>  ->  { status: queued | running | succeeded | failed, content.file_url (the model file itself, or a zip), error { code, message }, usage }
+// The result link lasts 24 hours and may be a ZIP: it is downloaded at once, the .glb inside is taken out and kept in our own storage. A status we do not know counts as still running.
 import { unzipSync } from "fflate";
 
 export const ARK_PREFIX = "ark:";
