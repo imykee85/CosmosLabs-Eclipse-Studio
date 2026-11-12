@@ -1,3 +1,4 @@
+import { WEB_NOTE, WEB_TOOLS } from "@/lib/web-tools";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { waitUntil } from "@vercel/functions";
@@ -87,7 +88,7 @@ const J = (v: unknown) => v as unknown as Prisma.InputJsonValue;
 const item = (kind: TraceKind, text: string, ids?: string[]): TraceItem => ({ at: new Date().toISOString(), kind, text: text.slice(0, 900), ...(ids?.length ? { ids } : {}) });
 
 export type MissionDeps = PlanDeps & {
-  call: (a: { system: ReturnType<typeof cachedSystem>; tools: Anthropic.Tool[]; messages: Anthropic.MessageParam[] }) => Promise<Anthropic.Message>;
+  call: (a: { system: ReturnType<typeof cachedSystem>; tools: Anthropic.ToolUnion[]; messages: Anthropic.MessageParam[] }) => Promise<Anthropic.Message>;
   read: (userId: string, personId: string, name: string, input: Record<string, unknown>) => Promise<{ content: Anthropic.ToolResultBlockParam["content"]; isError?: boolean }>;
 };
 export const realMissionDeps: MissionDeps = {
@@ -95,7 +96,7 @@ export const realMissionDeps: MissionDeps = {
   async call({ system, tools, messages }) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 100_000 });
     const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
-    return client.messages.create({ model, max_tokens: 6000, system, tools, messages: cacheLast(messages) as Anthropic.MessageParam[] });
+    return client.messages.create({ model, max_tokens: 6000, system, tools: [...tools, ...WEB_TOOLS], messages: cacheLast(messages) as Anthropic.MessageParam[] });
   },
   async read(userId, personId, name, input) {
     if (isCoreTool(name)) return runCoreTool(userId, personId, name, input);
@@ -290,7 +291,7 @@ async function pass(row: AgentMission, deps: MissionDeps): Promise<Patch> {
   try {
     for (let r = 0; r < ROUNDS_PER_PASS && Date.now() < end; r++) {
       if (rounds >= MAX_ROUNDS) { await chargeChat(row.userId, meter, "Atlas mission"); return fail("The mission reached its step limit and was stopped. What it made is in your Gallery."); }
-      const res = await deps.call({ system: cachedSystem(`${SYSTEM}\n\n${BRAND_RULE}`, ctxBlock()), tools: MISSION_TOOLS, messages: convo });
+      const res = await deps.call({ system: cachedSystem(`${SYSTEM}\n\n${WEB_NOTE}\n\n${BRAND_RULE}`, ctxBlock()), tools: MISSION_TOOLS, messages: convo });
       rounds++;
       meter.add(res.model, res.usage);
       const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
@@ -298,6 +299,7 @@ async function pass(row: AgentMission, deps: MissionDeps): Promise<Patch> {
       messages.push({ role: "assistant", content: res.content });
       convo.push({ role: "assistant", content: res.content });
       const uses = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+      if (!uses.length && res.stop_reason === "pause_turn") continue; // the provider paused a long web lookup: carry on
       if (!uses.length) {
         // it spoke to the person without a tool: that is a question or a hand-back; the mission waits for a reply
         status = "waiting_user";

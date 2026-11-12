@@ -25,6 +25,7 @@ import type { PlanSpec } from "@/lib/agent-plan";
 import { planAllows } from "@/lib/access-table";
 import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool as isVideoServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
+import { WEB_NOTE, WEB_TOOLS } from "@/lib/web-tools";
 import { CORE_TOOLS, CORE_TOOLS_NOTE, isCoreTool, runCoreTool } from "@/lib/agent-core-tools";
 
 const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n);
@@ -167,11 +168,12 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       // Product Video Craft (about 3,600 tokens) on creator-style product video talk; Add Motion Craft (about 1,400) on animate-a-picture talk. Atlas only.
       const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
       const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
-      const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}` : "";
+      const withWeb = isAtlas && planAllows(access.plan, "web");
+      const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}` : "";
       const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
-      const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
+      let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
       const convo: Anthropic.MessageParam[] = messages;
       const earlier: Action[] = [];
@@ -181,9 +183,18 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const planPictures = parsePictures(c.pictures).map(({ type, id }) => ({ type, id }));
       const frames: Frame[] = [];
       const state = { captures: 0 };
-      let res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
+      let res: Anthropic.Message;
+      try { res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] }); }
+      catch (e) {
+        // web search not switched on for the provider account: Atlas still answers, without the web
+        if (!(withWeb && e instanceof Anthropic.BadRequestError && /web_(search|fetch)/i.test(e.message))) throw e;
+        console.error("web tools unavailable, answering without them", e.message);
+        tools = tools.filter((t) => !["web_search", "web_fetch"].includes((t as { name: string }).name));
+        res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] });
+      }
       meter.add(res.model, res.usage);
-      for (let round = 1; round < MAX_ROUNDS && Date.now() < deadline && res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)); round++) {
+      for (let round = 1; round < MAX_ROUNDS && Date.now() < deadline && (res.stop_reason === "pause_turn" || (res.stop_reason === "tool_use" && res.content.some((b) => b.type === "tool_use" && isServerTool(b.name)))); round++) {
+        if (res.stop_reason === "pause_turn") { convo.push({ role: "assistant", content: res.content }); res = await client.messages.create({ model, max_tokens: 8000, system, tools, messages: cacheLast(convo) as Anthropic.MessageParam[] }); meter.add(res.model, res.usage); continue; }
         const results: Anthropic.ToolResultBlockParam[] = [];
         for (const b of res.content) {
           if (b.type !== "tool_use") continue;
