@@ -822,3 +822,33 @@ model TermsAcceptance {
   @@index([userId])
   @@map("terms_acceptances")
 }
+
+// Design Studio's 3D generator: one row per model being made or made. Kept apart from Generation so Library, Gallery and Image Studio never list a .glb file.
+model Model3D {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  projectId      String?   @map("project_id")
+  model          String // registry id (src/lib/design/models3d.ts)
+  mode           String    @default("image") // image, multi, text
+  name           String    @default("")
+  prompt         String    @default("")
+  inputs         Json? // ids of the pictures used: [{type, id}]
+  params         Json? // options sent (texture, polycount, ...), copy tries
+  status         String    @default("pending") // pending, saving, completed, failed
+  error          String?
+  statusUrl      String?   @map("status_url")
+  requestId      String?   @map("request_id")
+  idemKey        String?   @map("idem_key")
+  storageKey     String?   @map("storage_key")
+  sizeBytes      Int?      @map("size_bytes")
+  creditsHeld    Int?      @map("credits_held")
+  deletedAt      DateTime? @map("deleted_at")
+  startedAt      DateTime? @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, status])
+  @@map("models_3d")
+}

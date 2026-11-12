@@ -12,6 +12,7 @@ export async function heldNow(tx: Prisma.TransactionClient | typeof db, userId: 
   const audio = await tx.audioJob.aggregate({ where: { userId, status: "pending" }, _sum: { creditsHeld: true } });
   // Sandbox jobs (merging sound into a video, running a mini tool, a Core build session) hold their price until they settle.
   const sandbox = await tx.sandboxJob.aggregate({ where: { userId, status: { in: SANDBOX_OPEN }, creditsCharged: 0 }, _sum: { creditsReserved: true } });
-  return renders + (audio._sum.creditsHeld ?? 0) + (sandbox._sum.creditsReserved ?? 0);
+  const models3d = await tx.model3D.aggregate({ where: { userId, status: { in: ["pending", "saving"] } }, _sum: { creditsHeld: true } });
+  return renders + (audio._sum.creditsHeld ?? 0) + (sandbox._sum.creditsReserved ?? 0) + (models3d._sum.creditsHeld ?? 0);
 }
 

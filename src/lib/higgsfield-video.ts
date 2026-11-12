@@ -10,7 +10,7 @@ const VIDEO_BASE = process.env.HIGGSFIELD_VIDEO_BASE_URL ?? BASE_URL;
 const HOSTS = new Set([BASE_URL, VIDEO_BASE, "https://api.higgsfield.ai", "https://platform.higgsfield.ai"].map((u) => new URL(u).origin));
 
 // The key goes with these requests, so it only ever goes to Higgsfield's own hosts.
-function checked(url: string): string {
+export function checked(url: string): string {
   const u = new URL(url);
   if (u.protocol !== "https:" || !HOSTS.has(u.origin)) throw new Error("Refusing a provider address outside Higgsfield's hosts");
   return url;

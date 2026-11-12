@@ -91,3 +91,11 @@ Completeness basis (2026-11-04 sweep): every "NOT built / NOT tested / NOT verif
 | 61 | R2 lifecycle rule: delete abandoned uploads (`u/*/up-*`, `u/*/vid-*`, `u/*/tools/in/*`) older than 24 hours | Not immediately necessary | People can start direct uploads and never finish them; the files stay in storage and cost money | Owner (Cloudflare R2 settings) |
 | 62 | Decide: confirm button before Core starts paid sandbox jobs (video edit, kinetic film, build session) | Not immediately necessary | Today it is a prompt rule only; worst case about 300 credits a day of self-harm, no cross-user effect | Owner decision, then me |
 | 63 | Live checks: Whop checkout metadata and chargeback events, Clerk session cookie SameSite, sandbox allowlist DNS | Not immediately necessary | Audit run 3 could not verify these from source | Owner |
+
+## Added with Design Studio (2026-11-12)
+| # | Item | Priority | Why it matters | Who |
+| --- | --- | --- | --- | --- |
+| 69 | Higgsfield REST request pages for the 3D models (Meshy 7 image, Meshy multi-view, Tripo H3.1 image and multi-view, Hunyuan3D v3 image, Meshy 6 and Hunyuan 3D v3.1 text): endpoint paths, body fields, the field that holds the .glb, and the real price per model | High | The 3D generator is built against the catalog names; paths default to the model id (`HIGGSFIELD_3D_PATH_<ID>` Config value overrides), bodies and prices are guesses (`DESIGN3D_USD_<ID>` overrides), so nothing is verified live | Owner (paste the pages) |
+| 70 | One live 3D run on the owner's account (picture to model, then Add to ShotMap) and read `/admin/jobs` or the failure if any | High | The result parser scans for any https `.glb`; only a real answer proves it | Owner |
+| 71 | Design Studio Motion tab (motion graphics) is Soon; it waits for Eclipse Motion (item 64) | Not immediately necessary | Graphics and 3D work today; motion graphics are not built | Owner's go |
+| 72 | Design Studio extras not built: Image to 3D inside ShotMap's Add panel, 3D files in the Library, remeshing/format export (OBJ, FBX, USDZ), graphics editor on a canvas | Not immediately necessary | Today a model is downloaded as .glb or sent to ShotMap | Owner's go |

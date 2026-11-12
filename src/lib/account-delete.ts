@@ -15,18 +15,19 @@ export type DeleteResult = { ok: true; notes: string[] } | { ok: false; status: 
 export const USER_TABLES = [
   "generation", "onboarding", "project", "canvasState", "canvas", "creditLedger", "connectChat", "memory", "userSkill", "userAgent", "connectorLink",
   "upload", "usageEvent", "audioJob", "userVoice", "sandboxRun", "sandboxAudit", "skillSetting", "portfolio", "certificate", "sandboxJob", "coreTool",
-  "apiKey", "oauthGrant", "oauthCode", "soulId", "billingSettings", "freeRender", "freeEmailClaim", "chatSpend", "agentRun", "canvasTemplate", "canvasComment", "chatState", "pendingSend", "agentPlan", "agentMission", "termsAcceptance",
+  "apiKey", "oauthGrant", "oauthCode", "soulId", "billingSettings", "freeRender", "freeEmailClaim", "chatSpend", "agentRun", "canvasTemplate", "canvasComment", "chatState", "pendingSend", "agentPlan", "agentMission", "termsAcceptance", "model3D",
 ] as const;
 
 /** Something still running for this person (a render, a voice take, a sandbox job, Soul ID training). */
 export async function busyReason(userId: string): Promise<string | null> {
-  const [gen, audio, sandbox, soul] = await Promise.all([
+  const [gen, audio, sandbox, soul, m3d] = await Promise.all([
     db.generation.count({ where: { userId, status: { in: ["pending", "saving"] } } }),
     db.audioJob.count({ where: { userId, status: "pending" } }),
     db.sandboxJob.count({ where: { userId, status: { in: SANDBOX_OPEN } } }),
     db.soulId.count({ where: { userId, status: "pending" } }),
+    db.model3D.count({ where: { userId, status: { in: ["pending", "saving"] } } }),
   ]);
-  return gen + audio + sandbox + soul > 0 ? "Something is still being made in your account. Wait for it to finish, or cancel it, then try again." : null;
+  return gen + audio + sandbox + soul + m3d > 0 ? "Something is still being made in your account. Wait for it to finish, or cancel it, then try again." : null;
 }
 
 export async function deleteAccount(userId: string, opts: { closeSignIn?: boolean } = {}): Promise<DeleteResult> {
