@@ -1,3 +1,4 @@
+import { gateFeature } from "@/lib/access";
 import { NextResponse } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { db } from "@/lib/db";
@@ -33,6 +34,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   let row = null;
   // Approving can post through the starter's own connected apps, so only the person who started the mission may decide. Others on the team can watch it or stop it.
   if ((b?.action === "approve" || b?.action === "decline" || b?.action === "reply") && !o.mine) return NextResponse.json({ error: "Only the person who started this mission can do that." }, { status: 403 });
+  if (b?.action === "approve" || b?.action === "reply") { const gated = await gateFeature("plans"); if (gated) return gated; }
   if (b?.action === "approve" || b?.action === "decline") row = await decideMission(id, o.userId, b.action === "approve");
   else if (b?.action === "reply" && typeof b.text === "string") row = await answerMission(id, o.userId, b.text);
   else if (b?.action === "cancel") row = await cancelMission(id, o.userId);

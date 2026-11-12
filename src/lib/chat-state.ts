@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 export const SYNC_PREFIXES = ["eclipse-agent-chat-", "eclipse-agent-history-", "eclipse-prompts-", "eclipse-treatment-"] as const;
 export const MAX_VALUE_CHARS = 1_500_000;
 export const MAX_KEYS = 300;
+export const MAX_TOTAL_CHARS = 20_000_000;
 
 export const isSyncKey = (key: unknown): key is string =>
   typeof key === "string" && key.length <= 120 && /^[A-Za-z0-9_.:-]+$/.test(key) && SYNC_PREFIXES.some((p) => key.startsWith(p));
@@ -39,6 +40,8 @@ export async function putState(userId: string, key: unknown, value: unknown, cli
   if (typeof value !== "string") return { ok: false, status: 400, error: "Send the text as a string." };
   if (value.length > MAX_VALUE_CHARS) return { ok: false, status: 413, error: "That chat is too large to save to the account." };
   if (!existing && (await db.chatState.count({ where: { userId } })) >= MAX_KEYS) return { ok: false, status: 409, error: "Too many saved chats." };
+  const used = await db.$queryRaw<{ n: bigint | number | null }[]>`SELECT COALESCE(SUM(LENGTH(value)), 0) AS n FROM chat_states WHERE user_id = ${userId} AND key <> ${key}`;
+  if (Number(used[0]?.n ?? 0) + value.length > MAX_TOTAL_CHARS) return { ok: false, status: 413, error: "Your saved chats are full. Delete some old chats first." };
   await db.chatState.upsert({
     where: { userId_key: { userId, key } },
     create: { userId, key, value, clientAt: BigInt(Math.floor(at)) },

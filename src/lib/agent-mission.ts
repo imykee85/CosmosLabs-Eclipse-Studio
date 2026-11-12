@@ -343,7 +343,9 @@ async function pass(row: AgentMission, deps: MissionDeps): Promise<Patch> {
       if (actions.length) {
         const priced = actions.every((a) => a.price != null);
         const total = priced ? actions.reduce((s, a) => s + (a.price ?? 0), 0) : null;
-        if (row.autopilot && total != null && committed + total <= row.budget) {
+        // Web pages are untrusted text: once any has entered the conversation, nothing is spent without the person's OK, whatever the budget.
+        const sawWeb = JSON.stringify(messages).includes('"web_search_tool_result"') || JSON.stringify(messages).includes('"web_fetch_tool_result"') || JSON.stringify(convo).includes('"web_search_tool_result"') || JSON.stringify(convo).includes('"web_fetch_tool_result"');
+        if (row.autopilot && !sawWeb && total != null && committed + total <= row.budget) {
           if ((await freeCredits(row.userId)) < total) { for (const a of actions) results[a.id] = { content: "Not enough credits. Choose something cheaper or tell the person to top up.", isError: true }; trace.push(item("error", "Not enough credits for the next step.")); }
           else for (const a of actions) {
             const rr = await runAction(row, a, deps);
