@@ -64,7 +64,7 @@ const GROUPS: { name: string; total: number; match?: (id: string) => boolean }[]
   { name: "Soul", total: 0, match: (id) => id.startsWith("soul") },
   { name: "Marketing Studio", total: 0, match: (id) => id.startsWith("marketing_studio") || id === "ads_studio" },
   { name: "Google", total: 5, match: (id) => id.startsWith("nano_banana") },
-  { name: "GPT", total: 8, match: (id) => id.startsWith("gpt_image") },
+  { name: "GPT", total: 7, match: (id) => id.startsWith("gpt_image") },
   { name: "Seedream", total: 6, match: (id) => id.startsWith("seedream") },
   { name: "Flux", total: 11 },
   { name: "Mystic", total: 4 },

@@ -18,6 +18,7 @@ import { joinMp3, joinWav, mp3DurationMs, splitForTts, wavDurationMs } from "./c
 import { limiterFor } from "./limiter";
 import { audioCreditsOn, creditsFor, estimateSeconds, holdUnitsFor, settledUnits, usdFor } from "./pricing";
 import { ctxFor, providerFor } from "./providers";
+import { checkSpeakers } from "./speakers";
 import { hasParenTag } from "./providers/fish";
 import { findAudioModel, musicMaxSeconds, type AudioModel } from "./registry";
 import { withRetry } from "./retry";
@@ -95,6 +96,7 @@ export async function toAudioItem(j: AudioJob): Promise<AudioItem> {
 export type StartAudioInput = {
   userId: string; kind?: unknown; text?: unknown; model: unknown; voiceId?: unknown; voiceName?: unknown; speed?: unknown; projectId?: unknown;
   durationSec?: unknown; loop?: unknown; instrumental?: unknown; inputKey?: unknown; inputName?: unknown; diarize?: unknown; language?: unknown;
+  speakerVoiceIds?: unknown; // Drama 3: the voices of speakers 1, 2...
   videoId?: unknown; variants?: unknown; negativePrompt?: unknown; preserveSpeech?: unknown; format?: unknown; // Mirelo: sound for a video, several alternatives
 };
 export type StartAudioResult = { ok: true; item: AudioItem } | { ok: false; status: number; error: string; code?: string };
@@ -168,8 +170,12 @@ export async function startAudioJob(input: StartAudioInput, opts?: { dryRun?: bo
     if (!text) return { ok: false, status: 400, error: "Write the text to speak first." };
     voiceId = typeof input.voiceId === "string" ? input.voiceId.trim() : "";
     if (voiceId ? !/^[A-Za-z0-9_.-]{1,128}$/.test(voiceId) : !model.voiceOptional) return { ok: false, status: 400, error: "Pick a voice first." };
-    if (model.provider === "fish" && hasParenTag(text)) return { ok: false, status: 400, error: "Fish models read cues in square brackets, like [happy], not round ones." };
+    if (model.provider === "fish" && !model.directions && hasParenTag(text)) return { ok: false, status: 400, error: "Fish models read cues in square brackets, like [happy], not round ones." };
     voiceName = typeof input.voiceName === "string" ? input.voiceName.trim().slice(0, 80) || null : null;
+    // Drama 3 scenes: <|speaker:N|> turns need one voice each (see speakers.ts).
+    const sp = checkSpeakers(model, text, input.speakerVoiceIds);
+    if (!sp.ok) return { ok: false, status: 400, error: sp.error };
+    if (sp.extra.length) params.speakers = sp.extra;
     if (input.speed != null && input.speed !== 1) {
       if (typeof input.speed !== "number" || !Number.isFinite(input.speed) || input.speed < 0.7 || input.speed > 1.2) return { ok: false, status: 400, error: "Speed must be between 0.7 and 1.2." };
       if (!model.supports.speed) return { ok: false, status: 400, error: `${model.label} has no speed control.` };
@@ -418,7 +424,7 @@ export async function runAudioJob(id: string): Promise<void> {
     const parts: Uint8Array[] = [];
     let mime = "audio/mpeg", characterCost: number | undefined, seconds: number | undefined, reportedMs: number | undefined = 0;
     for (let i = 0; i < pieces.length; i++) {
-      const res = await call({ kind: "tts", modelId: model.id, text: pieces[i], voiceId: job.voiceId ?? undefined, speed, format: "mp3", previousText: pieces[i - 1]?.slice(-300), nextText: pieces[i + 1]?.slice(0, 300) });
+      const res = await call({ kind: "tts", modelId: model.id, text: pieces[i], voiceId: job.voiceId ?? undefined, voiceIds: Array.isArray(params.speakers) ? (params.speakers as string[]) : undefined, speed, format: "mp3", previousText: pieces[i - 1]?.slice(-300), nextText: pieces[i + 1]?.slice(0, 300) });
       parts.push(res.bytes!);
       mime = res.mime;
       if (typeof res.usage?.characterCost === "number") characterCost = (characterCost ?? 0) + res.usage.characterCost;
