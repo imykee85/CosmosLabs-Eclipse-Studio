@@ -54,3 +54,14 @@
 .ds-toprow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
 .ds-toprow .ds-tabs { margin-bottom: 0; }
 .ds-agent { flex: none; }
+/* 3D tab uses Image Studio's layout (preview above, docked prompt box). */
+.ds-3d.cr-wrap { display: block; grid-template-columns: none; max-width: 760px; padding-top: 4px; }
+.ds-stage3 { aspect-ratio: 4 / 3; max-width: 520px; }
+.ds-stage3 .ds-viewer { border: 0; border-radius: 0; height: 100%; aspect-ratio: auto; }
+.ds-3d .ds-bar, .ds-3d .ds-list { max-width: 520px; margin: 12px auto 0; }
+.ds-3d .cr-box .ds-text { border: 0; background: transparent; padding: 2px; }
+.ds-3d .cr-box .ds-pics { margin-bottom: 4px; }
+.ds-go3 { width: 100%; justify-content: center; margin-top: 10px; }
+.ds-3d .cr-dock .ds-error { margin: 0 0 8px; }
+.ds-toprow { justify-content: center; }
+.ds-3d .cr-chip { white-space: nowrap; } .ds-3d .cr-row-a { flex-wrap: wrap; }

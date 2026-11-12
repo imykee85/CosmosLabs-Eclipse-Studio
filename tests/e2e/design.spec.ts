@@ -21,14 +21,12 @@ async function setup(page: Page) {
 }
 
 test.describe("Design Studio", () => {
-  test("tabs: graphics starters open Image Studio, Motion shows its composer, 3D shows the generator", async ({ page }) => {
+  test("tabs: 3D is first, Graphics is gone, Motion shows its composer", async ({ page }) => {
     await setup(page);
     await page.goto("/design");
     await expect(page.getByRole("main").getByRole("heading", { name: "Design Studio" })).toBeVisible();
     await expect(page.getByRole("tab", { name: /3D/ })).toHaveAttribute("aria-selected", "true");
-    await page.getByRole("tab", { name: "Graphics" }).click();
-    const logo = page.getByRole("link", { name: /Logo/ });
-    await expect(logo).toHaveAttribute("href", /\/create\?prompt=/);
+    await expect(page.getByRole("tab", { name: "Graphics" })).toHaveCount(0);
     await page.getByRole("tab", { name: /Motion/ }).click();
     await expect(page.getByRole("textbox", { name: "Describe your motion" })).toBeVisible();
   });
@@ -39,13 +37,13 @@ test.describe("Design Studio", () => {
     const gen = page.getByRole("region", { name: "3D generator" });
     await expect(gen.getByRole("button", { name: "Make 3D model" })).toBeDisabled();
     await expect(gen.getByText("The model could not be made. Nothing was charged.")).toBeVisible();
-    await gen.getByRole("radio", { name: "Describe it" }).click();
+    await gen.getByRole("combobox", { name: "How to start" }).selectOption({ label: "Describe it" });
     await expect(gen.getByRole("combobox", { name: "3D model" })).toContainText("Meshy 6 (text)");
     await gen.getByRole("textbox", { name: "Describe the model" }).fill("A weathered wooden fishing boat");
     await gen.getByRole("button", { name: /Make 3D model/ }).click();
     await expect.poll(() => posts.length).toBe(1);
     expect(posts[0]).toMatchObject({ model: "meshy_v6_text_to_3d", mode: "text", prompt: "A weathered wooden fishing boat", refs: [] });
-    await gen.getByRole("radio", { name: "Several views" }).click();
+    await gen.getByRole("combobox", { name: "How to start" }).selectOption({ label: "Several views" });
     await expect(gen.getByText(/front, left, right, back/)).toBeVisible();
   });
 

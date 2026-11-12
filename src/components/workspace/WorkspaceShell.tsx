@@ -40,7 +40,7 @@ const gallery: Item = { label: "Gallery", hint: "Finished renders", href: "/gall
 const assets: Item = { label: "Assets", hint: "Your uploads", href: "/assets", icon: <FolderOpen size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const plan: Item[] = [treatmentItem, promptsItem];
-const designStudio: Item = { label: "Design Studio", hint: "Graphics, 3D, motion", href: "/design", icon: <Box size={17} /> };
+const designStudio: Item = { label: "Design Studio", hint: "3D and motion", href: "/design", icon: <Box size={17} /> };
 const create: Item[] = [imageStudio, videoStudio, voiceStudio, designStudio];
 // Library is in the desktop sidebar only: on a phone it is already the bottom tab.
 const files: Item[] = [libraryItem, gallery, assets, ingredients];

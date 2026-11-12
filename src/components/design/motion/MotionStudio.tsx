@@ -5,6 +5,7 @@ import {
   Square, Star, Trash2, Wand2, X, Zap, ShieldCheck, ArrowUp, Film,
 } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
+import AtlasChip from "../AtlasChip";
 import ReferencePicker, { type ClipPick, type RefPick } from "@/components/create/ReferencePicker";
 import { useAgentHost } from "@/lib/agent-chat";
 import { useModels } from "@/lib/use-models";
@@ -51,11 +52,12 @@ function MotionHome({ kits, reloadKits, onOpen, recreate }: { kits: BrandKitItem
   const [items, setItems] = useState<MotionSummary[] | null>(null);
   useEffect(() => { void (async () => { const r = await call("/api/design/motion", undefined, "GET"); setItems(r.ok ? r.body.items ?? [] : []); })(); }, []);
   return (
-    <section className="mt" aria-label="Motion">
-      <div className="mt-hero">
-        <h2>Eclipse Motion</h2>
-        <p>Describe it. Watch it move.</p>
-      </div>
+    <section className="mt cr-wrap" aria-label="Motion">
+      <section className="cr-preview" aria-label="Preview">
+        <div className="cr-stage mt-stage" aria-live="polite">
+          <div className="cr-empty"><MonitorPlay size={34} strokeWidth={1.4} /><p>Your motion appears here</p></div>
+        </div>
+      </section>
       <Composer kits={kits} reloadKits={reloadKits} onStarted={onOpen} initial={recreate} />
       <h3 className="mt-h3">Start from a template</h3>
       <div className="mt-templates">
@@ -146,7 +148,8 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
   });
   const toggle = (k: typeof menu) => setMenu((m) => (m === k ? null : k));
   return (
-    <div className="mt-composer">
+    <div className="cr-dock">
+    <div className="cr-box mt-composer">
       {(pics.length > 0 || clips.length > 0 || making.length > 0) && (
         <div className="mt-pics">{pics.map((p, i) => (
           <span key={p.id} className="mt-pic">{/* eslint-disable-next-line @next/next/no-img-element -- plain img like the rest of the app */}<img src={p.url} alt={p.label} /><em>@{i + 1}</em>
@@ -162,12 +165,12 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
         onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void go(); } }} />
       <div className="mt-row">
         <button type="button" className="mt-icon" aria-label="Add pictures and clips" onClick={() => setPicker(true)}><Plus size={16} /></button>
-        <div className="mt-pop-wrap">
-          <button type="button" className="mt-chip" aria-expanded={menu === "aspect"} onClick={() => toggle("aspect")}><span className="mt-ar" style={{ aspectRatio: s.aspect.replace(":", " / ") }} />{s.aspect}</button>
-          {menu === "aspect" && <div className="mt-pop" role="menu">{MOTION_ASPECTS.map((a) => (
-            <button key={a} role="menuitemradio" aria-checked={s.aspect === a} type="button" onClick={() => { setS({ ...s, aspect: a }); setMenu(null); }}><b>{a}</b><em>{ASPECT_HINT[a]}</em>{s.aspect === a && <Check size={14} />}</button>
-          ))}</div>}
-        </div>
+        <label className="cr-chip cr-select">
+          <span className="sr-only">Aspect ratio</span>
+          <select value={s.aspect} onChange={(e) => setS({ ...s, aspect: e.target.value as MotionSettings["aspect"] })} aria-label="Aspect ratio">
+            {MOTION_ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </label>
         <div className="mt-pop-wrap">
           <button type="button" className="mt-chip" aria-expanded={menu === "duration"} onClick={() => toggle("duration")}><Clock size={14} />{s.duration === "auto" ? "Auto" : `${s.duration}s`}{s.loop && <span className="mt-loopdot">∞</span>}</button>
           {menu === "duration" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Duration">
@@ -188,6 +191,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
           </div>}
         </div>
         <button type="button" className={`mt-chip${kit ? " is-on" : ""}`} onClick={() => setKitOpen(true)}><Palette size={14} />{kit ? kit.name : "Brand kit"}</button>
+        <AtlasChip />
         <span className="mt-grow" />
         <div className="mt-pop-wrap">
           <button type="button" className="mt-icon" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
@@ -209,6 +213,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
       </div>
       {picker && <ReferencePicker max={8} picked={pics} onChange={setPics} videoMax={MAX_CLIPS} pickedVideos={clips} onVideosChange={setClips} onClose={() => setPicker(false)} />}
       {kitOpen && <BrandKitDialog kits={kits} reload={reloadKits} chosen={s.brandKitId} onChoose={(id) => { setS({ ...s, brandKitId: id }); setKitOpen(false); }} onClose={() => setKitOpen(false)} />}
+    </div>
     </div>
   );
 }

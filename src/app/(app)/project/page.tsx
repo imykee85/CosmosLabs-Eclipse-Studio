@@ -10,7 +10,7 @@ const STUDIOS = [
   { href: "/create", n: "01", name: "Image Studio", line: "Campaign-grade stills from a single prompt.", kind: "photo" },
   { href: "/generate", n: "02", name: "Video Studio", line: "Cinematic clips with motion, sound and story.", kind: "video" },
   { href: "/voice", n: "03", name: "Audio Studio", line: "Voices, music and sound, cloned or designed.", kind: "voice" },
-  { href: "/design", n: "04", name: "Design Studio", line: "Graphics, 3D models and motion, made in one place.", kind: "design" },
+  { href: "/design", n: "04", name: "Design Studio", line: "3D models and motion graphics, made in one place.", kind: "design" },
 ] as const;
 
 function Visual({ kind }: { kind: (typeof STUDIOS)[number]["kind"] }) {
