@@ -38,5 +38,6 @@ export function glbFromZip(zip: Uint8Array, maxBytes: number): Uint8Array {
   const files = unzipSync(zip, { filter: (f) => /\.glb$/i.test(f.name) && f.originalSize <= maxBytes });
   const name = Object.keys(files).sort()[0];
   if (!name) throw new Error("no .glb in the archive");
+  if (files[name].length > maxBytes) throw new Error("the model is too large"); // the archive's own size claim is not trusted
   return files[name];
 }

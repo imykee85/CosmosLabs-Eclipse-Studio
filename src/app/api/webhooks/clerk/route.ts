@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
   // Clerk retries a delivery it thinks failed: one email per account.
   if (u.id && !(await claimUsage("ops", `signup:${u.id}`.slice(0, 80), 1, 7 * 86_400_000))) return NextResponse.json({ ok: true, duplicate: true });
   const when = new Date(u.created_at ?? Date.now()).toISOString().replace("T", " ").slice(0, 16);
+  // A flood of sign-ups must not flood the inbox: after 20 emails an hour the rest are counted in the dashboard only.
+  if (!(await claimUsage("ops", "signup-mail", 20, 3600_000))) return NextResponse.json({ ok: true, capped: true });
   await emailOwner("New sign-up on Eclipse", `Someone just signed up.\n\nAccount: ${email}\nTime (UTC): ${when}\n\nSee everyone at /admin/users.`);
   return NextResponse.json({ ok: true });
 }

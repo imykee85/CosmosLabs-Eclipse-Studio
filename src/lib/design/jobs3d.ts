@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+import { isPrivateAddress } from "@/lib/fetch-page";
 // 3D models take minutes. start3D validates, HOLDS the price, asks the maker to start and returns a pending row; whoever asks next (the page polls
 // GET /api/design/3d/<id>) checks the maker once, and when the file is ready the row is claimed (atomic), the .glb is copied into private storage, credits
 // are charged once and the row completes. A failed, refused or timed-out model charges nothing (releasing the hold is the refund).
@@ -97,17 +99,43 @@ async function fail(r: Model3D, error: string): Promise<Model3D> {
 }
 const fresh = async (r: Model3D) => (await db.model3D.findUnique({ where: { id: r.id } })) ?? r;
 
+/** A provider-supplied link: https on the normal port, never an address inside a private network (names are not resolved here). */
+function safeProviderUrl(raw: string): URL {
+  const u = new URL(raw);
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (u.protocol !== "https:" || (u.port && u.port !== "443") || u.username || u.password) throw new Error("not an allowed link");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || (isIP(host) !== 0 && isPrivateAddress(host))) throw new Error("not an allowed link");
+  return u;
+}
+
 async function fetchGlb(url: string, zipped = false): Promise<Uint8Array> {
-  const u = new URL(url);
-  if (u.protocol !== "https:") throw new Error("not https");
-  const res = await fetch(u, { signal: AbortSignal.timeout(60_000), redirect: "follow" });
+  const cap = zipped ? 2 * MAX_FILE : MAX_FILE;
+  let u = safeProviderUrl(url), res: Response | null = null;
+  for (let hop = 0; hop < 4; hop++) { // redirects are followed by hand so every hop is checked
+    res = await fetch(u, { signal: AbortSignal.timeout(60_000), redirect: "manual" });
+    const to = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+    if (!to) break;
+    u = safeProviderUrl(new URL(to, u).toString()); res = null;
+  }
+  if (!res) throw new Error("too many redirects");
   if (!res.ok) throw new Error(`download ${res.status}`);
-  const len = Number(res.headers.get("content-length") ?? 0);
-  if (len > (zipped ? 2 * MAX_FILE : MAX_FILE)) throw new Error("file too large");
-  let buf: Uint8Array = new Uint8Array(await res.arrayBuffer());
-  if (buf.length > (zipped ? 2 * MAX_FILE : MAX_FILE)) throw new Error("file too large");
+  if (Number(res.headers.get("content-length") ?? 0) > cap) throw new Error("file too large");
+  // Read as a stream and stop at the cap, whatever the headers claimed.
+  const chunks: Uint8Array[] = []; let total = 0;
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("empty download");
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > cap) { await reader.cancel().catch(() => {}); throw new Error("file too large"); }
+    chunks.push(value);
+  }
+  let buf: Uint8Array = new Uint8Array(total); let at = 0;
+  for (const c of chunks) { buf.set(c, at); at += c.length; }
   // The ByteDance cloud's link points at the model file itself (a GLB); if it is a zip, the .glb is taken out. (A USDZ is itself a zip, but we only ask for GLB.)
   if (zipped && buf[0] === 0x50 && buf[1] === 0x4b) buf = glbFromZip(buf, MAX_FILE);
+  if (buf.length > MAX_FILE) throw new Error("file too large");
   if (buf.length < 12 || String.fromCharCode(buf[0], buf[1], buf[2], buf[3]) !== "glTF") throw new Error("not a glb file");
   return buf;
 }
