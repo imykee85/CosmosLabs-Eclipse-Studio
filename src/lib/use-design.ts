@@ -26,7 +26,7 @@ export function use3D() {
   return { items, models, reload: load };
 }
 
-export async function start3DModel(body: { model: string; mode: string; prompt: string; refs: { type: "upload" | "render"; id: string }[]; options: { textured: boolean; pbr: boolean; polycount: number | null }; projectId?: string | null }): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
+export async function start3DModel(body: { model: string; mode: string; prompt: string; refs: { type: "upload" | "render"; id: string }[]; options: { textured: boolean; pbr: boolean; polycount: number | null; detailed: boolean; avoid: string }; projectId?: string | null }): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
   try {
     const r = await fetch("/api/design/3d", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));

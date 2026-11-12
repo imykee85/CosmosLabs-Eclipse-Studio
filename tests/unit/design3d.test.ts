@@ -30,18 +30,18 @@ test("options are clamped to the model's range; realistic materials need texture
   assert.equal(cleanOptions(m, { polycount: 5 }).polycount, m.polyMin);
   assert.equal(cleanOptions(m, { polycount: 1e9 }).polycount, m.polyMax);
   assert.equal(cleanOptions(m, { polycount: "x" }).polycount, null);
-  assert.deepEqual(cleanOptions(m, { textured: false, pbr: true }), { textured: false, pbr: false, polycount: null });
-  assert.deepEqual(cleanOptions(m, null), { textured: true, pbr: false, polycount: null });
+  assert.deepEqual(cleanOptions(m, { textured: false, pbr: true }), { textured: false, pbr: false, polycount: null, detailed: false, avoid: "" });
+  assert.deepEqual(cleanOptions(m, null), { textured: true, pbr: false, polycount: null, detailed: false, avoid: "" });
 });
 
 test("request bodies: one picture, several views, or words", () => {
   const meshy = find3D("meshy_v7_image_to_3d")!, multi = find3D("tripo_h3_1_multiview_to_3d")!, text = find3D("meshy_v6_text_to_3d")!;
-  const o = { textured: true, pbr: true, polycount: 20000 };
+  const o = { textured: true, pbr: true, polycount: 20000, detailed: false, avoid: "" };
   const a = buildBody3D(meshy, "image", { prompt: "", urls: ["https://x/1.png"], options: o });
   assert.equal(a.image_url, "https://x/1.png"); assert.equal(a.enable_pbr, true); assert.equal(a.target_polycount, 20000);
   const b = buildBody3D(multi, "multi", { prompt: "", urls: ["https://x/1.png", "https://x/2.png"], options: o });
   assert.deepEqual(b.image_urls, ["https://x/1.png", "https://x/2.png"]); assert.equal(b.face_limit, 20000); assert.equal("image_url" in b, false);
-  const c = buildBody3D(text, "text", { prompt: "a boat", urls: [], options: { textured: false, pbr: false, polycount: null } });
+  const c = buildBody3D(text, "text", { prompt: "a boat", urls: [], options: { textured: false, pbr: false, polycount: null, detailed: false, avoid: "" } });
   assert.equal(c.prompt, "a boat"); assert.equal(c.mode, "preview"); assert.equal("image_url" in c, false);
 });
 
@@ -51,4 +51,14 @@ test("the .glb address is found wherever the maker puts it, https only", () => {
   assert.equal(pickGlbUrl({ url: "http://x/m.glb" }), null);
   assert.equal(pickGlbUrl({ url: "https://x/m.png" }), null);
   assert.equal(pickGlbUrl(null), null);
+});
+
+test("Tripo gets detail levels and things to leave out; Tripo P2 its own fields", () => {
+  const t = find3D("tripo_3d")!, p2 = find3D("tripo_p2_image_to_3d")!;
+  const o = { textured: true, pbr: false, polycount: null, detailed: true, avoid: "blurry" };
+  const a = buildBody3D(t, "text", { prompt: "a boat", urls: [], options: o });
+  assert.equal(a.negative_prompt, "blurry"); assert.equal(a.texture_quality, "detailed"); assert.equal(a.geometry_quality, "detailed");
+  const b = buildBody3D(p2, "image", { prompt: "", urls: ["https://x/1.png"], options: o });
+  assert.equal(b.texture_quality, "detailed"); assert.equal("geometry_quality" in b, false);
+  assert.equal(cleanOptions(t, { avoid: "x".repeat(2000) }).avoid.length, 1024);
 });

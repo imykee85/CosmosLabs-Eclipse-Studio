@@ -85,6 +85,8 @@ function ThreeD() {
   const [textured, setTextured] = useState(true);
   const [pbr, setPbr] = useState(false);
   const [poly, setPoly] = useState<number | null>(null);
+  const [detailed, setDetailed] = useState(false);
+  const [avoid, setAvoid] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -100,7 +102,7 @@ function ThreeD() {
     const r = await start3DModel({
       model: model.id, mode, prompt: prompt.trim(),
       refs: needPics ? picked.slice(0, maxPics).map((p) => ({ type: p.type, id: p.id })) : [],
-      options: { textured, pbr, polycount: poly }, projectId: readCurrentProject()?.id ?? null,
+      options: { textured, pbr, polycount: poly, detailed, avoid: model.id === "tripo_3d" ? avoid : "" }, projectId: readCurrentProject()?.id ?? null,
     });
     setBusy(false);
     if (!r.ok) { if (r.code !== "UPGRADE" && r.code !== "SUBSCRIBE") setError(r.error); return; }
@@ -130,6 +132,7 @@ function ThreeD() {
         ) : (
           <GrowArea className="ds-text" rows={2} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="A weathered wooden fishing boat with a small cabin" aria-label="Describe the model" maxLength={600} />
         )}
+        {mode === "text" && model?.id === "tripo_3d" && <GrowArea className="ds-text" rows={1} value={avoid} onChange={(e) => setAvoid(e.target.value)} placeholder="Leave out: blurry, flat, extra parts" aria-label="Things to leave out" maxLength={1024} />}
         {mode === "multi" && <p className="ds-hint">Same thing from different sides, in order: front, left, right, back.</p>}
         <label className="ds-field"><span>Model</span>
           <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
@@ -139,6 +142,7 @@ function ThreeD() {
         {model && <p className="ds-hint">{model.blurb}</p>}
         <div className="ds-opts">
           <label><input type="checkbox" checked={textured} onChange={(e) => { setTextured(e.target.checked); if (!e.target.checked) setPbr(false); }} /> Colour and texture</label>
+          <label className={textured ? "" : "is-off"}><input type="checkbox" checked={detailed} disabled={!textured} onChange={(e) => setDetailed(e.target.checked)} /> Extra detail (slower)</label>
           <label className={textured ? "" : "is-off"}><input type="checkbox" checked={pbr} disabled={!textured} onChange={(e) => setPbr(e.target.checked)} /> Realistic materials</label>
           {model && (
             <label className="ds-field ds-poly"><span>Detail</span>
