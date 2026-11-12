@@ -87,13 +87,13 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
   helpers.add(labels);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x404452, 1.2));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(-10, 18, 12); scene.add(sun);
-  const grid = new THREE.GridHelper(400, 400, 0x6a6f86, 0x34374a); grid.position.y = 0.004; (grid.material as THREE.Material).transparent = true; (grid.material as THREE.Material).opacity = 0.55; scene.add(grid);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: "#1f2128", roughness: 1 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.003; scene.add(ground);
-  const axisX = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-200, 0.01, 0), new THREE.Vector3(200, 0.01, 0)]), new THREE.LineBasicMaterial({ color: 0x9a3a4a })); scene.add(axisX);
-  const axisZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.01, -200), new THREE.Vector3(0, 0.01, 200)]), new THREE.LineBasicMaterial({ color: 0x5a5f78 })); scene.add(axisZ);
+  const grid = new THREE.GridHelper(400, 400, 0x6a6f86, 0x34374a); grid.position.y = 0.07; (grid.material as THREE.Material).depthWrite = false; (grid.material as THREE.Material).transparent = true; (grid.material as THREE.Material).opacity = 0.55; scene.add(grid);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: "#1f2128", roughness: 1 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; scene.add(ground);
+  const axisX = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-200, 0.08, 0), new THREE.Vector3(200, 0.08, 0)]), new THREE.LineBasicMaterial({ color: 0x9a3a4a })); scene.add(axisX);
+  const axisZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.08, -200), new THREE.Vector3(0, 0.08, 200)]), new THREE.LineBasicMaterial({ color: 0x5a5f78 })); scene.add(axisZ);
 
-  const edit = new THREE.PerspectiveCamera(42, 1, 0.05, 3000); edit.position.set(9, 7, 14);
-  const shotCam = new THREE.PerspectiveCamera(40, 16 / 9, 0.05, 3000);
+  const edit = new THREE.PerspectiveCamera(42, 1, 0.4, 900); edit.position.set(9, 7, 14);
+  const shotCam = new THREE.PerspectiveCamera(40, 16 / 9, 0.15, 1500);
   const orbit = opts.helpers ? new OrbitControls(edit, canvas) : null;
   if (orbit) { orbit.enableDamping = true; orbit.dampingFactor = 0.12; orbit.target.set(0, 1, 0); orbit.screenSpacePanning = true; orbit.maxPolarAngle = Math.PI * 0.495; }
   const gizmo = opts.helpers ? new TransformControls(edit, canvas) : null;
@@ -195,7 +195,7 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
     const label = (txt: string, x: number, z: number) => {
       const c = document.createElement("canvas"); c.width = 128; c.height = 48; const g = c.getContext("2d")!; g.font = "600 30px Inter, system-ui, sans-serif"; g.fillStyle = "rgba(220,224,240,.75)"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 64, 24);
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); s.position.set(x, 0.05, z); const k = step * 0.16; s.scale.set(k * 2.66, k, 1); labels.add(s);
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); s.position.set(x, 0.12, z); const k = step * 0.16; s.scale.set(k * 2.66, k, 1); labels.add(s);
     };
     for (let i = -n; i <= n; i++) { if (!i) continue; label(`${i * step}m`, i * step, 0); label(`${i * step}m`, 0, i * step); }
   }
@@ -264,7 +264,7 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
     catch { composer = null; dofOn = false; }
   }
   function aimShot(k: CamKey | { pos: Vec3; look: Vec3; lensMm: number }, fov: number, aspect: number) {
-    shotCam.fov = fov; shotCam.aspect = aspect; shotCam.near = 0.05; shotCam.updateProjectionMatrix();
+    shotCam.fov = fov; shotCam.aspect = aspect; shotCam.near = 0.15; shotCam.updateProjectionMatrix();
     shotCam.position.set(...k.pos); shotCam.up.set(0, 1, 0); shotCam.lookAt(...k.look);
   }
   function currentShotKey(): CamKey | null { if (!world) return null; return cameraAt(world, cameraOf(world), t).key; }

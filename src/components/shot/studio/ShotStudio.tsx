@@ -472,7 +472,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
           <ChevronRight size={13} className="ss-faint" /><b className="ss-trunc">{world.name}</b>
         </div>
         <div className="ss-modes" role="tablist" aria-label="Mode">
-          {(["compose", "shoot", "motion"] as Mode[]).map((m) => <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "is-on" : ""} onClick={() => { if (camEdit) doneCamera(); setMode(m); setFocusPick(false); }}>{label(m)}</button>)}
+          {(["compose", "shoot", "motion"] as Mode[]).map((m) => <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "is-on" : ""} onClick={() => { if (camEdit) doneCamera(); setMode(m); setFocusPick(false); if (window.innerWidth < 860) setPanel(null); }}>{label(m)}</button>)}
         </div>
         <div className="ss-top-right">
           <button type="button" className="ss-icon" aria-label="Undo" disabled={!past.current.length} onClick={undo}><Undo2 size={15} /></button>
@@ -494,7 +494,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
       <div className="ss-body">
         {panel === "outliner" && !camEdit && mode !== "shoot" && (
           <Outliner world={world} sel={sel?.kind === "item" ? sel.id : null}
-            onSelect={(id) => { setSel({ kind: "item", id }); setInspector(true); }} onCamera={(id) => { setSel({ kind: "key", camId: id, index: 0 }); }}
+            onSelect={(id) => { setSel({ kind: "item", id }); setInspector(true); if (window.innerWidth < 860) setPanel(null); }} onCamera={(id) => { setSel({ kind: "key", camId: id, index: 0 }); }}
             onEdit={(id, patch) => commit((w) => editItem(w, id, patch))} onDelete={(id) => { commit((w) => removeItem(w, id)); setSel(null); }}
             onDuplicate={(id) => { const r = duplicateItem(worldRef.current, id); if (r.id) { commit(r.world); setSel({ kind: "item", id: r.id }); } }}
             onAddGroup={() => { const r = addGroup(worldRef.current); commit(r.world); if (sel?.kind === "item" && sel.id !== "floor") commit((w) => editItem(w, sel.id, { groupId: r.id })); }}
@@ -503,7 +503,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
             onMove={(id, g) => commit((w) => editItem(w, id, { groupId: g }))} onRemoveGroup={(id) => commit((w) => removeGroup(w, id))} />
         )}
         {panel === "add" && !camEdit && mode !== "shoot" && (
-          <AddPanel onAdd={(n) => add(n)} onAddCamera={addCam} onClose={() => setPanel("outliner")} onAsk={() => { setAskOpen(true); setPanel("outliner"); }} recents={recents} models={models.list}
+          <AddPanel onAdd={(n) => { add(n); if (window.innerWidth < 860) setPanel(null); }} onAddCamera={() => { addCam(); if (window.innerWidth < 860) setPanel(null); }} onClose={() => setPanel("outliner")} onAsk={() => { setAskOpen(true); setPanel("outliner"); }} recents={recents} models={models.list}
             onUploadModel={async (f) => { if (f.size > 60 * 1024 * 1024) { setError("That model is larger than 60 MB."); return; } try { const buf = await f.arrayBuffer(); const key = await putModel(f.name.replace(/\.[^.]+$/, "").slice(0, 60), buf); const m = await listModels(); setModels(m); view.current?.dispose(); view.current = null; setViewReady(false); setStage("start"); setTimeout(() => { setStage("editor"); add({ kind: "model", modelKey: key, name: f.name.replace(/\.[^.]+$/, "") }); }, 0); } catch { setError("That file could not be read as a 3D model."); } }}
             onPickCharacter={() => setPicker("character")} onPickImage={() => setPicker("image")} characters={characters} onSoon={soon} />
         )}
