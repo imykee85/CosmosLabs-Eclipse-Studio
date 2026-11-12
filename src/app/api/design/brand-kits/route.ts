@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { chatRefusal } from "@/lib/chat-credits";
 import { claimUsage } from "@/lib/usage";
 import { kitItem } from "@/lib/design/motion/agent";
 import { cleanKit, kitFromMaterial } from "@/lib/design/motion/kits";
@@ -33,6 +34,8 @@ export async function POST(req: Request) {
     examples = [v.code];
   } else if (typeof b?.fromUrl === "string" || typeof b?.fromText === "string") {
     if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "This is not available yet." }, { status: 503 });
+    const broke = await chatRefusal(u.userId); // reading a website or text is a model call: needs credits like every other one
+    if (broke) return NextResponse.json(broke, { status: 402 });
     const r = await kitFromMaterial(u.userId, { url: typeof b.fromUrl === "string" ? b.fromUrl.slice(0, 500) : undefined, text: typeof b.fromText === "string" ? b.fromText : undefined });
     if ("error" in r) return NextResponse.json({ error: r.error }, { status: 400 });
     const c = cleanKit(r);

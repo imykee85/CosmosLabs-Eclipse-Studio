@@ -1,6 +1,7 @@
 // Qwen Image through Alibaba Cloud Model Studio (DashScope), SINGAPORE region. Built from the owner's reference file docs/image-providers/qwen-image.md
 // (copied from the official pages 2026-10-20) and NOT yet run against the live API: the sandbox cannot reach it and has no key.
 // Synchronous call, one picture per request. The result is a PNG link that lasts 24 hours, so it is downloaded at once. No seed, no negative prompt, no thinking.
+import { downloadProviderFile } from "@/lib/provider-download";
 import { arkSize } from "./byteplus";
 import { ProviderError, SAY, type SizeRule, type SyncGenerateInput, type SyncGenerateResult, type SyncImageProvider } from "./types";
 
@@ -60,10 +61,8 @@ export const qwen: SyncImageProvider = {
     const link = new URL(url);
     const testHost = process.env.DASHSCOPE_BASE_URL ? new URL(process.env.DASHSCOPE_BASE_URL).host : null;
     if (link.protocol !== "https:" && !(link.protocol === "http:" && link.host === testHost)) throw new ProviderError(SAY.failed, "the picture link is not https");
-    let pic: Response;
-    try { pic = await fetch(url, { signal: AbortSignal.timeout(30_000) }); } catch (e) { throw new ProviderError(SAY.unreachable, `could not download the picture: ${e instanceof Error ? e.message : "network error"}`); }
-    if (!pic.ok) throw new ProviderError(SAY.failed, `picture download answered ${pic.status}`);
-    const bytes = new Uint8Array(await pic.arrayBuffer());
+    let bytes: Uint8Array, pic: Response;
+    try { ({ bytes, res: pic } = await downloadProviderFile(url, MAX_PICTURE, { timeoutMs: 30_000, testHost })); } catch (e) { throw new ProviderError(SAY.unreachable, `could not download the picture: ${e instanceof Error ? e.message : "network error"}`); }
     if (bytes.byteLength === 0 || bytes.byteLength > MAX_PICTURE) throw new ProviderError(SAY.failed, `the picture is empty or too large (${bytes.byteLength} bytes)`);
     return { bytes, contentType: bytes[0] === 0x89 && bytes[1] === 0x50 ? "image/png" : bytes[0] === 0xff ? "image/jpeg" : "image/png", usage: json?.usage };
   },

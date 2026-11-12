@@ -2,6 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import { detectLang } from "@/lib/i18n/geo";
+import { crossSiteWrite } from "@/lib/cross-site";
 import { cspHeaders, newNonce, wantsCsp } from "@/lib/csp";
 import { MEDIA_COOKIE, MEDIA_TTL, gatedMediaPath, mediaCookieLeft, mediaCookieNeedsRenewal, mediaCookieValue, mediaGateOn } from "@/lib/media-gate";
 
@@ -41,6 +42,9 @@ const handler = clerkEnabled ? withClerk : (req: NextRequest) => pageResponse(re
 
 // The homepage media folders: no valid media cookie, no file. Everything else goes the usual way (sign-in rules, CSP, language cookie).
 export default function proxy(req: NextRequest, event: NextFetchEvent) {
+  if (crossSiteWrite(req.method, req.nextUrl.pathname, req.headers.get("origin"), req.headers.get("x-forwarded-host") ?? req.headers.get("host"))) {
+    return NextResponse.json({ error: "Cross-site request refused." }, { status: 403 });
+  }
   if (gatedMediaPath(req.nextUrl.pathname)) {
     if (mediaGateOn() && !mediaCookieLeft(req.cookies.get(MEDIA_COOKIE)?.value)) {
       return new NextResponse("Not available.", { status: 403, headers: { "cache-control": "no-store" } });

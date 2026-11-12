@@ -470,9 +470,14 @@ export async function driveMission(id: string, deps: MissionDeps = realMissionDe
 }
 
 const secret = () => serverSecret(process.env.CRON_SECRET, process.env.CLERK_SECRET_KEY);
-export const missionToken = (id: string) => createHmac("sha256", secret()).update(`mission:${id}`).digest("hex");
-export function validMissionToken(id: string, given: string | null): boolean {
-  const a = Buffer.from(given ?? ""), b = Buffer.from(missionToken(id));
+// A hand-over token carries its own time and is good for 15 minutes, so a leaked one cannot keep triggering the continue route.
+const missionMac = (id: string, ts: string) => createHmac("sha256", secret()).update(`mission:${id}:${ts}`).digest("hex");
+export const missionToken = (id: string, now = Date.now()) => { const ts = String(now); return `${ts}.${missionMac(id, ts)}`; };
+export function validMissionToken(id: string, given: string | null, now = Date.now()): boolean {
+  const [ts, mac] = (given ?? "").split(".");
+  const t = Number(ts);
+  if (!ts || !mac || !Number.isFinite(t) || now - t > 15 * 60_000 || t - now > 60_000) return false;
+  const a = Buffer.from(mac), b = Buffer.from(missionMac(id, ts));
   return a.length === b.length && timingSafeEqual(a, b);
 }
 const base = () => (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"));
