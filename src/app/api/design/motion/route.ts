@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { claimUsage } from "@/lib/usage";
 import { briefCheck } from "@/lib/design/motion/agent";
-import { cleanSettings, type MotionStatus, type MotionSummary } from "@/lib/design/motion/spec";
-import { kitFor, MAX_RUNNING, motionUser, runInBackground, runningCount } from "@/lib/design/motion/server";
+import { type MotionStatus, type MotionSummary } from "@/lib/design/motion/spec";
+import { checkedSettings, kitFor, MAX_RUNNING, motionUser, runInBackground, runningCount } from "@/lib/design/motion/server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   if (bad) return NextResponse.json({ error: bad }, { status: 422 });
   if (!(await claimUsage(u.userId, "design-motion", 10, 60_000))) return NextResponse.json({ error: "Too many at once. Try again in a minute." }, { status: 429 });
   if ((await runningCount(u.userId)) >= MAX_RUNNING) return NextResponse.json({ error: `${MAX_RUNNING} motions are already being made. Wait for one to finish.` }, { status: 429 });
-  const settings = cleanSettings(b?.settings);
+  const settings = await checkedSettings(u.userId, b?.settings);
   const kit = await kitFor(u.userId, settings.brandKitId);
   const motion = await db.motion.create({ data: { userId: u.userId, projectId: typeof b?.projectId === "string" ? b.projectId.slice(0, 80) : null, prompt, settings: settings as object } });
   const v = await db.motionVersion.create({ data: { motionId: motion.id, userId: u.userId, n: 1, label: prompt.slice(0, 300), kind: "create", aspect: settings.aspect, duration: settings.duration === "auto" ? 10 : settings.duration } });

@@ -63,7 +63,8 @@ CRAFT
 - Treat it like a real studio piece: clear concept, strong typography and hierarchy, intentional colour, generous negative space, easing on every move (outExpo, inOutCubic, outBack for pops; never linear for objects), overlapping action (stagger 40 to 120 ms), anticipation and settle, consistent rhythm on the beats of the brief.
 - Follow the brief's timings exactly when it gives them ("0 to 2s ..."). Otherwise build a clear beginning, middle and end with holds long enough to read (about 250 ms per word on screen).
 - Text is drawn with M.text or M.letters. Fit text to the area: measure and scale down long words so nothing overflows. Big headlines 120 to 320 units, body 36 to 70.
-- Use the attached pictures (M.images) where the brief mentions them; draw a tasteful placeholder shape when one is missing.
+- Use the attached pictures (M.images) where the brief mentions them; draw a tasteful placeholder shape when one is missing.${settings.clips.length ? `
+- Video clips attached (M.clips, in order): ${settings.clips.map((c, n) => `${n}: "${(c.label ?? "clip").replace(/"/g, "'")}" (${c.duration ?? 5}s, plays from the start of the motion and loops)`).join("; ")}. Draw a clip's current frame with M.clip(g, i, x, y, w, h, {fit, radius, alpha}) inside render(); use them as backgrounds, plates or framed b-roll with your type and shapes on top.` : ""}
 - ${settings.loop ? "LOOP: the last frame must match the first exactly so it repeats without a seam (drive motion with functions periodic in M.duration)." : "End on a clean, settled final frame that holds for at least 0.5 s."}
 - Performance: at most about 2,000 draw calls per frame; no per-pixel loops over the whole canvas.
 - Keep the code readable and under 900 lines.
@@ -165,7 +166,7 @@ export async function runVersion(i: RunInput, deps: MotionDeps = realDeps): Prom
     if (i.settings.audio.sfx && out.sfx?.trim()) parts.sfx = { prompt: out.sfx.trim().slice(0, 900) };
     const hasSound = Object.keys(parts).length > 0;
     if (hasSound) {
-      for (const [k, p] of Object.entries(parts) as [keyof MotionAudio, NonNullable<MotionAudio["voice"]>][]) p.credits = await quotePart(i.userId, k, p.prompt, duration, deps);
+      for (const [k, p] of Object.entries(parts) as [keyof MotionAudio, NonNullable<MotionAudio["voice"]>][]) p.credits = await quotePart(i.userId, k, p.prompt, duration, deps, i.settings);
       parts.approval = i.settings.approval === "auto" ? "approved" : "waiting";
     }
     if (out.title && i.base == null) await db.motion.updateMany({ where: { id: (await db.motionVersion.findUnique({ where: { id: i.versionId } }))?.motionId ?? "", title: "Untitled motion" }, data: { title: String(out.title).slice(0, 80) } });
@@ -181,13 +182,21 @@ export async function runVersion(i: RunInput, deps: MotionDeps = realDeps): Prom
   }
 }
 
-function audioInput(userId: string, kind: keyof MotionAudio, prompt: string, duration: number, voice: { id: string; name: string } | null) {
-  if (kind === "voice") return voice ? { userId, kind: "tts", model: VOICE_MODEL, text: prompt, voiceId: voice.id, voiceName: voice.name } : null;
+type Voice = { model: string; id: string; name: string };
+/** The voice that speaks a motion's voiceover: the person's default from the motion settings when it is a real voice model, else Eclipse's. */
+async function voiceFor(settings: MotionSettings | null, deps: MotionDeps): Promise<Voice | null> {
+  const d = settings?.defaults;
+  if (d?.voiceModel && d.voiceId && findAudioModel(d.voiceModel)) return { model: d.voiceModel, id: d.voiceId, name: d.voiceName ?? "Voice" };
+  const v = await deps.voice();
+  return v ? { model: VOICE_MODEL, ...v } : null;
+}
+function audioInput(userId: string, kind: keyof MotionAudio, prompt: string, duration: number, voice: Voice | null) {
+  if (kind === "voice") return voice ? { userId, kind: "tts", model: voice.model, text: prompt, voiceId: voice.id, voiceName: voice.name } : null;
   if (kind === "music") return { userId, kind: "music", model: MUSIC_MODEL, text: prompt, durationSec: Math.max(3, Math.round(duration)), instrumental: true };
   return { userId, kind: "sfx", model: SFX_MODEL, text: prompt, durationSec: Math.min(30, Math.max(0.5, Math.round(duration * 10) / 10)) };
 }
-async function quotePart(userId: string, kind: keyof MotionAudio, prompt: string, duration: number, deps: MotionDeps): Promise<number | null> {
-  const input = audioInput(userId, kind, prompt, duration, kind === "voice" ? await deps.voice() : null);
+async function quotePart(userId: string, kind: keyof MotionAudio, prompt: string, duration: number, deps: MotionDeps, settings: MotionSettings | null = null): Promise<number | null> {
+  const input = audioInput(userId, kind, prompt, duration, kind === "voice" ? await voiceFor(settings, deps) : null);
   if (!input) return null;
   const q = await deps.quoteAudio(input).catch(() => null);
   return q && q.ok ? q.quote : null;
@@ -199,7 +208,8 @@ export async function startSound(versionId: string, userId: string, deps: Motion
   if (!v || v.userId !== userId) return;
   const a = { ...((v.audio as MotionAudio | null) ?? {}) };
   if (a.approval !== "approved") return;
-  const voice = a.voice && !a.voice.jobId ? await deps.voice() : null;
+  const motion = a.voice && !a.voice.jobId ? await db.motion.findUnique({ where: { id: v.motionId }, select: { settings: true } }) : null;
+  const voice = a.voice && !a.voice.jobId ? await voiceFor(motion ? cleanSettings(motion.settings) : null, deps) : null;
   for (const k of ["voice", "music", "sfx"] as const) {
     const p = a[k];
     if (!p || p.jobId || p.status === "failed") continue;

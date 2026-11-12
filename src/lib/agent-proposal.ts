@@ -11,7 +11,7 @@ export type Proposal = {
   applied?: "apply" | "generate";
 };
 export type ProposalContext = { prompt?: string; ratio?: string; qty?: number; model?: string };
-type ActionLike = { kind: "generate" | "use_prompt" | "reply"; prompt?: string; count?: number };
+type ActionLike = { kind: "generate" | "use_prompt" | "reply" | "make"; prompt?: string; count?: number };
 
 const LABEL: Record<string, string> = { model: "Model", ratio: "Aspect ratio", count: "Images", quality: "Quality", duration: "Length", sound: "Sound", fixed_seed: "Fixed seed" };
 const show = (k: string, v: unknown) => (k === "sound" || k === "fixed_seed" ? (v ? "On" : "Off") : k === "duration" ? `${v} s` : String(v));

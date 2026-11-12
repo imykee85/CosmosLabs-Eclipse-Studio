@@ -22,7 +22,7 @@ import { MAX_ATTACH } from "@/lib/limits";
 const SIZE = 64;
 
 // Where Atlas may stand (owner 2026-10-21): never up in the header, never below a prompt box, and beside the open sidebar (it moves with it).
-const BOXES = ".cr-dock, .cr-box, .vc-console-wrap, .cn-dock, .cn-box, .pm-box, .tr-composer";
+const BOXES = ".cr-dock, .cr-box, .vc-console-wrap, .cn-dock, .cn-box, .pm-box, .tr-composer, .mt-composer";
 const seen = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? r : null; };
 const headerBottom = () => { for (const el of Array.from(document.querySelectorAll(".mb-top, .ws-topbar"))) { const r = seen(el); if (r) return Math.max(0, r.bottom); } return 0; };
 // The sidebar (desktop) or the menu drawer (phone), when open: Atlas stands just right of its edge.

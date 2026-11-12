@@ -3,7 +3,7 @@ import { cleanPlan, type PlanRef, type PlanSpec } from "./agent-plan";
 import { cleanMission, type MissionSpec } from "./agent-mission-spec";
 
 // Turns the model's answer into what the browser shows: the text and the buttons made from its tool calls. Kept apart from the route so it can be tested.
-export type Action = { kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number };
+export type Action = { kind: "generate" | "use_prompt" | "reply" | "make"; label: string; prompt?: string; count?: number; asset?: "image" | "video"; ratio?: string };
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 const MAX_PROMPT = 32000; // the longest prompt any model takes (GPT Image); the box shows the chosen model's own limit
 const PRETTY_UP_TO = 8000; // JSON prompts are written out with indentation while they stay this short, else on one line
@@ -48,6 +48,11 @@ export function buildReply(content: Anthropic.ContentBlock[], stopReason: string
         const n = Number.isInteger(i.count) ? Math.min(4, Math.max(1, i.count as number)) : undefined;
         actions.push({ kind: "generate", label: n && n > 1 ? `Generate ${n}` : "Generate", prompt, count: n });
       } else if (b.name === "suggest_prompt" && prompt) actions.push({ kind: "use_prompt", label: "Use this prompt", prompt });
+      else if (b.name === "make_asset" && prompt) {
+        const asset = i.kind === "video" ? "video" : "image";
+        const ratio = typeof i.aspect_ratio === "string" && /^\d{1,2}:\d{1,2}$/.test(i.aspect_ratio) ? i.aspect_ratio : undefined;
+        actions.push({ kind: "make", label: asset === "video" ? "Make this clip" : "Make this picture", prompt, asset, ...(ratio ? { ratio } : {}) });
+      }
       else if (b.name === "propose_plan") plan = cleanPlan(i, pictures) ?? plan;
       else if (b.name === "propose_mission") mission = cleanMission(i) ?? mission;
       else if (b.name === "set_prompt_box") controls = { ...controls, ...cleanControls(i) };

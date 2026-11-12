@@ -32,9 +32,17 @@ export type MotionSettings = {
   aspect: MotionAspect; duration: number | "auto"; loop: boolean; audio: MotionAudioChoice;
   brandKitId: string | null; model: MotionModelId; approval: "ask" | "auto";
   refs: { type: "upload" | "render"; id: string; label?: string }[];
+  // The person's own finished videos the motion may play (M.clips): background plates, b-roll. Duration is filled in by the server.
+  clips: MotionClip[];
+  // Which models Atlas uses when it makes pictures and clips for the motion, and which voice speaks the voiceover. null = Eclipse picks.
+  defaults: MotionDefaults;
 };
+export type MotionClip = { id: string; label?: string; duration?: number };
+export type MotionDefaults = { image: string | null; video: string | null; voiceModel: string | null; voiceId: string | null; voiceName: string | null };
+export const NO_DEFAULTS: MotionDefaults = { image: null, video: null, voiceModel: null, voiceId: null, voiceName: null };
+export const MAX_CLIPS = 4;
 export const DEFAULT_SETTINGS: MotionSettings = {
-  aspect: "16:9", duration: "auto", loop: false, audio: { sfx: false, music: false, voice: false }, brandKitId: null, model: "claude-sonnet-5-5", approval: "ask", refs: [],
+  aspect: "16:9", duration: "auto", loop: false, audio: { sfx: false, music: false, voice: false }, brandKitId: null, model: "claude-sonnet-5-5", approval: "ask", refs: [], clips: [], defaults: NO_DEFAULTS,
 };
 
 export type MotionComment = { id: string; t: number; x: number; y: number; text: string; at: string; used?: boolean };
@@ -81,6 +89,13 @@ export function cleanSettings(raw: unknown): MotionSettings {
     const x = (r ?? {}) as Record<string, unknown>;
     return (x.type === "upload" || x.type === "render") && typeof x.id === "string" && x.id.length <= 64 ? [{ type: x.type as "upload" | "render", id: x.id, ...(typeof x.label === "string" ? { label: x.label.slice(0, 80) } : {}) }] : [];
   }).slice(0, 8) : [];
+  const clips = Array.isArray(o.clips) ? (o.clips as unknown[]).flatMap((r) => {
+    const x = (r ?? {}) as Record<string, unknown>;
+    return typeof x.id === "string" && x.id.length <= 64 ? [{ id: x.id, ...(typeof x.label === "string" ? { label: x.label.slice(0, 80) } : {}), ...(Number.isFinite(Number(x.duration)) && Number(x.duration) > 0 ? { duration: Math.min(600, Number(x.duration)) } : {}) }] : [];
+  }).slice(0, MAX_CLIPS) : [];
+  const df = (o.defaults && typeof o.defaults === "object" ? o.defaults : {}) as Record<string, unknown>;
+  const str = (v: unknown, n = 64) => (typeof v === "string" && v.trim() && v.length <= n ? v.trim() : null);
+  const defaults: MotionDefaults = { image: str(df.image), video: str(df.video), voiceModel: str(df.voiceModel), voiceId: str(df.voiceId, 120), voiceName: str(df.voiceName, 80) };
   return {
     aspect: isAspect(o.aspect) ? o.aspect : "16:9",
     duration: d === "auto" ? "auto" : Number.isFinite(d) ? Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, Math.round((d as number) * 10) / 10)) : "auto",
@@ -89,7 +104,7 @@ export function cleanSettings(raw: unknown): MotionSettings {
     brandKitId: typeof o.brandKitId === "string" && o.brandKitId.length <= 64 ? o.brandKitId : null,
     model: MOTION_MODELS.some((m) => m.id === o.model) ? (o.model as MotionModelId) : "claude-sonnet-5-5",
     approval: o.approval === "auto" ? "auto" : "ask",
-    refs,
+    refs, clips, defaults,
   };
 }
 

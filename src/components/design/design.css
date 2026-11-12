@@ -51,3 +51,6 @@
 @media (max-width: 1000px) { .ds-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ds-3d { grid-template-columns: 1fr; } }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ds-tabs { display: flex; } .ds-tabs button { flex: 1; justify-content: center; padding: 10px 6px; } .ds-viewer, .ds-empty { aspect-ratio: 1; } }
 @media (prefers-reduced-motion: reduce) { .ds-spin { animation: none; } .ds-preset { transition: none; } }
+.ds-toprow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+.ds-toprow .ds-tabs { margin-bottom: 0; }
+.ds-agent { flex: none; }

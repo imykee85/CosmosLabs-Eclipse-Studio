@@ -4,7 +4,7 @@ import { Check, FileText, Globe, Image as ImageIcon, Loader2, Plus, Trash2, X } 
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import GrowArea from "@/components/GrowArea";
 import { exportMotion, fileName, type MotionHost } from "@/lib/design/motion/client";
-import { pixelSize, FONT_FAMILIES, type BrandKitItem, type MotionVersionItem } from "@/lib/design/motion/spec";
+import { pixelSize, FONT_FAMILIES, type BrandKitItem, type MotionClip, type MotionVersionItem } from "@/lib/design/motion/spec";
 import { uploadVideo } from "@/lib/use-uploads";
 import { readCurrentProject } from "@/lib/projects";
 
@@ -110,7 +110,7 @@ function CreateKit({ onDone, onCancel }: { onDone: (id: string) => void; onCance
 
 /* ---------------- Download: rendered here, frame by frame, saved to the Library and to the device ---------------- */
 
-export function DownloadDialog({ title, version, host, onClose }: { title: string; version: MotionVersionItem; host: () => MotionHost | null; onClose: () => void }) {
+export function DownloadDialog({ title, version, clips = [], host, onClose }: { title: string; version: MotionVersionItem; clips?: MotionClip[]; host: () => MotionHost | null; onClose: () => void }) {
   const [short, setShort] = useState<1080 | 2160>(1080), [fps, setFps] = useState<24 | 30 | 60>(30), [blur, setBlur] = useState(false), [keep, setKeep] = useState(true);
   const [prog, setProg] = useState<number | null>(null), [error, setError] = useState<string | null>(null), [done, setDone] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -120,7 +120,7 @@ export function DownloadDialog({ title, version, host, onClose }: { title: strin
     const hst = host(); if (!hst) { setError("The preview is not ready."); return; }
     setError(null); setDone(null); setProg(0); abort.current = new AbortController();
     try {
-      const blob = await exportMotion(hst, version, { short, fps, blur, signal: abort.current.signal, onProgress: (d, t) => setProg(d / t) });
+      const blob = await exportMotion(hst, version, { short, fps, blur, clips, signal: abort.current.signal, onProgress: (d, t) => setProg(d / t) });
       const name = fileName(title, version);
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
       if (keep) {

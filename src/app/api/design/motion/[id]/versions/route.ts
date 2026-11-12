@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { claimUsage } from "@/lib/usage";
 import { briefCheck } from "@/lib/design/motion/agent";
 import { cleanSettings, isAspect, type MotionComment } from "@/lib/design/motion/spec";
-import { kitFor, MAX_RUNNING, motionUser, runInBackground, runningCount } from "@/lib/design/motion/server";
+import { checkedSettings, kitFor, MAX_RUNNING, motionUser, runInBackground, runningCount } from "@/lib/design/motion/server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -31,7 +31,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   if ((await runningCount(u.userId)) >= MAX_RUNNING) return NextResponse.json({ error: `${MAX_RUNNING} motions are already being made. Wait for one to finish.` }, { status: 429 });
   const base = cleanSettings(motion.settings);
   const aspect = action === "adapt" && isAspect(b?.aspect) ? b.aspect : (from.aspect as typeof base.aspect);
-  const settings = { ...cleanSettings({ ...base, ...(b?.settings && typeof b.settings === "object" ? b.settings : {}) }), aspect, duration: action === "retry" ? base.duration : from.duration };
+  const settings = { ...(await checkedSettings(u.userId, { ...base, ...(b?.settings && typeof b.settings === "object" ? b.settings : {}) })), aspect, duration: action === "retry" ? base.duration : from.duration };
   const last = await db.motionVersion.findFirst({ where: { motionId: id }, orderBy: { n: "desc" } });
   const label = action === "adapt" ? `Adapt to ${aspect}` : action === "retry" ? `Try again: ${motion.prompt.slice(0, 200)}` : [comments.length ? `${comments.map((c) => `${c.t.toFixed(1)}s ${c.text}`).join("; ")}` : "", text].filter(Boolean).join(" · ").slice(0, 300);
   const v = await db.motionVersion.create({ data: { motionId: id, userId: u.userId, n: (last?.n ?? 0) + 1, parentId: from.id, label, kind: action, aspect, duration: from.duration } });

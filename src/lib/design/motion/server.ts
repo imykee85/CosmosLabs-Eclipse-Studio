@@ -6,7 +6,7 @@ import { gateFeature } from "../../access";
 import { workspaceSession } from "../../workspace";
 import { db } from "../../db";
 import { advanceSound, failStale, kitItem, runVersion, toVersionItem, type RunInput } from "./agent";
-import { cleanSettings, RUNNING, type MotionItem, type MotionStatus } from "./spec";
+import { cleanSettings, RUNNING, type MotionClip, type MotionItem, type MotionSettings, type MotionStatus } from "./spec";
 
 export const MAX_RUNNING = 2;
 
@@ -40,4 +40,15 @@ export async function kitFor(userId: string, id: string | null) {
 /** Runs a version after the answer has gone out (the browser polls the motion). */
 export function runInBackground(i: RunInput) {
   waitUntil(runVersion(i).catch((e) => console.error("motion background run", e)));
+}
+
+/** Keeps only clips that are this workspace's own finished, non-binned videos, with their recorded length (a motion plays them, so they must exist). */
+export async function ownClips(userId: string, clips: MotionClip[]): Promise<MotionClip[]> {
+  if (!clips.length) return [];
+  const rows = await db.generation.findMany({ where: { id: { in: clips.map((c) => c.id) }, userId, kind: "video", status: "completed", deletedAt: null }, select: { id: true, durationSec: true, prompt: true } });
+  return clips.flatMap((c) => { const r = rows.find((x) => x.id === c.id); return r ? [{ id: r.id, label: c.label || r.prompt.slice(0, 60) || "Clip", duration: r.durationSec && r.durationSec > 0 ? r.durationSec : 5 }] : []; });
+}
+export async function checkedSettings(userId: string, raw: unknown): Promise<MotionSettings> {
+  const s = cleanSettings(raw);
+  return { ...s, clips: await ownClips(userId, s.clips) };
 }

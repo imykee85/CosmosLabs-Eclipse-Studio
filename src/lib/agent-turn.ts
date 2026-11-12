@@ -59,6 +59,9 @@ const TOOLS: Anthropic.Tool[] = [
 ];
 
 // Offered only where the screen can apply it (Image Studio, Video Studio, Core): Atlas sets the prompt box for the person. Free and instant; Generate stays their button.
+// Design Studio Motion: Atlas makes the pictures and video clips a motion uses. Each becomes a button; nothing is made until the person presses it,
+// and the finished picture or clip is attached to the motion (pictures as @1, @2, clips as V1, V2).
+const MAKE_ASSET: Anthropic.Tool = { name: "make_asset", description: "Offer to make a picture or a short video clip for the motion graphic the user is building (a background plate, a product shot, a texture, a b-roll clip). Shows a button; when the user presses it the picture or clip is made with their default model and attached to the motion. One call per asset (up to 4).", input_schema: { type: "object", properties: { kind: { type: "string", enum: ["image", "video"] }, prompt: { type: "string", description: "The full prompt for the picture or clip." }, aspect_ratio: { type: "string", description: "Usually the motion's aspect ratio, e.g. 16:9." } }, required: ["kind", "prompt"] } };
 const SET_BOX: Anthropic.Tool = { name: "set_prompt_box", description: "Set the prompt box's controls for the user: model, aspect ratio, number of results, quality, clip length, sound, fixed seed and the prompt text. It takes effect at once and costs nothing; the user still presses Generate. Use ONLY values listed under 'Controls you can set'. Include only what the user asked for or what clearly helps their idea. When the user is unsure what to pick, choose sensible values and say in one short line why.", input_schema: { type: "object", properties: { model: { type: "string", description: "A model id from the list (or auto)." }, aspect_ratio: { type: "string" }, count: { type: "integer", minimum: 1, maximum: 4, description: "How many images per run." }, quality: { type: "string", description: "A quality from the list." }, duration_seconds: { type: "integer", description: "Clip length in seconds." }, sound: { type: "boolean" }, fixed_seed: { type: "boolean" }, prompt: { type: "string", description: "Fill the prompt box with this text." } } } };
 
 // Scale only (FEATURE_MIN.plans): a whole small production run after ONE approval. Atlas decides how many pictures the video needs.
@@ -90,7 +93,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
 
   const c = body?.context ?? {};
   const ctx = [
-    `Where: ${c.page === "canvas" ? "a canvas generator node" : c.page === "video" ? "Video Studio, where the user writes a video prompt and makes the video (video generation works here)" : c.page === "mcp" ? "Claude (an outside assistant) talking to you through Eclipse's MCP connection on the person's behalf: there is no prompt box and no buttons, so write finished prompts in your answer inside code blocks and name the settings to use; the person asks Claude to start the render with Eclipse's generate_image or generate_video tools" : c.page === "core" ? "Core, the user's creative computer: a chat that can make pictures, run skills, use memory and send finished work to apps" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : "Image Studio"}`,
+    `Where: ${c.page === "canvas" ? "a canvas generator node" : c.page === "video" ? "Video Studio, where the user writes a video prompt and makes the video (video generation works here)" : c.page === "mcp" ? "Claude (an outside assistant) talking to you through Eclipse's MCP connection on the person's behalf: there is no prompt box and no buttons, so write finished prompts in your answer inside code blocks and name the settings to use; the person asks Claude to start the render with Eclipse's generate_image or generate_video tools" : c.page === "core" ? "Core, the user's creative computer: a chat that can make pictures, run skills, use memory and send finished work to apps" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : c.page === "design" ? "Design Studio, where the user makes graphics (opened in Image Studio), 3D models and motion graphics (animated typography, logo reveals, explainers written as code by Eclipse Motion). The box below belongs to the tab they are on" : "Image Studio"}`,
     clip(c.prompt, 1500) ? `${c.page === "treatment" ? "The user has typed" : c.page === "core" ? "Message box now" : "Prompt box now"}: ${clip(c.prompt, 1500)}` : c.page === "treatment" ? "Nothing typed yet." : c.page === "core" ? "Message box is empty." : "Prompt box is empty.",
     clip(c.ratio, 12) ? `Ratio: ${clip(c.ratio, 12)}` : "",
     Number.isInteger(c.qty) ? `Images per run: ${c.qty}` : "",
@@ -103,6 +106,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     ...(Array.isArray(c.options) && c.options.length ? ["Controls you can set with set_prompt_box (use only these values):", ...(c.options as unknown[]).slice(0, 12).map((l) => clip(l, 1800)).filter(Boolean)] : []),
   ].filter(Boolean).join("\n");
   const canSet = Array.isArray(c.options) && c.options.length > 0;
+  const canMake = c.page === "design" && c.make === true;
 
   const work = async (): Promise<Out> => {
     const turnStarted = Date.now();
@@ -171,7 +175,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const withWeb = isAtlas && planAllows(access.plan, "web");
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}` : "";
       const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
-      const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
+      const base = [...TOOLS, ...(canSet ? [SET_BOX] : []), ...(canMake ? [MAKE_ASSET] : [])];
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
       let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.

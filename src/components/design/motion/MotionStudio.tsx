@@ -2,18 +2,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Check, ChevronDown, Clock, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Shuffle,
-  Square, Star, Trash2, Wand2, X, Zap, ShieldCheck, ArrowUp,
+  Square, Star, Trash2, Wand2, X, Zap, ShieldCheck, ArrowUp, Film,
 } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
-import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
+import ReferencePicker, { type ClipPick, type RefPick } from "@/components/create/ReferencePicker";
+import { useAgentHost } from "@/lib/agent-chat";
+import { useModels } from "@/lib/use-models";
+import { useVoiceModels, useVoices } from "@/lib/use-voice";
+import type { PublicModel } from "@/lib/models";
+import { liveVideoModels, makeAsset, videoModelFor } from "@/lib/design/motion/assets";
 import MotionPlayer, { type PlayerHandle } from "./MotionPlayer";
 import { BrandKitDialog, DownloadDialog } from "./MotionDialogs";
 import { useDictation } from "@/lib/use-dictation";
 import { readCurrentProject, timeAgo } from "@/lib/projects";
 import { paletteOf, type LoadSpec } from "@/lib/design/motion/client";
 import {
-  ASPECT_HINT, DEFAULT_SETTINGS, DURATIONS, MOTION_ASPECTS, MOTION_MODELS, RUNNING, STEP_OF, SUGGESTIONS, TEMPLATES,
-  type BrandKitItem, type MotionAspect, type MotionComment, type MotionItem, type MotionSettings, type MotionStatus, type MotionSummary, type MotionVersionItem,
+  ASPECT_HINT, DEFAULT_SETTINGS, DURATIONS, MAX_CLIPS, MOTION_ASPECTS, MOTION_MODELS, NO_DEFAULTS, RUNNING, STEP_OF, SUGGESTIONS, TEMPLATES,
+  type BrandKitItem, type MotionDefaults, type MotionAspect, type MotionComment, type MotionItem, type MotionSettings, type MotionStatus, type MotionSummary, type MotionVersionItem,
 } from "@/lib/design/motion/spec";
 import "./motion.css";
 
@@ -76,7 +81,15 @@ function MotionHome({ kits, reloadKits, onOpen, recreate }: { kits: BrandKitItem
   );
 }
 
-function readSettings(): MotionSettings { try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}"), refs: [] }; } catch { return DEFAULT_SETTINGS; } }
+function readSettings(): MotionSettings { try { const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}"); return { ...DEFAULT_SETTINGS, ...o, defaults: { ...NO_DEFAULTS, ...(o.defaults ?? {}) }, refs: [], clips: [] }; } catch { return DEFAULT_SETTINGS; } }
+const fileUrl = (id: string) => `/api/generations/${id}/file`;
+type Making = { key: string; kind: "image" | "video"; label: string };
+const describeSettings = (s: MotionSettings, kit: BrandKitItem | null) => [
+  `Aspect ratio: ${s.aspect}`, `Length: ${s.duration === "auto" ? "Auto (the agent picks)" : `${s.duration}s`}${s.loop ? ", loops" : ""}`,
+  `Sound: ${[s.audio.sfx && "sound effects", s.audio.music && "music", s.audio.voice && "voiceover"].filter(Boolean).join(", ") || "none"}`,
+  `Brand kit: ${kit?.name ?? "none"}`, `Motion writer: ${MOTION_MODELS.find((m) => m.id === s.model)?.name ?? "Eclipse Pro"}`,
+  `Clip model for make_asset: ${videoModelFor(s.defaults)?.label ?? "none available"}`, `Picture model for make_asset: ${s.defaults.image ?? "Auto"}`,
+];
 
 function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem[]; reloadKits: () => Promise<void>; onStarted: (id: string) => void; initial: { prompt: string; settings: MotionSettings } | null }) {
   const [prompt, setPrompt] = useState(initial?.prompt ?? "");
@@ -84,9 +97,12 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
   const [pics, setPics] = useState<RefPick[]>([]);
   const [menu, setMenu] = useState<null | "aspect" | "duration" | "audio" | "settings">(null);
   const [picker, setPicker] = useState(false), [kitOpen, setKitOpen] = useState(false);
+  const [clips, setClips] = useState<ClipPick[]>(() => (initial?.settings.clips ?? []).map((c) => ({ type: "render" as const, id: c.id, url: "", label: c.label ?? "Clip", sec: c.duration ?? null })));
+  const [making, setMaking] = useState<Making[]>([]);
   const [busy, setBusy] = useState(false), [writing, setWriting] = useState(false), [error, setError] = useState<string | null>(null);
+  const models = useModels() ?? [];
   const dict = useDictation(prompt, setPrompt, setError);
-  useEffect(() => { try { const { refs: _r, ...keep } = s; void _r; localStorage.setItem(SETTINGS_KEY, JSON.stringify(keep)); } catch { /* ignore */ } }, [s]);
+  useEffect(() => { try { const { refs: _r, clips: _c, ...keep } = s; void _r; void _c; localStorage.setItem(SETTINGS_KEY, JSON.stringify(keep)); } catch { /* ignore */ } }, [s]);
   useEffect(() => {
     const on = (e: Event) => { const tp = (e as CustomEvent).detail as (typeof TEMPLATES)[number]; setPrompt(tp.prompt); setS((x) => ({ ...x, aspect: tp.aspect, duration: tp.duration, loop: tp.id === "loop" })); window.scrollTo({ top: 0, behavior: "smooth" }); };
     window.addEventListener("eclipse-motion-template", on); return () => window.removeEventListener("eclipse-motion-template", on);
@@ -100,26 +116,52 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
     setWriting(false);
     if (r.ok) setPrompt(r.body.text); else setError(errOf(r));
   }
-  async function go() {
-    if (prompt.trim().length < 3 || busy) return;
+  async function go(text = prompt): Promise<string> {
+    if (text.trim().length < 3) return "Describe the motion first.";
+    if (busy) return "A motion is already starting.";
     setBusy(true); setError(null);
-    const r = await call("/api/design/motion", { prompt, settings: { ...s, refs: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })) }, projectId: readCurrentProject()?.id ?? null });
+    const r = await call("/api/design/motion", { prompt: text, settings: { ...s, refs: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })), clips: clips.map((c) => ({ id: c.id, label: c.label, duration: c.sec ?? undefined })) }, projectId: readCurrentProject()?.id ?? null });
     setBusy(false);
-    if (r.ok) onStarted(r.body.id); else setError(errOf(r));
+    if (r.ok) { onStarted(r.body.id); return ""; }
+    const why = errOf(r); setError(why); return why ?? "It needs a plan upgrade.";
   }
+  // Atlas on this screen: it sees the composer and makes the pictures and clips the motion needs (each after the person presses its button).
+  useAgentHost({
+    page: "design",
+    context: () => ({ prompt, settings: ["Tab: Motion (composing a new motion)", ...describeSettings(s, kit)], pictures: pics.map((p, i) => ({ type: p.type, id: p.id, role: `motion picture @${i + 1}` })), clips: clips.map((c, i) => `V${i + 1}: ${c.label}`) }),
+    setPrompt,
+    generate: (o) => go(o.prompt ?? prompt),
+    make: async (o) => {
+      if (o.kind === "image" ? pics.length >= 8 : clips.length >= MAX_CLIPS) return o.kind === "image" ? "This motion already has 8 pictures. Remove one first." : `This motion already has ${MAX_CLIPS} clips. Remove one first.`;
+      const key = Math.random().toString(36).slice(2);
+      setMaking((l) => [...l, { key, kind: o.kind, label: o.prompt.slice(0, 40) }]);
+      void makeAsset({ kind: o.kind, prompt: o.prompt, ratio: o.ratio ?? s.aspect, defaults: s.defaults, models, projectId: readCurrentProject()?.id ?? null }).then((r) => {
+        setMaking((l) => l.filter((x) => x.key !== key));
+        if (!r.ok) { setError(r.error); return; }
+        if (r.asset.kind === "image") setPics((l) => [...l, { type: "render" as const, id: r.asset.id, url: fileUrl(r.asset.id), label: r.asset.label }].slice(0, 8));
+        else setClips((l) => [...l, { type: "render" as const, id: r.asset.id, url: "", label: r.asset.label, sec: r.asset.sec ?? null }].slice(0, MAX_CLIPS));
+      });
+      return "";
+    },
+  });
   const toggle = (k: typeof menu) => setMenu((m) => (m === k ? null : k));
   return (
     <div className="mt-composer">
-      {pics.length > 0 && (
+      {(pics.length > 0 || clips.length > 0 || making.length > 0) && (
         <div className="mt-pics">{pics.map((p, i) => (
           <span key={p.id} className="mt-pic">{/* eslint-disable-next-line @next/next/no-img-element -- plain img like the rest of the app */}<img src={p.url} alt={p.label} /><em>@{i + 1}</em>
             <button type="button" aria-label={`Remove picture ${i + 1}`} onClick={() => setPics(pics.filter((x) => x.id !== p.id))}><X size={11} /></button></span>
+        ))}{clips.map((c, i) => (
+          <span key={c.id} className="mt-pic is-clip" title={c.label}><video src={`${fileUrl(c.id)}#t=0.1`} muted playsInline preload="metadata" aria-label={c.label} /><em>V{i + 1}</em>
+            <button type="button" aria-label={`Remove clip ${i + 1}`} onClick={() => setClips(clips.filter((x) => x.id !== c.id))}><X size={11} /></button></span>
+        ))}{making.map((x) => (
+          <span key={x.key} className="mt-pic is-making" role="status" title={x.label}><Loader2 size={15} className="mt-spin" /><em>{x.kind === "video" ? "Clip" : "Picture"}</em></span>
         ))}</div>
       )}
       <GrowArea className="mt-text" rows={3} maxLines={10} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="A 10-second logo reveal for a coffee brand, warm tones, steam rising…" aria-label="Describe your motion"
         onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void go(); } }} />
       <div className="mt-row">
-        <button type="button" className="mt-icon" aria-label="Add pictures" onClick={() => setPicker(true)}><Plus size={16} /></button>
+        <button type="button" className="mt-icon" aria-label="Add pictures and clips" onClick={() => setPicker(true)}><Plus size={16} /></button>
         <div className="mt-pop-wrap">
           <button type="button" className="mt-chip" aria-expanded={menu === "aspect"} onClick={() => toggle("aspect")}><span className="mt-ar" style={{ aspectRatio: s.aspect.replace(":", " / ") }} />{s.aspect}</button>
           {menu === "aspect" && <div className="mt-pop" role="menu">{MOTION_ASPECTS.map((a) => (
@@ -155,16 +197,17 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
             <b className="mt-pop-h">Permissions</b>
             <button type="button" className={`mt-opt${s.approval === "ask" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "ask" })}><ShieldCheck size={15} /><span><b>Ask first</b><em>Asks before paid sound (music, voiceover, sound effects). The motion itself is made right away.</em></span>{s.approval === "ask" && <Check size={14} />}</button>
             <button type="button" className={`mt-opt${s.approval === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "auto" })}><Zap size={15} /><span><b>Auto approve</b><em>Makes everything the motion needs without asking. The cost shows on the version.</em></span>{s.approval === "auto" && <Check size={14} />}</button>
+            <DefaultsPicker d={s.defaults} models={models} onChange={(defaults) => setS({ ...s, defaults })} />
           </div>}
         </div>
         <button type="button" className={`mt-icon${dict.listening ? " is-rec" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={16} /></button>
-        <button type="button" className="mt-go" disabled={busy || prompt.trim().length < 3} onClick={go}>{busy ? <Loader2 size={15} className="mt-spin" /> : null}Generate</button>
+        <button type="button" className="mt-go" disabled={busy || prompt.trim().length < 3} onClick={() => void go()}>{busy ? <Loader2 size={15} className="mt-spin" /> : null}Generate</button>
       </div>
       <div className="mt-under">
         <button type="button" className="mt-link" disabled={writing || !prompt.trim()} onClick={writeIt}>{writing ? <Loader2 size={13} className="mt-spin" /> : <Wand2 size={13} />}Write it for me</button>
         {error && <p className="mt-error" role="alert">{error}</p>}
       </div>
-      {picker && <ReferencePicker max={8} picked={pics} onChange={setPics} onClose={() => setPicker(false)} />}
+      {picker && <ReferencePicker max={8} picked={pics} onChange={setPics} videoMax={MAX_CLIPS} pickedVideos={clips} onVideosChange={setClips} onClose={() => setPicker(false)} />}
       {kitOpen && <BrandKitDialog kits={kits} reload={reloadKits} chosen={s.brandKitId} onChoose={(id) => { setS({ ...s, brandKitId: id }); setKitOpen(false); }} onClose={() => setKitOpen(false)} />}
     </div>
   );
@@ -193,6 +236,8 @@ function MotionEditor({ id, kits, reloadKits, onBack, onRecreate }: { id: string
   const [error, setError] = useState<string | null>(null), [note, setNote] = useState<string | null>(null), [busy, setBusy] = useState(false), [renaming, setRenaming] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false), [time, setTime] = useState<number | null>(null);
   const player = useRef<PlayerHandle>(null);
+  const [making, setMaking] = useState<Making[]>([]);
+  const models = useModels() ?? [];
 
   const versions = useMemo(() => m?.versions ?? [], [m]);
   const v = versions.find((x) => x.id === sel) ?? versions[0] ?? null;
@@ -204,9 +249,42 @@ function MotionEditor({ id, kits, reloadKits, onBack, onRecreate }: { id: string
   const seen = useRef<string | undefined>(undefined);
   useEffect(() => { if (newest && seen.current && newest !== seen.current) setSel(newest); seen.current = newest; }, [newest]);
 
-  const specOf = useCallback((x: MotionVersionItem | null): LoadSpec | null => (x?.code && m ? { code: x.code, aspect: x.aspect, duration: x.duration, loop: m.settings.loop, palette: paletteOf(kit), images: [...m.settings.refs, ...(kit?.logos ?? [])] } : null), [m, kit]);
+  const specOf = useCallback((x: MotionVersionItem | null): LoadSpec | null => (x?.code && m ? { code: x.code, aspect: x.aspect, duration: x.duration, loop: m.settings.loop, palette: paletteOf(kit), images: [...m.settings.refs, ...(kit?.logos ?? [])], clips: m.settings.clips } : null), [m, kit]);
   const spec = useMemo(() => specOf(v), [v, specOf]);
   const spec2 = useMemo(() => specOf(other), [other, specOf]);
+
+  // Atlas while editing: it sees the edit box and this motion, can send an edit, and can make pictures and clips that are added to the motion.
+  useAgentHost({
+    page: "design",
+    context: () => ({ prompt: text, settings: [`Tab: Motion, editing "${m?.title ?? "a motion"}" version ${v?.n ?? 1}${v?.plan ? `. Its plan: ${v.plan.slice(0, 600)}` : ""}`, ...(m ? describeSettings(m.settings, kit) : [])], pictures: (m?.settings.refs ?? []).map((p, i) => ({ type: p.type, id: p.id, role: `motion picture @${i + 1}` })), clips: (m?.settings.clips ?? []).map((c, i) => `V${i + 1}: ${c.label ?? "clip"}`) }),
+    setPrompt: setText,
+    generate: async (o) => {
+      if (!v?.code) return "Wait for this version to finish first.";
+      const t = (o.prompt ?? text).trim();
+      if (!t && !(v.comments ?? []).some((c) => !c.used)) return "Describe the change first.";
+      await newVersion({ action: "edit", from: v.id, text: t });
+      return "";
+    },
+    make: async (o) => {
+      if (!m) return "The motion is still loading.";
+      if (o.kind === "image" ? m.settings.refs.length >= 8 : m.settings.clips.length >= MAX_CLIPS) return o.kind === "image" ? "This motion already has 8 pictures." : `This motion already has ${MAX_CLIPS} clips.`;
+      const key = Math.random().toString(36).slice(2);
+      setMaking((l) => [...l, { key, kind: o.kind, label: o.prompt.slice(0, 40) }]);
+      void makeAsset({ kind: o.kind, prompt: o.prompt, ratio: o.ratio ?? v?.aspect ?? m.settings.aspect, defaults: m.settings.defaults, models, projectId: readCurrentProject()?.id ?? null }).then(async (r) => {
+        setMaking((l) => l.filter((x) => x.key !== key));
+        if (!r.ok) { setError(r.error); return; }
+        // Read the motion again so two assets finishing close together are both kept.
+        const cur = await call(`/api/design/motion/${id}`, undefined, "GET");
+        const st = (cur.ok ? cur.body.settings : m.settings) as MotionSettings;
+        const settings = r.asset.kind === "image" ? { refs: [...st.refs, { type: "render", id: r.asset.id, label: r.asset.label }] } : { clips: [...st.clips, { id: r.asset.id, label: r.asset.label }] };
+        const u = await call(`/api/design/motion/${id}`, { settings }, "PATCH");
+        if (!u.ok) { setError(errOf(u)); return; }
+        await reload();
+        setNote(r.asset.kind === "image" ? `Added picture @${st.refs.length + 1}. Ask for a change to use it.` : `Added clip V${st.clips.length + 1}. Ask for a change to use it.`);
+      });
+      return "";
+    },
+  });
 
   if (missing) return <section className="mt"><button type="button" className="mt-back" onClick={onBack}><ArrowLeft size={16} />Motion</button><p className="mt-hint">This motion was deleted.</p></section>;
   if (!m || !v) return <section className="mt"><p className="mt-hint"><Loader2 size={15} className="mt-spin" /> Loading…</p></section>;
@@ -265,6 +343,7 @@ function MotionEditor({ id, kits, reloadKits, onBack, onRecreate }: { id: string
               <div className="mt-row"><span className="mt-grow" /><button type="button" className="mt-chip" onClick={() => setPin(null)}>Cancel</button><button type="button" className="mt-go" disabled={!pinText.trim()} onClick={addComment}>Comment</button></div>
             </div>
           )}
+          {making.length > 0 && <div className="mt-pics">{making.map((x) => <span key={x.key} className="mt-pic is-making" role="status" title={x.label}><Loader2 size={15} className="mt-spin" /><em>{x.kind === "video" ? "Clip" : "Picture"}</em></span>)}</div>}
           {RUNNING.has(v.status) && <Progress v={v} onStop={() => act({ action: "stop" })} />}
           {v.status === "approval" && v.audio && <Approval v={v} onApprove={() => act({ action: "approve" })} onDecline={() => act({ action: "decline" })} onChange={() => { setText("Change the sound: "); }} />}
           {(v.status === "failed" || v.status === "stopped") && <div className="mt-card-note is-bad"><b>{STATUS_TEXT[v.status]}</b><span>{v.error}</span><button type="button" className="mt-chip" onClick={() => newVersion({ action: "retry", from: v.id })}>Try again</button></div>}
@@ -321,7 +400,7 @@ function MotionEditor({ id, kits, reloadKits, onBack, onRecreate }: { id: string
           )}
         </aside>
       </div>
-      {download && <DownloadDialog title={m.title} version={v} host={() => player.current?.host() ?? null} onClose={() => setDownload(false)} />}
+      {download && <DownloadDialog title={m.title} version={v} clips={m.settings.clips} host={() => player.current?.host() ?? null} onClose={() => setDownload(false)} />}
       {kitOpen && <BrandKitDialog kits={kits} reload={reloadKits} chosen={null} addVersion={v.id} onChoose={() => { setKitOpen(null); setNote("Added to the brand kit as an example."); }} onClose={() => setKitOpen(null)} />}
     </section>
   );
@@ -351,5 +430,37 @@ function Approval({ v, onApprove, onDecline, onChange }: { v: MotionVersionItem;
       <ul>{parts.map((k) => <li key={k}><span>{k === "sfx" ? "Sound effects" : k === "music" ? "Music" : "Voiceover"}</span><em>{v.audio![k]!.prompt}</em>{v.audio![k]!.credits != null && <i>{v.audio![k]!.credits} credits</i>}</li>)}</ul>
       <div className="mt-row"><button type="button" className="mt-chip" onClick={onDecline}>Skip sound</button><button type="button" className="mt-chip" onClick={onChange}>Ask for changes</button><span className="mt-grow" /><button type="button" className="mt-go" onClick={onApprove}>Approve and generate{total ? ` · ${total} credits` : ""}</button></div>
     </div>
+  );
+}
+
+/** Which models Atlas uses when it makes pictures and clips for a motion, and who speaks the voiceover. */
+function DefaultsPicker({ d, models, onChange }: { d: MotionDefaults; models: PublicModel[]; onChange: (d: MotionDefaults) => void }) {
+  const { models: voiceModels } = useVoiceModels();
+  const tts = (voiceModels ?? []).filter((m) => m.kinds.includes("tts") && m.ready);
+  const { voices } = useVoices(d.voiceModel);
+  const video = liveVideoModels();
+  return (
+    <>
+      <b className="mt-pop-h">Defaults</b>
+      <em className="mt-pop-sub">Used when Atlas makes pictures and clips for a motion, and for the voiceover.</em>
+      <label className="mt-field"><span>Pictures</span>
+        <select value={d.image ?? ""} aria-label="Default picture model" onChange={(e) => onChange({ ...d, image: e.target.value || null })}>
+          <option value="">Auto</option>{models.filter((m) => !m.requiresReference).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        </select></label>
+      <label className="mt-field"><span>Clips</span>
+        <select value={d.video ?? ""} aria-label="Default video model" onChange={(e) => onChange({ ...d, video: e.target.value || null })}>
+          <option value="">Eclipse picks</option>{video.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        </select></label>
+      <label className="mt-field"><span>Voice model</span>
+        <select value={d.voiceModel ?? ""} aria-label="Default voice model" onChange={(e) => onChange({ ...d, voiceModel: e.target.value || null, voiceId: null, voiceName: null })}>
+          <option value="">Eclipse picks</option>{tts.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        </select></label>
+      {d.voiceModel && (
+        <label className="mt-field"><span>Voice</span>
+          <select value={d.voiceId ?? ""} aria-label="Default voice" onChange={(e) => { const v = (voices ?? []).find((x) => x.voiceId === e.target.value); onChange({ ...d, voiceId: v?.voiceId ?? null, voiceName: v?.name ?? null }); }}>
+            <option value="">{voices === null ? "Loading voices…" : "First voice"}</option>{(voices ?? []).slice(0, 100).map((v) => <option key={v.voiceId} value={v.voiceId}>{v.name}</option>)}
+          </select></label>
+      )}
+    </>
   );
 }

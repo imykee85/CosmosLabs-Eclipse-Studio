@@ -68,6 +68,9 @@ function image(g, i, x, y, w, h, o) { o = o || {}; var img = typeof i === "numbe
 function gradient(g, x0, y0, x1, y1, stops) { var gr = g.createLinearGradient(x0, y0, x1, y1); (stops || []).forEach(function (s) { gr.addColorStop(s[0], s[1]); }); return gr; }
 function radial(g, x, y, r0, r1, stops) { var gr = g.createRadialGradient(x, y, r0, x, y, r1); (stops || []).forEach(function (s) { gr.addColorStop(s[0], s[1]); }); return gr; }
 var IMAGES = [];
+var CLIPS = [], CLIPNAMES = [], CLIPDUR = [];
+function clip(g, i, x, y, w, h, o) { var f = CLIPS[i]; if (!f) return false; return image(g, f, x, y, w, h, o); }
+function setClips(list) { if (!list) return; for (var k = 0; k < CLIPS.length; k++) { if (CLIPS[k] && list[k] !== CLIPS[k] && CLIPS[k].close) { try { CLIPS[k].close(); } catch (e) {} } } CLIPS = list; }
 `;
 
 /** What the agent is told about M (the runtime above). */
@@ -83,6 +86,7 @@ export const HELP = `M (the helper library):
   M.measure(g, str, opts) width. M.wrap(g, str, maxWidth, opts) array of lines.
 - Shapes: M.roundRect(g, x, y, w, h, r) builds a path (then g.fill()/g.stroke()). M.gradient(g, x0,y0,x1,y1, [[0,"#hex"],[1,"#hex"]]), M.radial(g, x, y, r0, r1, stops).
 - Pictures: M.images[i] (the attached pictures, in order; may be empty), M.imageNames[i], M.image(g, i, x, y, w, h, {fit:"cover"|"contain", radius, alpha}) returns false when missing.
+- Video clips: M.clips (their names, in order; may be empty), M.clipDurations[i] seconds, M.clip(g, i, x, y, w, h, {fit, radius, alpha}) draws clip i's frame at the current time (each clip plays from the start of the motion and loops); returns false when missing.
 - g is a normal CanvasRenderingContext2D (save/restore, translate, rotate, scale, globalAlpha, globalCompositeOperation, shadowBlur, filter, paths, arcs, beziers). The background is already painted with M.palette.bg (or your "background").`;
 
 /** The frame's whole page. */
@@ -94,7 +98,7 @@ var comp = null, W = 1778, H = 1000, DUR = 10, FPS = 30, LOOP = false, PAL = { b
 var cv = document.getElementById("c"), lastT = 0;
 function M() { return { W: W, H: H, duration: DUR, fps: FPS, loop: LOOP, ease: E, clamp: clamp, lerp: lerp, map: map, prog: prog, rand: rand, noise: noise,
   rgba: rgba, mix: mix, text: text, letters: letters, measure: measure, wrap: wrap, roundRect: roundRect, image: image, gradient: gradient, radial: radial,
-  images: IMAGES, imageNames: NAMES, palette: PAL, font: font }; }
+  images: IMAGES, imageNames: NAMES, palette: PAL, font: font, clips: CLIPNAMES, clipDurations: CLIPDUR, clip: clip }; }
 function draw(g, pw, ph, t) {
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; g.filter = "none"; g.shadowBlur = 0; g.shadowColor = "transparent";
   g.clearRect(0, 0, pw, ph); g.setTransform(pw / W, 0, 0, ph / H, 0, 0);
@@ -120,12 +124,13 @@ addEventListener("message", function (ev) { var m = ev.data || {};
   if (m.type === "font" && m.bytes) { try { var f = new FontFace("Inter", m.bytes, { weight: "100 900" }); f.load().then(function (ff) { document.fonts.add(ff); show(lastT); post({ type: "font" }); }); } catch (e) {} return; }
   if (m.type === "load") {
     W = m.W; H = m.H; DUR = m.duration; FPS = m.fps || 30; LOOP = !!m.loop; if (m.palette) PAL = m.palette; IMAGES.length = 0; (m.images || []).forEach(function (b) { IMAGES.push(b); }); NAMES = m.names || [];
+    CLIPNAMES = m.clipNames || []; CLIPDUR = m.clipDur || []; setClips(m.vf || []);
     comp = null;
     try { var fn = new Function("M", m.code); comp = fn(M()); if (!comp || typeof comp.render !== "function") throw new Error("The motion did not return { render(g, t) }."); }
     catch (e) { comp = null; err(e, "compile"); show(0); return; }
     show(m.t || 0); post({ type: "ready" }); return; }
-  if (m.type === "seek") { show(m.t || 0); return; }
-  if (m.type === "frame") { try { var bmp = frame(m.t, m.w, m.h, m.blur || 0, 1 / (m.fps || FPS)); post({ type: "frame", id: m.id, bitmap: bmp }, [bmp]); } catch (e) { err(e, "render"); post({ type: "frame", id: m.id, error: String(e && e.message || e) }); } return; }
+  if (m.type === "seek") { setClips(m.vf); show(m.t || 0); return; }
+  if (m.type === "frame") { setClips(m.vf); try { var bmp = frame(m.t, m.w, m.h, m.blur || 0, 1 / (m.fps || FPS)); post({ type: "frame", id: m.id, bitmap: bmp }, [bmp]); } catch (e) { err(e, "render"); post({ type: "frame", id: m.id, error: String(e && e.message || e) }); } return; }
 });
 post({ type: "hello" });
 </script></body></html>`;

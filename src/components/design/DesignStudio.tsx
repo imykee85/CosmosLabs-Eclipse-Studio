@@ -1,6 +1,13 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import AgentIcon from "@/components/AgentIcon";
+import AgentMenu from "@/components/create/AgentMenu";
+import AgentWidget from "@/components/create/AgentWidget";
+import { useAgent } from "@/lib/use-agent";
+import { useAgentHost } from "@/lib/agent-chat";
+import "@/components/create/create.css";
 import { ArrowUpRight, Box, Download, Loader2, Pencil, Plus, Shapes, Trash2, Wand2, X, Clapperboard, Check } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
@@ -30,25 +37,48 @@ const MODE_LABEL: Record<Mode, string> = { image: "One picture", multi: "Several
 
 export default function DesignStudio() {
   const [tab, setTab] = useState<Tab>("3d");
+  const agent = useAgent();
+  const chip = useRef<HTMLButtonElement>(null);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
   return (
     <div className="ds">
       <header className="ds-head">
         <h1>Design Studio</h1>
         <p>Graphics, 3D models and motion graphics, made in one place.</p>
       </header>
+      <div className="ds-toprow">
       <div className="ds-tabs" role="tablist" aria-label="Design tools">
         <button role="tab" aria-selected={tab === "graphics"} className={tab === "graphics" ? "is-on" : ""} onClick={() => setTab("graphics")}><Shapes size={16} />Graphics</button>
         <button role="tab" aria-selected={tab === "3d"} className={tab === "3d" ? "is-on" : ""} onClick={() => setTab("3d")}><Box size={16} />3D</button>
         <button role="tab" aria-selected={tab === "motion"} className={tab === "motion" ? "is-on" : ""} onClick={() => setTab("motion")}><Clapperboard size={16} />Motion</button>
       </div>
+        <div className="cr-grp ds-agent">
+          <button ref={chip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())}>
+            <AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Atlas"}</span>
+          </button>
+          <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help in Design Studio" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
+            onClick={() => { if (!agent.agent) { if (chip.current) setAnchor(chip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
+        </div>
+      </div>
       {tab === "graphics" && <Graphics />}
       {tab === "3d" && <ThreeD />}
       {tab === "motion" && <MotionStudio />}
+      {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
+      {anchor && <AgentMenu anchor={anchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAnchor(null)} />}
     </div>
   );
 }
 
 function Graphics() {
+  const router = useRouter();
+  const open = (prompt: string) => router.push(`/create?prompt=${encodeURIComponent(prompt)}`);
+  // Atlas here writes the design prompt; Image Studio makes it (the person presses Generate there).
+  useAgentHost({
+    page: "design",
+    context: () => ({ prompt: "", settings: ["Tab: Graphics (logos, posters, social posts, packaging, icons, patterns, covers, mockups). A design prompt opens in Image Studio, where the person presses Generate.", `Starters: ${PRESETS.map((p) => p.name).join(", ")}`] }),
+    setPrompt: (t) => { if (t.trim()) open(t); },
+    generate: async (o) => { if (!o.prompt?.trim()) return "Write the design prompt first."; open(o.prompt); return ""; },
+  });
   return (
     <section aria-label="Graphic design">
       <p className="ds-lead">Pick a starting point. It opens Image Studio with a design prompt you finish.</p>
@@ -81,6 +111,24 @@ function ThreeD() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+
+  // Atlas on the 3D tab: it sees the generator and can describe a model and start it (a description switches to "Describe it").
+  useAgentHost({
+    page: "design",
+    context: () => ({ prompt, model: model?.label, settings: [`Tab: 3D models. Mode: ${MODE_LABEL[mode]}`, `Models for this mode: ${available.map((m) => m.label).join(", ")}`, `Colour and texture: ${textured ? "on" : "off"}, realistic materials: ${pbr ? "on" : "off"}, extra detail: ${detailed ? "on" : "off"}`], pictures: picked.map((p, i) => ({ type: p.type, id: p.id, role: mode === "multi" ? `view ${i + 1}` : "source picture" })) }),
+    setPrompt: (t) => { setMode("text"); setModelId(""); setPicked([]); setPrompt(t); },
+    generate: async (o) => {
+      const text = (o.prompt ?? prompt).trim();
+      if (mode !== "text" && picked.length) { await go(); return ""; }
+      const m = models.find((x) => x.modes.includes("text"));
+      if (!m) return "No text-to-3D model is available.";
+      if (text.length < 3) return "Describe the model first.";
+      setMode("text"); setPrompt(text);
+      const r = await start3DModel({ model: m.id, mode: "text", prompt: text, refs: [], options: { textured, pbr, polycount: null, detailed, avoid: "", rig: false }, projectId: readCurrentProject()?.id ?? null });
+      if (!r.ok) return r.code === "UPGRADE" || r.code === "SUBSCRIBE" ? "It needs a plan upgrade." : r.error;
+      await reload(); return "";
+    },
+  });
 
   const needPics = mode !== "text";
   const maxPics = mode === "image" ? 1 : model?.maxImages ?? 4;

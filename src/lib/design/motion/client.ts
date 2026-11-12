@@ -1,7 +1,7 @@
 "use client";
 // Browser side of Design Studio Motion: talks to the runtime frame (load, seek, render a frame at full size) and turns a version into an MP4
 // with its sound, frame by frame, so the same motion always gives the same video. Nothing here sends the code anywhere but the frame.
-import { logicalSize, pixelSize, type BrandKitItem, type MotionAspect, type MotionAudio, type MotionVersionItem } from "./spec";
+import { logicalSize, pixelSize, type BrandKitItem, type MotionAspect, type MotionAudio, type MotionClip, type MotionVersionItem } from "./spec";
 
 export const FRAME_URL = "/api/design/motion/frame";
 export const DEFAULT_PALETTE = { bg: "#0b0b0d", fg: "#ffffff", accent: "#c00707", colors: ["#0b0b0d", "#ffffff", "#c00707"] };
@@ -23,7 +23,60 @@ export function loadImage(ref: { type: "upload" | "render"; id: string }): Promi
   return imageCache.get(key)!;
 }
 
-export type LoadSpec = { code: string; aspect: MotionAspect; duration: number; loop: boolean; palette: typeof DEFAULT_PALETTE; images: { type: "upload" | "render"; id: string; label?: string }[] };
+export type LoadSpec = { code: string; aspect: MotionAspect; duration: number; loop: boolean; palette: typeof DEFAULT_PALETTE; images: { type: "upload" | "render"; id: string; label?: string }[]; clips?: MotionClip[] };
+
+const clipUrl = (id: string) => `/api/generations/${id}/file`;
+const localTime = (t: number, dur: number) => (dur > 0 ? ((t % dur) + dur) % dur : t);
+
+/** The clips of a motion in the live preview: one muted video element each, sought (or left playing) to the motion's time, read as ImageBitmaps. */
+export class PreviewClips {
+  private videos: HTMLVideoElement[]; private durs: number[];
+  constructor(clips: MotionClip[]) {
+    this.durs = clips.map((c) => c.duration ?? 5);
+    this.videos = clips.map((c) => { const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.loop = true; v.src = clipUrl(c.id); return v; });
+  }
+  get size() { return this.videos.length; }
+  private seekTo(v: HTMLVideoElement, t: number): Promise<void> {
+    if (Math.abs(v.currentTime - t) < 0.04 && v.readyState >= 2) return Promise.resolve();
+    return new Promise((res) => { const done = () => { v.removeEventListener("seeked", done); clearTimeout(timer); res(); }; const timer = setTimeout(done, 1500); v.addEventListener("seeked", done); try { v.currentTime = t; } catch { done(); } });
+  }
+  /** Frames at motion time t. While playing, a video already close to t is read as it is (no seek), so playback stays smooth. */
+  async frames(t: number, playing = false): Promise<ImageBitmap[]> {
+    const out: ImageBitmap[] = [];
+    for (let i = 0; i < this.videos.length; i++) {
+      const v = this.videos[i], lt = localTime(t, this.durs[i]);
+      if (!playing || Math.abs(v.currentTime - lt) > 0.3) await this.seekTo(v, lt);
+      try { out.push(await createImageBitmap(v, v.videoWidth > 1280 ? { resizeWidth: 1280, resizeQuality: "medium" } : undefined)); } catch { out.push(undefined as unknown as ImageBitmap); }
+    }
+    return out;
+  }
+  play(t: number) { this.videos.forEach((v, i) => { try { v.currentTime = localTime(t, this.durs[i]); } catch { /* not loaded */ } void v.play().catch(() => {}); }); }
+  pause() { this.videos.forEach((v) => v.pause()); }
+  dispose() { this.videos.forEach((v) => { v.pause(); v.removeAttribute("src"); v.load(); }); this.videos = []; }
+}
+
+/** Exact frames of the clips for export, decoded frame by frame so the saved video never drops or repeats a frame by accident. */
+async function exportClips(clips: MotionClip[], w: number) {
+  if (!clips.length) return null;
+  const mb = await import("mediabunny");
+  const sinks = await Promise.all(clips.map(async (c) => {
+    try {
+      const blob = await (await fetch(clipUrl(c.id))).blob();
+      const input = new mb.Input({ source: new mb.BlobSource(blob), formats: mb.ALL_FORMATS });
+      const track = await input.getPrimaryVideoTrack();
+      return track ? { sink: new mb.CanvasSink(track, { width: Math.min(w, track.displayWidth || w), fit: "contain" }), dur: c.duration ?? (await input.computeDuration()) } : null;
+    } catch { return null; }
+  }));
+  return {
+    async frames(t: number): Promise<ImageBitmap[]> {
+      return Promise.all(sinks.map(async (s) => {
+        if (!s) return undefined as unknown as ImageBitmap;
+        const wc = await s.sink.getCanvas(localTime(t, s.dur)).catch(() => null);
+        return wc ? createImageBitmap(wc.canvas) : (undefined as unknown as ImageBitmap);
+      }));
+    },
+  };
+}
 type Listener = (m: { type: string; message?: string; where?: string; line?: string | null }) => void;
 
 /** One runtime frame on the page. */
@@ -44,16 +97,19 @@ export class MotionHost {
     const bitmaps = (await Promise.all(s.images.map(loadImage))).filter((b): b is ImageBitmap => !!b);
     const { W, H } = logicalSize(s.aspect);
     // ImageBitmaps are copied (not transferred) so the cache keeps them for the next load.
-    this.post({ type: "load", code: s.code, W, H, duration: s.duration, fps: 30, loop: s.loop, palette: s.palette, images: bitmaps, names: s.images.map((i) => i.label ?? "picture"), t });
+    const clips = s.clips ?? [];
+    this.post({ type: "load", code: s.code, W, H, duration: s.duration, fps: 30, loop: s.loop, palette: s.palette, images: bitmaps, names: s.images.map((i) => i.label ?? "picture"), clipNames: clips.map((c) => c.label ?? "clip"), clipDur: clips.map((c) => c.duration ?? 5), t });
   }
-  seek(t: number) { this.post({ type: "seek", t }); }
-  frame(t: number, w: number, h: number, blur: number, fps: number): Promise<ImageBitmap | null> {
+  /** `vf`: the clips' frames at t (transferred to the frame, which closes the previous ones). */
+  seek(t: number, vf?: ImageBitmap[]) { const list = vf?.filter(Boolean); this.post({ type: "seek", t, ...(vf ? { vf } : {}) }, list ?? []); }
+  frame(t: number, w: number, h: number, blur: number, fps: number, vf?: ImageBitmap[]): Promise<ImageBitmap | null> {
     const id = this.next++;
-    return new Promise((res) => { this.waits.set(id, res); this.post({ type: "frame", id, t, w, h, blur, fps }); setTimeout(() => { if (this.waits.has(id)) { this.waits.delete(id); res(null); } }, 20_000); });
+    const list = vf?.filter(Boolean);
+    return new Promise((res) => { this.waits.set(id, res); this.post({ type: "frame", id, t, w, h, blur, fps, ...(vf ? { vf } : {}) }, list ?? []); setTimeout(() => { if (this.waits.has(id)) { this.waits.delete(id); res(null); } }, 20_000); });
   }
 }
 
-export type ExportOpts = { short: 1080 | 2160; fps: 24 | 30 | 60; blur: boolean; signal?: AbortSignal; onProgress?: (done: number, total: number) => void };
+export type ExportOpts = { short: 1080 | 2160; fps: 24 | 30 | 60; blur: boolean; clips?: MotionClip[]; signal?: AbortSignal; onProgress?: (done: number, total: number) => void };
 
 /** Sound files of a finished version (voice, music, sound effects) mixed into one stereo track as long as the motion. */
 async function mixSound(audio: MotionAudio | null, seconds: number): Promise<AudioBuffer | null> {
@@ -89,12 +145,13 @@ export async function exportMotion(host: MotionHost, v: MotionVersionItem, o: Ex
     const acodec = await mb.getFirstEncodableAudioCodec(["aac", "opus"], { numberOfChannels: 2, sampleRate: 48000 });
     if (acodec) { asrc = new mb.AudioBufferSource({ codec: acodec, bitrate: mb.QUALITY_HIGH }); output.addAudioTrack(asrc); }
   }
+  const deck = await exportClips(o.clips ?? [], w);
   await output.start();
   const total = Math.max(1, Math.round(v.duration * o.fps));
   for (let i = 0; i < total; i++) {
     if (o.signal?.aborted) { await output.cancel(); throw new Error("Cancelled."); }
     const t = i / o.fps;
-    const bmp = await host.frame(t, w, h, o.blur ? 4 : 0, o.fps);
+    const bmp = await host.frame(t, w, h, o.blur ? 4 : 0, o.fps, deck ? await deck.frames(t) : undefined);
     if (!bmp) { await output.cancel(); throw new Error("A frame could not be drawn. Check the preview for an error."); }
     g.drawImage(bmp, 0, 0); bmp.close();
     await src.add(t, 1 / o.fps);

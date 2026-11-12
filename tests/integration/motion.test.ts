@@ -19,7 +19,7 @@ before(async () => {
   await clean();
 });
 after(async () => { if (skip) return; await clean(); await db.$disconnect(); });
-const clean = async () => { await db.motionVersion.deleteMany({ where: { userId: A } }); await db.motion.deleteMany({ where: { userId: A } }); };
+const clean = async () => { await db.motionVersion.deleteMany({ where: { userId: A } }); await db.motion.deleteMany({ where: { userId: A } }); await db.generation.deleteMany({ where: { userId: { in: [A, "user_motion_b"] } } }); };
 
 async function fresh(settings: object = {}) {
   const s = spec.cleanSettings(settings);
@@ -99,4 +99,21 @@ test("an edit sends the current code, the change and the pinned comments with th
   await agent.runVersion({ versionId: v.id, userId: A, personId: A, settings: { ...s, aspect: "9:16" }, brief: "make it gold", kit: null,
     base: { code: "return { render(){} }", duration: 6, aspect: "16:9" }, comments: [{ id: "c", t: 3.2, x: 0.4, y: 0.6, text: "bigger here", at: "" }] }, d);
   assert.match(seen, /CURRENT MOTION/); assert.match(seen, /make it gold/); assert.match(seen, /at 3\.2s, at 40% across and 60% down/); assert.match(seen, /Re-compose it for 9:16/);
+});
+
+test("clips: only this workspace's own finished, non-binned videos are kept, with their recorded length", { skip }, async () => {
+  const server = await import("../../src/lib/design/motion/server");
+  const mk = (data: Record<string, unknown>) => db.generation.create({ data: { userId: A, prompt: "waves at dawn", kind: "video", status: "completed", storageKey: "u/a/c.mp4", durationSec: 6.5, ...data } });
+  const mine = await mk({}), binned = await mk({ deletedAt: new Date() }), running = await mk({ status: "pending" }), pic = await mk({ kind: "image" }), other = await mk({ userId: "user_motion_b" });
+  const s = await server.checkedSettings(A, { clips: [mine, binned, running, pic, other].map((g) => ({ id: g.id, label: "x" })) });
+  assert.deepEqual(s.clips, [{ id: mine.id, label: "x", duration: 6.5 }]);
+});
+
+test("the voiceover uses the person's default voice when one is set", { skip }, async () => {
+  const { v, s } = await fresh({ audio: { voice: true }, approval: "auto", duration: 6, defaults: { voiceModel: "eleven_v4", voiceId: "voice-ana", voiceName: "Ana" } });
+  const inputs: Record<string, unknown>[] = [];
+  const d = deps([{ code: sample, plan: "p", duration: 6, voiceover: "Go beyond." }]);
+  d.startAudio = async (inp: Record<string, unknown>) => { inputs.push(inp); return { ok: true, item: { id: "job-tts" } }; };
+  await agent.runVersion({ versionId: v.id, userId: A, personId: A, settings: s, brief: "x", kit: null }, d);
+  assert.equal(inputs[0]?.voiceId, "voice-ana"); assert.equal(inputs[0]?.model, "eleven_v4"); assert.equal(inputs[0]?.voiceName, "Ana");
 });

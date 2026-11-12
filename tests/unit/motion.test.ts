@@ -45,3 +45,37 @@ test("the runtime frame is locked down and documents every helper the motion is 
   }
   assert.ok(TEMPLATES.length >= 6);
 });
+
+test("settings keep up to 4 clips and the default models; bad values fall back", async () => {
+  const s = cleanSettings({ clips: [{ id: "a", label: "Beach", duration: 7 }, { id: 5 }, { id: "b" }, { id: "c" }, { id: "d" }, { id: "e" }], defaults: { image: "soul_v2", video: 9, voiceModel: "eleven_v4", voiceId: "v1", voiceName: "Ana" } });
+  assert.equal(s.clips.length, 4);
+  assert.deepEqual(s.clips[0], { id: "a", label: "Beach", duration: 7 });
+  assert.deepEqual(s.defaults, { image: "soul_v2", video: null, voiceModel: "eleven_v4", voiceId: "v1", voiceName: "Ana" });
+  assert.deepEqual(cleanSettings({}).defaults, { image: null, video: null, voiceModel: null, voiceId: null, voiceName: null });
+  assert.deepEqual(cleanSettings({}).clips, []);
+});
+
+test("the runtime offers clips to a motion (M.clip draws the current frame) and the help says so", () => {
+  assert.match(FRAME_HTML, /function clip\(g, i, x, y, w, h, o\)/);
+  assert.match(FRAME_HTML, /clip: clip/);
+  assert.match(HELP, /M\.clip\(g, i, x, y, w, h/);
+});
+
+test("Atlas's make_asset becomes a Make button for a picture or a clip", async () => {
+  const { buildReply } = await import("../../src/lib/agent-reply");
+  const r = buildReply([
+    { type: "tool_use", id: "1", name: "make_asset", input: { kind: "video", prompt: "Slow drone over waves at dawn", aspect_ratio: "16:9" } },
+    { type: "tool_use", id: "2", name: "make_asset", input: { kind: "image", prompt: "Coffee cup on marble", aspect_ratio: "bad" } },
+  ] as never, "tool_use");
+  assert.deepEqual(r.actions, [
+    { kind: "make", label: "Make this clip", prompt: "Slow drone over waves at dawn", asset: "video", ratio: "16:9" },
+    { kind: "make", label: "Make this picture", prompt: "Coffee cup on marble", asset: "image" },
+  ]);
+});
+
+test("nearest offered aspect ratio for an asset", async () => {
+  const { nearestRatio } = await import("../../src/lib/design/motion/assets");
+  assert.equal(nearestRatio("16:9", ["1:1", "16:9", "9:16"]), "16:9");
+  assert.equal(nearestRatio("21:9", ["1:1", "16:9", "9:16"]), "16:9");
+  assert.equal(nearestRatio("4:5", ["1:1", "16:9", "9:16"]), "1:1");
+});
