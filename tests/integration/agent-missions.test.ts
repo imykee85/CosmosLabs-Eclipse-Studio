@@ -204,3 +204,43 @@ test("an agent that answers without a tool hands the conversation back instead o
   row = await db.agentMission.findUnique({ where: { id } });
   assert.equal(row.status, "running");
 });
+
+test("sending to an app always waits for the person, even on autopilot, and only for a connected app", { skip }, async () => {
+  const id = await start({ budgetCredits: 500, autopilot: true });
+  await db.connectorLink.deleteMany({ where: { userId: U } });
+  const { w, deps } = world([
+    [tu("send_to_app", { app: "slack", text: "Hi team" })],
+    [tu("finish", { summary: "done" })],
+  ]);
+  let row = await m.advanceMission(id, deps);
+  assert.equal(row.status, "done", "an app that is not connected is refused to the agent (it carries on), not asked");
+  assert.match(JSON.stringify(w.seen[1]), /not connected/);
+  // connected: it is never run by itself
+  await db.connectorLink.create({ data: { userId: U, connector: "slack", label: "x", secret: "x" } });
+  const id2 = await start({ budgetCredits: 500, autopilot: true });
+  const w2 = world([[tu("send_to_app", { app: "slack", text: "Launch is live" })]]);
+  row = await m.advanceMission(id2, w2.deps);
+  assert.equal(row.status, "waiting_approval");
+  assert.match(m.missionView(row).waiting.calls[0].summary, /Send to slack/);
+  await db.connectorLink.deleteMany({ where: { userId: U } });
+});
+
+test("the agent reads the person's canvases and library by project, and only its owner's", { skip }, async () => {
+  await db.canvas.deleteMany({ where: { userId: { in: [U, V] } } });
+  const mine = await db.canvas.create({ data: { userId: U, projectId: "p1", name: "Sneaker board", nodeCount: 2, data: { nodes: [{ id: "n1", type: "text", position: { x: 0, y: 0 }, data: { text: "A sneaker on wet asphalt" } }, { id: "n2", type: "gen", position: { x: 1, y: 1 }, data: { model: "soul_v2", ratio: "16:9" } }], edges: [{ source: "n1", target: "n2", targetHandle: "description" }] } } });
+  const theirs = await db.canvas.create({ data: { userId: V, projectId: "p9", name: "Secret", nodeCount: 0, data: { nodes: [], edges: [] } } });
+  const id = await start();
+  const { w, deps } = world([
+    [tu("list_canvases", {}), tu("read_canvas", { canvas_id: mine.id }), tu("read_canvas", { canvas_id: theirs.id })],
+    [tu("finish", { summary: "read" })],
+  ]);
+  const row = await m.advanceMission(id, deps);
+  assert.equal(row.status, "done");
+  const shown = JSON.stringify(w.seen[1]);
+  assert.match(shown, /Sneaker board/);
+  assert.match(shown, /wet asphalt/);
+  assert.match(shown, /description/);
+  assert.ok(!shown.includes("Secret"), "another person's canvas is never shown");
+  assert.match(shown, /No canvas with that id/);
+  await db.canvas.deleteMany({ where: { userId: { in: [U, V] } } });
+});

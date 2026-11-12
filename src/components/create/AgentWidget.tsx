@@ -10,7 +10,7 @@ import { diffWords, thinkingLines, type Proposal } from "@/lib/agent-proposal";
 import type { PlanState } from "@/lib/agent-plan";
 import { creditsText } from "@/lib/credit-units";
 import { listPlansFor, stopPlan } from "@/lib/agent-plan-run";
-import { actOnMission, readMission } from "@/lib/agent-mission-run";
+import { actOnMission, listMissionsFor, readMission } from "@/lib/agent-mission-run";
 import type { MissionSpec, MissionView } from "@/lib/agent-mission-spec";
 import { useAccess } from "@/lib/use-access";
 import { attachKind, readDocument } from "@/lib/attach-file";
@@ -228,6 +228,32 @@ function PlansHistory() {
         <div key={p.id} className="aw-past-row aw-plan-row">
           <button type="button" aria-expanded={openId === p.id} onClick={() => setOpenId(openId === p.id ? null : p.id)}><b>{p.plan.spec.title}</b><span>{new Date(p.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {STATUS_LABEL[p.plan.status] ?? p.plan.status}</span></button>
           {openId === p.id && <PlanCard plan={p.plan} busy={false} onApprove={() => {}} onStop={() => void stopPlan(p.id)} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Past and running missions (Scale), newest first, under the plans. Opening one shows its live card (trace, approvals, Stop).
+const MISSION_LABEL: Record<string, string> = { running: "Working", waiting_approval: "Needs your OK", waiting_user: "Needs your answer", done: "Done", failed: "Stopped with a problem", canceled: "Stopped" };
+function MissionsHistory() {
+  const [items, setItems] = useState<MissionView[] | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    const load = () => void listMissionsFor().then((l) => { if (live) setItems(l); });
+    load();
+    const t = setInterval(load, 10000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="aw-plans-hist">
+      <h4 className="aw-plans-title">Your missions</h4>
+      {items.map((m) => (
+        <div key={m.id} className="aw-past-row aw-plan-row">
+          <button type="button" aria-expanded={openId === m.id} onClick={() => setOpenId(openId === m.id ? null : m.id)}><b>{m.goal.slice(0, 60)}</b><span>{new Date(m.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {MISSION_LABEL[m.status] ?? m.status}</span></button>
+          {openId === m.id && <MissionCard spec={{ goal: m.goal, budget: Math.round(m.budget / 10), autopilot: m.autopilot }} id={m.id} busy={false} onStart={() => {}} />}
         </div>
       ))}
     </div>
@@ -472,6 +498,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                 </div>
               ))}
               {canPlans && <PlansHistory />}
+              {canPlans && <MissionsHistory />}
             </div>
           ) : (
           <>

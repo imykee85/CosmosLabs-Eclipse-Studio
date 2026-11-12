@@ -16,7 +16,7 @@ import { DIRECT_KEY, routeFor } from "./routes";
 import { arkRouteBlocked } from "./video-submit";
 import { PICKER_MODELS, capsFor, findVideoModel, isLive, videoPrice, workflowOf } from "./video-models";
 import { CORE_TOOLS, isCoreTool, runCoreTool } from "./agent-core-tools";
-import { toolDefs, runTool } from "./connect-tools";
+import { toolDefs, runTool, performSend } from "./connect-tools";
 import { realDeps, type PlanDeps, VOICE_MODEL, MUSIC_MODEL } from "./agent-plan-server";
 import { LEDGER_UNITS_PER_CREDIT } from "./credit-units";
 import { MAX_GOAL, type MissionCall, type MissionStatus, type MissionView, type TraceItem, type TraceKind } from "./agent-mission-spec";
@@ -39,8 +39,10 @@ const TOOL_MS = 45 * 1000;
 const obj = (properties: Record<string, unknown>, required: string[] = []) => ({ type: "object" as const, properties, required });
 const READ_TOOLS: Anthropic.Tool[] = [
   ...CORE_TOOLS,
-  ...toolDefs.filter((t) => t.name === "list_image_models").map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema as Anthropic.Tool["input_schema"] })),
+  ...toolDefs.filter((t) => ["list_image_models", "list_skills", "use_skill", "list_connected_apps"].includes(t.name)).map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema as Anthropic.Tool["input_schema"] })),
   { name: "list_video_models", description: "The video models you can use with make_video, with the clip lengths, aspect ratios, qualities and how many reference pictures each takes.", input_schema: obj({}) },
+  { name: "list_canvases", description: "The canvases (node boards) in the person's projects, newest first: id, name, project and how many nodes. Use it to find the board that holds their plan, prompts or references.", input_schema: obj({ project_id: { type: "string" } }) },
+  { name: "read_canvas", description: "Read one canvas: its nodes (kind, title, text/prompt, chosen picture ids, settings) and how they are wired. Use it to understand or continue the person's board. You cannot edit a canvas.", input_schema: obj({ canvas_id: { type: "string" } }, ["canvas_id"]) },
   { name: "check_job", description: "Where something you started is now: its status (pending, completed or failed) and, if it failed, why. Use it before you rely on a result, and after wait.", input_schema: obj({ kind: { type: "string", enum: ["image", "video", "audio"] }, id: { type: "string" } }, ["kind", "id"]) },
 ];
 const refs = { type: "array", maxItems: 16, description: "Pictures to build from: {\"type\":\"render\",\"id\":<generation id>} or {\"type\":\"upload\",\"id\":<upload id>}.", items: obj({ type: { type: "string", enum: ["render", "upload"] }, id: { type: "string" } }, ["type", "id"]) };
@@ -48,6 +50,7 @@ const ACTION_TOOLS: Anthropic.Tool[] = [
   { name: "make_image", description: "Make ONE picture. It costs credits, so the person approves it first (you will be told the answer). Write a full, concrete prompt. Make several pictures by calling this several times in one reply: the person approves them together.", input_schema: obj({ prompt: { type: "string" }, model: { type: "string", description: "A model id from list_image_models. Default soul_v2." }, aspect_ratio: { type: "string" }, resolution: { type: "string", description: "1k, 2k or 4k where the model has it." }, references: refs }, ["prompt"]) },
   { name: "make_video", description: "Make ONE video. It costs credits, so the person approves it first. Use pictures you made as references (render ids) so the look stays the same.", input_schema: obj({ prompt: { type: "string" }, model: { type: "string", description: "A model id from list_video_models. Default seedance_2_5." }, duration_seconds: { type: "integer", minimum: 3, maximum: 30 }, aspect_ratio: { type: "string" }, quality: { type: "string", description: "For example 480p, 720p or 1080p, as the model lists." }, sound: { type: "boolean" }, reference_picture_ids: { type: "array", maxItems: 12, items: { type: "string" }, description: "Generation ids of finished pictures to use as references, in order (image 1, image 2 ...)." } }, ["prompt", "duration_seconds"]) },
   { name: "make_voice", description: "Make a voiceover take from a script. It costs credits, so the person approves it first.", input_schema: obj({ text: { type: "string" } }, ["text"]) },
+  { name: "send_to_app", description: "Send a message (optionally with one finished picture) to an app the person connected (see list_connected_apps). It goes OUT to the world, so the person ALWAYS approves it first, even on autopilot. Write the exact text to send.", input_schema: obj({ app: { type: "string" }, text: { type: "string" }, generation_id: { type: "string", description: "A finished picture to attach (not a video)." } }, ["app", "text"]) },
   { name: "make_music", description: "Make music from a description (mood, instruments, pace; no artist names or lyrics). It costs credits, so the person approves it first.", input_schema: obj({ prompt: { type: "string" }, seconds: { type: "integer", minimum: 3, maximum: 240 } }, ["prompt"]) },
 ];
 const FLOW_TOOLS: Anthropic.Tool[] = [
@@ -68,7 +71,8 @@ How you work:
 5. Use wait while things are made. Do not poll in a tight loop.
 6. Ask the person (ask_user) only for what you truly cannot decide. Otherwise make a sensible choice and say which.
 7. Be honest. Never claim something is made, seen or checked unless a tool result told you so. If you are stuck or something keeps failing, say so plainly in finish.
-8. Keep the person's money in mind: pick the cheapest model that does the job, make as few things as the goal needs, and stay inside any budget you are told.
+8. You can read the person's Library, Gallery (search_library with a project id) and canvases (list_canvases, read_canvas), run their skills (list_skills, use_skill) and send to apps they connected (send_to_app, which ALWAYS waits for their OK, even on autopilot). Never send anything the person did not ask for or agree to.
+8b. Keep the person's money in mind: pick the cheapest model that does the job, make as few things as the goal needs, and stay inside any budget you are told.
 9. When the goal is met, call finish with a short, concrete summary (what, where, any ids) and stop.`;
 
 // ---- helpers ----
@@ -95,7 +99,9 @@ export const realMissionDeps: MissionDeps = {
   },
   async read(userId, personId, name, input) {
     if (isCoreTool(name)) return runCoreTool(userId, personId, name, input);
-    const out = await runTool(name, input, { userId, projectId: null, onRender: () => {} });
+    // skills and connected apps belong to the PERSON, not the team workspace
+    const owner = ["list_skills", "use_skill", "list_connected_apps"].includes(name) ? personId : userId;
+    const out = await runTool(name, input, { userId: owner, projectId: null, onRender: () => {} });
     return { content: out.text, isError: out.isError };
   },
 };
@@ -104,7 +110,7 @@ const withTimeout = <T,>(p: Promise<T>, ms: number, fallback: T) => new Promise<
 
 // ---- quoting and running the spending calls ----
 function videoRoute(id: string) { return routeFor(id) === "direct" && Object.keys(DIRECT_KEY).includes(id) && !(arkRouteBlocked() && id.startsWith("seedance")) ? "direct" as const : "higgsfield" as const; }
-async function quote(c: { tool: string; input: Record<string, unknown> }, userId: string, deps: MissionDeps): Promise<{ price: number | null; summary: string } | { error: string }> {
+async function quote(c: { tool: string; input: Record<string, unknown> }, userId: string, personId: string, deps: MissionDeps): Promise<{ price: number | null; summary: string } | { error: string }> {
   const i = c.input;
   if (c.tool === "make_image") {
     const m = findEnabledModel(str(i.model, 80) || "soul_v2");
@@ -122,6 +128,12 @@ async function quote(c: { tool: string; input: Record<string, unknown> }, userId
     const quality = str(i.quality, 12) || caps.defaultQuality;
     const price = process.env.CREDITS_ENABLED === "1" ? videoPrice(vm, quality, seconds, i.sound === true, videoRoute(vm.id)) : null;
     return { price, summary: `${seconds}s video with ${vm.label} (${quality}): ${str(i.prompt, 90)}` };
+  }
+  if (c.tool === "send_to_app") {
+    const app = str(i.app, 40), text = str(i.text, 3500);
+    if (!app || !text) return { error: "Give the app and the text to send." };
+    if (!(await db.connectorLink.findUnique({ where: { userId_connector: { userId: personId, connector: app } }, select: { connector: true } }))) return { error: `${app} is not connected. Use list_connected_apps.` };
+    return { price: null, summary: `Send to ${app}: ${text.slice(0, 120)}${i.generation_id ? " (with a picture)" : ""}` }; // never priced, so it always waits for the person
   }
   if (c.tool === "make_voice") {
     const voice = await deps.voice();
@@ -148,6 +160,10 @@ async function runAction(row: AgentMission, c: Call, deps: MissionDeps): Promise
     if (!r.ok) return fail(r.needsConfirm ? "The price rose above what was approved, so the video was not started." : r.error);
     return { content: JSON.stringify({ kind: "video", id: r.item.id, status: "pending", note: "Started. Videos take a few minutes: use wait, then check_job (kind video)." }), ids: [r.item.id] };
   }
+  if (c.tool === "send_to_app") {
+    const r = await performSend(row.personId ?? userId, str(i.app, 40), str(i.text, 3500), str(i.generation_id, 80) || null);
+    return r.ok ? { content: `Sent to ${r.to}.` } : fail(r.error);
+  }
   if (c.tool === "make_voice") {
     const voice = await deps.voice();
     if (!voice) return fail("A voice is not available right now.");
@@ -164,6 +180,16 @@ async function runRead(row: AgentMission, name: string, input: Record<string, un
     const list = PICKER_MODELS.filter(isLive).map((m) => { const c = capsFor(m, "t2v"); return { id: m.id, name: m.label, seconds: c.durations, aspect_ratios: c.ratios, qualities: c.qualities, default_quality: c.defaultQuality, reference_pictures_max: c.refMax }; });
     return { res: { content: JSON.stringify(list) } };
   }
+  if (name === "list_canvases") {
+    const pid = str(input.project_id, 64);
+    const rows = await db.canvas.findMany({ where: { userId: row.userId, deletedAt: null, ...(pid ? { projectId: pid } : {}) }, orderBy: { updatedAt: "desc" }, take: 30, select: { id: true, name: true, projectId: true, nodeCount: true, updatedAt: true } });
+    return { res: { content: JSON.stringify(rows.map((c) => ({ canvas_id: c.id, name: c.name, project_id: c.projectId, nodes: c.nodeCount, edited: c.updatedAt.toISOString() }))) } };
+  }
+  if (name === "read_canvas") {
+    const c = await db.canvas.findFirst({ where: { id: str(input.canvas_id, 64), userId: row.userId, deletedAt: null } });
+    if (!c) return { res: { content: "No canvas with that id. Use list_canvases.", isError: true } };
+    return { res: { content: summariseCanvas(c.name, c.data) } };
+  }
   if (name === "check_job") {
     const kind = input.kind === "video" || input.kind === "audio" ? input.kind : "image";
     const id = str(input.id, 80);
@@ -177,6 +203,20 @@ async function runRead(row: AgentMission, name: string, input: Record<string, un
     return { res: { content: text || "Done.", isError: r.isError }, blocks: r.content };
   }
   return { res: { content: String(r.content), isError: r.isError } };
+}
+
+/** A canvas as the agent reads it: what each node is and says, and the wires. Pictures are ids only; results are not repeated. */
+export function summariseCanvas(name: string, data: unknown): string {
+  const d = (data && typeof data === "object" ? data : {}) as { nodes?: unknown; edges?: unknown };
+  const nodes = (Array.isArray(d.nodes) ? d.nodes : []).slice(0, 80) as { id?: string; type?: string; data?: Record<string, unknown> }[];
+  const edges = (Array.isArray(d.edges) ? d.edges : []).slice(0, 200) as { source?: string; target?: string; targetHandle?: string }[];
+  const t = (v: unknown, n = 300) => (typeof v === "string" ? v.slice(0, n) : undefined);
+  const out = nodes.map((n) => {
+    const x = n.data ?? {};
+    const ref = (x.ref && typeof x.ref === "object" ? (x.ref as { id?: unknown }).id : undefined) as string | undefined;
+    return { id: n.id, kind: n.type, ...(t(x.title, 80) ? { title: t(x.title, 80) } : {}), ...(t(x.text) ? { text: t(x.text) } : {}), ...(t(x.desc) ? { description: t(x.desc) } : {}), ...(t(x.style, 120) ? { style: t(x.style, 120) } : {}), ...(typeof ref === "string" ? { picture_id: ref } : {}), ...(typeof x.duration === "number" ? { seconds: x.duration } : {}), ...(t(x.model, 60) ? { model: t(x.model, 60) } : {}), ...(t(x.ratio, 12) ? { aspect_ratio: t(x.ratio, 12) } : {}) };
+  });
+  return JSON.stringify({ name, nodes: out, wires: edges.map((e) => ({ from: e.source, to: e.target, port: e.targetHandle })) });
 }
 
 // ---- one pass ----
@@ -274,7 +314,7 @@ async function pass(row: AgentMission, deps: MissionDeps): Promise<Patch> {
         else if (tu.name === "ask_user") { ask = str(input.question, 600) || "What would you like?"; }
         else if (tu.name === "wait") { sleep = Math.min(240, Math.max(5, Math.round(Number(input.seconds)) || 30)); results[tu.id] = { content: `Waited ${sleep} seconds.` }; trace.push(item("note", `Waiting ${sleep}s${str(input.reason, 80) ? ` — ${str(input.reason, 80)}` : ""}`)); }
         else if (ACTION_NAMES.has(tu.name)) {
-          const q = await quote({ tool: tu.name, input }, row.userId, deps);
+          const q = await quote({ tool: tu.name, input }, row.userId, row.personId ?? row.userId, deps);
           if ("error" in q) { results[tu.id] = { content: q.error, isError: true }; trace.push(item("error", q.error)); }
           else actions.push({ id: tu.id, tool: tu.name, input, price: q.price, summary: q.summary });
         } else {
