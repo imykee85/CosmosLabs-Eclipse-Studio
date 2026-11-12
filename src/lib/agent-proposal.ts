@@ -55,5 +55,6 @@ export const THINKING_AUDIO = ["Tuning the voice", "Finding the rhythm", "Mixing
 export function thinkingLines(page: string | undefined): string[] {
   if (page === "studio") return [...THINKING_GENERAL, ...THINKING_IMAGE];
   if (page === "video") return [...THINKING_GENERAL, ...THINKING_VIDEO];
+  if (page === "voice") return [...THINKING_GENERAL, ...THINKING_AUDIO];
   return THINKING_GENERAL;
 }

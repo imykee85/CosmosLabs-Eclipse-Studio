@@ -28,6 +28,7 @@ export function ModeTabs({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => vo
   );
 }
 
+export const FILL_EVENT = "eclipse-voice-fill";
 type Props = { models: VoiceModel[]; onStart: (body: Record<string, unknown>) => Promise<string | null>; setError: (e: string) => void };
 
 function useModel(models: VoiceModel[], key: string) {
@@ -151,6 +152,13 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
   const [format, setFormat] = useState("wav");
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
+  // Atlas fills this box (and may start it) through an event from Audio Studio.
+  const [autoGo, setAutoGo] = useState(false);
+  useEffect(() => {
+    const on = (e: Event) => { const d = (e as CustomEvent).detail as { kind: string; text: string; go?: boolean }; if (d.kind !== kind) return; setText(d.text); if (d.go) setAutoGo(true); };
+    window.addEventListener(FILL_EVENT, on); return () => window.removeEventListener(FILL_EVENT, on);
+  }, [kind]);
+  useEffect(() => { if (autoGo) { setAutoGo(false); void go(); } });
   const lengths = useMemo(() => (music ? MUSIC_LENGTHS : (model?.options.maxSeconds ?? 30) > 30 ? SFX_LONG_LENGTHS : SFX_LENGTHS).filter((s) => s >= (model?.options.minSeconds ?? 0) && s <= (model?.options.maxSeconds ?? 9999)), [music, model]);
   useEffect(() => { if (len != null && lengths.length && !lengths.includes(len)) setLen(lengths.includes(60) ? 60 : lengths[lengths.length - 1]); }, [lengths, len]);
   // A model that needs a length (Mirelo) has no Auto: pick 5 seconds when none is set. Variants and format follow what the model offers.

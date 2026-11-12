@@ -24,7 +24,7 @@ export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: 
 export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
 
 export type AgentHost = {
-  page: "studio" | "canvas" | "treatment" | "video" | "core" | "design";
+  page: "studio" | "canvas" | "treatment" | "video" | "core" | "design" | "voice";
   // Everything on and in the prompt box, as the person sees it: the text, the other settings, the pictures and clips attached (ids only: the server
   // loads the pictures itself, owner-checked, and shows them to the agent), and the message showing on the box's top edge (an error or a notice).
   context: () => { prompt: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[]; videos?: { id: string; label: string; role?: string }[] };

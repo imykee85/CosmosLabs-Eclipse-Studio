@@ -243,3 +243,5 @@
 /* Idle: lock the document itself (iPhone Safari rubber-bands even when the content fits). */
 html:has(.vc.is-idle), html:has(.vc.is-idle) body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
 html:has(.vc.is-idle) body { position: fixed; inset: 0; width: 100%; }
+.vc-modebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.vc-agent { flex: none; }
