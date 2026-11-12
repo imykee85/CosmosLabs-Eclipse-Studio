@@ -6,6 +6,8 @@ import { refreshCredits } from "@/lib/use-credits";
 import { buildProposal, type Proposal } from "./agent-proposal";
 import { newPlan, type PlanSpec, type PlanState } from "./agent-plan";
 import { quotePlan, readPlan, startPlan, stopPlan } from "./agent-plan-run";
+import { startMissionRun } from "./agent-mission-run";
+import type { MissionSpec } from "./agent-mission-spec";
 
 // The conversation between the user and a studio agent. One chat per agent, kept in this browser and shared live by everything that shows it
 // (the floating agent's card, the Image Studio prompt box, a canvas generator). The agent only PROPOSES: its replies carry buttons, and the screen the
@@ -16,7 +18,7 @@ export type Frame = { id: string; label: string; sec: number; used?: string };
 // A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
 export type Attach = { kind: "picture" | "video"; id: string; name: string };
 export type AttachedDoc = { name: string; text?: string; pdf?: string };
-export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; proposal?: Proposal; plan?: PlanState; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
+export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; proposal?: Proposal; plan?: PlanState; mission?: { spec: MissionSpec; id?: string; error?: string }; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
 
 // What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
 export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
@@ -127,7 +129,7 @@ function addTo(agent: string, m: Omit<Msg, "id">) { write(agent, [...read(agent)
 // Shows a finished reply in the chat it belongs to, and applies the box settings it chose when the same screen is still open.
 function showReply(agent: string, page: string, status: number, body: Record<string, unknown>) {
   if (status !== 200) { addTo(agent, { role: "agent", text: typeof body.error === "string" ? body.error : "The agent couldn't answer. Please try again.", error: true }); return; }
-  const data = body as { text?: string; actions?: Omit<Act, "id">[]; frames?: Frame[]; controls?: ControlPatch; plan?: PlanSpec };
+  const data = body as { text?: string; actions?: Omit<Act, "id">[]; frames?: Frame[]; controls?: ControlPatch; plan?: PlanSpec; mission?: MissionSpec };
   const all: Act[] = Array.isArray(data.actions) ? data.actions.map((a) => ({ ...a, id: uid() })) : [];
   const frames: Frame[] = Array.isArray(data.frames) ? data.frames.filter((f) => f && typeof f.id === "string").slice(0, 8).map((f) => ({ id: f.id, label: String(f.label ?? "Frame"), sec: Number(f.sec) || 0 })) : [];
   // A new prompt and/or new box settings become ONE proposal card (Apply, Apply and generate); nothing is changed until the person presses a button.
@@ -135,8 +137,9 @@ function showReply(agent: string, page: string, status: number, body: Record<str
   const proposal = buildProposal(page, data.controls as Record<string, unknown> | undefined, all, ctx);
   const actions = proposal ? all.filter((a) => a.kind === "reply") : all;
   const planSpec = data.plan && typeof data.plan === "object" ? data.plan : null;
+  const missionSpec = data.mission && typeof data.mission === "object" && typeof data.mission.goal === "string" ? data.mission : null;
   const id = uid();
-  write(agent, [...read(agent), { id, role: "agent", text: String(data.text ?? ""), actions, ...(proposal ? { proposal } : {}), ...(frames.length ? { frames } : {}), ...(planSpec ? { plan: newPlan(planSpec) } : {}) } as Msg]);
+  write(agent, [...read(agent), { id, role: "agent", text: String(data.text ?? ""), actions, ...(proposal ? { proposal } : {}), ...(frames.length ? { frames } : {}), ...(planSpec ? { plan: newPlan(planSpec) } : {}), ...(missionSpec ? { mission: { spec: missionSpec } } : {}) } as Msg]);
   // The price of the whole plan is worked out from the models' own prices and shown on the card.
   if (planSpec) void quotePlan(planSpec).then((q) => patchPlan(agent, id, (cur) => (cur.status === "ready" ? { ...q } : cur)));
 }
@@ -169,6 +172,13 @@ export async function approvePlan(agent: string, msgId: string) {
   if ("error" in r) { patchPlan(agent, msgId, (p) => ({ ...p, note: r.error })); return; }
   patchPlan(agent, msgId, (p) => ({ ...r.plan, id: r.id, spec: p.spec }));
   void followPlan(agent, msgId, r.id);
+}
+/** The person pressed Start mission: the server saves the goal and works on it (it carries on if the app is closed). */
+export async function startMission(agent: string, msgId: string) {
+  const m = read(agent).find((x) => x.id === msgId);
+  if (!m?.mission || m.mission.id) return;
+  const r = await startMissionRun(m.mission.spec);
+  write(agent, read(agent).map((x) => (x.id === msgId && x.mission ? { ...x, mission: "error" in r ? { ...x.mission, error: r.error } : { ...x.mission, id: r.id, error: undefined } } : x)));
 }
 export function cancelPlan(agent: string, msgId: string) {
   const id = read(agent).find((x) => x.id === msgId)?.plan?.id;
@@ -382,7 +392,7 @@ export function useAgentChat(agent: string | null) {
     write(agent, hit.messages);
   }, [agent]);
   const deletePast = useCallback((id: string) => { if (agent) writePast(agent, readPast(agent).filter((c) => c.id !== id)); }, [agent]);
-  return { messages, busy, stop: () => void stopAgent(agent ?? ""), send, approvePlan: (id: string) => approvePlan(agent ?? "", id), cancelPlan: (id: string) => cancelPlan(agent ?? "", id), retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
+  return { messages, busy, stop: () => void stopAgent(agent ?? ""), send, approvePlan: (id: string) => approvePlan(agent ?? "", id), startMission: (id: string) => startMission(agent ?? "", id), cancelPlan: (id: string) => cancelPlan(agent ?? "", id), retry, resend, run, applyProposal, useFrame, introduce, clear, past, newChat, openPast, deletePast };
 }
 
 /** True when the screen the user is on can take a captured frame into its prompt box. */

@@ -21,7 +21,7 @@ export const FEATURE_MIN: Record<Feature, PlanId> = {
   core: "growth",          // chat, skills, tools, memory, connectors
   builds: "scale",         // build-with-Core (cloud computer)
   workflows: "scale",      // automated workflows: NOT built yet, shown as Soon
-  plans: "scale",          // Atlas multi-step plans: one approval runs a whole production (pictures, then a video from them)
+  plans: "scale",          // Atlas multi-step plans and missions: one approval runs a whole production; a mission works on a goal on the server until it is done
   shotmap: "growth",       // ShotMap: direct a shot in 3D, then generate it from the guide video (owner 2026-11-05: Growth and up)
   premium: "growth",       // the crowned collections on the dashboard: the owner's pictures, videos and the prompts behind them
 };
@@ -70,6 +70,6 @@ export const BENEFITS: Benefit[] = [
   { label: "Every video model, 1080p and 4K", min: "scale" },
   { label: "No daily limit on Core", min: "scale" },
   { label: "Build your own tools with Core", min: "scale" },
-  { label: "Atlas plans: one approval runs a whole production", min: "scale" },
+  { label: "Atlas missions: it works on a goal until it is done", min: "scale" },
   { label: "Automated workflows", min: "scale", soon: true },
 ];

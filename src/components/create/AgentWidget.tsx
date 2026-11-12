@@ -10,6 +10,8 @@ import { diffWords, thinkingLines, type Proposal } from "@/lib/agent-proposal";
 import type { PlanState } from "@/lib/agent-plan";
 import { creditsText } from "@/lib/credit-units";
 import { listPlansFor, stopPlan } from "@/lib/agent-plan-run";
+import { actOnMission, readMission } from "@/lib/agent-mission-run";
+import type { MissionSpec, MissionView } from "@/lib/agent-mission-spec";
 import { useAccess } from "@/lib/use-access";
 import { attachKind, readDocument } from "@/lib/attach-file";
 import { uploadPicture, uploadVideo } from "@/lib/use-uploads";
@@ -123,6 +125,85 @@ function PlanCard({ plan, busy, onApprove, onStop }: { plan: PlanState; busy: bo
         {plan.status === "done" && <span className="aw-plan-done">All done. It is in your Gallery.</span>}
         {plan.status === "canceled" && <span className="aw-plan-done">Stopped.</span>}
       </div>
+    </div>
+  );
+}
+
+// A mission Atlas proposed (Scale): Start mission, then the live trace (what it does, step by step), Approve / Decline on its spending requests, an answer box when it asks, and Stop.
+function MissionCard({ spec, id, error, busy, onStart }: { spec: MissionSpec; id?: string; error?: string; busy: boolean; onStart: () => void }) {
+  const [view, setView] = useState<MissionView | null>(null);
+  const [reply, setReply] = useState("");
+  const [err, setErr] = useState("");
+  const [working, setWorking] = useState(false);
+  const live = !view || view.status === "running" || view.status.startsWith("waiting");
+  useEffect(() => {
+    if (!id || !live) return;
+    let stop = false;
+    const look = async () => {
+      const v = await readMission(id);
+      if (stop) return;
+      if (v === "gone") { setErr("This mission can no longer be found."); return; }
+      if (v) setView(v);
+    };
+    void look();
+    const t = setInterval(() => { if (document.visibilityState === "visible") void look(); }, 4000);
+    return () => { stop = true; clearInterval(t); };
+  }, [id, live]);
+  const act = async (b: Parameters<typeof actOnMission>[1]) => {
+    if (!id) return;
+    setWorking(true); setErr("");
+    const r = await actOnMission(id, b);
+    setWorking(false);
+    if ("error" in r) setErr(r.error); else { setView(r); setReply(""); }
+  };
+  const w = view?.waiting;
+  const shown = view?.trace.filter((t) => t.kind !== "result").slice(-12) ?? [];
+  return (
+    <div className="aw-prop aw-mission">
+      <div className="aw-plan-title">Mission</div>
+      <p className="aw-mission-goal">{spec.goal}</p>
+      {!id && (
+        <>
+          <p className="aw-plan-note">{spec.autopilot && spec.budget > 0 ? `Atlas may commit up to ${spec.budget} credits on its own. Anything beyond that waits for you.` : "Atlas asks before every spend."} It keeps going if you close the app.</p>
+          {error && <p className="aw-plan-note aw-plan-err">{error}</p>}
+          <div className="aw-prop-btns"><button type="button" className="aw-prop-gen" disabled={busy} onClick={onStart}>Start mission</button></div>
+        </>
+      )}
+      {id && (
+        <>
+          <ol className="aw-mission-trace" aria-live="polite">
+            {shown.map((t, i) => <li key={i} className={`k-${t.kind}`}>{t.text}</li>)}
+            {!view && <li className="k-note">Starting…</li>}
+          </ol>
+          {view && view.committed > 0 && <div className="aw-plan-price">Committed {creditsText(view.committed)}</div>}
+          {w?.kind === "approval" && (
+            <div className="aw-mission-ask">
+              <ul>{w.calls?.map((c) => <li key={c.id}>{c.summary}{c.price != null ? ` · ${creditsText(c.price)}` : ""}</li>)}</ul>
+              {w.total != null && <div className="aw-plan-price">Total {creditsText(w.total)}</div>}
+              <div className="aw-prop-btns">
+                <button type="button" className="aw-prop-gen" disabled={working} onClick={() => void act({ action: "approve" })}>Approve</button>
+                <button type="button" className="aw-prop-apply" disabled={working} onClick={() => void act({ action: "decline" })}>Decline</button>
+              </div>
+            </div>
+          )}
+          {(w?.kind === "question" || w?.kind === "chat") && (
+            <form className="aw-mission-ask" onSubmit={(e) => { e.preventDefault(); if (reply.trim()) void act({ action: "reply", text: reply }); }}>
+              <p>{w.question}</p>
+              <div className="aw-mission-reply">
+                <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Your answer" aria-label="Your answer" />
+                <button type="submit" className="aw-prop-gen" disabled={working || !reply.trim()}>Send</button>
+              </div>
+            </form>
+          )}
+          {view?.summary && <p className="aw-plan-note">{view.summary}</p>}
+          {err && <p className="aw-plan-note aw-plan-err">{err}</p>}
+          <div className="aw-prop-btns">
+            {live && view && <button type="button" className="aw-prop-apply" disabled={working} onClick={() => void act({ action: "cancel" })}>Stop mission</button>}
+            {view?.status === "done" && <span className="aw-plan-done">Finished. What it made is in your Gallery.</span>}
+            {view?.status === "canceled" && <span className="aw-plan-done">Stopped.</span>}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -444,6 +525,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
                     ))}
                   </div>
                 )}
+                {m.mission && <MissionCard spec={m.mission.spec} id={m.mission.id} error={m.mission.error} busy={chat.busy} onStart={() => void chat.startMission(m.id)} />}
                 {m.plan && <PlanCard plan={m.plan} busy={chat.busy} onApprove={() => void chat.approvePlan(m.id)} onStop={() => chat.cancelPlan(m.id)} />}
                 {m.proposal && <ProposalCard p={m.proposal} busy={chat.busy} onApply={(g) => void chat.applyProposal(m.id, g)} />}
                 {m.actions && m.actions.length > 0 && (

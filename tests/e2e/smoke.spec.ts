@@ -275,6 +275,52 @@ test.describe("Atlas panel", () => {
   });
 });
 
+test.describe("Atlas missions", () => {
+  test("a mission card starts on Start, shows what the agent does, asks for approval, and Approve and Stop reach the server", async ({ page }) => {
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem("seeded")) return;
+      sessionStorage.setItem("seeded", "1");
+      localStorage.setItem("eclipse-project", JSON.stringify({ id: "p1", name: "Demo" }));
+      localStorage.setItem("eclipse-projects", JSON.stringify([{ id: "p1", name: "Demo", updatedAt: new Date().toISOString(), deletedAt: null }]));
+      localStorage.setItem("eclipse-agent", "Atlas");
+      for (const pg of ["create", "generate", "connect", "canvas", "treatment", "prompts"]) localStorage.setItem(`eclipse-agent-on:${pg}`, "1");
+    });
+    await page.route("**/api/**", (r) => r.fulfill({ json: { items: [], renders: [], entries: [], balance: 0, missions: [], plans: [] } }));
+    await page.route("**/api/models**", (r) => r.fulfill({ json: { models: [] } }));
+    await page.route("**/api/video/config", (r) => r.fulfill({ json: { creditsOn: false, direct: [] } }));
+    await page.route("**/api/agent/chat", (r) => r.fulfill({ json: { runId: "r1" } }));
+    await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE" ? r.fulfill({ json: { ok: true } }) : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "Here is the mission.", actions: [], mission: { goal: "Build a three picture lookbook for my sneaker and check every picture", budget: 0, autopilot: false } } } } }));
+    const posted: unknown[] = [];
+    let state = "start";
+    const base = { id: "ms1", goal: "Build a three picture lookbook for my sneaker and check every picture", createdAt: new Date().toISOString(), committed: 0, budget: 0, autopilot: false };
+    const view = () => state === "start"
+      ? { ...base, status: "running", trace: [{ at: "t", kind: "note", text: "Mission started." }] }
+      : state === "wait"
+        ? { ...base, status: "waiting_approval", trace: [{ at: "t", kind: "say", text: "Plan: make three pictures." }, { at: "t", kind: "approval", text: "Waiting for your OK" }], waiting: { kind: "approval", total: 30, calls: [{ id: "c1", tool: "make_image", summary: "Picture with Soul 2: A sneaker on wet asphalt", price: 10 }] } }
+        : { ...base, status: "canceled", trace: [{ at: "t", kind: "note", text: "Stopped by you." }], summary: "Stopped." };
+    await page.route("**/api/agent/missions", (r) => { if (r.request().method() === "POST") { posted.push(r.request().postDataJSON()); return r.fulfill({ json: view() }); } return r.fulfill({ json: { missions: [] } }); });
+    await page.route("**/api/agent/missions/ms1", (r) => { if (r.request().method() === "POST") { const b = r.request().postDataJSON(); posted.push(b); if (b.action === "approve") state = "start"; if (b.action === "cancel") state = "stop"; } return r.fulfill({ json: view() }); });
+    await page.goto("/create");
+    await page.click(".aw-btn");
+    await page.fill(".aw-input textarea", "Make a lookbook for my sneaker");
+    await page.click('.aw-input button[type="submit"]');
+    const card = page.locator(".aw-mission");
+    await expect(card).toBeVisible({ timeout: 20000 });
+    expect(posted).toHaveLength(0); // nothing starts until Start mission
+    await card.getByRole("button", { name: "Start mission" }).click();
+    await expect.poll(() => posted.length).toBe(1);
+    expect((posted[0] as { goal: string; projectId: string }).projectId).toBe("p1");
+    state = "wait";
+    await expect(card.getByText("Picture with Soul 2")).toBeVisible({ timeout: 15000 });
+    await expect(card.getByRole("button", { name: "Approve" })).toBeVisible();
+    await card.getByRole("button", { name: "Approve" }).click();
+    await expect.poll(() => posted.some((p) => (p as { action?: string }).action === "approve")).toBe(true);
+    await card.getByRole("button", { name: "Stop mission" }).click();
+    await expect.poll(() => posted.some((p) => (p as { action?: string }).action === "cancel")).toBe(true);
+    await expect(card.getByText("Stopped.").first()).toBeVisible({ timeout: 15000 });
+  });
+});
+
 test.describe("Atlas plans", () => {
   const seed = async (page: import("@playwright/test").Page) => {
     await page.addInitScript(() => {

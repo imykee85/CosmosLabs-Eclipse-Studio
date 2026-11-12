@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { cleanPlan, type PlanRef, type PlanSpec } from "./agent-plan";
+import { cleanMission, type MissionSpec } from "./agent-mission-spec";
 
 // Turns the model's answer into what the browser shows: the text and the buttons made from its tool calls. Kept apart from the route so it can be tested.
 export type Action = { kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number };
@@ -32,9 +33,10 @@ export function cleanControls(i: Record<string, unknown>): Controls {
   return c;
 }
 
-export function buildReply(content: Anthropic.ContentBlock[], stopReason: string | null | undefined, pictures: PlanRef[] = []): { text: string; actions: Action[]; controls: Controls; plan?: PlanSpec } {
+export function buildReply(content: Anthropic.ContentBlock[], stopReason: string | null | undefined, pictures: PlanRef[] = []): { text: string; actions: Action[]; controls: Controls; plan?: PlanSpec; mission?: MissionSpec } {
   let text = "";
   let plan: PlanSpec | undefined;
+  let mission: MissionSpec | undefined;
   const actions: Action[] = [];
   let controls: Controls = {};
   for (const b of content) {
@@ -47,6 +49,7 @@ export function buildReply(content: Anthropic.ContentBlock[], stopReason: string
         actions.push({ kind: "generate", label: n && n > 1 ? `Generate ${n}` : "Generate", prompt, count: n });
       } else if (b.name === "suggest_prompt" && prompt) actions.push({ kind: "use_prompt", label: "Use this prompt", prompt });
       else if (b.name === "propose_plan") plan = cleanPlan(i, pictures) ?? plan;
+      else if (b.name === "propose_mission") mission = cleanMission(i) ?? mission;
       else if (b.name === "set_prompt_box") controls = { ...controls, ...cleanControls(i) };
       else if (b.name === "ask_approval" && Array.isArray(i.options)) for (const o of i.options.slice(0, 4)) { const l = clip(o, 40); if (l) actions.push({ kind: "reply", label: l }); }
     }
@@ -54,7 +57,7 @@ export function buildReply(content: Anthropic.ContentBlock[], stopReason: string
   text = text.trim();
   // An answer that ran out of room can lose its buttons: never leave the person looking for something that is not there.
   if (stopReason === "max_tokens" && !actions.length) text += `${text ? "\n\n" : ""}My answer was cut off before I could attach the buttons. Ask me to send it again, shorter.`;
-  if (!text && !actions.length && plan) text = "Here is the plan.";
-  if (!text && !actions.length && !plan) text = Object.keys(controls).length ? "Done." : "I don't have anything to add yet. Tell me a bit more.";
-  return { text, actions, controls, ...(plan ? { plan } : {}) };
+  if (!text && !actions.length && (plan || mission)) text = mission ? "Here is the mission." : "Here is the plan.";
+  if (!text && !actions.length && !plan && !mission) text = Object.keys(controls).length ? "Done." : "I don't have anything to add yet. Tell me a bit more.";
+  return { text, actions, controls, ...(plan ? { plan } : {}), ...(mission ? { mission } : {}) };
 }
