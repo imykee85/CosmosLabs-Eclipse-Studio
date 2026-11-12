@@ -3,7 +3,7 @@ import { clerkEnabled } from "@/lib/clerk-enabled";
 import { gateFeature } from "@/lib/access";
 import { workspaceSession } from "@/lib/workspace";
 import { db } from "@/lib/db";
-import { MODELS_3D, price3D } from "@/lib/design/models3d";
+import { price3D, visible3D } from "@/lib/design/models3d";
 import { finalize3D, start3D, toItem3D } from "@/lib/design/jobs3d";
 import { creditsOn } from "@/lib/billing";
 import { toCredits } from "@/lib/credit-units";
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 }
 
 function catalog() {
-  return MODELS_3D.map((m) => ({ id: m.id, label: m.label, maker: m.maker, modes: m.modes, minImages: m.minImages, maxImages: m.maxImages, blurb: m.blurb, polyMin: m.polyMin, polyMax: m.polyMax, polyDefault: m.polyDefault, rig: m.rig === true, credits: creditsOn() ? toCredits(price3D(m)) : null }));
+  return visible3D().map((m) => ({ id: m.id, label: m.label, maker: m.maker, modes: m.modes, minImages: m.minImages, maxImages: m.maxImages, blurb: m.blurb, polyMin: m.polyMin, polyMax: m.polyMax, polyDefault: m.polyDefault, rig: m.rig === true, credits: creditsOn() ? toCredits(price3D(m)) : null }));
 }
 
 export async function POST(req: Request) {

@@ -14,7 +14,8 @@ import { deliverReferences, resolveReferences, type ReferenceRef } from "../refe
 import { safeText } from "../safe-text";
 import { deleteObject, putObject, storageEnabled } from "../storage";
 import { claimUsage } from "../usage";
-import { MAX_PROMPT_3D, buildBody3D, cleanOptions, find3D, path3D, price3D, type Mode3D } from "./models3d";
+import { MAX_PROMPT_3D, buildBody3D, cleanOptions, find3D, isOn3D, path3D, price3D, type Mode3D } from "./models3d";
+import { ARK_PREFIX, glbFromZip, statusArk, submitArk } from "./ark3d";
 
 const TIMEOUT_MS = 20 * 60_000, SAVING_STALE_MS = 5 * 60_000, START_GRACE_MS = 2 * 60_000, MAX_FILE = 80 * 1024 * 1024;
 export const MAX_RUNNING_3D = 2;
@@ -30,7 +31,7 @@ const bad = (status: number, error: string): Start3DResult => ({ ok: false, stat
 
 export async function start3D(i: { userId: string; model: unknown; mode: unknown; prompt: unknown; refs: unknown; options: unknown; name?: unknown; projectId?: unknown }): Promise<Start3DResult> {
   const m = find3D(i.model);
-  if (!m) return bad(400, "Choose a model.");
+  if (!m || !isOn3D(m)) return bad(400, "Choose a model.");
   const mode = (i.mode === "text" || i.mode === "multi" || i.mode === "image" ? i.mode : "image") as Mode3D;
   if (!m.modes.includes(mode)) return bad(400, `${m.label} does not make models from ${mode === "text" ? "words" : "pictures"} that way.`);
   if (!storageEnabled) return bad(503, "Saving models is not available yet. Please try again later.");
@@ -57,7 +58,8 @@ export async function start3D(i: { userId: string; model: unknown; mode: unknown
   if (!("row" in made)) return { ok: false, status: 402, error: outOfCredits("This model", cost, made.have, made.held, false, made.locked), code: "CREDITS" };
   let row = made.row;
   try {
-    const sub = await submitVideo(path3D(m), buildBody3D(m, mode, { prompt, urls, options }), idemKey);
+    const body = buildBody3D(m, mode, { prompt, urls, options });
+    const sub = m.route === "ark" ? await submitArk(body) : await submitVideo(path3D(m), body, idemKey);
     row = await db.model3D.update({ where: { id: row.id }, data: { statusUrl: sub.statusUrl, requestId: sub.requestId || null } });
   } catch (err) {
     console.error("3D model start failed", row.id, err);
@@ -76,8 +78,9 @@ export function pickGlbUrl(v: unknown, depth = 0): string | null {
   if (typeof v === "object") { for (const x of Object.values(v as object)) { const u = pickGlbUrl(x, depth + 1); if (u) return u; } }
   return null;
 }
-export type Status3D = { state: "waiting" } | { state: "done"; url: string } | { state: "failed"; detail?: string } | { state: "refused" };
+export type Status3D = { state: "waiting" } | { state: "done"; url: string; zipped?: boolean; usage?: unknown } | { state: "failed"; detail?: string } | { state: "refused" };
 export async function status3D(statusUrl: string): Promise<Status3D> {
+  if (statusUrl.startsWith(ARK_PREFIX)) { const a = await statusArk(statusUrl); return a.state === "done" ? { state: "done", url: a.url, zipped: true, usage: a.usage } : a.state === "failed" ? (a.refused ? { state: "refused" } : { state: "failed", detail: a.detail }) : a; }
   const res = await fetch(checked(statusUrl), { headers: headers(), signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`status check failed (${res.status})`);
   const job = (await res.json()) as Raw;
@@ -94,15 +97,16 @@ async function fail(r: Model3D, error: string): Promise<Model3D> {
 }
 const fresh = async (r: Model3D) => (await db.model3D.findUnique({ where: { id: r.id } })) ?? r;
 
-async function fetchGlb(url: string): Promise<Uint8Array> {
+async function fetchGlb(url: string, zipped = false): Promise<Uint8Array> {
   const u = new URL(url);
   if (u.protocol !== "https:") throw new Error("not https");
   const res = await fetch(u, { signal: AbortSignal.timeout(60_000), redirect: "follow" });
   if (!res.ok) throw new Error(`download ${res.status}`);
   const len = Number(res.headers.get("content-length") ?? 0);
-  if (len > MAX_FILE) throw new Error("file too large");
-  const buf = new Uint8Array(await res.arrayBuffer());
-  if (buf.length > MAX_FILE) throw new Error("file too large");
+  if (len > (zipped ? 2 * MAX_FILE : MAX_FILE)) throw new Error("file too large");
+  let buf: Uint8Array = new Uint8Array(await res.arrayBuffer());
+  if (buf.length > (zipped ? 2 * MAX_FILE : MAX_FILE)) throw new Error("file too large");
+  if (zipped) buf = glbFromZip(buf, MAX_FILE); // the ByteDance cloud answers with a zip holding the file
   if (buf.length < 12 || String.fromCharCode(buf[0], buf[1], buf[2], buf[3]) !== "glTF") throw new Error("not a glb file");
   return buf;
 }
@@ -125,7 +129,7 @@ export async function finalize3D(r: Model3D): Promise<Model3D> {
   if (claim.count === 0) return fresh(r);
   const key = `models3d/${r.userId}/${r.id}.glb`;
   let size = 0;
-  try { const bytes = await fetchGlb(s.url); size = bytes.length; await putObject(key, bytes, "model/gltf-binary"); } catch (err) {
+  try { const bytes = await fetchGlb(s.url, s.zipped); size = bytes.length; await putObject(key, bytes, "model/gltf-binary"); } catch (err) {
     console.error("saving the 3D model failed", r.id, err);
     const p = (r.params && typeof r.params === "object" ? r.params : {}) as Record<string, unknown>, tries = Number(p.copyTries ?? 0) + 1;
     if (tries >= 4) return fail(r, "The model was made but could not be saved. Nothing was charged.");
@@ -133,7 +137,9 @@ export async function finalize3D(r: Model3D): Promise<Model3D> {
     return fresh(r);
   }
   if (r.creditsHeld && r.creditsHeld > 0) { try { await spendCredits(r.userId, r.creditsHeld, `${find3D(r.model)?.label ?? "3D"} model`); } catch (err) { console.error("charging for a 3D model failed", r.id, err); } }
-  await db.model3D.update({ where: { id: r.id }, data: { status: "completed", storageKey: key, sizeBytes: size, finishedAt: new Date(), error: null } });
+  const done = (r.params && typeof r.params === "object" ? r.params : {}) as Record<string, unknown>;
+  // The maker's own usage numbers (tokens) are kept so the real cost of each model can be worked out and the registry price corrected.
+  await db.model3D.update({ where: { id: r.id }, data: { status: "completed", storageKey: key, sizeBytes: size, finishedAt: new Date(), error: null, ...(s.usage != null ? { params: { ...done, usage: s.usage } as object } : {}) } });
   return fresh(r);
 }
 
