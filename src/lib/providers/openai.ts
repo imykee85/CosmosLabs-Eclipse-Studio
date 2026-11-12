@@ -19,14 +19,23 @@ export function openaiSize(ratio: string | undefined, tier: string | undefined, 
   return aspect >= 1 ? `${round16(long)}x${round16(long / aspect)}` : `${round16(long * aspect)}x${round16(long)}`;
 }
 
+// What one render really cost, from the usage numbers OpenAI returns (tokens) and the model's per-million prices. Null when the usage cannot be read.
+export function openaiCostUsd(usage: unknown, price: { textIn: number; imageIn: number; imageOut: number } | undefined): number | null {
+  if (!price || !usage || typeof usage !== "object") return null;
+  const u = usage as { input_tokens?: number; output_tokens?: number; input_tokens_details?: { text_tokens?: number; image_tokens?: number } };
+  if (typeof u.output_tokens !== "number") return null;
+  const imageIn = u.input_tokens_details?.image_tokens ?? 0, textIn = u.input_tokens_details?.text_tokens ?? Math.max(0, (u.input_tokens ?? 0) - imageIn);
+  return Math.round(((textIn * price.textIn + imageIn * price.imageIn + u.output_tokens * price.imageOut) / 1_000_000) * 1e6) / 1e6;
+}
+
 // An opaque id for OpenAI's abuse monitoring: never the real user id.
 export const openaiUser = (userId: string) => "u_" + createHash("sha256").update(userId).digest("hex").slice(0, 24);
 
 export function openaiRequest(input: SyncGenerateInput): { path: string; body: Record<string, unknown> } {
-  const common = { model: input.apiModel, prompt: input.prompt, n: 1, size: openaiSize(input.aspectRatio, input.resolution, input.sizing), quality: QUALITY, output_format: "png", ...(input.user ? { user: input.user } : {}) };
+  const common = { model: input.apiModel, prompt: input.prompt, n: 1, size: openaiSize(input.aspectRatio, input.resolution, input.sizing), quality: input.quality ?? QUALITY, output_format: "png", ...(input.user ? { [input.safetyId ? "safety_identifier" : "user"]: input.user } : {}) };
   if (input.references.length === 0) return { path: "/images/generations", body: common };
   const dataUrl = (r: { contentType: string; bytes: Uint8Array }) => `data:${r.contentType};base64,${Buffer.from(r.bytes).toString("base64")}`;
-  return { path: "/images/edits", body: { ...common, images: input.references.map((r) => ({ image_url: dataUrl(r) })), ...(input.mask ? { mask: { image_url: dataUrl(input.mask) } } : {}) } };
+  return { path: "/images/edits", body: { ...common, ...(input.complexity ? { complexity: input.complexity } : {}), images: input.references.map((r) => ({ image_url: dataUrl(r) })), ...(input.mask ? { mask: { image_url: dataUrl(input.mask) } } : {}) } };
 }
 
 export const openai: SyncImageProvider = {

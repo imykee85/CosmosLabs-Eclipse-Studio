@@ -9,6 +9,7 @@ import type { Prisma } from "@prisma/client";
 import { higgsfield } from "./higgsfield";
 import { targetOf, ratioString } from "./conform";
 import { chargeFor, getModelById } from "./models";
+import { openaiCostUsd } from "./providers/openai";
 import { findVideoModel, videoPrice } from "./video-models";
 import { safeText } from "./safe-text";
 import { displayUrl, saveImageFromUrl, storageEnabled, type SavedImage } from "./storage";
@@ -157,10 +158,11 @@ export async function finalizeGeneration(g: Generation): Promise<Generation> {
 export async function completeFromBytes(g: Generation, saved: SavedImage, usage: unknown): Promise<Generation> {
   const model = getModelById(g.model);
   const cost = chargeOf(g, model);
+  const measured = openaiCostUsd(usage, model?.tokenUsd);
   if (cost != null && cost > 0) {
     try { await spendCredits(g.userId, cost, `${model?.label ?? "Image"} image`); } catch (err) { console.error("charging credits failed", g.id, err); }
   }
-  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, ...(saved.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), providerUsage: usage == null ? undefined : (usage as object) } });
+  return db.generation.update({ where: { id: g.id }, data: { status: "completed", imageUrl: "", storageKey: saved.key, contentType: saved.contentType, sizeBytes: saved.sizeBytes, width: saved.width, height: saved.height, ...(saved.conformed && targetOf(g.params) ? { aspectRatio: ratioString(targetOf(g.params)!) } : {}), providerUsage: usage == null ? undefined : (usage as object), ...(measured != null ? { costUsd: measured } : {}) } });
 }
 
 export async function failRender(id: string, error: string, detail?: string): Promise<void> { await fail(id, error, detail); }
