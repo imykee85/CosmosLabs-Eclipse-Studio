@@ -1,4 +1,4 @@
-import { getAdmin } from "@/lib/admin";
+import { requireAdminPage } from "@/lib/admin-gate";
 import { manifestSize, translationCounts } from "@/lib/i18n/translate-server";
 import TranslationsAdmin from "@/components/admin/TranslationsAdmin";
 
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 // Owner only: translate the whole interface into a language ahead of time, so the first visitors from that country do not wait.
 export default async function AdminTranslationsPage() {
-  const admin = await getAdmin();
+  const admin = await requireAdminPage();
   if (!admin) return <p className="app-muted">This page is not available.</p>;
   return (
     <main style={{ padding: 16, maxWidth: 720, margin: "0 auto" }}>

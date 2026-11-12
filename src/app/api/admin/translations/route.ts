@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { isLang } from "@/lib/i18n/languages";
 import { manifestSize, translationCounts, warmLanguage } from "@/lib/i18n/translate-server";
 

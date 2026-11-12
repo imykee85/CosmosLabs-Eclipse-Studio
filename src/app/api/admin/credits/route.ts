@@ -1,7 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { toLedger } from "@/lib/credit-units";
 import { getBalance, grantCredits } from "@/lib/credits";
 

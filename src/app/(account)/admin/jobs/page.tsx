@@ -1,4 +1,4 @@
-import { getAdmin } from "@/lib/admin";
+import { requireAdminPage } from "@/lib/admin-gate";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ const cell = { padding: "6px 10px", textAlign: "left", borderBottom: "1px solid 
 
 // Owner only: the 100 most recent renders and videos across all accounts, with status, error and held credits.
 export default async function AdminJobsPage() {
-  const admin = await getAdmin();
+  const admin = await requireAdminPage();
   if (!admin) return <p className="app-muted">This page is not available.</p>;
   const rows = await db.generation.findMany({
     orderBy: { createdAt: "desc" },

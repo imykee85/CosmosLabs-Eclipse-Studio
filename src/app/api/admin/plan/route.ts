@@ -1,7 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { asPlan, planOf } from "@/lib/access";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { db } from "@/lib/db";
 
 // Owner only: give an account a plan by hand (testers, comped accounts), or take the hand-given plan away so its real plan applies again.

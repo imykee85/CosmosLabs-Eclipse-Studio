@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { db } from "@/lib/db";
 import { advanceIfStale, cancel, sweep, FINAL_STATUSES } from "@/lib/sandbox/runner";
 import { jobView } from "@/lib/sandbox/view";

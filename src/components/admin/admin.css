@@ -1,0 +1,29 @@
+/* Admin area (prefix ad-): menu, login and the dashboard hub. Theme colours only. */
+.ad-shell { max-width: 1240px; margin: 0 auto; }
+.ad-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px 0; }
+.ad-nav a, .ad-nav button { padding: 7px 14px; border: 1px solid var(--a-line); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; text-decoration: none; cursor: pointer; }
+.ad-nav a.is-on { background: #c00707; border-color: #c00707; color: #fff; }
+.ad-nav button { margin-left: auto; }
+.ad-login { display: grid; gap: 12px; justify-items: center; max-width: 340px; margin: 18vh auto 0; padding: 0 16px; text-align: center; }
+.ad-login h1 { margin: 0; font-size: 22px; font-weight: 700; }
+.ad-login input { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid var(--a-line); border-radius: 12px; background: var(--a-input, var(--a-card)); color: var(--a-fg); font: inherit; }
+.ad-login button { width: 100%; padding: 12px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.ad-login button:disabled { opacity: .5; cursor: not-allowed; }
+.ad-err { margin: 0; color: #c00707; font-size: 14px; }
+.ad-hub { padding: 16px; display: grid; gap: 22px; }
+.ad-hub h1 { margin: 0; font-size: 24px; font-weight: 700; }
+.ad-hub h2 { margin: 0 0 10px; font-size: 14px; font-weight: 600; opacity: .7; text-transform: uppercase; letter-spacing: .06em; }
+.ad-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.ad-stat { padding: 14px 16px; border: 1px solid var(--a-line); border-radius: 16px; background: var(--a-card); }
+.ad-stat b { display: block; font-size: 26px; font-weight: 700; }
+.ad-stat span { font-size: 13px; opacity: .7; }
+.ad-stat.is-warn b { color: #c00707; }
+.ad-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.ad-tool { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--a-line); border-radius: 16px; background: var(--a-card); color: var(--a-fg); text-decoration: none; transition: border-color .2s, transform .2s; }
+.ad-tool:hover { border-color: #c00707; transform: translateY(-2px); }
+.ad-tool b { font-size: 16px; } .ad-tool span { font-size: 13px; opacity: .7; }
+.ad-setup { display: grid; gap: 6px; }
+.ad-setup div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; border: 1px solid var(--a-line); border-radius: 12px; background: var(--a-card); font-size: 14px; }
+.ad-setup .ok { color: #2e9e5b; } .ad-setup .no { color: #c00707; }
+.ad-banner { padding: 12px 14px; border: 1px solid #c00707; border-radius: 12px; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .ad-tool { transition: none; } }

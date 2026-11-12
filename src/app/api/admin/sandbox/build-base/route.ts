@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { drive, enqueue } from "@/lib/sandbox/runner";
 import { jobView } from "@/lib/sandbox/view";
 

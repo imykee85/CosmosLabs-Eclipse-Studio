@@ -2,7 +2,7 @@ import { expiryRules } from "@/lib/expiry";
 import Anthropic from "@anthropic-ai/sdk";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { connectModels } from "@/lib/connect-models";
 import { db } from "@/lib/db";
 import { safeText } from "@/lib/safe-text";

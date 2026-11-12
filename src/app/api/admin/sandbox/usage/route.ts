@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { SETTING, baseSnapshotId, chromePath, getSetting, sandboxOn } from "@/lib/sandbox";
 import { usageNow, ALERT_AT, BLOCK_AT } from "@/lib/sandbox/usage";
 

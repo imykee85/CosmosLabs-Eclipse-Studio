@@ -1,4 +1,4 @@
-import { getAdmin } from "@/lib/admin";
+import { requireAdminPage } from "@/lib/admin-gate";
 import { userActivity } from "@/lib/admin-users";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ const fmt = (d: Date | string | null) => (d ? new Date(d).toISOString().replace(
 
 // Owner only: new sign-ups and what each account does, as counts only. No prompts, pictures, chats or project names are ever shown here.
 export default async function AdminUsersPage() {
-  const admin = await getAdmin();
+  const admin = await requireAdminPage();
   if (!admin) return <p className="app-muted">This page is not available.</p>;
   const { rows, accounts, newToday, newWeek } = await userActivity();
   const n = (o: { images: number; videos: number; audio: number; models3d: number; motions: number; chats: number }) => `${o.images} img · ${o.videos} vid · ${o.audio} aud · ${o.models3d} 3D · ${o.motions} mot · ${o.chats} chat`;
