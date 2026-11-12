@@ -4,11 +4,12 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import { safeNext } from "@/lib/safe-next";
+import { afterAuthPath } from "@/lib/pending-plan";
 import AuthView, { type Handlers, type Mode, type Result } from "./AuthView";
 
 const AFTER_SIGN_IN = "/dashboard";
 // Connecting an outside app (Claude) sends the person here to sign in first: after signing in they go back to the connection page, never anywhere else.
-const afterSignIn = () => safeNext(new URLSearchParams(window.location.search).get("next")) ?? AFTER_SIGN_IN;
+const afterSignIn = () => safeNext(new URLSearchParams(window.location.search).get("next")) ?? afterAuthPath(AFTER_SIGN_IN);
 const AFTER_SIGN_UP = "/onboarding"; // new accounts answer a few questions first
 
 // Signing in can need one more code: a second factor, or Clerk's "new device" check, which sends an email code. The installed Clerk typings

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/Logo";
+import { afterAuthPath } from "@/lib/pending-plan";
 import { questions, type QuestionId } from "@/lib/onboarding";
 import "./onboarding.css";
 
@@ -20,7 +21,7 @@ export default function OnboardingFlow() {
   const goToDashboard = useCallback(() => {
     if (left.current) return;
     left.current = true;
-    router.push("/dashboard");
+    router.push(afterAuthPath("/dashboard")); // a plan picked on the homepage opens its checkout straight away
   }, [router]);
 
   // Safety net so nobody is stuck on the welcome screen: videos are 5-10s, fallback is 6s.

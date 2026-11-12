@@ -1,5 +1,6 @@
 "use client";
 
+import { rememberPlan } from "@/lib/pending-plan";
 import ProtectMedia from "./ProtectMedia";
 import { ClipCard, playOnFirstGesture, type ClipMode } from "./ClipCard";
 import { fmtCredits } from "@/lib/credit-units";
@@ -376,8 +377,8 @@ export default function Landing() {
                 <li><Check size={15} /> {p.seats} seat{p.seats === 1 ? "" : "s"}</li>
                 </ul>
               <PlanBenefits planId={p.id as "starter" | "growth" | "scale"} />
-              <SignedOut><Link className="pill-btn" href="/sign-up">Get started</Link></SignedOut>
-              <SignedIn><Link className="pill-btn" href="/settings">Choose plan</Link></SignedIn>
+              <SignedOut><Link className="pill-btn" href={`/sign-up?plan=${p.id}`} onClick={() => rememberPlan(p.id)}>Get started</Link></SignedOut>
+              <SignedIn><Link className="pill-btn" href={`/start-plan?plan=${p.id}`}>Choose plan</Link></SignedIn>
             </article>
           ))}
         </PlanDeck>
