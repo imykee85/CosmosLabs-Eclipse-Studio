@@ -7,7 +7,7 @@ const g = cv.getContext("2d");
 const BG = "#060606", PAPER = "#F4F1ED", RED = "#c00707", MUTE = "rgba(244,241,237,0.5)";
 const S = Object.fromEntries(TL.scenes.map((s) => [s.id, s]));
 const IM = {};
-const SEQ2 = { infl: 60, dir: 72 }, CARDS = 36, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
+const SEQ2 = { infl: 60, dir: 72, fm1: 30, fm2: 44, fm3: 39 }, CARDS = 36, HITS = ["hands", "vitruvian", "eye", "bird"], SEQ = { hero: 120, camp: 90, film: 90 };
 
 // ---------- helpers ----------
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -44,7 +44,7 @@ function shot(im, crop, cx, cy, w, o = {}) {
 }
 function text(str, x, y, px, col, o = {}) {
   g.save(); g.font = `${o.w || 500} ${px}px Inter`; g.textAlign = o.align || "center"; g.textBaseline = "middle"; g.letterSpacing = (o.ls ?? -px * 0.02) + "px";
-  g.globalAlpha = o.a ?? 1; g.fillStyle = col; g.fillText(str, x, y); g.restore();
+  g.globalAlpha = o.a ?? 1; g.fillStyle = col; if (o.sh) { g.shadowColor = "rgba(0,0,0,0.6)"; g.shadowBlur = px * 0.3; g.shadowOffsetY = px * 0.04; } g.fillText(str, x, y); g.restore();
 }
 // a line that arrives word by word; `dim` words stay grey
 function line(str, f, a, b, o = {}) {
@@ -52,7 +52,7 @@ function line(str, f, a, b, o = {}) {
   g.save(); g.font = `${o.w || 600} ${px}px Inter`; g.letterSpacing = -px * 0.035 + "px"; g.textBaseline = "middle";
   const sp = g.measureText(" ").width, ws = words.map((w) => g.measureText(w.replace(/[\[\]]/g, "")).width), tot = ws.reduce((p, c) => p + c, 0) + sp * (words.length - 1);
   let x = (o.x ?? W / 2) - tot / 2;
-  let dimOn = false; words.forEach((w, i) => { const t = spring(prog(f, a + i * 2.5, a + i * 2.5 + 14)); if (w.startsWith("[")) dimOn = true; const dim = dimOn; if (w.endsWith("]")) dimOn = false; g.globalAlpha = clamp(t * 2.5) * out; g.fillStyle = dim ? MUTE : PAPER; g.fillText(w.replace(/[\[\]]/g, ""), x, y + (1 - t) * px * 0.9); x += ws[i] + sp; });
+  let dimOn = false; words.forEach((w, i) => { const t = spring(prog(f, a + i * 2.5, a + i * 2.5 + 14)); if (w.startsWith("[")) dimOn = true; const dim = dimOn; if (w.endsWith("]")) dimOn = false; g.globalAlpha = clamp(t * 2.5) * out; g.fillStyle = dim ? (o.sh ? "rgba(244,241,237,0.78)" : MUTE) : PAPER; if (o.sh) { g.shadowColor = "rgba(0,0,0,0.6)"; g.shadowBlur = px * 0.3; g.shadowOffsetY = px * 0.04; } g.fillText(w.replace(/[\[\]]/g, ""), x, y + (1 - t) * px * 0.9); x += ws[i] + sp; });
   g.restore();
 }
 function tag(str, x, y, a = 1) { text(str, x, y, M * 0.017, MUTE, { a, w: 600, ls: M * 0.003 }); }
@@ -125,17 +125,25 @@ function sShop(f) {
 }
 // who it is for: one audience per beat, a picture or clip on one side, the line on the other
 const FOR = [
-  ["FILMMAKERS", "Shoot the film [before the funding.]", (f) => seq("hero", f)],
-  ["BRANDS ON A BUDGET", "Campaign shots. [Not campaign costs.]", () => IM["v2-perfume"]],
-  ["FASHION LABELS", "A lookbook [in an afternoon.]", () => IM["card-0"]],
+  ["FILMMAKERS", "Shoot the film [before the funding.]", "stack"],
+  ["BRANDS ON A BUDGET", "Campaign shots. [Not campaign costs.]", "row"],
+  ["FASHION LABELS", "A lookbook [in an afternoon.]", "grid:lb"],
   ["CREATORS", "Post every day. [Never run dry.]", (f) => seq("infl", f)],
-  ["AGENCIES", "Ten clients. [One studio.]", null],
+  ["AGENCIES", "Ten clients. [One studio.]", "grid:ag"],
 ];
 function sFor(f, k) {
   const s = S[`for${k}`], lf = f - s.start, [who, txt, pic] = FOR[k], t = spring(prog(lf, 0, 16));
-  const cardAt = (cx, cy, h) => { if (pic) { card(pic(lf), cx, cy, h * 0.66 * t, h * t, { a: clamp(t * 3), fy: 0.35 }); return; }
-    // agencies: four different clients' work in one frame
-    const tiles = ["v2-perfume", "card-4", "card-5", "shop-0"], gw = h * 0.66, gh = h, gap = h * 0.025, tw = (gw - gap) / 2, th = (gh - gap) / 2;
+  const GRIDS = { lb: ["lb-0", "lb-1", "lb-2", "lb-3"], ag: ["v2-perfume", "card-4", "card-5", "shop-0"] };
+  const cardAt = (cx, cy, h) => {
+    if (typeof pic === "function") { card(pic(lf), cx, cy, h * 0.66 * t, h * t, { a: clamp(t * 3), fy: 0.35 }); return; }
+    if (pic === "stack") { // three clips stacked, hairline gap
+      const gap = M * 0.011, ch = TALL ? (H * 0.58 - 2 * gap) / 3 : (H * 0.9 - 2 * gap) / 3, cw = ch * 1920 / 1078, mid = TALL ? W / 2 : W * 0.74, top = TALL ? H * 0.31 : H * 0.5;
+      ["fm1", "fm2", "fm3"].forEach((n, j) => { const tt = spring(prog(lf, j * 3, j * 3 + 16)), fr = Math.min(lf, SEQ2[n] - 1); card(IM[`${n}-${String(1 + Math.max(0, Math.floor(fr))).padStart(3, "0")}`], mid, top + (j - 1) * (ch + gap), cw * tt, ch * tt, { a: clamp(tt * 3), fy: 0.45 }); }); return; }
+    if (pic === "row") { // three pictures side by side, hairline gap, all one size
+      const gap = M * 0.014, x0 = TALL ? W * 0.03 : W * 0.46, x1 = TALL ? W * 0.97 : W * 0.955, cw = (x1 - x0 - 2 * gap) / 3, ch = TALL ? cw / 0.8 : cw / 0.72, mid = (x0 + x1) / 2, top = TALL ? H * 0.34 : H * 0.5;
+      ["cp-0", "cp-1", "cp-2"].forEach((n, j) => { const tt = spring(prog(lf, j * 3, j * 3 + 16)); card(IM[n], mid + (j - 1) * (cw + gap), top, cw * tt, ch * tt, { a: clamp(tt * 3), fy: 0.4 }); }); return; }
+    // a 2x2 grid (lookbook, agencies): four pictures in one frame, all one size
+    const tiles = GRIDS[pic.slice(5)], gw = h * 0.66, gh = h, gap = h * 0.025, tw = (gw - gap) / 2, th = (gh - gap) / 2;
     tiles.forEach((n, j) => { const tt = spring(prog(lf, j * 3, j * 3 + 16)); card(IM[n], cx + (j % 2 ? 1 : -1) * (tw + gap) / 2, cy + (j < 2 ? -1 : 1) * (th + gap) / 2, tw * tt, th * tt, { a: clamp(tt * 3), fy: 0.4 }); }); };
   const split = txt.indexOf("["), a = txt.slice(0, split).trim(), b = txt.slice(split).trim();
   if (TALL) {
@@ -155,13 +163,13 @@ function sPayoff(f) { const s = S.payoff;
   line("[Without the production budget.]", f, s.start + 14, s.end + 4, { y: TALL ? H * 0.52 : H * 0.56, px: M * (TALL ? 0.058 : 0.085) }); }
 function sVideo(f) {
   const s = S.video, ex = eIO(prog(f, TL.expand, TL.expand + 16)), lf = f - s.start;
-  // two side clips, then the hero clip grows to fill the frame
-  const sideA = (1 - ex) * clamp(spring(prog(f, s.start + 8, s.start + 24)) * 3), hs = M * (TALL ? 0.34 : 0.5);
+  // two side clips close beside the hero (a small gap, like a row of pricing cards), then the hero clip grows to fill the frame
+  const sideA = (1 - ex) * clamp(spring(prog(f, s.start + 8, s.start + 24)) * 3), hs = M * (TALL ? 0.45 : 0.6), hh0 = M * (TALL ? 0.62 : 0.79), gapV = M * (TALL ? 0.022 : 0.028), off = hh0 * 0.5625 / 2 + gapV + hs * 0.5625 / 2, midY = H * (TALL ? 0.36 : 0.455);
   if (sideA > 0) { const t = spring(prog(f, s.start + 8, s.start + 24));
-    card(seq("camp", lf), W * (TALL ? 0.24 : 0.2) - ex * W * 0.4, H * (TALL ? 0.68 : 0.5), hs * 0.5625 * t, hs * t, { a: sideA });
-    card(seq("film", lf), W * (TALL ? 0.76 : 0.8) + ex * W * 0.4, H * (TALL ? 0.68 : 0.5), hs * 0.5625 * t, hs * t, { a: sideA }); }
-  const t = spring(prog(f, s.start, s.start + 18)), h0 = M * (TALL ? 0.56 : 0.72) * t, w0 = h0 * 0.5625, w = lerp(w0, W * 1.02, ex), h = lerp(h0, H * 1.02, ex);
-  card(seq("hero", lf), W / 2, lerp(H * (TALL ? 0.36 : 0.47), H / 2, ex), w, h, { r: lerp(Math.min(w0, h0) * 0.06, 0, ex), a: clamp(t * 3), fy: 0.45 });
+    card(seq("camp", lf), W / 2 - off - ex * W * 0.4, midY, hs * 0.5625 * t, hs * t, { a: sideA });
+    card(seq("film", lf), W / 2 + off + ex * W * 0.4, midY, hs * 0.5625 * t, hs * t, { a: sideA }); }
+  const t = spring(prog(f, s.start, s.start + 18)), h0 = hh0 * t, w0 = h0 * 0.5625, w = lerp(w0, W * 1.02, ex), h = lerp(h0, H * 1.02, ex);
+  card(seq("hero", lf), W / 2, lerp(midY, H / 2, ex), w, h, { r: lerp(Math.min(w0, h0) * 0.06, 0, ex), a: clamp(t * 3), fy: 0.45 });
   if (ex > 0.5) { const gr = g.createLinearGradient(0, H * 0.6, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.7)"); g.globalAlpha = (ex - 0.5) * 2; g.fillStyle = gr; g.fillRect(0, H * 0.6, W, H * 0.4); g.globalAlpha = 1; }
   line("Video that moves [like film.]", f, s.start + 22, s.end);
   g.fillStyle = "#000"; g.globalAlpha = eIn(prog(f, s.end - 8, s.end)); g.fillRect(0, 0, W, H); g.globalAlpha = 1;
@@ -245,13 +253,12 @@ function sStudio(f) {
 const DIRS = ["Spielberg.", "Kubrick.", "Nolan."];
 function sDirectors(f) {
   const s = S.directors, lf = f - s.start, px = M * (TALL ? 0.1 : 0.115), gap = px * 1.08, y0 = H * (TALL ? 0.4 : 0.36), out = 1 - eIn(prog(lf, 58, 66));
-  // the owner's clip (her take-off and the sand spray, slowed) plays full frame behind the names
-  { const im = seq("dir", Math.min(71, Math.max(0, Math.floor(lf)))); camShot(im, im.width * (TALL ? 0.5 : 0.5), im.height * 0.46, 1.04 + 0.05 * prog(lf, 0, 72));
-    g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(0, 0, W, H); const v = g.createRadialGradient(W / 2, y0 + gap, M * 0.1, W / 2, y0 + gap, Math.hypot(W, H) * 0.6); v.addColorStop(0, "rgba(0,0,0,0.38)"); v.addColorStop(1, "rgba(0,0,0,0.5)"); g.fillStyle = v; g.fillRect(0, 0, W, H); }
-  text("Direct it like", W / 2, y0 - gap * 1.05, M * 0.04, "rgba(244,241,237,0.8)", { w: 500, a: eOut(prog(lf, 0, 8)) * out });
-  DIRS.forEach((n, i) => { const t = eExpo(prog(lf, 6 + i * 9, 18 + i * 9)); text(n, W / 2, y0 + i * gap + (1 - t) * px * 0.6, px, PAPER, { w: 700, a: clamp(t * 2) * out }); });
-  const m = eExpo(prog(lf, 36, 48)); text("and many more.", W / 2, y0 + 3 * gap + (1 - m) * px * 0.4, px * 0.55, "rgba(244,241,237,0.8)", { w: 600, a: clamp(m * 2) * out });
-  line("Director lenses, [built into Atlas.]", f, s.start + 44, s.end + 4);
+  // the owner's new clip plays full frame, untinted, behind the names (the text carries a soft shadow instead of a screen tint)
+  { const im = seq("dir", Math.min(71, Math.max(0, Math.floor(lf)))); camShot(im, im.width * 0.5, im.height * 0.46, 1.0 + 0.035 * prog(lf, 0, 72)); }
+  text("Direct it like", W / 2, y0 - gap * 1.05, M * 0.04, "rgba(244,241,237,0.8)", { w: 500, a: eOut(prog(lf, 0, 8)) * out, sh: 1 });
+  DIRS.forEach((n, i) => { const t = eExpo(prog(lf, 6 + i * 9, 18 + i * 9)); text(n, W / 2, y0 + i * gap + (1 - t) * px * 0.6, px, PAPER, { w: 700, a: clamp(t * 2) * out, sh: 1 }); });
+  const m = eExpo(prog(lf, 36, 48)); text("and many more.", W / 2, y0 + 3 * gap + (1 - m) * px * 0.4, px * 0.55, "rgba(244,241,237,0.8)", { w: 600, a: clamp(m * 2) * out, sh: 1 });
+  line("Director lenses, [built into Atlas.]", f, s.start + 44, s.end + 4, { sh: 1 });
 }
 // Relight: the same shot, lit again; a sweep of light carries the new lighting across the picture
 function sRelight(f) {
@@ -321,6 +328,7 @@ window.ready = (async () => {
   const list = [["logo", "work/logo.png"], ["cap-memory", "work/cap-memory.png"], ["cap-atlas-3-answer", "work/cap-atlas-3-answer.png"], ["cap-shotmap-stage", "work/cap-shotmap-stage.png"], ["cap-canvas", "work/cap-canvas-1-flow.png"], ["st-0", "work/cap-studio-0-empty.png"], ["st-1", "work/cap-studio-1-request.png"], ["st-2", "work/cap-studio-2-answer.png"], ["st-3", "work/cap-studio-3-done.png"], ...["fur", "marcus-floor", "relight-before", "relight-after", "perfume"].map((n) => [`v2-${n}`, `work/v2-${n}.jpg`]), ...HITS.map((n) => [`hit-${n}`, `work/hit-${n}.jpg`]), ...Array.from({ length: SHOP }, (_, i) => [`shop-${i}`, `work/shop-${i}.jpg`]),
     ...["character", "product-1", "product-2", "product-3", "product-4"].map((n) => [`cv-${n}`, `work/cv-${n}.jpg`]),
     ...Array.from({ length: CARDS }, (_, i) => [`card-${i}`, `work/card-${i}.jpg`]),
+    ...Array.from({ length: 4 }, (_, i) => [`lb-${i}`, `work/lb-${i}.jpg`]), ...Array.from({ length: 3 }, (_, i) => [`cp-${i}`, `work/cp-${i}.jpg`]),
     ...Object.entries({ ...SEQ, ...SEQ2 }).flatMap(([k, n]) => Array.from({ length: n }, (_, i) => { const id = `${k}-${String(i + 1).padStart(3, "0")}`; return [id, `work/seq/${id}.jpg`]; }))];
   await Promise.all(list.map(([n, src]) => new Promise((ok, no) => { const i = new Image(); i.onload = () => { IM[n] = i; ok(); }; i.onerror = () => no(new Error("missing " + src)); i.src = src; })));
   { const c = document.createElement("canvas"); c.width = c.height = 4; const x = c.getContext("2d"); x.drawImage(IM["st-0"], SR.input[0] + 4, SR.input[1] + 4, 4, 4, 0, 0, 4, 4); const d = x.getImageData(1, 1, 1, 1).data; INPUT_BG = `rgb(${d[0]},${d[1]},${d[2]})`; }
