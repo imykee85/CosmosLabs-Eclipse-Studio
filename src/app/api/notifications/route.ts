@@ -22,9 +22,13 @@ export async function GET() {
     const state = await creditState(u.userId);
     const soon = state.grants.filter((g) => g.source !== "other" && g.remaining >= 100 && Number.isFinite(g.expiresAt) && g.expiresAt > now && g.expiresAt - now <= 7 * 24 * 3600 * 1000).sort((a, b) => a.expiresAt - b.expiresAt);
     const expiring = soon.map((g) => ({ type: "account" as const, id: `expiry-${g.id}`, ok: false, title: `${fmtCredits(g.remaining)} credits expire on ${new Date(g.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, body: g.source === "plan" ? "Plan credits renew monthly and do not roll over." : "Top-up credits last 90 days.", href: "/settings?tab=billing", at: new Date(g.expiresAt - 7 * 24 * 3600 * 1000).toISOString() }));
+    // Atlas missions that wait for the person (an approval or an answer) or just ended: so the bell tells them without the card being open
+    const missions = await db.agentMission.findMany({ where: { userId: u.userId, updatedAt: { gte: since }, status: { in: ["waiting_approval", "waiting_user", "done", "failed"] } }, orderBy: { updatedAt: "desc" }, take: 10, select: { id: true, goal: true, status: true, updatedAt: true } });
+    const missionItems = missions.map((m) => ({ type: "project" as const, id: `mission-${m.id}-${m.status}`, ok: m.status !== "failed", title: m.status === "waiting_approval" ? "Atlas needs your OK" : m.status === "waiting_user" ? "Atlas has a question" : m.status === "done" ? "Atlas finished your mission" : "Your mission stopped with a problem", body: m.goal.slice(0, 90), href: "/create", at: m.updatedAt.toISOString() }));
     const label = (k: string) => (k === "video" ? "video" : k === "stt" ? "transcript" : k === "sfx" || k === "vsfx" ? "sound effect" : k === "music" ? "music" : k === "tts" ? "voice take" : "image");
     const items = [
       ...expiring,
+      ...missionItems,
       ...gens.map((g) => ({ type: "project" as const, id: g.id, ok: g.status === "completed", title: g.status === "completed" ? `Your ${label(g.kind)} is ready` : `Your ${label(g.kind)} could not be made`, body: (g.status === "completed" ? g.prompt : g.error ?? g.prompt).slice(0, 90), href: "/gallery", at: (g.finishedAt ?? g.updatedAt).toISOString() })),
       ...takes.map((t) => ({ type: "project" as const, id: t.id, ok: t.status === "completed", title: t.status === "completed" ? `Your ${label(t.kind)} is ready` : `Your ${label(t.kind)} could not be made`, body: (t.status === "completed" ? t.text : t.error ?? t.text).slice(0, 90), href: "/voice", at: (t.finishedAt ?? t.updatedAt).toISOString() })),
     ].sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 20);
