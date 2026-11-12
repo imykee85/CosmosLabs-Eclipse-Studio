@@ -52,3 +52,15 @@ test("a plan from the browser keeps only well-formed references", () => {
   const spec = cleanSpec({ title: "t", hero: "h", scenes: ["a"], video: "v", seconds: 8, ratio: "16:9", refs: [{ type: "upload", id: "u1" }, { type: "bad", id: "x" }, { id: "y" }, { type: "render", id: "r1" }] })!;
   assert.deepEqual(spec.refs, [{ type: "upload", id: "u1" }, { type: "render", id: "r1" }]);
 });
+
+import { cleanMission } from "../../src/lib/agent-mission-spec";
+import { buildReply as buildMissionReply } from "../../src/lib/agent-reply";
+test("a mission proposal is cleaned: a real goal, a bounded budget, autopilot only with a budget", () => {
+  assert.equal(cleanMission({ goal: "x" }), null);
+  assert.deepEqual(cleanMission({ goal: "Build a three picture lookbook", budget_credits: 20, autopilot: true }), { goal: "Build a three picture lookbook", budget: 20, autopilot: true });
+  assert.equal(cleanMission({ goal: "Build a three picture lookbook", autopilot: true })!.autopilot, false);
+  assert.equal(cleanMission({ goal: "Build a three picture lookbook", budget_credits: 999999 })!.budget, 5000);
+  const r = buildMissionReply([{ type: "tool_use", id: "t", name: "propose_mission", input: { goal: "Build a three picture lookbook" } } as never], "tool_use");
+  assert.equal(r.mission?.goal, "Build a three picture lookbook");
+  assert.equal(r.text, "Here is the mission.");
+});

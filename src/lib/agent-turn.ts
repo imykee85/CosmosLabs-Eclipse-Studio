@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { BRAND_RULE, guardText } from "@/lib/brand";
 import { customPersona, personaOf } from "@/lib/agent-personas";
 import { db } from "@/lib/db";
+import type { MissionSpec } from "@/lib/agent-mission-spec";
 import { connectModels } from "@/lib/connect-models";
 import { seedanceKnowledge, wantsSeedance } from "@/lib/seedance-knowledge";
 import { DIRECTOR_CRAFT, wantsDirector } from "@/lib/director-knowledge";
@@ -61,6 +62,10 @@ const SET_BOX: Anthropic.Tool = { name: "set_prompt_box", description: "Set the 
 
 // Scale only (FEATURE_MIN.plans): a whole small production run after ONE approval. Atlas decides how many pictures the video needs.
 const PLAN_TOOL: Anthropic.Tool = { name: "propose_plan", description: "Propose a small production the user approves ONCE: a hero image, then the extra pictures the video needs (you decide how many, 1 to 8, each made from the hero so the look stays the same), then ONE video that uses all of the pictures as references. Use it when the user wants a video or ad built from scratch. Shows one plan card with the total price; nothing is made or charged until the user presses Approve. Write every prompt in full.", input_schema: { type: "object", properties: { title: { type: "string" }, hero_prompt: { type: "string", description: "The hero image prompt. When reference_pictures are given they are images 1, 2, ... of the hero request, in the order listed." }, scenes: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 8, description: "One prompt per extra picture (image 1 of each request is the hero, the user's reference pictures follow; a different angle, moment or shot of the same subject and look), in story order." }, video_prompt: { type: "string", description: "The motion prompt: how the video moves through the pictures. Refer to the pictures as image 1, image 2, ... in order: image 1 is the hero, then the extra pictures in the order you list them, then the user's reference pictures (if any)." }, duration_seconds: { type: "integer", minimum: 4, maximum: 30 }, aspect_ratio: { type: "string", description: "16:9, 9:16, 1:1, 4:3, 3:4 or 21:9." }, voiceover_script: { type: "string", description: "Optional. The exact words of a voiceover to speak over the video (English unless the user asked otherwise). Only when the user wants narration or a spoken line." }, music_prompt: { type: "string", description: "Optional. A description of music to go with the video (mood, instruments, pace), no artist names or lyrics. Only when the user wants music." }, reference_pictures: { type: "array", items: { type: "integer" }, maxItems: 4, description: "Numbers of the pictures the user gave you (Picture 1, Picture 2, ...) that the plan should use as references: they go into the hero, every extra picture and the video. Use the ones the user meant; leave out if none." } }, required: ["hero_prompt", "scenes", "video_prompt"] } };
+
+// Scale only (FEATURE_MIN.plans): a MISSION. Atlas keeps working on a goal on the server, step by step, until it is done: it looks things up, makes pictures, video and sound
+// (each spending request waits for the person's OK, or runs inside a budget they set), looks at the results and fixes them. It carries on when the app is closed.
+const MISSION_TOOL: Anthropic.Tool = { name: "propose_mission", description: "Offer to take a GOAL and work on it yourself, step by step, on the server, until it is done: you look things up, make pictures, video and sound, LOOK at what you made and fix it, and the person approves each spend (or sets a budget). It carries on when the app is closed. Use it when the goal needs several steps and your own judgement (for example 'build a 6-shot lookbook for this product and check every picture', 'make a launch teaser with voice and music'). Do NOT use it for one picture (propose_generation), a prompt (suggest_prompt) or the fixed hero-then-video job (propose_plan). Shows a card with a Start mission button; nothing runs until the person presses it.", input_schema: { type: "object", properties: { goal: { type: "string", description: "The goal in full: what to make, for whom, the style, the formats, what 'done' looks like, and any pictures or ids to build on." }, budget_credits: { type: "integer", minimum: 0, maximum: 5000, description: "Optional. How many credits the mission may commit without asking again, if the person wants it to run on its own. 0 = it asks before every spend." }, autopilot: { type: "boolean", description: "True only when the person said it may go ahead on its own within the budget." } }, required: ["goal"] } };
 
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 
@@ -166,12 +171,13 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
-      const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
+      const tools = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
       const convo: Anthropic.MessageParam[] = messages;
       const earlier: Action[] = [];
       let controls: Controls = {};
       let plan: PlanSpec | undefined;
+      let mission: MissionSpec | undefined;
       const planPictures = parsePictures(c.pictures).map(({ type, id }) => ({ type, id }));
       const frames: Frame[] = [];
       const state = { captures: 0 };
@@ -212,7 +218,8 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const text = guardText(pieces.join("") + final.text, "atlas");
       controls = { ...controls, ...final.controls };
       plan = final.plan ?? plan;
-      return { status: 200, json: { text, actions, controls, ...(plan ? { plan } : {}), frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
+      mission = final.mission ?? mission;
+      return { status: 200, json: { text, actions, controls, ...(plan ? { plan } : {}), ...(mission ? { mission } : {}), frames: frames.map((f) => ({ id: f.uploadId, label: f.label, sec: f.sec })) } };
     } catch (err) {
       console.error("agent chat failed", err);
       const msg = err instanceof Error ? err.message : "";

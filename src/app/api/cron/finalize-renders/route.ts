@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { finalizeGeneration, purgeFailed } from "@/lib/generation-jobs";
 import { sweep } from "@/lib/sandbox/runner";
 import { advancePlan } from "@/lib/agent-plan-server";
+import { advanceMission } from "@/lib/agent-mission";
 import { finalizeVideo, isLateWatch, rescueLateVideo } from "@/lib/video-jobs";
 
 export const maxDuration = 300;
@@ -43,7 +44,10 @@ export async function GET(req: Request) {
     // Atlas plans nobody is driving (the hand-over between functions failed): give each a push
     const plans = await db.agentPlan.findMany({ where: { status: "running" }, orderBy: { createdAt: "asc" }, take: 20, select: { id: true } });
     const pushedPlans = (await Promise.allSettled(plans.map((p) => advancePlan(p.id)))).length;
-    return NextResponse.json({ pushedPlans, checked: rows.length, finished: done, rescuedLate: rescued, clearedFailed: cleared, sweptBuilds, more: rows.length === BATCH });
+    // Atlas missions nobody is driving: a few get one pass each (a pass can take about two minutes)
+    const missions = await db.agentMission.findMany({ where: { status: "running" }, orderBy: { updatedAt: "asc" }, take: 3, select: { id: true } });
+    const pushedMissions = (await Promise.allSettled(missions.map((m) => advanceMission(m.id)))).length;
+    return NextResponse.json({ pushedPlans, pushedMissions, checked: rows.length, finished: done, rescuedLate: rescued, clearedFailed: cleared, sweptBuilds, more: rows.length === BATCH });
   } catch (err) {
     console.error("render finishing job failed", err);
     return NextResponse.json({ error: "The job failed." }, { status: 500 });

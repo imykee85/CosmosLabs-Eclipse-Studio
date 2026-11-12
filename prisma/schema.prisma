@@ -779,6 +779,35 @@ model AgentPlan {
   @@map("agent_plans")
 }
 
+// An Atlas mission: a goal the agent works toward on the SERVER, step by step, until it is done (src/lib/agent-mission.ts). It reads, decides, calls tools and
+// looks at what it made, and it asks before it spends: spending calls wait for the person's approval (or run inside a budget the person set).
+// `messages` is the model's own transcript (pictures stripped), `trace` what the person sees, `pending` the calls waiting for approval or an answer.
+model AgentMission {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  personId    String?   @map("person_id")
+  projectId   String?   @map("project_id")
+  goal        String
+  status      String    @default("running") // running | waiting_approval | waiting_user | done | failed | canceled
+  messages    Json
+  trace       Json
+  pending     Json?
+  summary     String?
+  budget      Int       @default(0)    // ledger units the agent may commit without asking again (autopilot); 0 = ask every time
+  autopilot   Boolean   @default(false)
+  committed   Int       @default(0)    // ledger units approved so far
+  rounds      Int       @default(0)    // model calls made
+  wakeAt      DateTime? @map("wake_at")
+  lockedAt    DateTime? @map("locked_at")
+  deadlineAt  DateTime  @map("deadline_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("agent_missions")
+}
+
 // Proof that a person accepted the Terms of Use and Privacy Policy: who, which version, when, from where. One row per person and version.
 model TermsAcceptance {
   id         String   @id @default(cuid())

@@ -575,6 +575,17 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 .is-failed .aw-plan-dot { border-color: #c00707; color: #c00707; }
 .aw-plan-err { color: #c00707; font-style: normal; }
 .aw-plan-price { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.aw-mission-goal { font-size: 13px; margin: 0 0 8px; overflow-wrap: anywhere; }
+.aw-mission-trace { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; font-size: 12.5px; max-height: 220px; overflow: auto; }
+.aw-mission-trace li { padding-left: 10px; border-left: 2px solid var(--a-line3, currentColor); overflow-wrap: anywhere; opacity: .8; }
+.aw-mission-trace li.k-say { opacity: 1; }
+.aw-mission-trace li.k-approval { border-color: #c00707; opacity: 1; }
+.aw-mission-trace li.k-error { border-color: #c00707; color: #c00707; opacity: 1; }
+.aw-mission-ask { margin: 8px 0; display: grid; gap: 6px; font-size: 13px; }
+.aw-mission-ask ul { margin: 0; padding-left: 18px; }
+.aw-mission-ask p { margin: 0; }
+.aw-mission-reply { display: flex; gap: 6px; }
+.aw-mission-reply input { flex: 1; min-width: 0; }
 .aw-plan-note { font-size: 12.5px; margin: 0 0 8px; color: var(--a-fg3, inherit); }
 .aw-plan-done { font-size: 13px; }
 .aw-plans-hist { display: grid; gap: 6px; margin-top: 10px; }
