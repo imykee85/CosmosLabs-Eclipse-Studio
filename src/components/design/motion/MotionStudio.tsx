@@ -1,0 +1,355 @@
+"use client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft, Check, ChevronDown, Clock, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Shuffle,
+  Square, Star, Trash2, Wand2, X, Zap, ShieldCheck, ArrowUp,
+} from "lucide-react";
+import GrowArea from "@/components/GrowArea";
+import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
+import MotionPlayer, { type PlayerHandle } from "./MotionPlayer";
+import { BrandKitDialog, DownloadDialog } from "./MotionDialogs";
+import { useDictation } from "@/lib/use-dictation";
+import { readCurrentProject, timeAgo } from "@/lib/projects";
+import { paletteOf, type LoadSpec } from "@/lib/design/motion/client";
+import {
+  ASPECT_HINT, DEFAULT_SETTINGS, DURATIONS, MOTION_ASPECTS, MOTION_MODELS, RUNNING, STEP_OF, SUGGESTIONS, TEMPLATES,
+  type BrandKitItem, type MotionAspect, type MotionComment, type MotionItem, type MotionSettings, type MotionStatus, type MotionSummary, type MotionVersionItem,
+} from "@/lib/design/motion/spec";
+import "./motion.css";
+
+const SETTINGS_KEY = "eclipse-motion-settings";
+const json = async (r: Response) => ({ ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) });
+async function call(url: string, body?: unknown, method = "POST") {
+  try { return await json(await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) })); }
+  catch { return { ok: false, status: 0, body: { error: "Could not reach Eclipse. Check your connection." } }; }
+}
+const errOf = (r: { ok: boolean; body: { error?: string; code?: string } }) => (r.ok || r.body.code === "UPGRADE" || r.body.code === "SUBSCRIBE" ? null : r.body.error ?? "Something went wrong.");
+
+function useKits() {
+  const [kits, setKits] = useState<BrandKitItem[]>([]);
+  const reload = useCallback(async () => { const r = await call("/api/design/brand-kits", undefined, "GET"); if (r.ok) setKits(r.body.items ?? []); }, []);
+  useEffect(() => { void reload(); }, [reload]);
+  return { kits, reload };
+}
+
+export default function MotionStudio() {
+  const [open, setOpen] = useState<string | null>(null);
+  const { kits, reload: reloadKits } = useKits();
+  const [recreate, setRecreate] = useState<{ prompt: string; settings: MotionSettings } | null>(null);
+  if (open) return <MotionEditor id={open} kits={kits} reloadKits={reloadKits} onBack={() => setOpen(null)} onRecreate={(r) => { setRecreate(r); setOpen(null); }} />;
+  return <MotionHome kits={kits} reloadKits={reloadKits} onOpen={setOpen} recreate={recreate} />;
+}
+
+/* ---------------- Home: the composer, templates and your motions ---------------- */
+
+function MotionHome({ kits, reloadKits, onOpen, recreate }: { kits: BrandKitItem[]; reloadKits: () => Promise<void>; onOpen: (id: string) => void; recreate: { prompt: string; settings: MotionSettings } | null }) {
+  const [items, setItems] = useState<MotionSummary[] | null>(null);
+  useEffect(() => { void (async () => { const r = await call("/api/design/motion", undefined, "GET"); setItems(r.ok ? r.body.items ?? [] : []); })(); }, []);
+  return (
+    <section className="mt" aria-label="Motion">
+      <div className="mt-hero">
+        <h2>Eclipse Motion</h2>
+        <p>Describe it. Watch it move.</p>
+      </div>
+      <Composer kits={kits} reloadKits={reloadKits} onStarted={onOpen} initial={recreate} />
+      <h3 className="mt-h3">Start from a template</h3>
+      <div className="mt-templates">
+        {TEMPLATES.map((tp) => (
+          <button key={tp.id} type="button" className="mt-tpl" onClick={() => window.dispatchEvent(new CustomEvent("eclipse-motion-template", { detail: tp }))}>
+            <span className={`mt-tpl-art is-${tp.id}`} aria-hidden="true"><i /><i /><i /></span>
+            <b>{tp.name}</b><em>{tp.aspect} · {tp.duration}s</em>
+          </button>
+        ))}
+      </div>
+      <h3 className="mt-h3">Your motions</h3>
+      {items === null ? <p className="mt-hint">Loading…</p> : items.length === 0 ? <p className="mt-hint">Nothing yet. Describe a motion above or start from a template.</p> : (
+        <div className="mt-list">
+          {items.map((m) => (
+            <button key={m.id} type="button" className="mt-card" onClick={() => onOpen(m.id)}>
+              <span className="mt-card-art" style={{ aspectRatio: m.aspect.replace(":", " / ") }}><MonitorPlay size={22} />{m.status && RUNNING.has(m.status) && <Loader2 size={14} className="mt-spin" />}</span>
+              <b>{m.title}</b><em>{m.aspect} · {m.versions} version{m.versions === 1 ? "" : "s"} · {timeAgo(m.updatedAt)}</em>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function readSettings(): MotionSettings { try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}"), refs: [] }; } catch { return DEFAULT_SETTINGS; } }
+
+function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem[]; reloadKits: () => Promise<void>; onStarted: (id: string) => void; initial: { prompt: string; settings: MotionSettings } | null }) {
+  const [prompt, setPrompt] = useState(initial?.prompt ?? "");
+  const [s, setS] = useState<MotionSettings>(() => initial?.settings ?? readSettings());
+  const [pics, setPics] = useState<RefPick[]>([]);
+  const [menu, setMenu] = useState<null | "aspect" | "duration" | "audio" | "settings">(null);
+  const [picker, setPicker] = useState(false), [kitOpen, setKitOpen] = useState(false);
+  const [busy, setBusy] = useState(false), [writing, setWriting] = useState(false), [error, setError] = useState<string | null>(null);
+  const dict = useDictation(prompt, setPrompt, setError);
+  useEffect(() => { try { const { refs: _r, ...keep } = s; void _r; localStorage.setItem(SETTINGS_KEY, JSON.stringify(keep)); } catch { /* ignore */ } }, [s]);
+  useEffect(() => {
+    const on = (e: Event) => { const tp = (e as CustomEvent).detail as (typeof TEMPLATES)[number]; setPrompt(tp.prompt); setS((x) => ({ ...x, aspect: tp.aspect, duration: tp.duration, loop: tp.id === "loop" })); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    window.addEventListener("eclipse-motion-template", on); return () => window.removeEventListener("eclipse-motion-template", on);
+  }, []);
+  const kit = kits.find((k) => k.id === s.brandKitId) ?? null;
+  const audioOn = s.audio.music || s.audio.voice || s.audio.sfx;
+
+  async function writeIt() {
+    setWriting(true); setError(null);
+    const r = await call("/api/design/motion/write", { idea: prompt, duration: s.duration === "auto" ? null : s.duration });
+    setWriting(false);
+    if (r.ok) setPrompt(r.body.text); else setError(errOf(r));
+  }
+  async function go() {
+    if (prompt.trim().length < 3 || busy) return;
+    setBusy(true); setError(null);
+    const r = await call("/api/design/motion", { prompt, settings: { ...s, refs: pics.map((p) => ({ type: p.type, id: p.id, label: p.label })) }, projectId: readCurrentProject()?.id ?? null });
+    setBusy(false);
+    if (r.ok) onStarted(r.body.id); else setError(errOf(r));
+  }
+  const toggle = (k: typeof menu) => setMenu((m) => (m === k ? null : k));
+  return (
+    <div className="mt-composer">
+      {pics.length > 0 && (
+        <div className="mt-pics">{pics.map((p, i) => (
+          <span key={p.id} className="mt-pic">{/* eslint-disable-next-line @next/next/no-img-element -- plain img like the rest of the app */}<img src={p.url} alt={p.label} /><em>@{i + 1}</em>
+            <button type="button" aria-label={`Remove picture ${i + 1}`} onClick={() => setPics(pics.filter((x) => x.id !== p.id))}><X size={11} /></button></span>
+        ))}</div>
+      )}
+      <GrowArea className="mt-text" rows={3} maxLines={10} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="A 10-second logo reveal for a coffee brand, warm tones, steam rising…" aria-label="Describe your motion"
+        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void go(); } }} />
+      <div className="mt-row">
+        <button type="button" className="mt-icon" aria-label="Add pictures" onClick={() => setPicker(true)}><Plus size={16} /></button>
+        <div className="mt-pop-wrap">
+          <button type="button" className="mt-chip" aria-expanded={menu === "aspect"} onClick={() => toggle("aspect")}><span className="mt-ar" style={{ aspectRatio: s.aspect.replace(":", " / ") }} />{s.aspect}</button>
+          {menu === "aspect" && <div className="mt-pop" role="menu">{MOTION_ASPECTS.map((a) => (
+            <button key={a} role="menuitemradio" aria-checked={s.aspect === a} type="button" onClick={() => { setS({ ...s, aspect: a }); setMenu(null); }}><b>{a}</b><em>{ASPECT_HINT[a]}</em>{s.aspect === a && <Check size={14} />}</button>
+          ))}</div>}
+        </div>
+        <div className="mt-pop-wrap">
+          <button type="button" className="mt-chip" aria-expanded={menu === "duration"} onClick={() => toggle("duration")}><Clock size={14} />{s.duration === "auto" ? "Auto" : `${s.duration}s`}{s.loop && <span className="mt-loopdot">∞</span>}</button>
+          {menu === "duration" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Duration">
+            <b className="mt-pop-h">Duration</b>
+            <button type="button" className={`mt-auto${s.duration === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, duration: "auto" })}><b>Auto</b><em>Picks the length for you</em></button>
+            <em className="mt-pop-sub">Or choose a length</em>
+            <div className="mt-seg">{DURATIONS.map((d) => <button key={d} type="button" className={s.duration === d ? "is-on" : ""} onClick={() => setS({ ...s, duration: d })}>{d < 60 ? `${d}s` : "1 min"}</button>)}</div>
+            <label className="mt-switch"><span><b>Loop</b><em>The end matches the start, so it repeats without a seam.</em></span><input type="checkbox" checked={s.loop} onChange={(e) => setS({ ...s, loop: e.target.checked })} /></label>
+          </div>}
+        </div>
+        <div className="mt-pop-wrap">
+          <button type="button" className={`mt-chip${audioOn ? " is-on" : ""}`} aria-expanded={menu === "audio"} onClick={() => toggle("audio")}><Music size={14} />Audio</button>
+          {menu === "audio" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Audio">
+            <b className="mt-pop-h">Audio</b><em className="mt-pop-sub">Turn one off and the agent never adds it.</em>
+            {(["sfx", "music", "voice"] as const).map((k) => (
+              <label key={k} className="mt-switch"><span><b>{k === "sfx" ? "Sound effects" : k === "music" ? "Music" : "Voiceover"}</b></span><input type="checkbox" checked={s.audio[k]} onChange={(e) => setS({ ...s, audio: { ...s.audio, [k]: e.target.checked } })} /></label>
+            ))}
+          </div>}
+        </div>
+        <button type="button" className={`mt-chip${kit ? " is-on" : ""}`} onClick={() => setKitOpen(true)}><Palette size={14} />{kit ? kit.name : "Brand kit"}</button>
+        <span className="mt-grow" />
+        <div className="mt-pop-wrap">
+          <button type="button" className="mt-icon" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
+          {menu === "settings" && <div className="mt-pop mt-pop-wide mt-pop-right" role="dialog" aria-label="Motion settings">
+            <b className="mt-pop-h">Agent model</b>
+            {MOTION_MODELS.map((m) => <button key={m.id} type="button" className={`mt-opt${s.model === m.id ? " is-on" : ""}`} onClick={() => setS({ ...s, model: m.id })}><b>{m.name}</b><em>{m.blurb}</em>{s.model === m.id && <Check size={14} />}</button>)}
+            <b className="mt-pop-h">Permissions</b>
+            <button type="button" className={`mt-opt${s.approval === "ask" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "ask" })}><ShieldCheck size={15} /><span><b>Ask first</b><em>Asks before paid sound (music, voiceover, sound effects). The motion itself is made right away.</em></span>{s.approval === "ask" && <Check size={14} />}</button>
+            <button type="button" className={`mt-opt${s.approval === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "auto" })}><Zap size={15} /><span><b>Auto approve</b><em>Makes everything the motion needs without asking. The cost shows on the version.</em></span>{s.approval === "auto" && <Check size={14} />}</button>
+          </div>}
+        </div>
+        <button type="button" className={`mt-icon${dict.listening ? " is-rec" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={16} /></button>
+        <button type="button" className="mt-go" disabled={busy || prompt.trim().length < 3} onClick={go}>{busy ? <Loader2 size={15} className="mt-spin" /> : null}Generate</button>
+      </div>
+      <div className="mt-under">
+        <button type="button" className="mt-link" disabled={writing || !prompt.trim()} onClick={writeIt}>{writing ? <Loader2 size={13} className="mt-spin" /> : <Wand2 size={13} />}Write it for me</button>
+        {error && <p className="mt-error" role="alert">{error}</p>}
+      </div>
+      {picker && <ReferencePicker max={8} picked={pics} onChange={setPics} onClose={() => setPicker(false)} />}
+      {kitOpen && <BrandKitDialog kits={kits} reload={reloadKits} chosen={s.brandKitId} onChoose={(id) => { setS({ ...s, brandKitId: id }); setKitOpen(false); }} onClose={() => setKitOpen(false)} />}
+    </div>
+  );
+}
+
+/* ---------------- Editor: preview, versions, edits, comments, remix, download ---------------- */
+
+function useMotion(id: string) {
+  const [m, setM] = useState<MotionItem | null>(null), [missing, setMissing] = useState(false);
+  const load = useCallback(async () => { const r = await call(`/api/design/motion/${id}`, undefined, "GET"); if (r.ok) setM(r.body); else if (r.status === 404) setMissing(true); }, [id]);
+  useEffect(() => { void load(); }, [load]);
+  const busy = (m?.versions ?? []).some((v) => RUNNING.has(v.status));
+  useEffect(() => { if (!busy) return; const t = setTimeout(() => void load(), document.hidden ? 15000 : 3000); return () => clearTimeout(t); }, [busy, m, load]);
+  return { m, missing, reload: load };
+}
+
+const STEPS = ["Plan", "Write", "Review", "Finish"];
+const STATUS_TEXT: Record<MotionStatus, string> = { planning: "Planning the motion", writing: "Writing the composition", reviewing: "Reviewing the motion", approval: "Waiting for your approval", finishing: "Adding the sound", ready: "Ready", failed: "Failed", stopped: "Stopped" };
+
+function MotionEditor({ id, kits, reloadKits, onBack, onRecreate }: { id: string; kits: BrandKitItem[]; reloadKits: () => Promise<void>; onBack: () => void; onRecreate: (r: { prompt: string; settings: MotionSettings }) => void }) {
+  const { m, missing, reload } = useMotion(id);
+  const [sel, setSel] = useState<string | null>(null), [compare, setCompare] = useState<string | null>(null);
+  const [tab, setTab] = useState<"versions" | "details">("versions");
+  const [text, setText] = useState(""), [commenting, setCommenting] = useState(false), [pin, setPin] = useState<{ t: number; x: number; y: number } | null>(null), [pinText, setPinText] = useState("");
+  const [remix, setRemix] = useState(false), [download, setDownload] = useState(false), [kitOpen, setKitOpen] = useState<null | "add">(null);
+  const [error, setError] = useState<string | null>(null), [note, setNote] = useState<string | null>(null), [busy, setBusy] = useState(false), [renaming, setRenaming] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false), [time, setTime] = useState<number | null>(null);
+  const player = useRef<PlayerHandle>(null);
+
+  const versions = useMemo(() => m?.versions ?? [], [m]);
+  const v = versions.find((x) => x.id === sel) ?? versions[0] ?? null;
+  const other = compare ? versions.find((x) => x.id === compare) ?? null : null;
+  const kit = kits.find((k) => k.id === m?.settings.brandKitId) ?? null;
+  useEffect(() => { if (!sel && versions[0]) setSel(versions[0].id); }, [versions, sel]);
+  // A new version appears at the top: follow it.
+  const newest = versions[0]?.id;
+  const seen = useRef<string | undefined>(undefined);
+  useEffect(() => { if (newest && seen.current && newest !== seen.current) setSel(newest); seen.current = newest; }, [newest]);
+
+  const specOf = useCallback((x: MotionVersionItem | null): LoadSpec | null => (x?.code && m ? { code: x.code, aspect: x.aspect, duration: x.duration, loop: m.settings.loop, palette: paletteOf(kit), images: [...m.settings.refs, ...(kit?.logos ?? [])] } : null), [m, kit]);
+  const spec = useMemo(() => specOf(v), [v, specOf]);
+  const spec2 = useMemo(() => specOf(other), [other, specOf]);
+
+  if (missing) return <section className="mt"><button type="button" className="mt-back" onClick={onBack}><ArrowLeft size={16} />Motion</button><p className="mt-hint">This motion was deleted.</p></section>;
+  if (!m || !v) return <section className="mt"><p className="mt-hint"><Loader2 size={15} className="mt-spin" /> Loading…</p></section>;
+
+  const unused = v.comments.filter((c) => !c.used);
+  async function act(body: object, vid = v!.id) { const r = await call(`/api/design/motion/${id}/versions/${vid}`, body); if (!r.ok) setError(errOf(r)); await reload(); return r; }
+  async function newVersion(body: object) {
+    setBusy(true); setError(null);
+    const r = await call(`/api/design/motion/${id}/versions`, body);
+    setBusy(false);
+    if (r.ok) { setText(""); setSel(r.body.versionId); await reload(); } else setError(errOf(r));
+  }
+  const send = () => newVersion({ action: "edit", from: v.id, text });
+  async function addComment() {
+    if (!pin || !pinText.trim()) return;
+    const r = await act({ action: "comment", ...pin, text: pinText.trim() });
+    if (r.ok) { setPin(null); setPinText(""); setCommenting(false); }
+  }
+
+  return (
+    <section className="mt mt-editor" aria-label="Motion editor">
+      <div className="mt-top">
+        <button type="button" className="mt-back" onClick={onBack} aria-label="Back to Motion"><ArrowLeft size={16} /></button>
+        {renaming === null ? <button type="button" className="mt-title" onClick={() => setRenaming(m.title)}>{m.title}<Pencil size={13} /></button>
+          : <input className="mt-rename" autoFocus value={renaming} aria-label="Motion name" onChange={(e) => setRenaming(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setRenaming(null); }}
+              onBlur={async () => { const t = renaming.trim(); setRenaming(null); if (t && t !== m.title) { await call(`/api/design/motion/${id}`, { title: t }, "PATCH"); await reload(); } }} />}
+        <span className="mt-grow" />
+        <button type="button" className={`mt-icon${v.starred ? " is-on" : ""}`} aria-label={v.starred ? "Unstar" : "Star"} onClick={() => act({ action: v.starred ? "unstar" : "star" })}><Star size={15} /></button>
+        <div className="mt-pop-wrap">
+          <button type="button" className="mt-chip" aria-expanded={remix} onClick={() => setRemix(!remix)}><Shuffle size={14} />Remix<ChevronDown size={13} /></button>
+          {remix && <div className="mt-pop mt-pop-wide mt-pop-right" role="menu" aria-label="Remix">
+            <button type="button" className="mt-opt" onClick={() => { setRemix(false); onRecreate({ prompt: m.prompt, settings: m.settings }); }}><span><b>Recreate</b><em>Loads the prompt, files and settings into the composer to tweak and run again.</em></span></button>
+            <b className="mt-pop-h">Adapt to another format</b><em className="mt-pop-sub">Every shot is recomposed for the new frame, as a new branch.</em>
+            <div className="mt-formats">{MOTION_ASPECTS.map((a) => <button key={a} type="button" disabled={a === v.aspect || !v.code} onClick={() => { setRemix(false); void newVersion({ action: "adapt", from: v.id, aspect: a }); }}><span className="mt-ar" style={{ aspectRatio: a.replace(":", " / ") }} />{a}</button>)}</div>
+            <button type="button" className="mt-opt" disabled={!v.code} onClick={async () => { setRemix(false); const r = await call("/api/design/brand-kits", { fromVersion: v.id }); if (r.ok) { await reloadKits(); setNote(`Brand kit "${r.body.name}" is ready. Choose it in Brand kit for your next motion.`); } else setError(errOf(r)); }}><span><b>Create brand kit from this motion</b><em>Saves its colours and motion style as a new kit, with this motion as an example.</em></span></button>
+            <button type="button" className="mt-opt" disabled={!v.code} onClick={() => { setRemix(false); setKitOpen("add"); }}><span><b>Add to brand kit</b><em>Makes it an example in a kit: new motions follow how it moves.</em></span></button>
+          </div>}
+        </div>
+        <button type="button" className="mt-go" disabled={!v.code} onClick={() => { player.current?.pause(); setDownload(true); }}><Download size={14} />Download</button>
+      </div>
+
+      <div className="mt-body">
+        <div className="mt-main">
+          <div className={`mt-players${other ? " is-two" : ""}`}>
+            <div>
+              {other && <span className="mt-tag">v{v.n}</span>}
+              <MotionPlayer ref={player} spec={spec} audio={v.audio} comments={v.comments} commenting={commenting} onPin={(p) => { setPin(p); setPinText(""); }}
+                playing={playing} onPlaying={setPlaying} onTime={(t) => other && setTime(t)} />
+            </div>
+            {other && <div><span className="mt-tag">v{other.n}</span><MotionPlayer spec={spec2} audio={other.audio} compact syncTime={time} playing={false} onPlaying={() => {}} /><button type="button" className="mt-link" onClick={() => setCompare(null)}><X size={13} />Close comparison</button></div>}
+          </div>
+          {pin && (
+            <div className="mt-pinform">
+              <b>Comment at {pin.t.toFixed(1)}s</b>
+              <GrowArea rows={2} value={pinText} onChange={(e) => setPinText(e.target.value)} placeholder="Change the typography colour…" aria-label="Comment" autoFocus />
+              <div className="mt-row"><span className="mt-grow" /><button type="button" className="mt-chip" onClick={() => setPin(null)}>Cancel</button><button type="button" className="mt-go" disabled={!pinText.trim()} onClick={addComment}>Comment</button></div>
+            </div>
+          )}
+          {RUNNING.has(v.status) && <Progress v={v} onStop={() => act({ action: "stop" })} />}
+          {v.status === "approval" && v.audio && <Approval v={v} onApprove={() => act({ action: "approve" })} onDecline={() => act({ action: "decline" })} onChange={() => { setText("Change the sound: "); }} />}
+          {(v.status === "failed" || v.status === "stopped") && <div className="mt-card-note is-bad"><b>{STATUS_TEXT[v.status]}</b><span>{v.error}</span><button type="button" className="mt-chip" onClick={() => newVersion({ action: "retry", from: v.id })}>Try again</button></div>}
+
+          <div className="mt-chips">{SUGGESTIONS.map((sg) => <button key={sg} type="button" className="mt-chip" disabled={!v.code || busy} onClick={() => (sg === "Try 9:16" ? newVersion({ action: "adapt", from: v.id, aspect: "9:16" }) : setText(sg))}>{sg}</button>)}</div>
+          <div className="mt-composer mt-editbar">
+            <div className="mt-row">
+              <span className="mt-badge"><Pencil size={12} />Editing v{v.n}</span>
+              {unused.length > 0 && <span className="mt-badge is-red"><MessageSquarePlus size={12} />With {unused.length} comment{unused.length === 1 ? "" : "s"}</span>}
+              <span className="mt-grow" />
+              <span className="mt-hint">{m.settings.approval === "auto" ? "Auto approve" : "Ask first"}</span>
+            </div>
+            <GrowArea className="mt-text" rows={1} maxLines={6} value={text} onChange={(e) => setText(e.target.value)} placeholder={`Describe a change to v${v.n}…`} aria-label="Describe a change"
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
+            <div className="mt-row">
+              <button type="button" className={`mt-chip${commenting ? " is-on" : ""}`} aria-pressed={commenting} disabled={!v.code} onClick={() => { setCommenting(!commenting); setPlaying(false); }}><MessageSquarePlus size={14} />{commenting ? "Click the preview" : "Comment"}</button>
+              <span className="mt-grow" />
+              <button type="button" className="mt-go" disabled={busy || !v.code || (!text.trim() && !unused.length)} onClick={send}>{busy ? <Loader2 size={14} className="mt-spin" /> : <ArrowUp size={14} />}Edit v{v.n}</button>
+            </div>
+          </div>
+          {error && <p className="mt-error" role="alert">{error}</p>}
+          {note && <p className="mt-note" role="status">{note}</p>}
+        </div>
+
+        <aside className="mt-side" aria-label="Versions">
+          <div className="mt-tabs" role="tablist">
+            <button role="tab" aria-selected={tab === "versions"} className={tab === "versions" ? "is-on" : ""} onClick={() => setTab("versions")}>Versions</button>
+            <button role="tab" aria-selected={tab === "details"} className={tab === "details" ? "is-on" : ""} onClick={() => setTab("details")}>Details</button>
+          </div>
+          {tab === "versions" ? (
+            <ol className="mt-versions">
+              {versions.map((x) => (
+                <li key={x.id} className={x.id === v.id ? "is-on" : ""}>
+                  <button type="button" className="mt-vbtn" onClick={() => { setSel(x.id); setCommenting(false); setPin(null); }}>
+                    <span className="mt-vn">v{x.n}{x.starred && <Star size={11} />}</span>
+                    <span className="mt-vlabel">{x.label || "Untitled"}</span>
+                    <em>{RUNNING.has(x.status) || x.status === "approval" ? STATUS_TEXT[x.status] : x.status === "ready" ? `${x.duration}s · ${x.aspect}` : STATUS_TEXT[x.status]}{x.credits ? ` · ${x.credits} credits` : ""} · {timeAgo(x.createdAt)}</em>
+                  </button>
+                  <div className="mt-vacts">
+                    {x.id !== v.id && x.code && <button type="button" aria-label={`Compare with v${x.n}`} onClick={() => setCompare(compare === x.id ? null : x.id)}><Columns2 size={13} /></button>}
+                    <button type="button" aria-label={`Delete v${x.n}`} onClick={async () => { if (confirm(`Delete v${x.n}?`)) { await act({ action: "delete" }, x.id); if (sel === x.id) setSel(null); } }}><Trash2 size={13} /></button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="mt-details">
+              <dl><dt>Version</dt><dd>v{v.n}</dd><dt>Aspect ratio</dt><dd>{v.aspect}</dd><dt>Length</dt><dd>{v.duration}s{m.settings.loop ? " · loops" : ""}</dd><dt>Model</dt><dd>{MOTION_MODELS.find((x) => x.id === m.settings.model)?.name}</dd><dt>Brand kit</dt><dd>{kit?.name ?? "None"}</dd><dt>Credits</dt><dd>{v.credits}</dd></dl>
+              {v.plan && <><b>Plan</b><p className="mt-plan">{v.plan}</p></>}
+              <b>Prompt</b><p className="mt-plan">{m.prompt}</p>
+              {unused.length > 0 && <><b>Comments</b><ul className="mt-comments">{unused.map((c: MotionComment) => <li key={c.id}><button type="button" onClick={() => player.current?.seek(c.t)}>{c.t.toFixed(1)}s</button>{c.text}<button type="button" aria-label="Remove comment" onClick={() => act({ action: "uncomment", commentId: c.id })}><X size={12} /></button></li>)}</ul></>}
+              <button type="button" className="mt-link is-bad" onClick={async () => { if (confirm("Delete this motion and every version?")) { await call(`/api/design/motion/${id}`, undefined, "DELETE"); onBack(); } }}><Trash2 size={13} />Delete motion</button>
+            </div>
+          )}
+        </aside>
+      </div>
+      {download && <DownloadDialog title={m.title} version={v} host={() => player.current?.host() ?? null} onClose={() => setDownload(false)} />}
+      {kitOpen && <BrandKitDialog kits={kits} reload={reloadKits} chosen={null} addVersion={v.id} onChoose={() => { setKitOpen(null); setNote("Added to the brand kit as an example."); }} onClose={() => setKitOpen(null)} />}
+    </section>
+  );
+}
+
+function Progress({ v, onStop }: { v: MotionVersionItem; onStop: () => void }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  const secs = Math.max(0, Math.round((now - new Date(v.createdAt).getTime()) / 1000));
+  const step = STEP_OF[v.status];
+  return (
+    <div className="mt-progress" role="status">
+      <b><Loader2 size={14} className="mt-spin" />{STATUS_TEXT[v.status]}</b>
+      <em>{v.status === "finishing" ? "Usually under a minute" : "Usually 1 to 4 min"}</em>
+      <div className="mt-steps">{STEPS.map((s, i) => <span key={s} className={i < step ? "is-done" : i === step ? "is-now" : ""}><i />{s}</span>)}</div>
+      <div className="mt-row"><span className="mt-hint">{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</span><span className="mt-grow" />{v.status !== "finishing" && <button type="button" className="mt-chip" onClick={onStop}><Square size={12} />Stop</button>}</div>
+    </div>
+  );
+}
+
+function Approval({ v, onApprove, onDecline, onChange }: { v: MotionVersionItem; onApprove: () => void; onDecline: () => void; onChange: () => void }) {
+  const parts = (["music", "voice", "sfx"] as const).filter((k) => v.audio?.[k]);
+  const total = parts.reduce((n, k) => n + (v.audio?.[k]?.credits ?? 0), 0);
+  return (
+    <div className="mt-approve" role="region" aria-label="Generations to approve">
+      <b><ShieldCheck size={15} />Generations to approve</b>
+      <ul>{parts.map((k) => <li key={k}><span>{k === "sfx" ? "Sound effects" : k === "music" ? "Music" : "Voiceover"}</span><em>{v.audio![k]!.prompt}</em>{v.audio![k]!.credits != null && <i>{v.audio![k]!.credits} credits</i>}</li>)}</ul>
+      <div className="mt-row"><button type="button" className="mt-chip" onClick={onDecline}>Skip sound</button><button type="button" className="mt-chip" onClick={onChange}>Ask for changes</button><span className="mt-grow" /><button type="button" className="mt-go" onClick={onApprove}>Approve and generate{total ? ` · ${total} credits` : ""}</button></div>
+    </div>
+  );
+}

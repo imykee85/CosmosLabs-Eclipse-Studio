@@ -2,13 +2,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Box, Download, Loader2, Pencil, Plus, Shapes, Trash2, Wand2, X, Clapperboard, Check } from "lucide-react";
-import SoonTag from "@/components/SoonTag";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import Viewer3D from "./Viewer3D";
 import { delete3DModel, rename3DModel, start3DModel, use3D, type Item3D, type Model3DInfo } from "@/lib/use-design";
 import { readCurrentProject, timeAgo } from "@/lib/projects";
 import { putModel } from "@/lib/shot/world-store";
+import MotionStudio from "./motion/MotionStudio";
 import "./design.css";
 
 type Tab = "graphics" | "3d" | "motion";
@@ -34,16 +34,16 @@ export default function DesignStudio() {
     <div className="ds">
       <header className="ds-head">
         <h1>Design Studio</h1>
-        <p>Graphics, 3D models and motion, made in one place.</p>
+        <p>Graphics, 3D models and motion graphics, made in one place.</p>
       </header>
       <div className="ds-tabs" role="tablist" aria-label="Design tools">
         <button role="tab" aria-selected={tab === "graphics"} className={tab === "graphics" ? "is-on" : ""} onClick={() => setTab("graphics")}><Shapes size={16} />Graphics</button>
         <button role="tab" aria-selected={tab === "3d"} className={tab === "3d" ? "is-on" : ""} onClick={() => setTab("3d")}><Box size={16} />3D</button>
-        <button role="tab" aria-selected={tab === "motion"} className={tab === "motion" ? "is-on" : ""} onClick={() => setTab("motion")}><Clapperboard size={16} />Motion <SoonTag /></button>
+        <button role="tab" aria-selected={tab === "motion"} className={tab === "motion" ? "is-on" : ""} onClick={() => setTab("motion")}><Clapperboard size={16} />Motion</button>
       </div>
       {tab === "graphics" && <Graphics />}
       {tab === "3d" && <ThreeD />}
-      {tab === "motion" && <Motion />}
+      {tab === "motion" && <MotionStudio />}
     </div>
   );
 }
@@ -59,16 +59,6 @@ function Graphics() {
           </Link>
         ))}
       </div>
-    </section>
-  );
-}
-
-function Motion() {
-  return (
-    <section aria-label="Motion graphics" className="ds-soon">
-      <h2>Motion graphics <SoonTag /></h2>
-      <p>Animated titles, explainers and launch films are on their way here. For ideas in the meantime, browse the motion gallery.</p>
-      <Link href="/motion" className="ds-btn ds-btn-ghost">Open the motion gallery <ArrowUpRight size={16} /></Link>
     </section>
   );
 }

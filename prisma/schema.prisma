@@ -94,16 +94,16 @@ model CanvasState {
 // `data` is the whole graph (nodes with everything chosen and typed in them, wires, camera), `thumbId` the render shown on its card.
 // The older single CanvasState per project is read once into the first canvas (see GET /api/canvases) and then dropped.
 model Canvas {
-  id        String    @id @default(cuid())
-  userId    String    @map("user_id")
-  projectId String    @map("project_id")
+  id        String          @id @default(cuid())
+  userId    String          @map("user_id")
+  projectId String          @map("project_id")
   name      String
   data      Json
-  nodeCount Int       @default(0) @map("node_count")
-  thumbId   String?   @map("thumb_id")
-  deletedAt DateTime? @map("deleted_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  nodeCount Int             @default(0) @map("node_count")
+  thumbId   String?         @map("thumb_id")
+  deletedAt DateTime?       @map("deleted_at")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
   comments  CanvasComment[]
   share     CanvasShare?
 
@@ -783,25 +783,25 @@ model AgentPlan {
 // looks at what it made, and it asks before it spends: spending calls wait for the person's approval (or run inside a budget the person set).
 // `messages` is the model's own transcript (pictures stripped), `trace` what the person sees, `pending` the calls waiting for approval or an answer.
 model AgentMission {
-  id          String    @id @default(cuid())
-  userId      String    @map("user_id")
-  personId    String?   @map("person_id")
-  projectId   String?   @map("project_id")
-  goal        String
-  status      String    @default("running") // running | waiting_approval | waiting_user | done | failed | canceled
-  messages    Json
-  trace       Json
-  pending     Json?
-  summary     String?
-  budget      Int       @default(0)    // ledger units the agent may commit without asking again (autopilot); 0 = ask every time
-  autopilot   Boolean   @default(false)
-  committed   Int       @default(0)    // ledger units approved so far
-  rounds      Int       @default(0)    // model calls made
-  wakeAt      DateTime? @map("wake_at")
-  lockedAt    DateTime? @map("locked_at")
-  deadlineAt  DateTime  @map("deadline_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  personId   String?   @map("person_id")
+  projectId  String?   @map("project_id")
+  goal       String
+  status     String    @default("running") // running | waiting_approval | waiting_user | done | failed | canceled
+  messages   Json
+  trace      Json
+  pending    Json?
+  summary    String?
+  budget     Int       @default(0) // ledger units the agent may commit without asking again (autopilot); 0 = ask every time
+  autopilot  Boolean   @default(false)
+  committed  Int       @default(0) // ledger units approved so far
+  rounds     Int       @default(0) // model calls made
+  wakeAt     DateTime? @map("wake_at")
+  lockedAt   DateTime? @map("locked_at")
+  deadlineAt DateTime  @map("deadline_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status])
@@ -816,7 +816,7 @@ model TermsAcceptance {
   acceptedAt DateTime @default(now()) @map("accepted_at")
   ip         String?
   userAgent  String?  @map("user_agent")
-  source     String   // "sign-up" (checkbox on the sign-up page) or "gate" (the accept page)
+  source     String // "sign-up" (checkbox on the sign-up page) or "gate" (the accept page)
 
   @@unique([userId, version])
   @@index([userId])
@@ -825,30 +825,90 @@ model TermsAcceptance {
 
 // Design Studio's 3D generator: one row per model being made or made. Kept apart from Generation so Library, Gallery and Image Studio never list a .glb file.
 model Model3D {
-  id             String    @id @default(cuid())
-  userId         String    @map("user_id")
-  projectId      String?   @map("project_id")
-  model          String // registry id (src/lib/design/models3d.ts)
-  mode           String    @default("image") // image, multi, text
-  name           String    @default("")
-  prompt         String    @default("")
-  inputs         Json? // ids of the pictures used: [{type, id}]
-  params         Json? // options sent (texture, polycount, ...), copy tries
-  status         String    @default("pending") // pending, saving, completed, failed
-  error          String?
-  statusUrl      String?   @map("status_url")
-  requestId      String?   @map("request_id")
-  idemKey        String?   @map("idem_key")
-  storageKey     String?   @map("storage_key")
-  sizeBytes      Int?      @map("size_bytes")
-  creditsHeld    Int?      @map("credits_held")
-  deletedAt      DateTime? @map("deleted_at")
-  startedAt      DateTime? @map("started_at")
-  finishedAt     DateTime? @map("finished_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  projectId   String?   @map("project_id")
+  model       String // registry id (src/lib/design/models3d.ts)
+  mode        String    @default("image") // image, multi, text
+  name        String    @default("")
+  prompt      String    @default("")
+  inputs      Json? // ids of the pictures used: [{type, id}]
+  params      Json? // options sent (texture, polycount, ...), copy tries
+  status      String    @default("pending") // pending, saving, completed, failed
+  error       String?
+  statusUrl   String?   @map("status_url")
+  requestId   String?   @map("request_id")
+  idemKey     String?   @map("idem_key")
+  storageKey  String?   @map("storage_key")
+  sizeBytes   Int?      @map("size_bytes")
+  creditsHeld Int?      @map("credits_held")
+  deletedAt   DateTime? @map("deleted_at")
+  startedAt   DateTime? @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, status])
   @@map("models_3d")
+}
+
+// Design Studio Motion: a motion graphic the agent writes as code (played in a locked-down frame, rendered to video in the browser).
+model Motion {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  projectId String?   @map("project_id")
+  title     String    @default("Untitled motion")
+  prompt    String    @default("")
+  settings  Json?
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("motions")
+}
+
+// One version of a Motion: v1 is the first take, every edit, adaptation or retry is another (parentId = the version it started from).
+model MotionVersion {
+  id        String   @id @default(cuid())
+  motionId  String   @map("motion_id")
+  userId    String   @map("user_id")
+  n         Int
+  parentId  String?  @map("parent_id")
+  label     String   @default("")
+  kind      String   @default("create")
+  aspect    String   @default("16:9")
+  duration  Float    @default(10)
+  status    String   @default("planning")
+  error     String?
+  code      String?
+  plan      String?
+  audio     Json?
+  comments  Json?
+  credits   Int      @default(0)
+  starred   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([motionId, n])
+  @@index([userId, status])
+  @@map("motion_versions")
+}
+
+// A brand kit: colours, fonts, logo pictures, notes and example motions the Motion agent follows.
+model BrandKit {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  colors    Json?
+  fonts     Json?
+  logos     Json?
+  notes     String   @default("")
+  examples  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("brand_kits")
 }

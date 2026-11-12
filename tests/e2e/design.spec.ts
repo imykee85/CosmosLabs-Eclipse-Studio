@@ -21,7 +21,7 @@ async function setup(page: Page) {
 }
 
 test.describe("Design Studio", () => {
-  test("tabs: graphics starters open Image Studio, motion says soon, 3D shows the generator", async ({ page }) => {
+  test("tabs: graphics starters open Image Studio, Motion shows its composer, 3D shows the generator", async ({ page }) => {
     await setup(page);
     await page.goto("/design");
     await expect(page.getByRole("main").getByRole("heading", { name: "Design Studio" })).toBeVisible();
@@ -30,8 +30,7 @@ test.describe("Design Studio", () => {
     const logo = page.getByRole("link", { name: /Logo/ });
     await expect(logo).toHaveAttribute("href", /\/create\?prompt=/);
     await page.getByRole("tab", { name: /Motion/ }).click();
-    await expect(page.getByRole("heading", { name: /Motion graphics/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /motion gallery/ })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Describe your motion" })).toBeVisible();
   });
 
   test("3D: modes switch the models; text mode sends the words; failures are shown plainly", async ({ page }) => {

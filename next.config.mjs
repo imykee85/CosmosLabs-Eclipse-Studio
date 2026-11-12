@@ -30,7 +30,7 @@ const nextConfig = {
     // Signed-in screens and the API are never indexed (the public site, /terms and /privacy stay indexable).
     const appPaths = ["dashboard", "create", "generate", "gallery", "library", "assets", "ingredients", "canvas", "connect", "memory", "skills", "tools", "agents", "prompts", "treatment", "project", "settings", "portfolio", "certificates", "voice", "admin", "onboarding", "tutorial", "motion", "export", "avatars", "api"];
     return [
-      { source: "/((?!api/core/tools/[^/]+/frame$).*)", headers: securityHeaders },
+      { source: "/((?!api/core/tools/[^/]+/frame|api/design/motion/frame).*)", headers: securityHeaders },
       ...appPaths.map((p) => ({ source: `/${p}/:path*`, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] })),
     ];
   },
