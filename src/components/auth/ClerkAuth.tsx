@@ -73,7 +73,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
 
     async google() {
       try {
-        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: mode === "signup" ? AFTER_SIGN_UP : afterSignIn() } as const;
+        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: mode === "signup" ? afterAuthPath(AFTER_SIGN_UP) : afterSignIn() } as const;
         if (mode === "signin") {
           if (!inLoaded) return loading;
           await signIn.authenticateWithRedirect(opts);
@@ -102,7 +102,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
         const res = await signUp.attemptEmailAddressVerification({ code });
         if (res.status === "complete") {
           await setActiveUp({ session: res.createdSessionId });
-          router.push(AFTER_SIGN_UP);
+          router.push(afterAuthPath(AFTER_SIGN_UP));
           return;
         }
         return { error: "That code didn't work. Check it and try again." };

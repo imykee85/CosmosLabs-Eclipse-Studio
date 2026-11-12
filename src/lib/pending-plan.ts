@@ -6,5 +6,13 @@ export const asPlanId = (v: unknown): (typeof PLAN_IDS)[number] | null => (typeo
 export function rememberPlan(id: string) { const p = asPlanId(id); if (!p) return; try { localStorage.setItem(KEY, p); } catch {} }
 export function pendingPlan(): (typeof PLAN_IDS)[number] | null { try { return asPlanId(localStorage.getItem(KEY)); } catch { return null; } }
 export function clearPendingPlan() { try { localStorage.removeItem(KEY); } catch {} }
-/** Where to go after sign-up or sign-in: the plan's checkout when one is waiting, else `fallback`. */
-export const afterAuthPath = (fallback: string) => (pendingPlan() ? "/start-plan" : fallback);
+const AFTER = "eclipse-pending-after";
+/** Where to go after sign-up or sign-in: the plan's checkout when one is waiting, else `fallback`. For a NEW account (fallback "/onboarding") the checkout
+ * comes first and sends the person on to onboarding once paid, so they arrive in the app with their credits. */
+export function afterAuthPath(fallback: string): string {
+  if (!pendingPlan()) return fallback;
+  try { if (fallback === "/onboarding") localStorage.setItem(AFTER, "onboarding"); else localStorage.removeItem(AFTER); } catch {}
+  return "/start-plan";
+}
+/** Read and clear where the checkout should return to ("onboarding" for a brand-new account). */
+export function takeAfter(): "onboarding" | undefined { try { const v = localStorage.getItem(AFTER); localStorage.removeItem(AFTER); return v === "onboarding" ? "onboarding" : undefined; } catch { return undefined; } }

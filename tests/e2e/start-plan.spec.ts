@@ -13,11 +13,11 @@ test("homepage plan button remembers the plan and sends it to sign-up", async ({
 test("start-plan opens the checkout for the remembered plan, or shows the reason", async ({ page }) => {
   const sent: unknown[] = [];
   await page.route("**/api/billing/checkout", (r) => { sent.push(JSON.parse(r.request().postData() || "{}")); r.fulfill({ status: 503, json: { error: "Payments are not set up yet." } }); });
-  await page.addInitScript(() => localStorage.setItem("eclipse-pending-plan", "scale"));
+  await page.addInitScript(() => { localStorage.setItem("eclipse-pending-plan", "scale"); localStorage.setItem("eclipse-pending-after", "onboarding"); });
   await page.goto("/start-plan");
   await expect(page.getByText("Payments are not set up yet.")).toBeVisible();
   // shown beside a link to Billing
-  expect(sent).toEqual([{ planId: "scale" }]);
+  expect(sent).toEqual([{ planId: "scale", after: "onboarding" }]);
   expect(await page.evaluate(() => localStorage.getItem("eclipse-pending-plan"))).toBeNull();
 });
 
