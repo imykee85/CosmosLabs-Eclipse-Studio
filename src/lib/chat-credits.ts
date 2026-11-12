@@ -1,3 +1,4 @@
+import { webSearchUsd, webUse } from "@/lib/web-tools";
 import { autoTopup } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { spendUpTo } from "@/lib/credits";
@@ -34,6 +35,7 @@ export class ChatMeter {
   usd = 0;
   add(model: string, u: TokenUsage | null | undefined) {
     if (!u) return;
+    this.usd += webUse(u).searches * webSearchUsd();
     const p = PRICES[model] ?? UNKNOWN;
     this.usd += ((u.input_tokens ?? 0) * p.input + (u.output_tokens ?? 0) * p.output + (u.cache_read_input_tokens ?? 0) * p.cacheRead + (u.cache_creation_input_tokens ?? 0) * p.cacheWrite) / 1e6;
   }

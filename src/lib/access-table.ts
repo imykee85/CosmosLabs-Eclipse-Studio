@@ -5,7 +5,7 @@ export type PlanId = "free" | "starter" | "growth" | "scale";
 export const PLAN_RANK: Record<PlanId, number> = { free: 0, starter: 1, growth: 2, scale: 3 };
 export const PLAN_NAME: Record<PlanId, string> = { free: "Free", starter: "Starter", growth: "Growth", scale: "Scale" };
 
-export type Feature = "studios" | "plan_tools" | "certificates" | "portfolio" | "api" | "teams" | "atlas" | "canvas" | "agents" | "core" | "builds" | "workflows" | "premium" | "plans" | "shotmap";
+export type Feature = "studios" | "plan_tools" | "certificates" | "portfolio" | "api" | "teams" | "atlas" | "canvas" | "agents" | "core" | "builds" | "workflows" | "premium" | "plans" | "shotmap" | "web";
 
 /** The cheapest plan that includes each feature. */
 export const FEATURE_MIN: Record<Feature, PlanId> = {
@@ -23,13 +23,14 @@ export const FEATURE_MIN: Record<Feature, PlanId> = {
   workflows: "scale",      // automated workflows: NOT built yet, shown as Soon
   plans: "scale",          // Atlas multi-step plans and missions: one approval runs a whole production; a mission works on a goal on the server until it is done
   shotmap: "growth",       // ShotMap: direct a shot in 3D, then generate it from the guide video (owner 2026-11-05: Growth and up)
+  web: "growth",           // Atlas searches the web and reads pages (owner 2026-11-12)
   premium: "growth",       // the crowned collections on the dashboard: the owner's pictures, videos and the prompts behind them
 };
 
 export const FEATURE_LABEL: Record<Feature, string> = {
   studios: "Video and Audio Studios",
   plan_tools: "Treatment and Prompts", certificates: "Certificates", portfolio: "Portfolio", api: "API and MCP access", teams: "Teams",
-  atlas: "Atlas", canvas: "Canvas", agents: "Your own agents", core: "Core", builds: "Building tools with Core", workflows: "Automated workflows", plans: "Atlas plans", shotmap: "ShotMap", premium: "Premium collections",
+  atlas: "Atlas", canvas: "Canvas", agents: "Your own agents", core: "Core", builds: "Building tools with Core", workflows: "Automated workflows", plans: "Atlas plans", shotmap: "ShotMap", web: "Atlas web search", premium: "Premium collections",
 };
 
 export const planAllows = (plan: PlanId, feature: Feature): boolean => PLAN_RANK[plan] >= PLAN_RANK[FEATURE_MIN[feature]];
