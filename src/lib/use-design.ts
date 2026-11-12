@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type Model3DInfo = { id: string; label: string; maker: string; modes: ("image" | "multi" | "text")[]; minImages: number; maxImages: number; blurb: string; polyMin: number; polyMax: number; polyDefault: number; credits: number | null };
+export type Model3DInfo = { id: string; label: string; maker: string; modes: ("image" | "multi" | "text")[]; minImages: number; maxImages: number; blurb: string; polyMin: number; polyMax: number; polyDefault: number; rig: boolean; credits: number | null };
 export type Item3D = { id: string; model: string; modelLabel: string; mode: string; name: string; prompt: string; status: string; error: string | null; sizeBytes: number | null; createdAt: string; fileUrl: string | null };
 
 export function use3D() {
@@ -26,7 +26,7 @@ export function use3D() {
   return { items, models, reload: load };
 }
 
-export async function start3DModel(body: { model: string; mode: string; prompt: string; refs: { type: "upload" | "render"; id: string }[]; options: { textured: boolean; pbr: boolean; polycount: number | null; detailed: boolean; avoid: string }; projectId?: string | null }): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
+export async function start3DModel(body: { model: string; mode: string; prompt: string; refs: { type: "upload" | "render"; id: string }[]; options: { textured: boolean; pbr: boolean; polycount: number | null; detailed: boolean; avoid: string; rig: boolean }; projectId?: string | null }): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
   try {
     const r = await fetch("/api/design/3d", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));

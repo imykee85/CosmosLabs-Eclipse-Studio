@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 }
 
 function catalog() {
-  return MODELS_3D.map((m) => ({ id: m.id, label: m.label, maker: m.maker, modes: m.modes, minImages: m.minImages, maxImages: m.maxImages, blurb: m.blurb, polyMin: m.polyMin, polyMax: m.polyMax, polyDefault: m.polyDefault, credits: creditsOn() ? toCredits(price3D(m)) : null }));
+  return MODELS_3D.map((m) => ({ id: m.id, label: m.label, maker: m.maker, modes: m.modes, minImages: m.minImages, maxImages: m.maxImages, blurb: m.blurb, polyMin: m.polyMin, polyMax: m.polyMax, polyDefault: m.polyDefault, rig: m.rig === true, credits: creditsOn() ? toCredits(price3D(m)) : null }));
 }
 
 export async function POST(req: Request) {

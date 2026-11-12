@@ -142,7 +142,7 @@ export function AddPanel({ onAdd, onAddCamera, onClose, onAsk, recents, models, 
         {tab === "objects" && (<>
           <div className="ss-add-row">
             <button type="button" className="ss-wide" onClick={() => fileRef.current?.click()}><Upload size={15} /> Upload 3D model</button>
-            <button type="button" className="ss-wide" onClick={() => onSoon("Image to 3D")}><ImageIcon size={15} /> Image to 3D <SoonTag /></button>
+            <a className="ss-wide" href="/design" target="_blank" rel="noopener"><ImageIcon size={15} /> Image to 3D</a>
             <input ref={fileRef} type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadModel(f); e.target.value = ""; }} />
           </div>
           <label className="ss-search"><Search size={14} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search objects" /></label>

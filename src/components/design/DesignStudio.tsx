@@ -87,6 +87,7 @@ function ThreeD() {
   const [poly, setPoly] = useState<number | null>(null);
   const [detailed, setDetailed] = useState(false);
   const [avoid, setAvoid] = useState("");
+  const [rig, setRig] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -102,7 +103,7 @@ function ThreeD() {
     const r = await start3DModel({
       model: model.id, mode, prompt: prompt.trim(),
       refs: needPics ? picked.slice(0, maxPics).map((p) => ({ type: p.type, id: p.id })) : [],
-      options: { textured, pbr, polycount: poly, detailed, avoid: model.id === "tripo_3d" ? avoid : "" }, projectId: readCurrentProject()?.id ?? null,
+      options: { textured, pbr, polycount: poly, detailed, avoid: model.id === "tripo_3d" ? avoid : "", rig: model.rig && rig }, projectId: readCurrentProject()?.id ?? null,
     });
     setBusy(false);
     if (!r.ok) { if (r.code !== "UPGRADE" && r.code !== "SUBSCRIBE") setError(r.error); return; }
@@ -144,7 +145,8 @@ function ThreeD() {
           <label><input type="checkbox" checked={textured} onChange={(e) => { setTextured(e.target.checked); if (!e.target.checked) setPbr(false); }} /> Colour and texture</label>
           <label className={textured ? "" : "is-off"}><input type="checkbox" checked={detailed} disabled={!textured} onChange={(e) => setDetailed(e.target.checked)} /> Extra detail (slower)</label>
           <label className={textured ? "" : "is-off"}><input type="checkbox" checked={pbr} disabled={!textured} onChange={(e) => setPbr(e.target.checked)} /> Realistic materials</label>
-          {model && (
+          {model?.rig && <label><input type="checkbox" checked={rig} onChange={(e) => setRig(e.target.checked)} /> Rig for animation (people and characters)</label>}
+          {model && model.polyMax > 0 && (
             <label className="ds-field ds-poly"><span>Detail</span>
               <input type="range" min={model.polyMin} max={model.polyMax} step={Math.max(1, Math.round((model.polyMax - model.polyMin) / 100))} value={poly ?? model.polyDefault} onChange={(e) => setPoly(Number(e.target.value))} aria-label="Detail (faces)" />
               <em>{(poly ?? model.polyDefault).toLocaleString()} faces</em>
