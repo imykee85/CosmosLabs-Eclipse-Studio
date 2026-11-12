@@ -75,9 +75,9 @@
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cp-stills img { top: 6%; width: 22%; } }
 
 /* Design Studio card: a slowly turning wire cube on a dark field */
-.cp-design { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(90% 60% at 50% 32%, #2a0a0a 0%, #0f0707 50%, #070707 85%); perspective: 700px; }
+.cp-design { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(90% 60% at 50% 32%, #26272b 0%, #101113 50%, #070707 85%); perspective: 700px; }
 .cp-cube { --s: 45px; position: relative; width: 90px; height: 90px; transform-style: preserve-3d; animation: cp-spin 14s linear infinite; margin-top: -14%; }
-.cp-cube i { position: absolute; inset: 0; border: 2px solid rgba(255, 120, 100, .85); border-radius: 6px; box-shadow: 0 0 22px rgba(192, 7, 7, .45), inset 0 0 18px rgba(192, 7, 7, .25); }
+.cp-cube i { position: absolute; inset: 0; border: 2px solid rgba(214, 218, 226, .9); border-radius: 6px; background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,0) 60%); box-shadow: 0 0 22px rgba(200, 206, 218, .35), inset 0 0 18px rgba(200, 206, 218, .2); }
 .cp-cube i:nth-child(1) { transform: translateZ(calc(var(--s, 60px))); }
 .cp-cube i:nth-child(2) { transform: rotateY(90deg) translateZ(var(--s, 60px)); }
 .cp-cube i:nth-child(3) { transform: rotateX(90deg) translateZ(var(--s, 60px)); }
