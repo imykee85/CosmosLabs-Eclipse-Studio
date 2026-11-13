@@ -185,7 +185,7 @@ function ThreeD() {
             <div className="cr-row cr-row-a">
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
               <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
-              <label className="cr-chip cr-select ds-modelsel" title={model?.blurb} style={nameW ? { width: nameW + 46 } : undefined}>
+              <label className="cr-chip cr-select ds-modelsel" title={model?.blurb} style={nameW ? { width: nameW + 58 } : undefined}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
                   {available.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
