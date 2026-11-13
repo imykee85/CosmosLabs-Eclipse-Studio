@@ -139,7 +139,9 @@ test.describe("ShotMap", () => {
     await expect(panel.getByLabel("Combine")).toBeVisible();
     await panel.getByLabel("Distance").fill("7");
     await expect(panel.getByText("7.0 m")).toBeVisible();
+    await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeHidden();
     await d.getByRole("tab", { name: "Keyframes" }).click();
     await expect(panel).toBeHidden();
+    await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeVisible();
   });
 });

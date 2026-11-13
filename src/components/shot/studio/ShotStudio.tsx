@@ -316,7 +316,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
       if (e.altKey && (e.code === "KeyC" || e.code === "KeyM" || e.code === "KeyK")) { e.preventDefault(); if (e.code === "KeyC") add({ kind: "shape", shape: "cube" }); else if (e.code === "KeyM") add({ kind: "person" }); else addCam(); return; }
       if (viewMode === "camera" || viewMode === "shoot") { if (["w", "a", "s", "d", "q", "e", "shift"].includes(k)) { held.add(k); if (!raf) raf = requestAnimationFrame(fly); e.preventDefault(); } return; }
       if (k === " ") { e.preventDefault(); setPlaying((p) => !p); return; }
-      if (k === "k" && mode === "motion") { e.preventDefault(); addKeyHere(); return; }
+      if (k === "k" && mode === "motion" && motionKind === "keys") { e.preventDefault(); addKeyHere(); return; }
       if (k === "w") setGizmo("translate"); else if (k === "e") setGizmo("rotate"); else if (k === "r") setGizmo("scale"); else if (k === "f") view.current?.frameAll();
       else if ((k === "delete" || k === "backspace") && sel) { e.preventDefault(); deleteSelection(); }
     };
@@ -623,8 +623,8 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
                 )}
               </div>
               <label className="ss-toggle" title="On: people appear in the guide video. Off: they are left out."><input type="checkbox" checked={world.simpleFigures} onChange={(e) => commit((w) => ({ ...w, simpleFigures: e.target.checked }))} /> Simple figures</label>
-              <button type="button" className="ss-pill" onClick={addKeyHere} title="Add keyframe · K"><Plus size={13} /> Add keyframe</button>
-              {keySel >= 0 && (<>
+              {motionKind === "keys" && <button type="button" className="ss-pill" onClick={addKeyHere} title="Add keyframe · K"><Plus size={13} /> Add keyframe</button>}
+              {motionKind === "keys" && keySel >= 0 && (<>
                 <div className="ss-add-wrap">
                   <button type="button" className="ss-pill" onClick={() => setEaseMenu((v) => !v)} aria-expanded={easeMenu} aria-label="Easing">{EASES.find((e) => e.id === cam.keys[keySel]?.ease)?.label ?? "Smooth"} <ChevronDown size={12} /></button>
                   {easeMenu && (
