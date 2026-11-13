@@ -177,7 +177,8 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
         const pts: THREE.Vector3[] = []; for (let i = 0; i <= 120; i++) pts.push(new THREE.Vector3(...cameraAt(world, cam, (i / 120) * dur).key.pos));
         const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: cam.id === activeId ? 0xd9dcff : 0x8a8fa8 })); camLayer.add(line);
       }
-      cam.keys.forEach((k, i) => {
+      // a camera driven by a move has no keyframes to show: its keys are only a sample, so no dark camera markers
+      if (!cam.move) cam.keys.forEach((k, i) => {
         const sel = selected?.kind === "key" && selected.camId === cam.id && selected.index === i;
         const body = cameraBody(sel ? 0x4f6bff : 0x15161b); body.position.set(...k.pos); body.lookAt(...k.look);
         body.userData.camKey = { camId: cam.id, index: i }; body.traverse((o) => { o.userData.camKey = body.userData.camKey; });
