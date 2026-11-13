@@ -42,7 +42,7 @@ test.describe("Design Studio", () => {
     await gen.getByRole("button", { name: /Make 3D model/ }).click();
     await expect.poll(() => posts.length).toBe(1);
     expect(posts[0]).toMatchObject({ model: "meshy_v6_text_to_3d", mode: "text", prompt: "A weathered wooden fishing boat", refs: [] });
-    await expect(gen.getByRole("button", { name: "Add a picture" })).toBeVisible();
+    await expect(gen.getByRole("button", { name: "Upload a picture from your device" })).toBeVisible();
   });
 
   test("it fits a phone without sideways scroll, and the Create page lists the studio", async ({ browser }) => {

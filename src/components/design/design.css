@@ -80,3 +80,5 @@
 .ds-3d .cr-box .cr-field .ds-text { padding: 2px 42px 2px 46px; border: 0; background: transparent; }
 .ds-3d .cr-chip.is-on { border-color: #c00707; background: color-mix(in srgb, #c00707 14%, var(--a-card)); }
 .ds-3d .cr-chip[disabled] { opacity: .45; cursor: default; }
+.ds-3d .ds-poly { flex: 1 1 100%; }
+.ds-3d .cr-row-a .cr-chip:not(.cr-select) { flex: none; }

@@ -1,16 +1,17 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { Box, ChevronDown, Download, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { Box, Download, Layers, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import Viewer3D from "./Viewer3D";
 import { delete3DModel, rename3DModel, start3DModel, use3D, type Item3D, type Model3DInfo } from "@/lib/use-design";
 import { readCurrentProject, timeAgo } from "@/lib/projects";
+import { uploadPicture } from "@/lib/use-uploads";
 import { putModel } from "@/lib/shot/world-store";
 import MotionStudio from "./motion/MotionStudio";
 import "./design.css";
@@ -61,7 +62,8 @@ function ThreeD() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
-  const [more, setMore] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   // Atlas on the 3D tab: it sees the generator and can describe a model and start it (a description switches to "Describe it").
   useAgentHost({
@@ -85,6 +87,18 @@ function ThreeD() {
   const maxPics = Math.max(1, Math.min(4, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 4), 4)));
   const picsOk = !needPics || (picked.length >= (mode === "image" ? 1 : model?.minImages ?? 1) && picked.length <= (model?.maxImages ?? maxPics));
   const canGo = !!model && !busy && picsOk && (mode !== "text" || prompt.trim().length >= 3);
+
+  async function fromDevice(f: File) {
+    if (!f.type.startsWith("image/")) { setError("Add a picture here."); return; }
+    setError(null); setUploading((n) => n + 1);
+    try {
+      const r = await uploadPicture(f, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
+      if (!r.ok) { setError(r.error); return; }
+      if (!r.item) return;
+      const it = r.item;
+      setPicked((l) => [...l, { type: "upload" as const, id: it.id, url: it.imageUrl, label: it.name }].slice(0, maxPics));
+    } finally { setUploading((n) => n - 1); }
+  }
 
   async function go() {
     if (!model || !canGo) return;
@@ -143,34 +157,33 @@ function ThreeD() {
             </div>
           )}
           <div className="cr-field">
-            <button type="button" className="cr-plus" aria-label="Add a picture" title="Add a picture to build the model from, or several views of the same thing" onClick={() => setPicker(true)}><Plus size={18} /></button>
+            <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+            <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void fromDevice(f); e.target.value = ""; }} />
             <GrowArea className="ds-text" rows={2} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={picked.length ? "Add a note (optional)…" : "Describe the model you imagine, or add a picture…"} aria-label="Describe the model" maxLength={600} />
           </div>
           {mode === "text" && model?.id === "tripo_3d" && <GrowArea className="ds-text" rows={1} value={avoid} onChange={(e) => setAvoid(e.target.value)} placeholder="Leave out: blurry, flat, extra parts" aria-label="Things to leave out" maxLength={1024} />}
                     <div className="cr-tools">
             <div className="cr-row cr-row-a">
+              <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
+              <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-pressed={textured} onClick={() => { setTextured(!textured); if (textured) setPbr(false); }}>Colour and texture</button>
               <label className="cr-chip cr-select" title={model?.blurb}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
                   {available.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </label>
-              <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-pressed={textured} onClick={() => { setTextured(!textured); if (textured) setPbr(false); }}>Colour and texture</button>
-              <button type="button" className="cr-chip" aria-expanded={more} onClick={() => setMore(!more)}>More <ChevronDown size={14} /></button>
             </div>
-            {more && (
-              <div className="cr-row">
-                <button type="button" className={`cr-chip ${detailed ? "is-on" : ""}`} aria-pressed={detailed} disabled={!textured} onClick={() => setDetailed(!detailed)}>Extra detail (slower)</button>
-                <button type="button" className={`cr-chip ${pbr ? "is-on" : ""}`} aria-pressed={pbr} disabled={!textured} onClick={() => setPbr(!pbr)}>Realistic materials</button>
-                {model?.rig && <button type="button" className={`cr-chip ${rig ? "is-on" : ""}`} aria-pressed={rig} onClick={() => setRig(!rig)}>Rig for animation</button>}
-                {model && model.polyMax > 0 && (
-                  <label className="ds-field ds-poly"><span>Detail</span>
-                    <input type="range" min={model.polyMin} max={model.polyMax} step={Math.max(1, Math.round((model.polyMax - model.polyMin) / 100))} value={poly ?? model.polyDefault} onChange={(e) => setPoly(Number(e.target.value))} aria-label="Detail (faces)" />
-                    <em>{(poly ?? model.polyDefault).toLocaleString()} faces</em>
-                  </label>
-                )}
-              </div>
-            )}
+            <div className="cr-row">
+              <button type="button" className={`cr-chip ${detailed ? "is-on" : ""}`} aria-pressed={detailed} disabled={!textured} onClick={() => setDetailed(!detailed)}>Extra detail (slower)</button>
+              <button type="button" className={`cr-chip ${pbr ? "is-on" : ""}`} aria-pressed={pbr} disabled={!textured} onClick={() => setPbr(!pbr)}>Realistic materials</button>
+              {model?.rig && <button type="button" className={`cr-chip ${rig ? "is-on" : ""}`} aria-pressed={rig} onClick={() => setRig(!rig)}>Rig for animation</button>}
+              {model && model.polyMax > 0 && (
+                <label className="ds-field ds-poly"><span>Detail</span>
+                  <input type="range" min={model.polyMin} max={model.polyMax} step={Math.max(1, Math.round((model.polyMax - model.polyMin) / 100))} value={poly ?? model.polyDefault} onChange={(e) => setPoly(Number(e.target.value))} aria-label="Detail (faces)" />
+                  <em>{(poly ?? model.polyDefault).toLocaleString()} faces</em>
+                </label>
+              )}
+            </div>
             <div className="cr-row cr-row-top">
               <AtlasChip />
             </div>
