@@ -193,13 +193,13 @@ function ThreeD() {
               </label>
             </div>
             <div className="cr-row">
+              <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
               <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
               <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas" onClick={async () => {
                 const text = prompt.trim();
                 if (!text) { router.push("/canvas"); return; }
                 try { const made = await createCanvasFrom3D(readCurrentProject()?.id ?? "default", { prompt: text }); router.push(made ? `/canvas?c=${made.id}` : "/canvas"); } catch { router.push("/canvas"); }
               }}><Workflow size={14} /> Open canvas</button>
-              <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
               <AtlasChip />
             </div>
             {detailOpen && model && model.polyMax > 0 && (

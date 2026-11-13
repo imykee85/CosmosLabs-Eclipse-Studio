@@ -113,3 +113,6 @@ html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
 .ds-3d .cr-row { gap: 6px; }
 .ds-3d .cr-chip { padding: 0 10px; gap: 5px; }
 .ds-3d .cr-select select { padding: 0 6px; }
+
+/* Detail chip: same size as the Atlas chip */
+.ds-3d .cr-row > .cr-chip { height: 36px; font-size: 14px; padding: 0 10px; gap: 5px; }
