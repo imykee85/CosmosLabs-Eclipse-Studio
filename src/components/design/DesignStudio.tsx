@@ -134,7 +134,7 @@ function ThreeD() {
   const shown = (items ?? []).find((i) => i.id === open) ?? (items ?? []).find((i) => i.status === "completed") ?? null;
   const making = (items ?? []).some((i) => i.status !== "completed" && i.status !== "failed");
   return (
-    <section aria-label="3D generator" className="cr-wrap ds-3d">
+    <section aria-label="3D generator" className={`cr-wrap ds-3d ${making ? "has-shot" : "is-idle"}`}>
       <section className="cr-preview" aria-label="Preview">
         <div className="cr-stage ds-stage3" aria-live="polite">
           {making ? (

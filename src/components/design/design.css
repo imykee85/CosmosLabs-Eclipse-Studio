@@ -93,3 +93,15 @@
 .ds-head { text-align: center; }
 .ds-head p { text-align: center; }
 .ds-3d .cr-row-a .cr-select.ds-modelsel { flex: none; max-width: 100%; }
+/* The 3D page stands still like Image Studio unless a model is being made. */
+.ds:has(.ds-3d.is-idle) { padding-bottom: 0; }
+.ws-main:has(.ds-3d.is-idle) { padding-bottom: 0; }
+html:has(.ds-3d.is-idle), html:has(.ds-3d.is-idle) body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
+html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
+.ds-3d.is-idle { max-height: none; overflow: visible; }
+/* Preview: same width as before, rectangular. */
+.ds-stage3 { aspect-ratio: 4 / 3; }
+/* Tabs: both pills the same width and smaller. */
+.ds-tabs button { flex: 1 1 0; justify-content: center; min-width: 96px; padding: 7px 12px; font-size: 14px; }
+.ds-tabs { padding: 3px; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ds-toprow .ds-tabs { display: inline-flex; width: auto; } .ds-tabs button { flex: 0 0 104px; padding: 7px 8px; } }
