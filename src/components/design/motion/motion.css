@@ -198,3 +198,9 @@
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .cr-dock .mt-pop { position: fixed; left: 12px !important; right: 12px !important; top: auto; bottom: calc(80px + env(safe-area-inset-bottom)); width: auto; max-height: 60dvh; overflow: auto; }
 }
+/* Closing the Motion popups: tap outside (scrim), Escape, or the close button. */
+.mt-scrim { position: fixed; inset: 0; z-index: 55; background: transparent; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .mt-scrim { background: rgba(0,0,0,.35); } }
+.mt-pop > button.mt-pop-x { position: sticky; top: 0; justify-self: end; flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; margin: -2px -2px -26px 0; border-radius: 50%; background: var(--a-input, rgba(127,127,127,.15)); z-index: 2; }
+.mt-pop > button.mt-pop-x:hover { background: var(--a-hover, rgba(127,127,127,.25)); }
+.mt-pop > .mt-pop-h:first-of-type, .mt-pop > .mt-pop-h { padding-right: 36px; }

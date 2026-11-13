@@ -145,9 +145,11 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
       return "";
     },
   });
+  useEffect(() => { if (!menu) return; const k = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(null); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [menu]);
   const toggle = (k: typeof menu) => setMenu((m) => (m === k ? null : k));
   return (
     <div className="cr-dock">
+    {menu && <div className="mt-scrim" aria-hidden="true" onMouseDown={() => setMenu(null)} onTouchStart={() => setMenu(null)} />}
     {error && <p className="ds-error" role="alert">{error}</p>}
     <form className="cr-box mt-composer" onSubmit={(e) => { e.preventDefault(); void go(); }}>
       {(pics.length > 0 || clips.length > 0 || making.length > 0) && (
@@ -173,8 +175,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
           <div className="mt-pop-wrap">
           <button type="button" className="cr-chip" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
           {menu === "settings" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Motion settings">
-            <b className="mt-pop-h">Agent model</b>
-            {MOTION_MODELS.map((m) => <button key={m.id} type="button" className={`mt-opt${s.model === m.id ? " is-on" : ""}`} onClick={() => setS({ ...s, model: m.id })}><b>{m.name}</b><em>{m.blurb}</em>{s.model === m.id && <Check size={14} />}</button>)}
+            <button type="button" className="mt-pop-x" aria-label="Close" onClick={() => setMenu(null)}><X size={16} /></button>
             <b className="mt-pop-h">Permissions</b>
             <button type="button" className={`mt-opt${s.approval === "ask" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "ask" })}><ShieldCheck size={15} /><span><b>Ask first</b><em>Asks before paid sound (music, voiceover, sound effects). The motion itself is made right away.</em></span>{s.approval === "ask" && <Check size={14} />}</button>
             <button type="button" className={`mt-opt${s.approval === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "auto" })}><Zap size={15} /><span><b>Auto approve</b><em>Makes everything the motion needs without asking. The cost shows on the version.</em></span>{s.approval === "auto" && <Check size={14} />}</button>
@@ -190,6 +191,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
           <div className="mt-pop-wrap">
           <button type="button" className="cr-chip" aria-expanded={menu === "duration"} onClick={() => toggle("duration")}><Clock size={14} />{s.duration === "auto" ? "Auto" : `${s.duration}s`}{s.loop && <span className="mt-loopdot">∞</span>}</button>
           {menu === "duration" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Duration">
+            <button type="button" className="mt-pop-x" aria-label="Close" onClick={() => setMenu(null)}><X size={16} /></button>
             <b className="mt-pop-h">Duration</b>
             <button type="button" className={`mt-auto${s.duration === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, duration: "auto" })}><b>Auto</b><em>Picks the length for you</em></button>
             <em className="mt-pop-sub">Or choose a length</em>
@@ -200,6 +202,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
           <div className="mt-pop-wrap">
           <button type="button" className={`cr-chip${audioOn ? " is-on" : ""}`} aria-expanded={menu === "audio"} onClick={() => toggle("audio")}><Music size={14} />Audio</button>
           {menu === "audio" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Audio">
+            <button type="button" className="mt-pop-x" aria-label="Close" onClick={() => setMenu(null)}><X size={16} /></button>
             <b className="mt-pop-h">Audio</b><em className="mt-pop-sub">Turn one off and the agent never adds it.</em>
             {(["sfx", "music", "voice"] as const).map((k) => (
               <label key={k} className="mt-switch"><span><b>{k === "sfx" ? "Sound effects" : k === "music" ? "Music" : "Voiceover"}</b></span><input type="checkbox" checked={s.audio[k]} onChange={(e) => setS({ ...s, audio: { ...s.audio, [k]: e.target.checked } })} /></label>
@@ -213,6 +216,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
           <div className="mt-pop-wrap">
             <button type="button" className="cr-chip" aria-expanded={menu === "templates"} onClick={() => toggle("templates")}><LayoutTemplate size={14} /> Templates</button>
             {menu === "templates" && <div className="mt-pop mt-pop-wide" role="menu" aria-label="Templates">
+            <button type="button" className="mt-pop-x" aria-label="Close" onClick={() => setMenu(null)}><X size={16} /></button>
               <b className="mt-pop-h">Start from a template</b>
               {TEMPLATES.map((tp) => (
                 <button key={tp.id} type="button" role="menuitem" onClick={() => { setPrompt(tp.prompt); setS((x) => ({ ...x, aspect: tp.aspect, duration: tp.duration, loop: tp.id === "loop" })); setMenu(null); }}>
