@@ -27,3 +27,14 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     return NextResponse.json({ error: "Could not create a share link." }, { status: 500 });
   }
 }
+
+// "Stop sharing": every link made for this render up to now stops opening. A link made afterwards works again.
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  if (!clerkEnabled) return NextResponse.json({ error: "Preview mode: sign-in is not configured yet." }, { status: 503 });
+  const { workspaceId: userId } = await workspaceSession();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const done = await db.generation.updateMany({ where: { id: params.id, userId }, data: { shareRevokedAt: new Date() } });
+  if (!done.count) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ ok: true });
+}

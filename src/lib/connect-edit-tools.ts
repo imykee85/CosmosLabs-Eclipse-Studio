@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
-import { waitUntil } from "@vercel/functions";
 import { db } from "@/lib/db";
-import { drive, enqueue } from "@/lib/sandbox/runner";
+import { queueJob } from "@/lib/sandbox/confirm";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { kineticEnabled, kineticInputFor } from "@/lib/sandbox/kinds/kinetic";
@@ -78,7 +77,7 @@ export function editBodyFromArgs(a: Record<string, unknown>): Record<string, unk
   });
 }
 
-export async function runEditTool(name: string, a: Record<string, unknown>, userId: string, openProject: string | null): Promise<{ text: string; isError?: boolean }> {
+export async function runEditTool(name: string, a: Record<string, unknown>, userId: string, openProject: string | null, chatId: string | null = null, onSend?: (id: string) => void): Promise<{ text: string; isError?: boolean }> {
   if (name === "check_edit") {
     const job = await db.sandboxJob.findFirst({ where: { id: s(a.job_id, 60) ?? "", userId, kind: { in: ["media.edit", "media.kinetic"] } } });
     if (!job) return { text: "No edit with that id.", isError: true };
@@ -96,18 +95,12 @@ export async function runEditTool(name: string, a: Record<string, unknown>, user
     let kin;
     try { kin = await kineticInputFor(userId, kid, { spec: s(a.spec_js, 60_000) ?? "", resolution: s(a.resolution, 4), musicTakeId: s(a.music_take_id, 60), projectId: s(a.project_id, 64) ?? openProject ?? undefined }); }
     catch (err) { if (err instanceof JobInputError) return { text: err.message, isError: true }; throw err; }
-    const kq = await enqueue("media.kinetic", userId, kin, { id: kid });
-    if (!kq.ok) return { text: kq.error, isError: true };
-    waitUntil(drive(kq.job.id, 45_000).catch((e) => console.error("sandbox drive failed", kq.job.id, e)));
-    return { text: JSON.stringify({ job_id: kq.job.id, status: "queued", note: "Rendering, usually 5 to 15 minutes. Use check_edit with this job_id; the film lands in the user's Library." }) };
+    return queueJob({ userId, chatId, kind: "media.kinetic", input: kin, id: kid, summary: `Make a kinetic film (${s(a.resolution, 4) ?? "720"}p). Takes 5 to 15 minutes; it lands in your Library.`, onSend });
   }
   if (!editEnabled()) return { text: "Editing videos is not available yet.", isError: true };
   const id = `sbx${randomUUID().replace(/-/g, "").slice(0, 21)}`;
   let input;
   try { input = await editInputFor(userId, id, { ...editBodyFromArgs(a), ...(a.project_id ? {} : openProject ? { projectId: openProject } : {}) }); }
   catch (err) { if (err instanceof JobInputError) return { text: err.message, isError: true }; throw err; }
-  const q = await enqueue("media.edit", userId, input, { id });
-  if (!q.ok) return { text: q.error, isError: true };
-  waitUntil(drive(q.job.id, 45_000).catch((e) => console.error("sandbox drive failed", q.job.id, e)));
-  return { text: JSON.stringify({ job_id: q.job.id, status: "queued", note: "Editing now, usually 1 to 5 minutes. Use check_edit with this job_id; the new video lands in the user's Library." }) };
+  return queueJob({ userId, chatId, kind: "media.edit", input, id, summary: `Edit ${Array.isArray(a.clips) ? a.clips.length : 1} video clip${Array.isArray(a.clips) && a.clips.length > 1 ? "s" : ""}. Takes 1 to 5 minutes; the new video lands in your Library.`, onSend });
 }

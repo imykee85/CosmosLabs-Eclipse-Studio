@@ -58,7 +58,7 @@ function RenderCard({ id, grew }: { id: string; grew: () => void }) {
 }
 
 
-type SendInfo = { appName: string; destination: string; text: string; hasPicture: boolean; status: string; error?: string | null };
+type SendInfo = { isJob?: boolean; appName: string; destination: string; text: string; hasPicture: boolean; status: string; error?: string | null };
 
 // A message the assistant prepared for a connected app. Nothing leaves until the person presses Send here (the server enforces it).
 function SendCard({ id, grew }: { id: string; grew: () => void }) {
@@ -85,13 +85,13 @@ function SendCard({ id, grew }: { id: string; grew: () => void }) {
   const where = info.destination ? `${info.appName} (${info.destination})` : info.appName;
   return (
     <div className={`cn-sc is-${info.status}`}>
-      <div className="cn-sc-head"><Send size={14} /> {info.status === "sent" ? `Sent to ${where}` : info.status === "canceled" ? `Canceled: not sent to ${where}` : info.status === "expired" ? `Expired: not sent to ${where}` : info.status === "failed" ? `Could not send to ${where}` : `Send to ${where}?`}</div>
+      <div className="cn-sc-head"><Send size={14} /> {info.isJob ? (info.status === "sent" ? "Started" : info.status === "canceled" ? "Canceled: not started" : info.status === "expired" ? "Expired: not started" : info.status === "failed" ? "Could not start" : "Start this job?") : info.status === "sent" ? `Sent to ${where}` : info.status === "canceled" ? `Canceled: not sent to ${where}` : info.status === "expired" ? `Expired: not sent to ${where}` : info.status === "failed" ? `Could not send to ${where}` : `Send to ${where}?`}</div>
       <p className="cn-sc-text">{info.text}</p>
       {info.hasPicture && <span className="cn-sc-pic"><ImageIcon size={13} /> A picture is attached</span>}
       {(err || (info.status === "failed" && info.error)) && <p className="cn-err" role="alert"><AlertCircle size={15} /> {err || info.error}</p>}
       {info.status === "pending" && (
         <div className="cn-sc-actions">
-          <button type="button" className="cn-sc-go" disabled={busy} onClick={() => decide("send")}>Send</button>
+          <button type="button" className="cn-sc-go" disabled={busy} onClick={() => decide("send")}>{info.isJob ? "Start" : "Send"}</button>
           <button type="button" className="cn-sc-no" disabled={busy} onClick={() => decide("cancel")}>Cancel</button>
         </div>
       )}

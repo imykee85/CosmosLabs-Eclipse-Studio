@@ -12,6 +12,7 @@ datasource db {
 model Generation {
   id            String    @id @default(cuid())
   userId        String    @map("user_id")
+  shareRevokedAt DateTime? @map("share_revoked_at") // share links made before this moment no longer open
   prompt        String
   imageUrl      String    @default("") @map("image_url") // where the provider produced it; only a fallback, never shown once the file is in our storage; empty while the render is still running
   status        String    @default("completed") // pending (running at the provider), saving (being copied into storage), completed, failed
@@ -747,6 +748,8 @@ model PendingSend {
   app          String
   text         String    @db.Text
   generationId String?   @map("generation_id")
+  jobKind      String?   @map("job_kind") // set for a paid cloud-computer job the person must approve (app is then "job:<kind>"); jobInput holds {id, input}
+  jobInput     Json?     @map("job_input")
   status       String    @default("pending") // pending | sending | sent | canceled | failed
   error        String?
   createdAt    DateTime  @default(now()) @map("created_at")

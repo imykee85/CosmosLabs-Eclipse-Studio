@@ -11,17 +11,22 @@ const b64 = (s: string) => Buffer.from(s).toString("base64url");
 const sig = (body: string) => createHmac("sha256", secret()).update(`share:${body}`).digest("base64url").slice(0, 32);
 
 export function shareToken(id: string, days: number): string {
-  const body = b64(`${id}.${Math.floor(Date.now() / 1000) + days * 86400}`);
+  // id.expiry.issued-at-in-ms: a link made before the person pressed "Stop sharing" no longer opens (see Generation.shareRevokedAt).
+  const body = b64(`${id}.${Math.floor(Date.now() / 1000) + days * 86400}.${Date.now()}`);
   return `${body}.${sig(body)}`;
 }
-export function readShareToken(token: string): { id: string } | null {
+export function readShareToken(token: string): { id: string; issuedAt: number } | null {
   const [body, mac] = token.split(".");
   if (!body || !mac) return null;
   const want = Buffer.from(sig(body)), got = Buffer.from(mac);
   if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
-  const [id, exp] = Buffer.from(body, "base64url").toString().split(".");
+  const [id, exp, iat] = Buffer.from(body, "base64url").toString().split(".");
   if (!id || !/^[\w-]{1,64}$/.test(id) || !(Number(exp) > Date.now() / 1000)) return null;
-  return { id };
+  return { id, issuedAt: Number(iat) > 0 ? Number(iat) : 0 }; // links made before this field existed count as issued at 0
+}
+/** True when the person stopped sharing after this link was made. */
+export function shareRevoked(t: { issuedAt: number }, revokedAt: Date | null | undefined): boolean {
+  return Boolean(revokedAt) && t.issuedAt <= revokedAt!.getTime();
 }
 
 // Streams a stored file to the browser from our own address, passing a Range request through.

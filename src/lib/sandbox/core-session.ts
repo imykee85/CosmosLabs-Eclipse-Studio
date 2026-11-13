@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { queueJob } from "@/lib/sandbox/confirm";
 import type { SandboxJob } from "@prisma/client";
 import { db } from "@/lib/db";
 import { putObject, storageEnabled } from "@/lib/storage";
@@ -44,21 +46,20 @@ async function audit(job: SandboxJob, tool: string, command: string | null, ok: 
 }
 
 /** The person's open build session, starting one when there is none. */
-async function sessionFor(userId: string, chatId: string | null): Promise<{ job: SandboxJob } | { error: string }> {
+async function sessionFor(userId: string, chatId: string | null, onSend?: (id: string) => void): Promise<{ job: SandboxJob } | { error: string }> {
   const open = await openSession(userId);
   if (open) {
     if (Date.now() > open.deadlineAt.getTime()) { await advance(open.id); return { error: `The build session reached its ${SESSION_MINUTES}-minute limit and was closed. Start again if more work is needed.` }; }
     return { job: open };
   }
-  const q = await enqueue("core.exec", userId, { chatId });
-  if (!q.ok) return { error: q.error };
-  const job = await drive(q.job.id, 25_000, 800);
-  if (job?.step === "session") return { job };
-  const err = (job?.error as { message?: string } | null)?.message;
-  return { error: err ?? "The build machine is still starting. Try the step again in a moment." };
+  // A build session is billed by the minute, so it starts only when the person presses Start on a card (see sandbox/confirm.ts).
+  const waiting = await db.pendingSend.findFirst({ where: { userId, app: "job:core.exec", status: "pending", createdAt: { gt: new Date(Date.now() - 24 * 3600_000) } }, select: { id: true } });
+  if (waiting) return { error: "A build session is waiting for the person to press Start on its card. Do not start another; tell them to press Start, then continue." };
+  const q = await queueJob({ userId, chatId, kind: "core.exec", input: { chatId }, id: `sbx${randomUUID().replace(/-/g, "").slice(0, 21)}`, summary: "Start a private build machine for your tools. It is billed per started 5 minutes and closes after 30 minutes.", onSend });
+  return { error: q.text };
 }
 
-export async function runSessionTool(name: string, args: Record<string, unknown>, userId: string, chatId: string | null): Promise<SessionOutcome> {
+export async function runSessionTool(name: string, args: Record<string, unknown>, userId: string, chatId: string | null, onSend?: (id: string) => void): Promise<SessionOutcome> {
   const provider = sandboxProvider();
   if (!provider) return { text: "The build machine is not switched on yet. Tell the person it is coming and help another way.", isError: true };
   if (name === "save_tool" && args.kind === "browser") return saveBrowserTool(args, userId);
@@ -68,7 +69,7 @@ export async function runSessionTool(name: string, args: Record<string, unknown>
     const ended = await endSession(open.id);
     return { text: `The build session was closed after ${(ended?.output as { minutes?: number } | null)?.minutes ?? "?"} minutes.${ended?.creditsCharged ? ` ${fmtCredits(ended.creditsCharged)} credits were charged.` : ""}` };
   }
-  const s = await sessionFor(userId, chatId);
+  const s = await sessionFor(userId, chatId, onSend);
   if ("error" in s) return { text: s.error, isError: true };
   const job = s.job, box = job.sandboxName!;
   const started = Date.now();
