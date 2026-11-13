@@ -29,6 +29,8 @@ export default function Viewer3D({ url, label }: { url: string; label: string })
       const obj = gltf.scene, box = new THREE.Box3().setFromObject(obj), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
       obj.position.sub(c); scene.add(obj);
       const r = Math.max(s.x, s.y, s.z) || 1, d = r * 1.9;
+      // A floor grid under the model so it has a place to stand.
+      const grid = new THREE.GridHelper(r * 4, 20, 0x5a5a66, 0x33333b); grid.position.y = -s.y / 2; scene.add(grid);
       camera.position.set(d * 0.8, d * 0.5, d); camera.near = r / 100; camera.far = r * 100; camera.updateProjectionMatrix(); controls.update();
       setState("ready");
     }, undefined, () => { if (!dead) setState("error"); });
