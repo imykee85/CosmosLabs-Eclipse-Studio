@@ -180,8 +180,8 @@ function ThreeD() {
                     <div className="cr-tools">
             {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
-              <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
+              <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <label className="cr-chip cr-select ds-modelsel" title={model?.blurb} style={nameW ? { width: nameW + 46 } : undefined}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
@@ -190,8 +190,8 @@ function ThreeD() {
               </label>
             </div>
             <div className="cr-row">
+              <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
               <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
-              <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <AtlasChip />
             </div>
             {detailOpen && model && model.polyMax > 0 && (
