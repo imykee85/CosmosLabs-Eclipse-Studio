@@ -2,6 +2,8 @@
 
 // ShotMap: build a 3D scene (by hand or by asking), design camera moves with keyframes, look through the camera, take stills, then record the move
 // and hand it to Video Studio as the camera-motion reference. Three modes: Compose (build and arrange), Shoot (stills through a camera), Motion (camera keyframes on a timeline).
+import { MovesPanel } from "./MovesPanel";
+import { DEFAULT_MOVES, movesToKeys, type MovesState } from "@/lib/shot/moves";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight, Box, Camera, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronUp, Copy, Crosshair, Download, Expand, Focus, Maximize2, Minimize2,
@@ -110,6 +112,15 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
   const characters = useMemo(() => (characterUploads.items ?? []).slice(0, 24).map((u) => ({ id: u.id, url: u.imageUrl, name: u.name })), [characterUploads.items]);
 
   const shot = shotOf(world), cam = cameraOf(world), D = shot.durationS;
+  // Motion has two ways to direct the camera: keyframes on the timeline, or the manual Moves controls (a move, rotate, vertical, distance, speed, lens).
+  const [motionKind, setMotionKind] = useState<"keys" | "moves">("keys");
+  const [movesBy, setMovesBy] = useState<Record<string, MovesState>>({});
+  const moves = movesBy[cam.id] ?? DEFAULT_MOVES;
+  const applyMoves = useCallback((patch: Partial<MovesState>) => {
+    const next = { ...(movesBy[cam.id] ?? DEFAULT_MOVES), ...patch };
+    setMovesBy((m) => ({ ...m, [cam.id]: next }));
+    commit((w) => editCamera(w, cam.id, { keys: movesToKeys(w.items, next, shotOf(w).durationS) }));
+  }, [movesBy, cam.id, commit]);
   const selItem = sel?.kind === "item" ? world.items.find((i) => i.id === sel.id) ?? null : null;
   const selKey = sel?.kind === "key" ? (() => { const c = world.cameras.find((x) => x.id === sel.camId); return c && c.keys[sel.index] ? { cam: c, key: c.keys[sel.index] } : null; })() : null;
   const viewMode = camEdit ? "camera" : mode === "shoot" ? "shoot" : mode;
@@ -596,6 +607,10 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
         <div className="ss-motion">
           <div className="ss-tl-bar">
             <div className="ss-tl-left">
+              <div className="ss-kind" role="tablist" aria-label="How to direct the camera">
+                <button type="button" role="tab" aria-selected={motionKind === "keys"} className={motionKind === "keys" ? "is-on" : ""} onClick={() => setMotionKind("keys")}>Keyframes</button>
+                <button type="button" role="tab" aria-selected={motionKind === "moves"} className={motionKind === "moves" ? "is-on" : ""} onClick={() => { setMotionKind("moves"); applyMoves({}); flash("The camera now follows the move you pick. Undo brings your keyframes back."); }}>Moves</button>
+              </div>
               <div className="ss-add-wrap">
                 <button type="button" className="ss-pill" onClick={() => setAddMenu((v) => !v)} aria-expanded={addMenu}><Plus size={13} /> Add</button>
                 {addMenu && (
@@ -652,6 +667,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
               <button type="button" className="ss-icon" aria-label="Delete the shot" disabled={world.shots.length < 2} onClick={() => { commit(removeShot(world, shot.id)); setT(0); }}><Trash2 size={14} /></button>
             </div>
           </div>
+          {motionKind === "moves" && <MovesPanel m={moves} onChange={applyMoves} />}
           {askOpen && (
             <div className="ss-askbar is-inline">
               <GrowArea value={askText} onChange={(e) => setAskText(e.target.value)} placeholder="Describe exactly the camera move you need" aria-label="Describe the camera move" rows={1} noExpand autoFocus onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void sendAsk(); }} />

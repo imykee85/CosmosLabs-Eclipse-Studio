@@ -299,3 +299,17 @@
   .ss-from { grid-template-columns: 1fr; }
   .ss-usemenu { position: fixed; left: 8px; right: 8px; top: calc(56px + env(safe-area-inset-top)); width: auto; }
 }
+/* Moves: the manual camera controls in Motion mode */
+.ss-kind { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--a-line); border-radius: 999px; background: var(--a-input); }
+.ss-kind button { padding: 5px 12px; border: 0; border-radius: 999px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.ss-kind button.is-on { background: #c00707; color: #fff; }
+.ss-moves { display: flex; flex-direction: column; gap: 8px; padding: 6px 12px 12px; border-top: 1px solid var(--a-line); }
+.ss-moves-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.ss-mv { display: grid; gap: 3px; min-width: 150px; flex: 1 1 150px; font-size: 11.5px; color: var(--a-muted); }
+.ss-mv select, .ss-mv-slide select { height: 36px; padding: 0 10px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-input); color: var(--a-fg); font: inherit; font-size: 14px; }
+.ss-moves-hint { margin: 0; color: var(--a-muted); font-size: 12.5px; }
+.ss-moves-sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 16px; }
+.ss-mv-slide { display: grid; grid-template-columns: 78px 1fr 52px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--a-fg2); }
+.ss-mv-slide input[type=range] { width: 100%; accent-color: #c00707; }
+.ss-mv-slide em { font-style: normal; text-align: right; color: var(--a-muted); }
+.ss-mv-slide select { grid-column: 2 / 4; }
