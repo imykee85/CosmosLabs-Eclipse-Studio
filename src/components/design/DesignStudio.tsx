@@ -46,11 +46,12 @@ export default function DesignStudio() {
 function ThreeD() {
   const { items, models, reload } = use3D();
   const [picked, setPicked] = useState<RefPick[]>([]);
-  // No mode picker: nothing added means words, one picture means one picture, more means several views.
-  const mode: Mode = picked.length === 0 ? "text" : picked.length === 1 ? "image" : "multi";
-  const available = useMemo(() => models.filter((m) => m.modes.includes(mode)), [models, mode]);
+  // The model list shows every model. Until one is chosen, the model follows what you add: nothing means words, one picture means one picture, more means several views.
+  const want: Mode = picked.length === 0 ? "text" : picked.length === 1 ? "image" : "multi";
+  const available = models;
   const [modelId, setModelId] = useState<string>("");
-  const model: Model3DInfo | undefined = available.find((m) => m.id === modelId) ?? available[0];
+  const model: Model3DInfo | undefined = models.find((m) => m.id === modelId) ?? models.find((m) => m.modes.includes(want)) ?? models[0];
+  const mode: Mode = model?.modes.includes(want) ? want : (model?.modes[0] ?? want);
   const [picker, setPicker] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [textured, setTextured] = useState(true);
@@ -87,7 +88,12 @@ function ThreeD() {
   const needPics = mode !== "text";
   const maxPics = Math.max(1, Math.min(4, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 4), 4)));
   const picsOk = !needPics || (picked.length >= (mode === "image" ? 1 : model?.minImages ?? 1) && picked.length <= (model?.maxImages ?? maxPics));
-  const canGo = !!model && !busy && picsOk && (mode !== "text" || prompt.trim().length >= 3);
+  // Why Make is off when the chosen model does not fit what is in the box.
+  const reason = !model ? "" : mode === "text" && picked.length > 0 ? `${model.label} works from words only. Remove the picture or choose another model.`
+    : needPics && picked.length === 0 ? `${model.label} needs a picture. Add one with the + or Ingredients.`
+    : needPics && picked.length > (model.maxImages ?? maxPics) ? `${model.label} takes at most ${model.maxImages} picture${model.maxImages === 1 ? "" : "s"}.`
+    : needPics && picked.length < (mode === "image" ? 1 : model.minImages ?? 1) ? `${model.label} needs at least ${model.minImages} pictures.` : "";
+  const canGo = !!model && !busy && !reason && (mode !== "text" || prompt.trim().length >= 3);
 
   async function fromDevice(f: File) {
     if (!f.type.startsWith("image/")) { setError("Add a picture here."); return; }
@@ -164,6 +170,7 @@ function ThreeD() {
           </div>
           {mode === "text" && model?.id === "tripo_3d" && <GrowArea className="ds-text" rows={1} value={avoid} onChange={(e) => setAvoid(e.target.value)} placeholder="Leave out: blurry, flat, extra parts" aria-label="Things to leave out" maxLength={1024} />}
                     <div className="cr-tools">
+            {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
               <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-pressed={textured} onClick={() => { setTextured(!textured); if (textured) setPbr(false); }}>Colour and texture</button>
@@ -178,7 +185,7 @@ function ThreeD() {
               <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
               <button type="button" className={`cr-chip ${detailed ? "is-on" : ""}`} aria-pressed={detailed} title="Slower, sharper" disabled={!textured} onClick={() => setDetailed(!detailed)}>Extra detail</button>
               <button type="button" className={`cr-chip ${pbr ? "is-on" : ""}`} aria-pressed={pbr} disabled={!textured} onClick={() => setPbr(!pbr)}>Realistic materials</button>
-              {model?.rig && <button type="button" className={`cr-chip ${rig ? "is-on" : ""}`} aria-pressed={rig} onClick={() => setRig(!rig)}>Rig for animation</button>}
+              <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <AtlasChip />
             </div>
             {detailOpen && model && model.polyMax > 0 && (
