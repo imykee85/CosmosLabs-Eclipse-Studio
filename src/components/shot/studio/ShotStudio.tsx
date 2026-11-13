@@ -82,8 +82,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
   const [panel, setPanel] = useState<"outliner" | "add" | null>("outliner");
   const [inspector, setInspector] = useState(true);
   const [previewBig, setPreviewBig] = useState(false);
-  const [askOpen, setAskOpen] = useState(false);
-  const [askText, setAskText] = useState("");
   const [busy, setBusy] = useState<string>("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -143,6 +141,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
       options: () => [
         `move: ${PRESETS.map((p) => `${p.id} (${p.label})`).join(", ")}`,
         `second_move: any of ${COMBINABLE.join(", ")} (not the same as move); combine: together | then`,
+        "scene_request + scene_mode (scene | motion): describe a scene edit (add, move or remove things) or a camera motion with keyframes in plain words and your helper, the scene assistant, does it. Use it for anything the move settings below cannot say; scene_request must stand on its own.",
         "rotate_deg 0 to 359; vertical_deg -30 to 80; distance_m 1 to 40; speed_percent 25 to 300; lens_mm 12 to 200 (nearest of 14, 24, 35, 50, 85, 135, 200 is used); shake_percent 0 to 100; length_seconds 2 to 30",
       ],
       apply: (p) => {
@@ -157,6 +156,12 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
         if (p.speed !== undefined) { patch.speed = p.speed / 100; set.push(`speed ${Math.round(p.speed)}%`); }
         if (p.lens !== undefined) { patch.lensMm = LENS_STEPS.reduce((a, b) => (Math.abs(b - p.lens!) < Math.abs(a - p.lens!) ? b : a)); set.push(`lens ${patch.lensMm} mm`); }
         if (p.shake !== undefined) { patch.shake = p.shake / 100; set.push(`shake ${Math.round(p.shake)}%`); }
+        if (p.sceneRequest) {
+          // Atlas hands a described change to the scene assistant (his helper): it edits the scene or writes the camera keyframes, and the result is applied here.
+          const sm: "scene" | "motion" = p.sceneMode === "motion" ? "motion" : "scene";
+          set.push(`asked the scene assistant (${sm}): ${p.sceneRequest.slice(0, 80)}`);
+          void ask(sm, p.sceneRequest).then((r) => { if (r) { commit(r.world); flash(r.summary); if (sm === "motion") { setMode("motion"); setT(0); setPlaying(true); } } });
+        }
         const camera = Object.keys(patch).length > 0 || p.length !== undefined;
         if (Object.keys(patch).length) applyMoves(patch);
         else if (p.length !== undefined && !cameraOf(worldRef.current).useMove) applyMoves({});
@@ -402,11 +407,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
   }
 
   // ---------------- assistant inside the editor ----------------
-  async function sendAsk() {
-    const text = askText.trim(); if (!text || busy) return;
-    const r = await ask(mode === "motion" ? "motion" : "scene", text);
-    if (r) { commit(r.world); setAskText(""); setAskOpen(false); flash(r.summary); if (mode === "motion") { setT(0); setPlaying(true); } }
-  }
 
   // ---------------- shoot ----------------
   async function capture() {
@@ -559,7 +559,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
             onMove={(id, g) => commit((w) => editItem(w, id, { groupId: g }))} onRemoveGroup={(id) => commit((w) => removeGroup(w, id))} />
         )}
         {panel === "add" && !camEdit && mode !== "shoot" && (
-          <AddPanel onAdd={(n) => { add(n); if (window.innerWidth < 860) setPanel(null); }} onAddCamera={() => { addCam(); if (window.innerWidth < 860) setPanel(null); }} onClose={() => setPanel("outliner")} onAsk={() => { setAskOpen(true); setPanel("outliner"); }} recents={recents} models={models.list}
+          <AddPanel onAdd={(n) => { add(n); if (window.innerWidth < 860) setPanel(null); }} onAddCamera={() => { addCam(); if (window.innerWidth < 860) setPanel(null); }} onClose={() => setPanel("outliner")} recents={recents} models={models.list}
             onUploadModel={async (f) => { if (f.size > 60 * 1024 * 1024) { setError("That model is larger than 60 MB."); return; } try { const buf = await f.arrayBuffer(); const key = await putModel(f.name.replace(/\.[^.]+$/, "").slice(0, 60), buf); const m = await listModels(); setModels(m); view.current?.dispose(); view.current = null; setViewReady(false); setStage("start"); setTimeout(() => { setStage("editor"); add({ kind: "model", modelKey: key, name: f.name.replace(/\.[^.]+$/, "") }); }, 0); } catch { setError("That file could not be read as a 3D model."); } }}
             onPickCharacter={() => setPicker("character")} onPickImage={() => setPicker("image")} characters={characters} onSoon={soon} />
         )}
@@ -610,12 +610,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
       </div>
 
       {/* ---------- bottom: Compose ask bar / Shoot controls / Motion timeline ---------- */}
-      {mode === "compose" && !camEdit && (
-        <div className="ss-askbar">
-          <GrowArea value={askText} onChange={(e) => setAskText(e.target.value)} placeholder="Ask the assistant to edit your scene…" aria-label="Ask the assistant to edit your scene" rows={1} noExpand onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void sendAsk(); }} />
-          <button type="button" className="ss-send" aria-label="Send" disabled={!askText.trim() || !!busy} onClick={() => void sendAsk()}><Send size={15} /></button>
-        </div>
-      )}
 
       {mode === "shoot" && !camEdit && (
         <div className="ss-shoot">
@@ -677,7 +671,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
                     <button type="button" role="menuitem" onClick={() => { add({ kind: "person" }); setAddMenu(false); }}><User size={13} /> Actor</button>
                     <button type="button" role="menuitem" onClick={() => { add({ kind: "shape", shape: "cube" }); setAddMenu(false); }}><Box size={13} /> Cube</button>
                     <button type="button" role="menuitem" onClick={() => { addCam(); setAddMenu(false); }}><Camera size={13} /> Camera</button>
-                    <button type="button" role="menuitem" onClick={() => { setAskOpen(true); setAddMenu(false); }}><MessageSquare size={13} /> Ask</button>
                   </div>
                 )}
               </div>
@@ -733,13 +726,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
               <AtlasChip />
             </div>
           </div>
-          {askOpen && (
-            <div className="ss-askbar is-inline">
-              <GrowArea value={askText} onChange={(e) => setAskText(e.target.value)} placeholder="Describe exactly the camera move you need" aria-label="Describe the camera move" rows={1} noExpand autoFocus onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void sendAsk(); }} />
-              <button type="button" className="ss-send" aria-label="Send" disabled={!askText.trim() || !!busy} onClick={() => void sendAsk()}><Send size={15} /></button>
-              <button type="button" className="ss-icon" aria-label="Close" onClick={() => setAskOpen(false)}><X size={14} /></button>
-            </div>
-          )}
           <div className="ss-tl">
             <div className="ss-tl-names">
               <div className="ss-tl-ruler-pad" />

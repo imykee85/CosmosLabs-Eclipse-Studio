@@ -13,19 +13,20 @@ export type Proposal = {
 export type ProposalContext = { prompt?: string; ratio?: string; qty?: number; model?: string };
 type ActionLike = { kind: "generate" | "use_prompt" | "reply" | "make"; prompt?: string; count?: number };
 
-const LABEL: Record<string, string> = { model: "Model", ratio: "Aspect ratio", count: "Images", quality: "Quality", duration: "Length", sound: "Sound", fixed_seed: "Fixed seed", move: "Camera move", move2: "Then also", combine: "Combine", rotate: "Rotate", vertical: "Vertical", distance: "Distance", speed: "Speed", lens: "Lens", shake: "Handheld shake", length: "Length" };
+const LABEL: Record<string, string> = { model: "Model", ratio: "Aspect ratio", count: "Images", quality: "Quality", duration: "Length", sound: "Sound", fixed_seed: "Fixed seed", move: "Camera move", move2: "Then also", combine: "Combine", rotate: "Rotate", vertical: "Vertical", distance: "Distance", speed: "Speed", lens: "Lens", shake: "Handheld shake", length: "Length", sceneRequest: "Scene assistant" };
+const HIDDEN = new Set(["sceneMode"]);
 const UNIT: Record<string, string> = { duration: " s", length: " s", rotate: "°", vertical: "°", distance: " m", speed: "%", shake: "%", lens: " mm" };
 const show = (k: string, v: unknown) => (k === "sound" || k === "fixed_seed" ? (v ? "On" : "Off") : `${v}${UNIT[k] ?? ""}`);
 
 export function buildProposal(page: string, controls: Record<string, unknown> | undefined, actions: ActionLike[], ctx: ProposalContext): Proposal | null {
   const ctl: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(controls ?? {})) if (k !== "prompt" && v !== undefined && LABEL[k]) ctl[k] = v;
+  for (const [k, v] of Object.entries(controls ?? {})) if (k !== "prompt" && v !== undefined && (LABEL[k] || HIDDEN.has(k))) ctl[k] = v;
   const fromAction = actions.find((a) => (a.kind === "use_prompt" || a.kind === "generate") && a.prompt);
   const prompt = (typeof controls?.prompt === "string" && controls.prompt) || fromAction?.prompt || undefined;
   const count = typeof ctl.count === "number" ? ctl.count : fromAction?.count;
   if (!prompt && !Object.keys(ctl).length) return null;
   const was: Record<string, string | undefined> = { ratio: ctx.ratio, model: ctx.model, count: ctx.qty !== undefined ? String(ctx.qty) : undefined };
-  const settings = Object.entries(ctl).map(([k, v]) => ({ label: LABEL[k], ...(was[k] && was[k] !== show(k, v) ? { from: was[k] } : {}), to: show(k, v) }));
+  const settings = Object.entries(ctl).filter(([k]) => LABEL[k]).map(([k, v]) => ({ label: LABEL[k], ...(was[k] && was[k] !== show(k, v) ? { from: was[k] } : {}), to: show(k, v) }));
   return { page, ...(prompt ? { prompt } : {}), ...(count ? { count } : {}), controls: ctl, settings, before: ctx.prompt ?? "" };
 }
 

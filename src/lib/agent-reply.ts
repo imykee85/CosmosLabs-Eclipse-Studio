@@ -18,7 +18,7 @@ function promptText(v: unknown): string {
 }
 
 // Settings Atlas chose for the prompt box (owner 2026-10-21). Only known keys with the right kind of value get through; the screen checks the values against what its box really offers.
-export type Controls = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string; move?: string; move2?: string; combine?: string; rotate?: number; vertical?: number; distance?: number; speed?: number; lens?: number; shake?: number; length?: number };
+export type Controls = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string; move?: string; move2?: string; combine?: string; rotate?: number; vertical?: number; distance?: number; speed?: number; lens?: number; shake?: number; length?: number; sceneMode?: string; sceneRequest?: string };
 export function cleanControls(i: Record<string, unknown>): Controls {
   const c: Controls = {};
   const str = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : undefined);
@@ -42,6 +42,7 @@ export function cleanControls(i: Record<string, unknown>): Controls {
   const lens = num(i.lens_mm, 12, 200); if (lens !== undefined) c.lens = lens;
   const shake = num(i.shake_percent, 0, 100); if (shake !== undefined) c.shake = shake;
   const len = num(i.length_seconds, 2, 30); if (len !== undefined) c.length = len;
+  const sceneRequest = str(i.scene_request, 600); if (sceneRequest) { c.sceneRequest = sceneRequest; c.sceneMode = i.scene_mode === "motion" ? "motion" : "scene"; }
   return c;
 }
 

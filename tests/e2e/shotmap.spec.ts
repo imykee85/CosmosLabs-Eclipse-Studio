@@ -169,4 +169,27 @@ test.describe("ShotMap", () => {
     await expect(panel.getByText("8.0 m")).toBeVisible();
     await expect(panel.getByText("60%").first()).toBeVisible();
   });
+  test("Atlas hands a scene change to his helper, the scene assistant, when Apply is pressed", async ({ page }) => {
+    await setup(page);
+    await page.addInitScript(() => { localStorage.setItem("eclipse-agent", "Atlas"); localStorage.setItem("eclipse-agent-on:generate", "1"); });
+    await page.route("**/api/agent/chat", (r) => r.fulfill({ json: { runId: "r1" } }));
+    await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE" ? r.fulfill({ json: { ok: true } })
+      : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "I'll have my helper add a table.", actions: [], controls: { sceneRequest: "Add a table in the middle", sceneMode: "scene" } } } } }));
+    let sent: Record<string, unknown> = {};
+    await page.route("**/api/shot/ask", async (r) => { sent = JSON.parse(r.request().postData() || "{}"); const w = sent.world as { items: unknown[] }; r.fulfill({ json: { summary: "Added a table.", world: { ...w, items: [...w.items, { id: "t1", name: "Table 1", kind: "shape", shape: "cube", groupId: null, pos: [0, 0.4, 0], rot: [0, 0, 0], scale: [2, 0.8, 1], color: "#8a6a4a", visible: true, locked: false }] } } }); });
+    const d = await openShotMap(page);
+    await d.getByRole("tab", { name: "None" }).click();
+    await d.getByRole("button", { name: "Create empty scene" }).click();
+    await page.locator(".aw-btn").click();
+    await page.locator(".aw-input textarea").fill("put a table in the middle");
+    await page.locator(".aw-input button[type=submit]").click();
+    const card = page.locator(".aw-prop");
+    await expect(card).toBeVisible({ timeout: 20000 });
+    await expect(card.getByText("Scene assistant")).toBeVisible();
+    await card.locator(".aw-prop-apply").click();
+    await expect(d.getByRole("complementary", { name: "Scene" }).getByText("Table 1")).toBeVisible();
+    expect(sent.mode).toBe("scene");
+    expect(sent.text).toBe("Add a table in the middle");
+    await expect(d.getByPlaceholder("Ask the assistant to edit your scene…")).toHaveCount(0); // no separate assistant box: Atlas is the way in
+  });
 });

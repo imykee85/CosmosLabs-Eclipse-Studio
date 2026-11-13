@@ -36,3 +36,9 @@ test("Atlas camera fields are cleaned: known ids only pass through, numbers are 
   assert.equal(c.move, "orbit-180"); assert.equal(c.move2, "crane-up"); assert.equal(c.rotate, 40); assert.equal(c.distance, 8); assert.equal(c.length, 6);
   assert.equal(c.vertical, undefined); // 200 degrees is out of range
 });
+test("Atlas can hand a scene change to the scene assistant", async () => {
+  const { cleanControls } = await import("../../src/lib/agent-reply");
+  const c = cleanControls({ scene_request: "Add a table", scene_mode: "motion" });
+  assert.equal(c.sceneRequest, "Add a table"); assert.equal(c.sceneMode, "motion");
+  assert.equal(cleanControls({ scene_request: "x", scene_mode: "weird" }).sceneMode, "scene");
+});

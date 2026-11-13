@@ -103,8 +103,8 @@ export function Outliner({ world, sel, onSelect, onCamera, onEdit, onDelete, onD
 
 // ---------------- Add to scene ----------------
 type AddTab = "objects" | "characters" | "shapes" | "images";
-export function AddPanel({ onAdd, onAddCamera, onClose, onAsk, recents, models, onUploadModel, onPickCharacter, onPickImage, characters, onSoon }: {
-  onAdd: (n: NewItem) => void; onAddCamera: () => void; onClose: () => void; onAsk: () => void; recents: NewItem[]; models: ModelEntry[]; onUploadModel: (f: File) => void;
+export function AddPanel({ onAdd, onAddCamera, onClose, recents, models, onUploadModel, onPickCharacter, onPickImage, characters, onSoon }: {
+  onAdd: (n: NewItem) => void; onAddCamera: () => void; onClose: () => void; recents: NewItem[]; models: ModelEntry[]; onUploadModel: (f: File) => void;
   onPickCharacter: () => void; onPickImage: () => void; characters: { id: string; url: string; name: string }[]; onSoon: (what: string) => void;
 }) {
   const [tab, setTab] = useState<AddTab>("objects");
@@ -129,7 +129,6 @@ export function AddPanel({ onAdd, onAddCamera, onClose, onAsk, recents, models, 
         <button type="button" onClick={() => onAdd({ kind: "shape", shape: "cube" })}><Box size={16} /><span>Cube</span><kbd>⌥C</kbd></button>
         <button type="button" onClick={() => onAdd({ kind: "person" })}><User size={16} /><span>Mannequin</span><kbd>⌥M</kbd></button>
         <button type="button" onClick={onAddCamera}><Camera size={16} /><span>Camera</span><kbd>⌥K</kbd></button>
-        <button type="button" onClick={onAsk}><MessageSquare size={16} /><span>Ask</span></button>
       </div>
       {recents.length > 0 && (<>
         <div className="ss-sub">Recent</div>
