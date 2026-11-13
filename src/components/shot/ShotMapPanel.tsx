@@ -390,7 +390,7 @@ export { PALETTE };
 
 
 /** Dolly, Truck, Crane...: tap a group for a list of options; tap a chosen group again to clear it. */
-function MovePicker({ label, value, onChange, exclude, combinableOnly }: { label: string; value: import("@/lib/shot/setup").PresetId | null; onChange: (id: import("@/lib/shot/setup").PresetId | null) => void; none?: boolean; exclude?: import("@/lib/shot/setup").PresetId; combinableOnly?: boolean }) {
+export function MovePicker({ label, value, onChange, exclude, combinableOnly }: { label: string; value: import("@/lib/shot/setup").PresetId | null; onChange: (id: import("@/lib/shot/setup").PresetId | null) => void; none?: boolean; exclude?: import("@/lib/shot/setup").PresetId; combinableOnly?: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
   useEffect(() => {

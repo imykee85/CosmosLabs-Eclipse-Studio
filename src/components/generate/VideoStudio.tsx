@@ -28,7 +28,7 @@ import StyleLibrary from "./StyleLibrary";
 import RelightVideoPanel from "./RelightVideoPanel";
 import VideoEditor from "./VideoEditor";
 import UpscalePanel from "../upscale/UpscalePanel";
-import ShotMapPanel, { type ShotUse } from "../shot/ShotMapPanel";
+import ShotStudio, { type ShotUse } from "../shot/studio/ShotStudio";
 import SheetPortal from "@/components/voice/SheetPortal";
 import { FEATURE_NAME as SHOT_NAME } from "@/lib/shot/schema";
 import SoonTag from "../SoonTag";
@@ -286,7 +286,7 @@ export default function VideoStudio() {
   function applyShotMap(u: ShotUse) {
     setShotOpen(false);  setNote("");
     setModelId("seedance_2_5"); try { localStorage.setItem(MODEL_KEY, "seedance_2_5"); } catch {}
-    setStart(null); setEnd(null); setRefs([]); setMotion(null);
+    setStart(null); setEnd(null); setRefs(u.refs.slice(0, MAX_ATTACH)); setMotion(null);
     setVrefs([{ type: "render", id: u.guide.id, label: "ShotMap guide", url: u.guide.url, sec: u.guide.seconds }]);
     if (u.aspect) setRatio(u.aspect);
     setPrompt(u.prompt); setDuration(Math.min(30, Math.max(4, Math.round(u.seconds))));
@@ -656,7 +656,7 @@ export default function VideoStudio() {
       {upOpen && toolVid && <SheetPortal><UpscalePanel source={{ id: toolVid.id, kind: "video", width: toolVid.width, height: toolVid.height, durationSec: toolVid.durationSec }} onClose={() => setUpOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {editorOpen && toolVid && <SheetPortal><VideoEditor video={toolVid} projectId={projectId ?? null} onClose={() => setEditorOpen(false)} onSaved={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {relightOpen && toolVid && <SheetPortal><RelightVideoPanel video={toolVid} onClose={() => setRelightOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
-      {shotOpen && <SheetPortal><ShotMapPanel projectId={projectId ?? null} onUse={applyShotMap} onClose={() => setShotOpen(false)} /></SheetPortal>}
+      {shotOpen && <SheetPortal><ShotStudio projectId={projectId ?? null} onUse={applyShotMap} onClose={() => setShotOpen(false)} /></SheetPortal>}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} creditsOn={!!config?.creditsOn} direct={config?.direct ?? []} />}
     </div>
   );
