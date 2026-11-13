@@ -84,6 +84,6 @@
 .ds-3d .cr-row-a .cr-chip:not(.cr-select) { flex: none; }
 .ds-3d .cr-tools { position: relative; } .ds-gearwrap { display: contents; }
 .ds-3d .ds-gear { width: 36px; padding: 0; justify-content: center; }
-.ds-pop { order: 5; flex: 1 1 100%; padding: 14px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); box-shadow: 0 12px 40px var(--a-shadow); display: grid; gap: 10px; }
+.ds-pop { padding: 14px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); box-shadow: 0 12px 40px var(--a-shadow); display: grid; gap: 10px; }
 .ds-pop .ds-poly { flex: none; }
 .ds-pop-reset { justify-self: start; padding: 0; border: 0; background: none; color: var(--a-muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
