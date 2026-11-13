@@ -599,3 +599,12 @@ html[data-app-theme="light"] .aw-eye b { background: #f6f3ee; box-shadow: 0 0 1p
 /* Idle studio: lock the document itself (iPhone Safari rubber-bands and scrolls the page even when the content fits). */
 html:has(.cr-wrap.is-idle, .vc.is-idle), html:has(.cr-wrap.is-idle, .vc.is-idle) body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
 html:has(.cr-wrap.is-idle, .vc.is-idle) body { position: fixed; inset: 0; width: 100%; }
+
+/* Atlas panel on DESKTOP: flush to the right, top (under the header) and bottom edges, and the screen makes room for it. */
+@media (min-width: 801px) and (pointer: fine), (min-width: 1001px) {
+  .aw-card.aw-panel, .aw-card.aw-panel.is-big { right: 0; bottom: 0; border-radius: 0; border-width: 0 0 0 1px; box-shadow: none; }
+  html[data-atlas-panel="on"] { --aw-w: min(380px, calc(100vw - 24px)); }
+  html[data-atlas-panel="big"] { --aw-w: min(720px, 62vw); }
+  html[data-atlas-panel] .ws-main { width: calc(100% - var(--aw-w)); margin-left: auto; margin-right: var(--aw-w); }
+  html[data-atlas-panel] .cn-corner { right: calc(var(--aw-w) + 18px); }
+}
