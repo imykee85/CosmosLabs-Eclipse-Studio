@@ -140,7 +140,6 @@
 
 /* overlays on the view */
 .ss-preview { position: absolute; right: 12px; bottom: 12px; width: min(300px, 34%); border: 2px solid rgba(255,255,255,.7); border-radius: 12px; z-index: 6; pointer-events: none; }
-.ss-preview.is-top { left: 12px; right: auto; top: 12px; bottom: auto; }
 .ss-preview.is-big { width: min(720px, 62%); }
 .ss-preview .ss-icon { pointer-events: auto; position: absolute; right: 4px; top: 4px; background: rgba(0,0,0,.5); color: #fff; min-width: 24px; height: 24px; }
 .ss-preview-label { position: absolute; left: 8px; top: 6px; font-size: 11px; color: #fff; background: rgba(0,0,0,.5); padding: 2px 8px; border-radius: 999px; }

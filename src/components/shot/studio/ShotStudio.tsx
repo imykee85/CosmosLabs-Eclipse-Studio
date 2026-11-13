@@ -536,7 +536,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
             <div className="ss-cambar"><LensRow compact k={camLens} onEdit={(p) => setCamLens((l) => ({ ...l, ...p }))} focusPicking={focusPick} onFocusPick={() => setFocusPick((v) => !v)} /></div>
           </>)}
           {(mode === "compose" || mode === "motion") && !camEdit && (
-            <div ref={previewRef} className={`ss-preview${mode === "motion" ? " is-top" : ""}${previewBig ? " is-big" : ""}`} style={{ aspectRatio: String(ar) }}>
+            <div ref={previewRef} className={`ss-preview${previewBig ? " is-big" : ""}`} style={{ aspectRatio: String(ar) }}>
               <span className="ss-preview-label">{cam.name} · Live view</span>
               <button type="button" className="ss-icon" aria-label={previewBig ? "Make the preview smaller" : "Make the preview bigger"} onClick={() => setPreviewBig((v) => !v)}>{previewBig ? <Minimize2 size={13} /> : <Maximize2 size={13} />}</button>
             </div>
