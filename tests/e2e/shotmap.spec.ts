@@ -124,23 +124,4 @@ test.describe("ShotMap", () => {
     await expect(d.getByRole("button", { name: "Take a still" })).toBeVisible();
     await ctx.close();
   });
-  test("Motion has Keyframes or Moves: Moves shows the original pickers and sliders, no timeline, and the camera runs the move", async ({ page }) => {
-    await setup(page);
-    const d = await openShotMap(page);
-    await d.getByRole("tab", { name: "None" }).click();
-    await d.getByRole("button", { name: "Create empty scene" }).click();
-    await d.getByRole("tab", { name: "Motion" }).click();
-    await d.getByRole("tab", { name: "Moves" }).click();
-    const panel = d.getByRole("group", { name: "Camera moves" });
-    await expect(panel).toBeVisible();
-    await expect(d.getByRole("button", { name: /Add keyframe/ })).toHaveCount(0);
-    await expect(panel.getByText("Handheld shake")).toBeVisible();
-    await panel.getByRole("group", { name: "Camera move" }).getByRole("button", { name: /^Orbit/ }).click();
-    await panel.getByRole("option", { name: "180°" }).click();
-    await expect(panel.getByRole("button", { name: /Orbit/ }).first()).toBeVisible();
-    await panel.getByLabel("Distance").fill("7");
-    await expect(panel.getByText("7.0 m")).toBeVisible();
-    await d.getByRole("tab", { name: "Keyframes" }).click();
-    await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeVisible();
-  });
 });

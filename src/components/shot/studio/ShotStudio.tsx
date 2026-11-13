@@ -2,8 +2,6 @@
 
 // ShotMap: build a 3D scene (by hand or by asking), design camera moves with keyframes, look through the camera, take stills, then record the move
 // and hand it to Video Studio as the camera-motion reference. Three modes: Compose (build and arrange), Shoot (stills through a camera), Motion (camera keyframes on a timeline).
-import { MovesPanel } from "./MovesPanel";
-import { DEFAULT_MOVES, movesToKeys, type MovesState } from "@/lib/shot/moves";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight, Box, Camera, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronUp, Copy, Crosshair, Download, Expand, Focus, Maximize2, Minimize2,
@@ -112,15 +110,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
   const characters = useMemo(() => (characterUploads.items ?? []).slice(0, 24).map((u) => ({ id: u.id, url: u.imageUrl, name: u.name })), [characterUploads.items]);
 
   const shot = shotOf(world), cam = cameraOf(world), D = shot.durationS;
-  // Motion has two ways to direct the camera: keyframes on the timeline, or Moves (the original ShotMap controls: pick a move, set the sliders; the camera runs it).
-  const motionKind: "keys" | "moves" = cam.move ? "moves" : "keys";
-  const kindNow: string = motionKind;
-  const moves = cam.move ?? DEFAULT_MOVES;
-  const applyMoves = (patch: Partial<MovesState>) => {
-    const next = { ...(cameraOf(worldRef.current).move ?? DEFAULT_MOVES), ...patch };
-    commit((w) => { const c = cameraOf(w); return editCamera(w, c.id, { move: next, keys: movesToKeys(w.items, next, shotOf(w).durationS) }); });
-  };
-  const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { move: undefined }));
   const selItem = sel?.kind === "item" ? world.items.find((i) => i.id === sel.id) ?? null : null;
   const selKey = sel?.kind === "key" ? (() => { const c = world.cameras.find((x) => x.id === sel.camId); return c && c.keys[sel.index] ? { cam: c, key: c.keys[sel.index] } : null; })() : null;
   const viewMode = camEdit ? "camera" : mode === "shoot" ? "shoot" : mode;
@@ -603,27 +592,10 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
         </div>
       )}
 
-      {mode === "motion" && !camEdit && motionKind === "moves" && (
-        <div className="ss-motion">
-          <div className="ss-moves-top">
-              <div className="ss-kind" role="tablist" aria-label="How to direct the camera">
-                <button type="button" role="tab" aria-selected={kindNow === "keys"} className={kindNow === "keys" ? "is-on" : ""} onClick={useKeys}>Keyframes</button>
-                <button type="button" role="tab" aria-selected={kindNow === "moves"} className={kindNow === "moves" ? "is-on" : ""} onClick={() => applyMoves({})}>Moves</button>
-              </div>
-            <button type="button" className="ss-play" aria-label={playing ? "Pause" : "Play"} onClick={() => { if (!playing && t >= D) setT(0); setPlaying((p) => !p); }}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
-            <span className="ss-tl-time">{t.toFixed(1)} / {D} s</span>
-          </div>
-          <MovesPanel m={moves} onChange={applyMoves} lengthS={D} maxLengthS={MAX_SHOT_S} onLength={(v) => { commit((w) => editShot(w, shotOf(w).id, { durationS: v })); setT(0); }} />
-        </div>
-      )}
-      {mode === "motion" && !camEdit && motionKind === "keys" && (
+      {mode === "motion" && !camEdit && (
         <div className="ss-motion">
           <div className="ss-tl-bar">
             <div className="ss-tl-left">
-              <div className="ss-kind" role="tablist" aria-label="How to direct the camera">
-                <button type="button" role="tab" aria-selected={kindNow === "keys"} className={kindNow === "keys" ? "is-on" : ""} onClick={useKeys}>Keyframes</button>
-                <button type="button" role="tab" aria-selected={kindNow === "moves"} className={kindNow === "moves" ? "is-on" : ""} onClick={() => applyMoves({})}>Moves</button>
-              </div>
               <div className="ss-add-wrap">
                 <button type="button" className="ss-pill" onClick={() => setAddMenu((v) => !v)} aria-expanded={addMenu}><Plus size={13} /> Add</button>
                 {addMenu && (

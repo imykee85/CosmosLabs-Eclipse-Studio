@@ -299,9 +299,3 @@
   .ss-from { grid-template-columns: 1fr; }
   .ss-usemenu { position: fixed; left: 8px; right: 8px; top: calc(56px + env(safe-area-inset-top)); width: auto; }
 }
-/* Moves: the manual camera controls in Motion mode */
-.ss-kind { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--a-line); border-radius: 999px; background: var(--a-input); }
-.ss-kind button { padding: 5px 12px; border: 0; border-radius: 999px; background: transparent; color: var(--a-fg2); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
-.ss-kind button.is-on { background: #c00707; color: #fff; }
-.ss-moves { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 14px; max-height: 46dvh; overflow-y: auto; }
-.ss-moves-top { display: flex; align-items: center; gap: 8px; padding: 8px 10px 0; }

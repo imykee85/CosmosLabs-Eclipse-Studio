@@ -4,7 +4,6 @@
 import { z } from "zod";
 import { PALETTE, POSES, isSeated, type ColorId, type Pose } from "./schema";
 import { OBJECTS, type ObjType } from "./setup";
-import { moveCamAt, type MovesState } from "./moves";
 
 export type Vec3 = [number, number, number];
 export const EASES = [
@@ -46,8 +45,7 @@ export type Item = {
   keys?: ItemKey[];
 };
 export type CamKey = { t: number; pos: Vec3; look: Vec3; lensMm: number; fStop: number; focusM: number; ease: Ease };
-/** `move`: when set, the camera is driven by a move (see moves.ts) instead of its keyframes; the keys then only hold a sample of it. */
-export type WCamera = { id: string; name: string; keys: CamKey[]; showPath: boolean; move?: MovesState };
+export type WCamera = { id: string; name: string; keys: CamKey[]; showPath: boolean };
 export type Shot = { id: string; name: string; cameraId: string; durationS: number };
 export type Group = { id: string; name: string; open: boolean };
 export type World = {
@@ -150,8 +148,7 @@ export function removeCamera(w: World, id: string): World {
   const rest = w.cameras.filter((c) => c.id !== id);
   return { ...w, cameras: rest, shots: w.shots.map((s) => (s.cameraId === id ? { ...s, cameraId: rest[0].id } : s)) };
 }
-/** Editing keyframes hands the camera back to its keys (unless the same patch sets a move). */
-export const editCamera = (w: World, id: string, patch: Partial<WCamera>): World => ({ ...w, cameras: w.cameras.map((c) => { if (c.id !== id) return c; const n = { ...c, ...patch }; if (patch.keys && !("move" in patch)) delete n.move; return n; }) });
+export const editCamera = (w: World, id: string, patch: Partial<WCamera>): World => ({ ...w, cameras: w.cameras.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
 /** Sets a camera's keyframe at time t (replacing one within 0.05 s), keeping keys in time order. Returns the key's index. */
 export function setCameraKey(w: World, camId: string, key: CamKey): { world: World; index: number } {
   const cam = cameraOf(w, camId), t = r2(clamp(key.t, 0, MAX_SHOT_S));
@@ -244,10 +241,6 @@ export function fovFor(lensMm: number, aspect: WAspect): number {
 }
 export type CamNow = { key: CamKey; fov: number };
 export function cameraAt(w: World, cam: WCamera, t: number): CamNow {
-  if (cam.move) {
-    const dur = w.shots.find((s) => s.cameraId === cam.id)?.durationS ?? 8, r = moveCamAt(w.items, cam.move, dur, t);
-    return { key: { ...r.key, t }, fov: fovFor(r.key.lensMm, w.aspect) };
-  }
   const s = sampleKeys(cam.keys.map((k) => ({ t: k.t, ease: k.ease, v: [...k.pos, ...k.look, k.lensMm, k.fStop, k.focusM] })), t);
   const key: CamKey = { t, pos: [s[0], s[1], s[2]], look: [s[3], s[4], s[5]], lensMm: Math.max(4, s[6]), fStop: s[7], focusM: Math.max(0.1, s[8]), ease: "smooth" };
   return { key, fov: fovFor(key.lensMm, w.aspect) };
@@ -312,7 +305,7 @@ const itemSchema = z.object({
   modelKey: z.string().max(80).optional(),
   keys: z.array(z.object({ t: z.number().min(0).max(MAX_SHOT_S), pos: v3, yaw: z.number(), pose: z.enum(POSES).optional(), ease })).max(MAX_KEYS).optional(),
 });
-const camSchema = z.object({ id: z.string().min(1).max(40), name: z.string().max(60), showPath: z.boolean(), move: z.object({ preset: z.string(), preset2: z.string().nullable(), combine: z.enum(["together", "then"]), split: z.number(), rotate: z.number(), vertical: z.number(), distance: z.number(), speed: z.number(), lensMm: z.number(), shake: z.number() }).optional(), keys: z.array(z.object({ t: z.number().min(0).max(MAX_SHOT_S), pos: v3, look: v3, lensMm: z.number().min(4).max(400), fStop: z.number().min(1).max(32), focusM: z.number().min(0.1).max(1000), ease })).min(1).max(MAX_KEYS) });
+const camSchema = z.object({ id: z.string().min(1).max(40), name: z.string().max(60), showPath: z.boolean(), keys: z.array(z.object({ t: z.number().min(0).max(MAX_SHOT_S), pos: v3, look: v3, lensMm: z.number().min(4).max(400), fStop: z.number().min(1).max(32), focusM: z.number().min(0.1).max(1000), ease })).min(1).max(MAX_KEYS) });
 export const worldSchema = z.object({
   v: z.literal(1), name: z.string().max(80), prompt: z.string().max(4000), look: z.string().max(1000), sky: z.string().regex(/^#[0-9a-fA-F]{6}$/), ground: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   groups: z.array(z.object({ id: z.string().max(40), name: z.string().max(60), open: z.boolean() })).max(40), items: z.array(itemSchema).max(MAX_ITEMS),
