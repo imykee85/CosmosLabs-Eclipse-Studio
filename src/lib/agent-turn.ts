@@ -26,7 +26,7 @@ import { planAllows } from "@/lib/access-table";
 import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool as isVideoServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { WEB_NOTE, WEB_TOOLS } from "@/lib/web-tools";
-import { GUIDE_TOOL, SCREEN_GUIDES, TEACHING_NOTE, isGuideTool, runGuideTool } from "@/lib/atlas-guide";
+import { GUIDE_TOOL, guideFor, TEACHING_NOTE, isGuideTool, runGuideTool } from "@/lib/atlas-guide";
 import { CORE_TOOLS, CORE_TOOLS_NOTE, isCoreTool, runCoreTool } from "@/lib/agent-core-tools";
 
 const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n) || isGuideTool(n);
@@ -174,7 +174,8 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
       const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
       const withWeb = isAtlas && planAllows(access.plan, "web");
-      const guide = isAtlas && typeof c.page === "string" && SCREEN_GUIDES[c.page] ? `\n\n<screen_guide>\n${SCREEN_GUIDES[c.page]}\n</screen_guide>` : "";
+      const screen = isAtlas ? guideFor(c.page, c.settings) : null;
+      const guide = screen ? `\n\n<screen_guide>\n${screen}\n</screen_guide>` : "";
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}\n\n${TEACHING_NOTE}${guide}` : "";
       const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = [...TOOLS, ...(canSet ? [SET_BOX] : []), ...(canMake ? [MAKE_ASSET] : [])];

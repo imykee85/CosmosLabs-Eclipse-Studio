@@ -23,3 +23,9 @@ test("features and screens resolve; unknown topics error", () => {
 test("every Atlas screen has a guide", () => {
   for (const k of ["create", "video", "voice", "design", "core", "treatment", "canvas"]) assert.ok(SCREEN_GUIDES[k], k);
 });
+test("Design Studio picks the Motion or 3D guide by tab", async () => {
+  const { guideFor } = await import("../../src/lib/atlas-guide");
+  assert.match(guideFor("design", ["Tab: Motion (composing a new motion)"]) ?? "", /MOTION TAB/);
+  assert.match(guideFor("design", ["Tab: 3D models. Mode: x"]) ?? "", /3D TAB/);
+  assert.match(guideFor("video", []) ?? "", /VIDEO STUDIO/);
+});
