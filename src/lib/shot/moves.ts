@@ -4,7 +4,7 @@
 import { cameraFor, DEFAULT_SETUP, type CastItem, type PresetId, type Setup } from "./setup";
 import { cameraAt as engineCameraAt } from "./engine";
 import type { Camera, Scene } from "./schema";
-import type { CamKey, Item, Vec3 } from "./world";
+import { baseSize, type CamKey, type Item, type Vec3 } from "./world";
 const MAX_KEYS = 60;
 
 export type MovesState = { preset: PresetId; preset2: PresetId | null; combine: "together" | "then"; split: number; rotate: number; vertical: number; distance: number; speed: number; lensMm: number; shake: number };
@@ -59,4 +59,12 @@ export function moveCamAt(items: Item[], m: MovesState, durationS: number, t: nu
   const r2 = (v: number) => Math.round(v * 1000) / 1000;
   const pos = cs.pos.map(r2) as Vec3, look = cs.lookAt.map(r2) as Vec3;
   return { key: { t, pos, look, lensMm: cs.lensMm, fStop: 8, focusM: Math.max(0.3, Math.hypot(pos[0] - look[0], pos[1] - look[1], pos[2] - look[2])), ease: "smooth" }, roll: cs.roll };
+}
+
+/** A distance that keeps the camera clear of the subject: 4 m for a person, further back for something big like a boat or a truck. */
+export function suggestDistance(items: Item[]): number {
+  const it = items.find((i) => i.kind === "person" && i.visible) ?? items.find((i) => i.kind === "vehicle" && i.visible) ?? items.find((i) => i.visible);
+  if (!it) return DEFAULT_MOVES.distance;
+  const b = baseSize(it), size = Math.max(b[0] * Math.abs(it.scale[0]), b[1] * Math.abs(it.scale[1]), b[2] * Math.abs(it.scale[2]));
+  return Math.round(Math.min(40, Math.max(DEFAULT_MOVES.distance, size * 1.4)) * 10) / 10;
 }

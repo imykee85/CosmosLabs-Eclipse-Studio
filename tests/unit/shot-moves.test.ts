@@ -24,3 +24,9 @@ test("Moves and Keyframes are separate: neither changes the other", () => {
   const still = moveCamAt([], { ...DEFAULT_MOVES, preset: "static" as const }, 8, 3).key.pos, shaky = moveCamAt([], { ...DEFAULT_MOVES, preset: "static" as const, shake: 1 }, 8, 3).key.pos;
   assert.notDeepEqual(still, shaky);
 });
+test("the starting distance clears a big subject such as a boat", async () => {
+  const { suggestDistance } = await import("../../src/lib/shot/moves");
+  const w = emptyWorld(), boat = makeItem(w, { kind: "vehicle", vtype: "boat" } as never, [0, 0, 0]), person = makeItem(w, { kind: "person" }, [0, 0, 0]);
+  assert.ok(suggestDistance([boat]) > 8);
+  assert.equal(suggestDistance([person]), 4);
+});

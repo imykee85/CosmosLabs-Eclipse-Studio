@@ -3,7 +3,7 @@
 // ShotMap: build a 3D scene (by hand or by asking), design camera moves with keyframes, look through the camera, take stills, then record the move
 // and hand it to Video Studio as the camera-motion reference. Three modes: Compose (build and arrange), Shoot (stills through a camera), Motion (camera keyframes on a timeline).
 import { MovesPanel } from "./MovesPanel";
-import { DEFAULT_MOVES, type MovesState } from "@/lib/shot/moves";
+import { DEFAULT_MOVES, suggestDistance, type MovesState } from "@/lib/shot/moves";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight, Box, Camera, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronUp, Copy, Crosshair, Download, Expand, Focus, Maximize2, Minimize2,
@@ -115,9 +115,9 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
   // Motion has two ways to direct the camera: keyframes on the timeline, or Moves (the original ShotMap controls: pick a move, set the sliders; the camera runs it).
   const motionKind: "keys" | "moves" = cam.useMove ? "moves" : "keys";
   const kindNow: string = motionKind;
-  const moves = cam.move ?? DEFAULT_MOVES;
+  const moves = cam.move ?? { ...DEFAULT_MOVES, distance: suggestDistance(world.items) };
   const applyMoves = (patch: Partial<MovesState>) => {
-    const next = { ...(cameraOf(worldRef.current).move ?? DEFAULT_MOVES), ...patch };
+    const next = { ...(cameraOf(worldRef.current).move ?? { ...DEFAULT_MOVES, distance: suggestDistance(worldRef.current.items) }), ...patch };
     commit((w) => editCamera(w, cameraOf(w).id, { move: next, useMove: true }));
   };
   const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { useMove: false }));
@@ -613,7 +613,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
             <button type="button" className="ss-play" aria-label={playing ? "Pause" : "Play"} onClick={() => { if (!playing && t >= D) setT(0); setPlaying((p) => !p); }}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
             <span className="ss-tl-time">{t.toFixed(1)} / {D} s</span>
           </div>
-          <MovesPanel m={moves} onChange={applyMoves} lengthS={D} maxLengthS={MAX_SHOT_S} onLength={(v) => { commit((w) => editShot(w, shotOf(w).id, { durationS: v })); setT(0); }} />
+          <MovesPanel m={moves} maxDistance={Math.ceil(suggestDistance(world.items) * 2)} onChange={applyMoves} lengthS={D} maxLengthS={MAX_SHOT_S} onLength={(v) => { commit((w) => editShot(w, shotOf(w).id, { durationS: v })); setT(0); }} />
         </div>
       )}
       {mode === "motion" && !camEdit && motionKind === "keys" && (
