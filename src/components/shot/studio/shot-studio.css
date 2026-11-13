@@ -290,6 +290,8 @@
   .ss-preview.is-big { width: 78%; }
   .ss-tl-bar { grid-template-columns: 1fr; justify-items: center; }
   .ss-tl-left, .ss-tl-right { justify-content: center; }
+  .ss-tl-right { order: 2; }
+  .ss-transport { order: 3; }
   .ss-tl-names { width: 120px; }
   .ss-tl-icons { display: none; }
   .ss-tl-name.is-cam .ss-tl-icons { display: inline-flex; }
