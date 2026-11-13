@@ -26,9 +26,10 @@ import { planAllows } from "@/lib/access-table";
 import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool as isVideoServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { WEB_NOTE, WEB_TOOLS } from "@/lib/web-tools";
+import { GUIDE_TOOL, SCREEN_GUIDES, TEACHING_NOTE, isGuideTool, runGuideTool } from "@/lib/atlas-guide";
 import { CORE_TOOLS, CORE_TOOLS_NOTE, isCoreTool, runCoreTool } from "@/lib/agent-core-tools";
 
-const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n);
+const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n) || isGuideTool(n);
 
 // One turn of a conversation with a studio agent (Atlas or one of the person's own agents), shared by the app's chat route and the MCP endpoint (src/lib/mcp-agents.ts).
 // prepareAgentTurn checks the request and returns the work to run; the caller decides how to run it (now, or as a background job).
@@ -173,11 +174,12 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
       const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
       const withWeb = isAtlas && planAllows(access.plan, "web");
-      const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}` : "";
+      const guide = isAtlas && typeof c.page === "string" && SCREEN_GUIDES[c.page] ? `\n\n<screen_guide>\n${SCREEN_GUIDES[c.page]}\n</screen_guide>` : "";
+      const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}\n\n${TEACHING_NOTE}${guide}` : "";
       const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = [...TOOLS, ...(canSet ? [SET_BOX] : []), ...(canMake ? [MAKE_ASSET] : [])];
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
-      let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;
+      let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), GUIDE_TOOL, ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
       const convo: Anthropic.MessageParam[] = messages;
       const earlier: Action[] = [];
@@ -205,7 +207,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
           if (isServerTool(b.name)) {
             const input = (b.input ?? {}) as Record<string, unknown>;
             // the agent's own tools (library, memory) first; the video tools otherwise. Memory is the person's, the Library the workspace's.
-            const toolWork = isCoreTool(b.name) ? runCoreTool(userId, personId ?? userId, b.name, input) : runVideoTool(userId, b.name, input, state);
+            const toolWork = isGuideTool(b.name) ? Promise.resolve(runGuideTool(input)) : isCoreTool(b.name) ? runCoreTool(userId, personId ?? userId, b.name, input) : runVideoTool(userId, b.name, input, state);
             const budget = Math.max(5_000, Math.min(TOOL_LIMIT_MS, deadline + 40_000 - Date.now()));
             const r = await withTimeLimit(toolWork, budget, { content: "This step took too long and was stopped. Tell the user, and suggest a shorter clip or fewer pictures.", isError: true } as Awaited<typeof toolWork>);
             if ("frames" in r && Array.isArray(r.frames)) frames.push(...(r.frames as Frame[]));
