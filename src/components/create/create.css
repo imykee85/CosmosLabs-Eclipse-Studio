@@ -608,3 +608,11 @@ html:has(.cr-wrap.is-idle, .vc.is-idle) body { position: fixed; inset: 0; width:
   html[data-atlas-panel] .ws-main { width: calc(100% - var(--aw-w)); margin-left: auto; margin-right: var(--aw-w); }
   html[data-atlas-panel] .cn-corner { right: calc(var(--aw-w) + 18px); }
 }
+
+/* Desktop: the prompt box sits low on the screen, 22px from the bottom, like Audio Studio's */
+@media (min-width: 801px) and (pointer: fine) {
+  .cr-wrap { display: flex; flex-direction: column; min-height: calc(100dvh - 141px); padding-bottom: 0; }
+  .cr-wrap.is-idle { max-height: calc(100dvh - 141px); }
+  .cr-wrap.is-idle .cr-dock { bottom: 0; }
+  .cr-dock { display: block; position: sticky; bottom: 22px; margin-top: auto; z-index: 20; padding-top: 12px; }
+}

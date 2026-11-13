@@ -116,3 +116,8 @@ html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
 
 /* Detail chip: same size as the Atlas chip */
 .ds-3d .cr-row > .cr-chip { height: 36px; font-size: 14px; padding: 0 10px; gap: 5px; }
+
+@media (min-width: 801px) and (pointer: fine) {
+  .ds { display: flex; flex-direction: column; min-height: calc(100dvh - 141px); }
+  .ds .cr-wrap.ds-3d { display: flex; flex-direction: column; flex: 1; min-height: 0; max-height: none; }
+}
