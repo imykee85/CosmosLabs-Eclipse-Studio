@@ -20,7 +20,8 @@ async function setup(page: Page) {
 async function openShotMap(page: Page) {
   await page.goto("/generate");
   await page.getByRole("button", { name: "a clip" }).first().click();
-  await page.getByRole("toolbar", { name: "Video tools" }).getByRole("button", { name: /ShotMap/ }).click();
+  await page.getByRole("button", { name: /^Motion/ }).click();
+  await page.getByRole("menuitemradio", { name: /ShotMap/ }).click();
   return page.getByRole("dialog", { name: "ShotMap" });
 }
 

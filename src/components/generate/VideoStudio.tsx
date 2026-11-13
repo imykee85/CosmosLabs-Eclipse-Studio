@@ -512,7 +512,6 @@ export default function VideoStudio() {
       <div className="cr-dock">
         <div className={`cr-tray ${toolVid ? "is-open" : ""}`} role="toolbar" aria-label="Video tools" aria-hidden={!toolVid}>
           {toolVid && <>
-          <button type="button" onClick={() => { if (allowedNow("shotmap")) setShotOpen(true); else askUpgrade("shotmap"); }} title="Direct a new shot in 3D, then generate it from the guide video"><Clapperboard size={14} /> {SHOT_NAME}</button>
           <button type="button" onClick={() => setRelightOpen(true)} title="Place lights round the clip and change how it is lit"><Sun size={14} /> Relight</button>
           <button type="button" onClick={() => setEditorOpen(true)} title="Cut, trim, grade and mix the clip on a timeline"><Film size={14} /> Editor</button>
           <button type="button" onClick={() => setUpOpen(true)} title="A sharper, higher-resolution copy of this clip"><ZoomIn size={14} /> Upscale</button>
@@ -647,7 +646,7 @@ export default function VideoStudio() {
       {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : MAX_ATTACH) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? (mc ? caps.refVideoMax : MAX_ATTACH) : 0} pickedVideos={vrefs} onVideosChange={setVrefs} audioMax={target === "refs" && !mc ? MAX_ATTACH : 0} pickedAudio={arefs} onAudioChange={setArefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose a picture (who or what appears in the result) and one of your finished videos (its movement is copied). One of each, in either order." : undefined} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => {
-        if (m === "scene") { setMotion(null); setNote("3D scene isn't connected yet."); return; }
+        if (m === "scene") { setMotion(null); if (allowedNow("shotmap")) setShotOpen(true); else askUpgrade("shotmap"); return; }
         setMotion(m); setVrefs([]); setStart(null);
         setNote("");
       }} onClose={() => setMotionAnchor(null)} />}
