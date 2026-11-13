@@ -27,8 +27,8 @@ export const MODELS_3D: Model3DSpec[] = [
   // ---- ByteDance cloud (task API on ModelArk). Prices are PROVISIONAL (Seed3D 2.0 $0.353 at a reseller, Hyper3D about $0.40, Hitem3D a third-party estimate): measure
   // real cost from `usage.total_tokens` on the first tasks and correct them (DESIGN3D_USD_<ID> overrides). Seed3D 2.0 has no page on BytePlus, so it may need the other platform.
   { id: "seed3d_2_0", route: "ark", arkId: "doubao-seed3d-2-0-260328", off: true, label: "Seed3D 2.0", maker: "ByteDance", modes: ["image"], minImages: 1, maxImages: 1, family: "seed3d", usd: 0.35, polyMin: 100000, polyMax: 1000000, polyDefault: 500000, blurb: "ByteDance's own model: a textured PBR asset from one picture" },
-  { id: "hyper3d_gen2", route: "ark", arkId: "hyper3d-gen2-260112", off: true, label: "Hyper3D Gen2", maker: "Deemos", modes: ["text", "image", "multi"], minImages: 0, maxImages: 5, family: "hyper3d", usd: 0.399, polyMin: 1000, polyMax: 200000, polyDefault: 18000, blurb: "Words or up to 5 pictures, clean quad meshes" },
-  { id: "hitem3d_2_0", route: "ark", arkId: "hitem3d-2-0-251223", off: true, label: "Hitem3D 2.0", maker: "Hitem3D", modes: ["image", "multi"], minImages: 1, maxImages: 4, family: "hitem3d", usd: 1.4, polyMin: 100000, polyMax: 2000000, polyDefault: 150000, blurb: "Sharp geometry from 1 to 4 views (front, back, left, right)" },
+  { id: "hyper3d_gen2", route: "ark", arkId: "hyper3d-gen2-260112", label: "Hyper3D Gen2", maker: "Deemos", modes: ["text", "image", "multi"], minImages: 0, maxImages: 5, family: "hyper3d", usd: 0.399, polyMin: 1000, polyMax: 200000, polyDefault: 18000, blurb: "Words or up to 5 pictures, clean quad meshes" },
+  { id: "hitem3d_2_0", route: "ark", arkId: "hitem3d-2-0-251223", label: "Hitem3D 2.0", maker: "Hitem3D", modes: ["image", "multi"], minImages: 1, maxImages: 4, family: "hitem3d", usd: 1.4, polyMin: 100000, polyMax: 2000000, polyDefault: 150000, blurb: "Sharp geometry from 1 to 4 views (front, back, left, right)" },
 ];
 
 export const find3D = (id: unknown): Model3DSpec | undefined => MODELS_3D.find((m) => m.id === id);
