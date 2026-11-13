@@ -76,3 +76,7 @@
 .ds-3d .cr-row-a .cr-select select { width: 100%; text-overflow: ellipsis; }
 .ds-go3 { margin-top: 0; }
 @media (max-width: 800px) { .ds-3d .cr-row-a { flex-wrap: wrap; } .ds-3d .cr-row-a .cr-select { flex: 1 1 40%; } }
+/* Fixes: the + sits inside the field, so the text starts after it; toggles show when on. */
+.ds-3d .cr-box .cr-field .ds-text { padding: 2px 42px 2px 46px; border: 0; background: transparent; }
+.ds-3d .cr-chip.is-on { border-color: #c00707; background: color-mix(in srgb, #c00707 14%, var(--a-card)); }
+.ds-3d .cr-chip[disabled] { opacity: .45; cursor: default; }
