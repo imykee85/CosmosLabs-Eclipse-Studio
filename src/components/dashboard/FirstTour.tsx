@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, Clapperboard, FolderOpen, Layers, Wand2, X } from "lucide-react";
+import { Bot, Clapperboard, FolderOpen, Layers, X } from "lucide-react";
+import ImageStudioIcon from "@/components/ImageStudioIcon";
 import { useCredits } from "@/lib/use-credits";
 
 const DONE = "eclipse-first-tour";
@@ -9,7 +10,7 @@ const WELCOME = "eclipse-welcome-offer";
 export const WELCOME_CLOSED = "eclipse-welcome-closed";
 
 const STEPS = [
-  { icon: Wand2, title: "Create", text: "Open Image Studio, Video Studio or Audio Studio, describe what you want and press Generate. Everything you make is saved to your project." },
+  { icon: ImageStudioIcon, title: "Create", text: "Open Image Studio, Video Studio or Audio Studio, describe what you want and press Generate. Everything you make is saved to your project." },
   { icon: Clapperboard, title: "Plan", text: "Treatment turns a rough idea into a plan. Prompts writes the exact prompt for the model you pick." },
   { icon: Bot, title: "Atlas", text: "Switch Atlas on in any prompt box. He improves your prompt, sets the box for you and only generates when you press the button." },
   { icon: Layers, title: "Core", text: "Core is your creative computer: chat, skills, tools, memory and connected apps, all in one place." },
