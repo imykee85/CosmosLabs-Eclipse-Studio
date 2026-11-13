@@ -179,3 +179,7 @@
 .mt-stage { aspect-ratio: 16 / 9; max-width: 520px; }
 .mt-composer.cr-box { margin-top: 0; background: var(--a-input); border-radius: 28px; padding: 18px 18px 14px; }
 .cr-dock .mt-row { gap: 10px; }
+
+/* The Motion box is Image Studio's box: popups open upward from the docked box. */
+.cr-dock .mt-pop { top: auto; bottom: calc(100% + 6px); }
+.cr-dock .mt-pop { max-height: min(320px, 50dvh); overflow-y: auto; }

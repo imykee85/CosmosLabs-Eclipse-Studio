@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Check, ChevronDown, Clock, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Shuffle,
+  ArrowLeft, Check, ChevronDown, Clock, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Layers, LayoutTemplate, Shuffle,
   Square, Star, Trash2, Wand2, X, Zap, ShieldCheck, ArrowUp, Film,
 } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
@@ -14,6 +14,7 @@ import type { PublicModel } from "@/lib/models";
 import { liveVideoModels, makeAsset, videoModelFor } from "@/lib/design/motion/assets";
 import MotionPlayer, { type PlayerHandle } from "./MotionPlayer";
 import { BrandKitDialog, DownloadDialog } from "./MotionDialogs";
+import { uploadPicture } from "@/lib/use-uploads";
 import { useDictation } from "@/lib/use-dictation";
 import { readCurrentProject, timeAgo } from "@/lib/projects";
 import { paletteOf, type LoadSpec } from "@/lib/design/motion/client";
@@ -58,18 +59,8 @@ function MotionHome({ kits, reloadKits, onOpen, recreate }: { kits: BrandKitItem
           <div className="cr-empty"><MonitorPlay size={34} strokeWidth={1.4} /><p>Your motion appears here</p></div>
         </div>
       </section>
-      <Composer kits={kits} reloadKits={reloadKits} onStarted={onOpen} initial={recreate} />
-      <h3 className="mt-h3">Start from a template</h3>
-      <div className="mt-templates">
-        {TEMPLATES.map((tp) => (
-          <button key={tp.id} type="button" className="mt-tpl" onClick={() => window.dispatchEvent(new CustomEvent("eclipse-motion-template", { detail: tp }))}>
-            <span className={`mt-tpl-art is-${tp.id}`} aria-hidden="true"><i /><i /><i /></span>
-            <b>{tp.name}</b><em>{tp.aspect} · {tp.duration}s</em>
-          </button>
-        ))}
-      </div>
       <h3 className="mt-h3">Your motions</h3>
-      {items === null ? <p className="mt-hint">Loading…</p> : items.length === 0 ? <p className="mt-hint">Nothing yet. Describe a motion above or start from a template.</p> : (
+      {items === null ? <p className="mt-hint">Loading…</p> : items.length === 0 ? <p className="mt-hint">Nothing yet. Describe a motion below or start from a template.</p> : (
         <div className="mt-list">
           {items.map((m) => (
             <button key={m.id} type="button" className="mt-card" onClick={() => onOpen(m.id)}>
@@ -79,6 +70,7 @@ function MotionHome({ kits, reloadKits, onOpen, recreate }: { kits: BrandKitItem
           ))}
         </div>
       )}
+      <Composer kits={kits} reloadKits={reloadKits} onStarted={onOpen} initial={recreate} />
     </section>
   );
 }
@@ -97,8 +89,10 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
   const [prompt, setPrompt] = useState(initial?.prompt ?? "");
   const [s, setS] = useState<MotionSettings>(() => initial?.settings ?? readSettings());
   const [pics, setPics] = useState<RefPick[]>([]);
-  const [menu, setMenu] = useState<null | "aspect" | "duration" | "audio" | "settings">(null);
+  const [menu, setMenu] = useState<null | "aspect" | "duration" | "audio" | "settings" | "templates">(null);
   const [picker, setPicker] = useState(false), [kitOpen, setKitOpen] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [clips, setClips] = useState<ClipPick[]>(() => (initial?.settings.clips ?? []).map((c) => ({ type: "render" as const, id: c.id, url: "", label: c.label ?? "Clip", sec: c.duration ?? null })));
   const [making, setMaking] = useState<Making[]>([]);
   const [busy, setBusy] = useState(false), [writing, setWriting] = useState(false), [error, setError] = useState<string | null>(null);
@@ -112,6 +106,17 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
   const kit = kits.find((k) => k.id === s.brandKitId) ?? null;
   const audioOn = s.audio.music || s.audio.voice || s.audio.sfx;
 
+  async function fromDevice(f: File) {
+    if (!f.type.startsWith("image/")) { setError("Add a picture here."); return; }
+    setError(null); setUploading((n) => n + 1);
+    try {
+      const r = await uploadPicture(f, "asset", f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Picture", readCurrentProject()?.id ?? null);
+      if (!r.ok) { setError(r.error); return; }
+      if (!r.item) return;
+      const it = r.item;
+      setPics((l) => [...l, { type: "upload" as const, id: it.id, url: it.imageUrl, label: it.name }].slice(0, 8));
+    } finally { setUploading((n) => n - 1); }
+  }
   async function writeIt() {
     setWriting(true); setError(null);
     const r = await call("/api/design/motion/write", { idea: prompt, duration: s.duration === "auto" ? null : s.duration });
@@ -149,7 +154,8 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
   const toggle = (k: typeof menu) => setMenu((m) => (m === k ? null : k));
   return (
     <div className="cr-dock">
-    <div className="cr-box mt-composer">
+    {error && <p className="ds-error" role="alert">{error}</p>}
+    <form className="cr-box mt-composer" onSubmit={(e) => { e.preventDefault(); void go(); }}>
       {(pics.length > 0 || clips.length > 0 || making.length > 0) && (
         <div className="mt-pics">{pics.map((p, i) => (
           <span key={p.id} className="mt-pic">{/* eslint-disable-next-line @next/next/no-img-element -- plain img like the rest of the app */}<img src={p.url} alt={p.label} /><em>@{i + 1}</em>
@@ -161,18 +167,22 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
           <span key={x.key} className="mt-pic is-making" role="status" title={x.label}><Loader2 size={15} className="mt-spin" /><em>{x.kind === "video" ? "Clip" : "Picture"}</em></span>
         ))}</div>
       )}
-      <GrowArea className="mt-text" rows={3} maxLines={10} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="A 10-second logo reveal for a coffee brand, warm tones, steam rising…" aria-label="Describe your motion"
-        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void go(); } }} />
-      <div className="mt-row">
-        <button type="button" className="mt-icon" aria-label="Add pictures and clips" onClick={() => setPicker(true)}><Plus size={16} /></button>
-        <label className="cr-chip cr-select">
-          <span className="sr-only">Aspect ratio</span>
-          <select value={s.aspect} onChange={(e) => setS({ ...s, aspect: e.target.value as MotionSettings["aspect"] })} aria-label="Aspect ratio">
-            {MOTION_ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </label>
-        <div className="mt-pop-wrap">
-          <button type="button" className="mt-chip" aria-expanded={menu === "duration"} onClick={() => toggle("duration")}><Clock size={14} />{s.duration === "auto" ? "Auto" : `${s.duration}s`}{s.loop && <span className="mt-loopdot">∞</span>}</button>
+      <div className="cr-field">
+        <button type="button" className="cr-plus" aria-label="Upload a picture from your device" title="Upload a picture from your device. By uploading you confirm you have the right to use it." onClick={() => fileInput.current?.click()}>{uploading > 0 ? <Loader2 size={16} className="cr-spin" /> : <Plus size={18} />}</button>
+        <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => { for (const f of Array.from(e.target.files ?? [])) void fromDevice(f); e.target.value = ""; }} />
+        <GrowArea className="mt-text" rows={2} maxLines={10} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="A 10-second logo reveal for a coffee brand, warm tones, steam rising…" aria-label="Describe your motion"
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void go(); } }} />
+      </div>
+      <div className="cr-tools">
+        <div className="cr-row cr-row-a">
+          <label className="cr-chip cr-select">
+            <span className="sr-only">Aspect ratio</span>
+            <select value={s.aspect} onChange={(e) => setS({ ...s, aspect: e.target.value as MotionSettings["aspect"] })} aria-label="Aspect ratio">
+              {MOTION_ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+          <div className="mt-pop-wrap">
+          <button type="button" className="cr-chip" aria-expanded={menu === "duration"} onClick={() => toggle("duration")}><Clock size={14} />{s.duration === "auto" ? "Auto" : `${s.duration}s`}{s.loop && <span className="mt-loopdot">∞</span>}</button>
           {menu === "duration" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Duration">
             <b className="mt-pop-h">Duration</b>
             <button type="button" className={`mt-auto${s.duration === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, duration: "auto" })}><b>Auto</b><em>Picks the length for you</em></button>
@@ -181,8 +191,8 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
             <label className="mt-switch"><span><b>Loop</b><em>The end matches the start, so it repeats without a seam.</em></span><input type="checkbox" checked={s.loop} onChange={(e) => setS({ ...s, loop: e.target.checked })} /></label>
           </div>}
         </div>
-        <div className="mt-pop-wrap">
-          <button type="button" className={`mt-chip${audioOn ? " is-on" : ""}`} aria-expanded={menu === "audio"} onClick={() => toggle("audio")}><Music size={14} />Audio</button>
+          <div className="mt-pop-wrap">
+          <button type="button" className={`cr-chip${audioOn ? " is-on" : ""}`} aria-expanded={menu === "audio"} onClick={() => toggle("audio")}><Music size={14} />Audio</button>
           {menu === "audio" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Audio">
             <b className="mt-pop-h">Audio</b><em className="mt-pop-sub">Turn one off and the agent never adds it.</em>
             {(["sfx", "music", "voice"] as const).map((k) => (
@@ -190,11 +200,25 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
             ))}
           </div>}
         </div>
-        <button type="button" className={`mt-chip${kit ? " is-on" : ""}`} onClick={() => setKitOpen(true)}><Palette size={14} />{kit ? kit.name : "Brand kit"}</button>
-        <AtlasChip />
-        <span className="mt-grow" />
-        <div className="mt-pop-wrap">
-          <button type="button" className="mt-icon" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
+          <button type="button" className={`cr-chip${kit ? " is-on" : ""}`} onClick={() => setKitOpen(true)}><Palette size={14} />{kit ? kit.name : "Brand kit"}</button>
+        </div>
+        <div className="cr-row">
+          <button type="button" className="cr-chip" title="Use pictures and clips from your Ingredients, Assets or earlier work" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{pics.length + clips.length ? ` (${pics.length + clips.length})` : ""}</button>
+          <div className="mt-pop-wrap">
+            <button type="button" className="cr-chip" aria-expanded={menu === "templates"} onClick={() => toggle("templates")}><LayoutTemplate size={14} /> Templates</button>
+            {menu === "templates" && <div className="mt-pop mt-pop-wide" role="menu" aria-label="Templates">
+              <b className="mt-pop-h">Start from a template</b>
+              {TEMPLATES.map((tp) => (
+                <button key={tp.id} type="button" role="menuitem" onClick={() => { setPrompt(tp.prompt); setS((x) => ({ ...x, aspect: tp.aspect, duration: tp.duration, loop: tp.id === "loop" })); setMenu(null); }}>
+                  <span><b>{tp.name}</b><em>{tp.aspect} · {tp.duration}s</em></span>
+                </button>
+              ))}
+            </div>}
+          </div>
+          <button type="button" className="cr-chip" disabled={writing || !prompt.trim()} title="Turns your idea into a full description" onClick={writeIt}>{writing ? <Loader2 size={14} className="cr-spin" /> : <Wand2 size={14} />} Write it for me</button>
+          <AtlasChip />
+          <div className="mt-pop-wrap">
+          <button type="button" className="cr-chip" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
           {menu === "settings" && <div className="mt-pop mt-pop-wide mt-pop-right" role="dialog" aria-label="Motion settings">
             <b className="mt-pop-h">Agent model</b>
             {MOTION_MODELS.map((m) => <button key={m.id} type="button" className={`mt-opt${s.model === m.id ? " is-on" : ""}`} onClick={() => setS({ ...s, model: m.id })}><b>{m.name}</b><em>{m.blurb}</em>{s.model === m.id && <Check size={14} />}</button>)}
@@ -204,16 +228,13 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
             <DefaultsPicker d={s.defaults} models={models} onChange={(defaults) => setS({ ...s, defaults })} />
           </div>}
         </div>
-        <button type="button" className={`mt-icon${dict.listening ? " is-rec" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={16} /></button>
-        <button type="button" className="mt-go" disabled={busy || prompt.trim().length < 3} onClick={() => void go()}>{busy ? <Loader2 size={15} className="mt-spin" /> : null}Generate</button>
-      </div>
-      <div className="mt-under">
-        <button type="button" className="mt-link" disabled={writing || !prompt.trim()} onClick={writeIt}>{writing ? <Loader2 size={13} className="mt-spin" /> : <Wand2 size={13} />}Write it for me</button>
-        {error && <p className="mt-error" role="alert">{error}</p>}
+          <button type="button" className={`cr-chip${dict.listening ? " is-on" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={14} /></button>
+        </div>
+        <button type="submit" className="cr-go" disabled={busy || prompt.trim().length < 3}>{busy ? <Loader2 size={16} className="cr-spin" /> : null}Generate</button>
       </div>
       {picker && <ReferencePicker max={8} picked={pics} onChange={setPics} videoMax={MAX_CLIPS} pickedVideos={clips} onVideosChange={setClips} onClose={() => setPicker(false)} />}
       {kitOpen && <BrandKitDialog kits={kits} reload={reloadKits} chosen={s.brandKitId} onChoose={(id) => { setS({ ...s, brandKitId: id }); setKitOpen(false); }} onClose={() => setKitOpen(false)} />}
-    </div>
+    </form>
     </div>
   );
 }
