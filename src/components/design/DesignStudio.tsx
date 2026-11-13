@@ -177,15 +177,13 @@ function ThreeD() {
               <button type="button" className={`cr-chip ${detailed ? "is-on" : ""}`} aria-pressed={detailed} disabled={!textured} onClick={() => setDetailed(!detailed)}>Extra detail (slower)</button>
               <button type="button" className={`cr-chip ${pbr ? "is-on" : ""}`} aria-pressed={pbr} disabled={!textured} onClick={() => setPbr(!pbr)}>Realistic materials</button>
               {model?.rig && <button type="button" className={`cr-chip ${rig ? "is-on" : ""}`} aria-pressed={rig} onClick={() => setRig(!rig)}>Rig for animation</button>}
+              <AtlasChip />
               {model && model.polyMax > 0 && (
                 <label className="ds-field ds-poly"><span>Detail</span>
                   <input type="range" min={model.polyMin} max={model.polyMax} step={Math.max(1, Math.round((model.polyMax - model.polyMin) / 100))} value={poly ?? model.polyDefault} onChange={(e) => setPoly(Number(e.target.value))} aria-label="Detail (faces)" />
                   <em>{(poly ?? model.polyDefault).toLocaleString()} faces</em>
                 </label>
               )}
-            </div>
-            <div className="cr-row cr-row-top">
-              <AtlasChip />
             </div>
             <button type="submit" className="cr-go ds-go3" disabled={!canGo}>
               {busy && <Loader2 size={18} className="ds-spin" />}Make 3D model{model?.credits ? <span className="ds-price">{model.credits}</span> : null}
