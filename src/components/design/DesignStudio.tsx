@@ -28,7 +28,7 @@ export default function DesignStudio() {
     <div className="ds">
       <header className="ds-head">
         <h1>Design Studio</h1>
-        <p>3D models and motion graphics, made in one place.</p>
+        <p>3D models and motion graphics</p>
       </header>
       <div className="ds-toprow">
         <div className="ds-tabs" role="tablist" aria-label="Design tools">
@@ -47,7 +47,8 @@ function ThreeD() {
   const { items, models, reload } = use3D();
   const [picked, setPicked] = useState<RefPick[]>([]);
   // The model list shows every model. Until one is chosen, the model follows what you add: nothing means words, one picture means one picture, more means several views.
-  const want: Mode = picked.length === 0 ? "text" : picked.length === 1 ? "image" : "multi";
+  const [modeSel, setModeSel] = useState<Mode | null>(null);
+  const want: Mode = modeSel ?? (picked.length === 0 ? "text" : picked.length === 1 ? "image" : "multi");
   const available = models;
   const [modelId, setModelId] = useState<string>("");
   const model: Model3DInfo | undefined = models.find((m) => m.id === modelId) ?? models.find((m) => m.modes.includes(want)) ?? models[0];
@@ -72,7 +73,7 @@ function ThreeD() {
   useAgentHost({
     page: "design",
     context: () => ({ prompt, model: model?.label, settings: [`Tab: 3D models. Mode: ${MODE_LABEL[mode]}`, `Models for this mode: ${available.map((m) => m.label).join(", ")}`, `Colour and texture: ${textured ? "on" : "off"}, realistic materials: ${pbr ? "on" : "off"}, extra detail: ${detailed ? "on" : "off"}`], pictures: picked.map((p, i) => ({ type: p.type, id: p.id, role: mode === "multi" ? `view ${i + 1}` : "source picture" })) }),
-    setPrompt: (t) => { setModelId(""); setPicked([]); setPrompt(t); },
+    setPrompt: (t) => { setModeSel("text"); setModelId(""); setPicked([]); setPrompt(t); },
     generate: async (o) => {
       const text = (o.prompt ?? prompt).trim();
       if (mode !== "text" && picked.length) { await go(); return ""; }
@@ -104,7 +105,7 @@ function ThreeD() {
       if (!r.ok) { setError(r.error); return; }
       if (!r.item) return;
       const it = r.item;
-      setPicked((l) => [...l, { type: "upload" as const, id: it.id, url: it.imageUrl, label: it.name }].slice(0, maxPics));
+      setModeSel(null); setPicked((l) => [...l, { type: "upload" as const, id: it.id, url: it.imageUrl, label: it.name }].slice(0, maxPics));
     } finally { setUploading((n) => n - 1); }
   }
 
@@ -173,14 +174,20 @@ function ThreeD() {
                     <div className="cr-tools">
             {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
-              <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
+              <label className="cr-chip cr-select ds-modesel">
+                <span className="sr-only">Mode</span>
+                <select value={mode} onChange={(e) => { setModeSel(e.target.value as Mode); setModelId(""); }} aria-label="Mode">
+                  {(Object.keys(MODE_LABEL) as Mode[]).map((m) => <option key={m} value={m}>{MODE_LABEL[m]}</option>)}
+                </select>
+              </label>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
-              <label className="cr-chip cr-select" title={model?.blurb}>
+              <label className="cr-chip cr-select ds-modelsel" title={model?.blurb} style={{ width: `calc(${Math.max(8, ...models.map((m) => m.label.length))}ch + 52px)` }}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
                   {available.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </label>
+              <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
             </div>
             <div className="cr-row">
               <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
@@ -219,7 +226,7 @@ function ThreeD() {
           </div>
         </>
       )}
-      {picker && <ReferencePicker max={Math.min(maxPics, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 1), 1))} picked={picked} onChange={setPicked} onClose={() => setPicker(false)} />}
+      {picker && <ReferencePicker max={Math.min(maxPics, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 1), 1))} picked={picked} onChange={(l) => { setPicked(l); setModeSel(null); }} onClose={() => setPicker(false)} />}
     </section>
   );
 }

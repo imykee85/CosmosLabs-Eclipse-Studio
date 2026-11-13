@@ -90,3 +90,6 @@
 .ds-lookmenu .am-item b, .ds-lookmenu .am-item small { display: block; }
 .ds-lookmenu .am-item small { margin-top: 2px; color: var(--a-muted); font-size: 13px; line-height: 1.35; }
 .ds-lookmenu .am-item:disabled { opacity: .45; cursor: default; }
+.ds-head { text-align: center; }
+.ds-head p { text-align: center; }
+.ds-3d .cr-row-a .cr-select.ds-modelsel, .ds-3d .cr-row-a .cr-select.ds-modesel { flex: none; max-width: 100%; }
