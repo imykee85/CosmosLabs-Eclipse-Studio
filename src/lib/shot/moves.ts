@@ -12,7 +12,7 @@ export const DEFAULT_MOVES: MovesState = { preset: "push-in", preset2: null, com
 
 /** The subject the camera works round: the first person (else the first vehicle, else the first thing), and where it is at time t. */
 export function subjectOf(items: Item[]): { at: (t: number) => { x: number; z: number }; start: { x: number; z: number } } {
-  const it = items.find((i) => i.kind === "person" && i.visible) ?? items.find((i) => i.kind === "vehicle" && i.visible) ?? items.find((i) => i.visible);
+  const it = items.find((i) => i.kind === "person" && i.visible) ?? items.find((i) => i.kind === "vehicle" && i.visible) ?? items.find((i) => i.visible && i.id !== "floor");
   if (!it) return { at: () => ({ x: 0, z: 0 }), start: { x: 0, z: 0 } };
   const keys = [...(it.keys ?? [])].sort((a, b) => a.t - b.t);
   const at = (t: number) => {
@@ -63,7 +63,7 @@ export function moveCamAt(items: Item[], m: MovesState, durationS: number, t: nu
 
 /** A distance that keeps the camera clear of the subject: 4 m for a person, further back for something big like a boat or a truck. */
 export function suggestDistance(items: Item[]): number {
-  const it = items.find((i) => i.kind === "person" && i.visible) ?? items.find((i) => i.kind === "vehicle" && i.visible) ?? items.find((i) => i.visible);
+  const it = items.find((i) => i.kind === "person" && i.visible) ?? items.find((i) => i.kind === "vehicle" && i.visible) ?? items.find((i) => i.visible && i.id !== "floor");
   if (!it) return DEFAULT_MOVES.distance;
   const b = baseSize(it), size = Math.max(b[0] * Math.abs(it.scale[0]), b[1] * Math.abs(it.scale[1]), b[2] * Math.abs(it.scale[2]));
   return Math.round(Math.min(40, Math.max(DEFAULT_MOVES.distance, size * 1.4)) * 10) / 10;

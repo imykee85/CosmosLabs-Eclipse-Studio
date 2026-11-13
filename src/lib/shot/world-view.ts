@@ -68,13 +68,23 @@ function objectMesh(it: Item, assets: Assets): THREE.Object3D {
 type Figure = { rig: Rig | null; xg: THREE.Group | null; mixer: THREE.AnimationMixer | null; clips: Map<string, THREE.AnimationClip>; height: number };
 type Node = { item: Item; root: THREE.Group; inner: THREE.Group; fig?: Figure; signature: string };
 
-/** A camera body like a cinema camera: body, lens and a light. Grey for keyframes, blue when chosen, white for the camera at the playhead. */
+/** A DSLR-style camera: body with a grip and a viewfinder hump, a lens barrel and a flared lens hood, a rear screen. The lens points along +z. Coloured by role: grey for keyframes, blue when chosen, white for the camera at the playhead. */
 function cameraBody(color: number) {
-  const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.3 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.32, 0.36), m); body.position.z = -0.1;
-  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 0.26, 20), m); lens.rotation.x = Math.PI / 2; lens.position.z = 0.17;
-  const top = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.2), m); top.position.set(0, 0.2, -0.12);
-  g.add(body, lens, top); return g;
+  const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.3 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x15161b, roughness: 0.4, metalness: 0.5 }), glass = new THREE.MeshStandardMaterial({ color: 0x6a7392, roughness: 0.15, metalness: 0.8 });
+  const add = (mesh: THREE.Mesh, x: number, y: number, z: number) => { mesh.position.set(x, y, z); g.add(mesh); return mesh; };
+  add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.34, 0.3), m), 0, 0, -0.12);                       // body
+  add(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.34, 0.26), m), 0.19, 0, -0.1);                    // right-hand grip
+  add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.2), m), 0, 0.22, -0.16);                      // viewfinder hump
+  add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.08), dark), 0, 0.29, -0.16);                // hot shoe
+  const mount = add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.06, 24), dark), 0, 0, 0.06); mount.rotation.x = Math.PI / 2;
+  const barrel = add(new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.125, 0.26, 24), dark), 0, 0, 0.2); barrel.rotation.x = Math.PI / 2;
+  const ring = add(new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.08, 24), m), 0, 0, 0.26); ring.rotation.x = Math.PI / 2;
+  const hood = add(new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.145, 0.16, 24, 1, true), dark), 0, 0, 0.42); hood.rotation.x = Math.PI / 2; (hood.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+  const front = add(new THREE.Mesh(new THREE.CircleGeometry(0.115, 24), glass), 0, 0, 0.345);        // front glass, seen through the hood
+  front.rotation.y = Math.PI;
+  add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.01), glass), -0.02, -0.01, -0.275);          // rear screen
+  g.userData.parts = true; return g;
 }
 
 export type ViewOptions = { helpers: boolean; assets?: Assets; models?: Map<string, ArrayBuffer> };
