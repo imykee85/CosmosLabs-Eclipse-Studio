@@ -4,6 +4,7 @@ import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Mic, Plus, Repeat, Square, Users } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
+import AtlasChip from "@/components/design/AtlasChip";
 import GenerateButton from "@/components/GenerateButton";
 import { estimateSeconds } from "@/lib/audio/pricing-client";
 import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
@@ -128,6 +129,7 @@ export function TranscribeConsole({ models, onStart, setError }: Props) {
       <div className="vc-controls">
         <ModelSelect models={models} model={model} onChange={choose} />
         <button type="button" className={`vc-pill ${diarize ? "is-on" : ""}`} aria-pressed={diarize} disabled={!model?.options.diarize} title={model?.options.diarize ? "Tell speakers apart" : `${model?.label ?? "This model"} cannot tell speakers apart`} onClick={() => setDiarize((d) => !d)}><Users size={14} /> Speakers</button>
+        <AtlasChip />
         <span className="vc-count">{file ? sizeOf(file.size) : ""}</span>
       </div>
       <Go label="Transcribe" busy={busy} disabled={!model} price={price} onClick={() => void go()} />
@@ -215,6 +217,7 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
         {music
           ? <button type="button" className={`vc-pill ${instrumental ? "is-on" : ""}`} aria-pressed={instrumental} disabled={!model?.options.instrumental} onClick={() => setInstrumental((v) => !v)}>Instrumental</button>
           : <button type="button" className={`vc-pill ${loop ? "is-on" : ""}`} aria-pressed={loop} disabled={!model?.options.loop} title={model?.options.loop ? "A clip that loops cleanly" : `Not supported by ${model?.label ?? "this model"}`} onClick={() => setLoop((v) => !v)}><Repeat size={14} /> Loop</button>}
+        <AtlasChip />
       </div>
       <span className="vc-count vc-count-corner">{text.length.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
       <Go label={music ? "Make music" : "Make sound"} busy={busy} disabled={!model || over} price={price} onClick={() => void go()} />

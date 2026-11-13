@@ -10,8 +10,7 @@ import Stage from "./Stage";
 import SoundTake from "./SoundTake";
 import TranscriptView from "./Transcript";
 import { EffectsConsole, FILL_EVENT, ModeTabs, MusicConsole, TranscribeConsole, type Mode } from "./Modes";
-import AgentIcon from "@/components/AgentIcon";
-import AgentMenu from "@/components/create/AgentMenu";
+import AtlasChip from "@/components/design/AtlasChip";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
@@ -179,8 +178,6 @@ export default function VoiceStudio() {
 
   // Atlas in Audio Studio: he sees the mode and its box, writes scripts and sound or music briefs, and can start them (each start is the person's button).
   const agent = useAgent();
-  const agentChip = useRef<HTMLButtonElement>(null);
-  const [agentAnchor, setAgentAnchor] = useState<DOMRect | null>(null);
   useAgentHost({
     page: "voice",
     context: () => ({
@@ -331,13 +328,6 @@ export default function VoiceStudio() {
         {message && <p className="vc-error" role="alert">{message}</p>}
         <div className="vc-modebar">
           <ModeTabs mode={studioMode} onMode={changeMode} />
-          <div className="cr-grp vc-agent">
-            <button ref={agentChip} type="button" className="cr-chip" title="Choose your agent" aria-haspopup="menu" onClick={(e) => setAgentAnchor(e.currentTarget.getBoundingClientRect())}>
-              <AgentIcon size={14} /> <span className="cr-aname">{agent.agent ?? "Atlas"}</span>
-            </button>
-            <button type="button" role="switch" aria-checked={agent.active} aria-label="Let the agent help in Audio Studio" title={agent.agent ? "Agent help on or off" : "Choose an agent first"} className={`cr-switch ${agent.active ? "is-on" : ""}`}
-              onClick={() => { if (!agent.agent) { if (agentChip.current) setAgentAnchor(agentChip.current.getBoundingClientRect()); return; } agent.setOn(!agent.on); }}><i /></button>
-          </div>
         </div>
         {studioMode === "transcribe" && <TranscribeConsole models={allModels?.filter((m) => m.kind === "stt") ?? []} onStart={startKind} setError={setError} />}
         {studioMode === "effects" && <EffectsConsole models={allModels?.filter((m) => m.kind === "sfx") ?? []} onStart={startKind} setError={setError} />}
@@ -400,14 +390,14 @@ export default function VoiceStudio() {
                 </div>
               )}
             </div>
-            <span className="vc-count">{chars.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}{pricing?.unit === "byte" ? ` · ${new TextEncoder().encode(text.trim()).length.toLocaleString("en-US")} bytes` : ""}</span>
+            <AtlasChip />
+            <span className="vc-count">{chars.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
           </div>
           <GenerateButton wide className="vc-go-slot" price={price} busy={submitting} disabled={!canGo} onClick={() => void generate()} />
         </div>}
       </div>
 
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
-      {agentAnchor && <AgentMenu anchor={agentAnchor} selected={agent.agent} onPick={(n) => agent.setAgent(n)} onClose={() => setAgentAnchor(null)} />}
       {picking && <SheetPortal><VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} onNew={() => { setPicking(false); setCreating(true); }} onDelete={removeOwn} /></SheetPortal>}
       {creating && models && <SheetPortal><VoiceCreator models={models} provider={provider} costs={costs} consentText={consentText} onClose={() => setCreating(false)} onCreated={created} /></SheetPortal>}
     </div>
