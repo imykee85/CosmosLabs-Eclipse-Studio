@@ -165,7 +165,7 @@
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
   .mt-hero h2 { font-size: 28px; } .mt-players.is-two { grid-template-columns: 1fr; }
   .mt-approve li { grid-template-columns: 1fr; } .mt-sources { grid-template-columns: repeat(2, 1fr); }
-  .mt-pop { position: fixed; left: 12px !important; right: 12px !important; top: auto; bottom: calc(80px + env(safe-area-inset-bottom)); width: auto; max-height: 60dvh; overflow: auto; }
+  .mt-pop { position: fixed; left: 0 !important; right: 0 !important; top: auto; bottom: 0; z-index: 310; width: auto; max-height: 72dvh; overflow: auto; padding: 14px 14px calc(16px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; border-width: 1px 0 0; }
 }
 @media (prefers-reduced-motion: reduce) { .mt-spin, .mt-tpl-art i, .mt-steps .is-now i { animation: none; } .mt-tpl { transition: none; } }
 .mt-pic.is-clip video { width: 100%; height: 100%; object-fit: cover; clip-path: inset(0 round 11px); }
@@ -196,11 +196,14 @@
 .mt-pop > button .mt-tpl-mini { flex: none; width: 92px; margin: 0; }
 /* On phones the popups are sheets above the tab bar (this must beat the upward rule for the docked box). */
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
-  .cr-dock .mt-pop { position: fixed; left: 12px !important; right: 12px !important; top: auto; bottom: calc(80px + env(safe-area-inset-bottom)); width: auto; max-height: 60dvh; overflow: auto; }
+  .cr-dock .mt-pop { position: fixed; left: 0 !important; right: 0 !important; top: auto; bottom: 0; z-index: 310; width: auto; max-height: 72dvh; overflow: auto; padding: 14px 14px calc(16px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; border-width: 1px 0 0; }
 }
 /* Closing the Motion popups: tap outside (scrim), Escape, or the close button. */
 .mt-scrim { position: fixed; inset: 0; z-index: 55; background: transparent; }
-@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .mt-scrim { background: rgba(0,0,0,.35); } }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .mt-scrim { background: rgba(0,0,0,.5); z-index: 255; } }
 .mt-pop > button.mt-pop-x { position: sticky; top: 0; justify-self: end; flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; margin: -2px -2px -26px 0; border-radius: 0; background: transparent; z-index: 2; }
 .mt-pop > button.mt-pop-x:hover { background: transparent; opacity: .7; }
 .mt-pop > .mt-pop-h:first-of-type, .mt-pop > .mt-pop-h { padding-right: 36px; }
+/* While a chip's sheet is open its dock rises above the tab bar, so the sheet covers it like the model picker does. */
+.cr-dock:has(.mt-pop), .mt-composer:has(.mt-pop) { z-index: 300; }
+.mt-scrim { z-index: 290; }

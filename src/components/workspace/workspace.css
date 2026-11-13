@@ -186,4 +186,4 @@ a.ws-account:hover, a.ws-account.is-active { background: var(--a-hover); }
 .ag-x { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; color: var(--a-fg2); cursor: pointer; }
 .ag-save { height: 44px; border: 0; border-radius: 999px; background: #c00707; color: #fff; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; }
 .ag-save:hover:not(:disabled) { background: #d90b0b; } .ag-save:disabled { opacity: .5; cursor: default; }
-@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ag-scrim { align-items: end; padding: 10px; } }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ag-scrim { align-items: end; padding: 0; } .ag-dialog { width: 100%; border-radius: 28px 28px 0 0; border-bottom: 0; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); } }
