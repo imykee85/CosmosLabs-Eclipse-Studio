@@ -3,12 +3,11 @@
 import { useEffect } from "react";
 import { Check, Clapperboard, Video } from "lucide-react";
 
-export type MotionMode = "subject" | "scene" | "moves";
+export type MotionMode = "subject" | "scene";
 
 const MODES: { id: MotionMode; title: string; text: string; icon: typeof Video; soon?: boolean }[] = [
   { id: "subject", title: "Motion + subject", text: "Moves your subject picture like the person in one of your clips (Kling Motion Control or Genjutsu), or changes what is in a video you made (Eclone).", icon: Video },
-  { id: "moves", title: "ShotMap · Moves", text: "One camera with move pickers and sliders: pick a move, set the angle, distance, speed and lens, then generate from the guide video.", icon: Clapperboard },
-  { id: "scene", title: "ShotMap · Keyframes", text: "A full 3D scene editor: build the set, place the camera and set its keyframes on a timeline, then generate from the guide video.", icon: Clapperboard },
+  { id: "scene", title: "ShotMap", text: "Direct the shot yourself: build the set, pick the camera move, then generate from the guide video.", icon: Clapperboard },
 ];
 
 // Pop-up above the Motion chip: how the reference clip should steer the video. Choose the same one again to clear it.

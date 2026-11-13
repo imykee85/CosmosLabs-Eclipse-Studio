@@ -28,8 +28,7 @@ import StyleLibrary from "./StyleLibrary";
 import RelightVideoPanel from "./RelightVideoPanel";
 import VideoEditor from "./VideoEditor";
 import UpscalePanel from "../upscale/UpscalePanel";
-import ShotStudio, { type ShotUse } from "../shot/studio/ShotStudio";
-import ShotMapPanel from "../shot/ShotMapPanel";
+import ShotMapPanel, { type ShotUse } from "../shot/ShotMapPanel";
 import SheetPortal from "@/components/voice/SheetPortal";
 import { FEATURE_NAME as SHOT_NAME } from "@/lib/shot/schema";
 import SoonTag from "../SoonTag";
@@ -78,7 +77,6 @@ export default function VideoStudio() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [upOpen, setUpOpen] = useState(false);
   const [shotOpen, setShotOpen] = useState(false);
-  const [movesOpen, setMovesOpen] = useState(false);
   const [mcScene, setMcScene] = useState(false);          // Scene control: not sent anywhere yet (its API field is not in our reference)
   const [mcSceneFrom, setMcSceneFrom] = useState<"video" | "image">("video");
   const mc = motion === "subject";
@@ -285,10 +283,10 @@ export default function VideoStudio() {
   }, [model, wf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** ShotMap hands over: Seedance 2.5, the guide as the reference clip, the built prompt, the shape and length of the shot. The person presses Generate as usual. */
-  function applyShotMap(u: Omit<ShotUse, "refs"> & { refs?: ShotUse["refs"] }) {
-    setShotOpen(false); setMovesOpen(false);  setNote("");
+  function applyShotMap(u: ShotUse) {
+    setShotOpen(false);  setNote("");
     setModelId("seedance_2_5"); try { localStorage.setItem(MODEL_KEY, "seedance_2_5"); } catch {}
-    setStart(null); setEnd(null); setRefs((u.refs ?? []).slice(0, MAX_ATTACH)); setMotion(null);
+    setStart(null); setEnd(null); setRefs([]); setMotion(null);
     setVrefs([{ type: "render", id: u.guide.id, label: "ShotMap guide", url: u.guide.url, sec: u.guide.seconds }]);
     if (u.aspect) setRatio(u.aspect);
     setPrompt(u.prompt); setDuration(Math.min(30, Math.max(4, Math.round(u.seconds))));
@@ -648,7 +646,6 @@ export default function VideoStudio() {
       {target && <ReferencePicker max={target === "refs" ? (mc ? 1 : MAX_ATTACH) : 1} picked={picked} onChange={onPicked} onClose={() => setTarget(null)} videoMax={target === "refs" ? (mc ? caps.refVideoMax : MAX_ATTACH) : 0} pickedVideos={vrefs} onVideosChange={setVrefs} audioMax={target === "refs" && !mc ? MAX_ATTACH : 0} pickedAudio={arefs} onAudioChange={setArefs} videosOnly={target === "refs" && !mc && !caps.refMax} note={target === "refs" && mc ? "Choose a picture (who or what appears in the result) and one of your finished videos (its movement is copied). One of each, in either order." : undefined} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {motionAnchor && <MotionMenu anchor={motionAnchor} selected={motion} onPick={(m) => {
-        if (m === "moves") { setMotion(null); if (allowedNow("shotmap")) setMovesOpen(true); else askUpgrade("shotmap"); return; }
         if (m === "scene") { setMotion(null); if (allowedNow("shotmap")) setShotOpen(true); else askUpgrade("shotmap"); return; }
         setMotion(m); setVrefs([]); setStart(null);
         setNote("");
@@ -659,8 +656,7 @@ export default function VideoStudio() {
       {upOpen && toolVid && <SheetPortal><UpscalePanel source={{ id: toolVid.id, kind: "video", width: toolVid.width, height: toolVid.height, durationSec: toolVid.durationSec }} onClose={() => setUpOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {editorOpen && toolVid && <SheetPortal><VideoEditor video={toolVid} projectId={projectId ?? null} onClose={() => setEditorOpen(false)} onSaved={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {relightOpen && toolVid && <SheetPortal><RelightVideoPanel video={toolVid} onClose={() => setRelightOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
-      {movesOpen && <SheetPortal><ShotMapPanel projectId={projectId ?? null} onUse={applyShotMap} onClose={() => setMovesOpen(false)} /></SheetPortal>}
-      {shotOpen && <SheetPortal><ShotStudio projectId={projectId ?? null} onUse={applyShotMap} onClose={() => setShotOpen(false)} /></SheetPortal>}
+      {shotOpen && <SheetPortal><ShotMapPanel projectId={projectId ?? null} onUse={applyShotMap} onClose={() => setShotOpen(false)} /></SheetPortal>}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} creditsOn={!!config?.creditsOn} direct={config?.direct ?? []} />}
     </div>
   );
