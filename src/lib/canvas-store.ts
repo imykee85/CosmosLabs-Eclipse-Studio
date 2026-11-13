@@ -203,3 +203,11 @@ export async function createCanvasFromPrompt(projectId: string, seed: { prompt: 
   const name = seed.prompt.replace(/\s+/g, " ").trim().slice(0, 40) || "From Image Studio";
   return createCanvas(projectId, name, { nodes: [text, gen], edges: [makeEdge(text.id, gen.id, "description")], viewport: null });
 }
+
+// Design Studio's "Open canvas": a text node feeding a 3D model node.
+export async function createCanvasFrom3D(projectId: string, seed: { prompt: string }): Promise<CanvasMeta | null> {
+  const text = newNode("text", { x: 0, y: 0 }, { text: seed.prompt });
+  const gen = newNode("model3d", { x: 420, y: 0 }, {});
+  const name = seed.prompt.replace(/\s+/g, " ").trim().slice(0, 40) || "From Design Studio";
+  return createCanvas(projectId, name, { nodes: [text, gen], edges: [makeEdge(text.id, gen.id, "description")], viewport: null });
+}

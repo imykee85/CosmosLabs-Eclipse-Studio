@@ -18,6 +18,8 @@ import { fetchAudioItem, startVoice, useVoiceModels, useVoices } from "@/lib/use
 import ImageEditor from "@/components/edit/ImageEditor";
 import VariationsForm from "@/components/create/VariationsForm";
 import { cellPrompts, gridCount, initialState, parseScenes, problem, ratioChoices, type VarState } from "@/lib/variations/prompt";
+import { fetch3DItem, start3DModel, use3D } from "@/lib/use-design";
+import Viewer3D from "@/components/design/Viewer3D";
 import { useCanvas } from "./CanvasContext";
 import { BIG, Result, Shell } from "./nodes";
 
@@ -482,5 +484,94 @@ export function GroupNode({ id, data, selected }: NodeProps<CNode>) {
         </span>
       </header>
     </div>
+  );
+}
+
+// ---------- 3D model ----------
+// Builds a 3D model from the pictures wired into Ingredients, or from words. Same models, options and prices as Design Studio; the model shows on the node and
+// is kept in the account (Design Studio lists it too).
+export function Model3DNode({ id, data, selected }: NodeProps<CNode>) {
+  const { updateNodeData } = useReactFlow();
+  const nodes = useNodes() as CNode[];
+  const edges = useEdges();
+  const { models } = use3D();
+  const inputs = useMemo(() => inputsOf(nodes, edges, id), [nodes, edges, id]);
+  const pics = useMemo(() => picturesOf(inputs), [inputs]);
+  const wired = inputs.filter((i) => i.port === "description" && i.text).map((i) => i.text!);
+  const waiting = inputs.filter((i) => i.fromResult && !i.ready);
+  const text = [(data.prompt ?? "").trim(), ...wired].filter(Boolean).join(". ");
+  const want = pics.length === 0 ? "text" : pics.length === 1 ? "image" : "multi";
+  const model = models.find((m) => m.id === data.m3model) ?? models.find((m) => m.modes.includes(want)) ?? models[0];
+  const mode = model?.modes.includes(want) ? want : model?.modes[0] ?? want;
+  const needPics = mode !== "text";
+  const textured = data.m3tex !== false;
+  const pending = data.pending ?? [];
+  const gens = data.gens ?? [];
+  const busy = pending.length > 0;
+  const [submitting, setSubmitting] = useState(false);
+  const picked = data.pick && gens.includes(data.pick) ? data.pick : gens[gens.length - 1];
+  useFollow(id, pending, async (gid) => {
+    const m = await fetch3DItem(gid);
+    if (!m) return { s: "gone" };
+    return m.status === "completed" ? { s: "completed" } : m.status === "failed" ? { s: "failed", error: m.error ?? "This model could not be made." } : { s: "pending" };
+  }, 5000);
+  const reason = !model ? "" : mode === "text" && pics.length > 0 ? `${model.label} works from words only.`
+    : needPics && pics.length === 0 ? `${model.label} needs a picture. Wire one into Ingredients.`
+    : needPics && pics.length > model.maxImages ? `${model.label} takes at most ${model.maxImages} picture${model.maxImages === 1 ? "" : "s"}.`
+    : needPics && pics.length < (mode === "image" ? 1 : model.minImages) ? `${model.label} needs at least ${model.minImages} pictures.` : "";
+  const canGo = !!model && !busy && !submitting && !reason && waiting.length === 0 && (mode !== "text" || text.length >= 3);
+  async function run() {
+    if (!canGo || !model) return;
+    setSubmitting(true);
+    updateNodeData(id, { error: undefined });
+    const r = await start3DModel({
+      model: model.id, mode, prompt: text,
+      refs: needPics ? pics.slice(0, model.maxImages).map((p) => ({ type: p.pic.type, id: p.pic.id })) : [],
+      options: { textured, pbr: false, polycount: null, detailed: false, avoid: "", rig: false }, projectId: readCurrentProject()?.id ?? null,
+    });
+    setSubmitting(false);
+    if (!r.ok) { updateNodeData(id, { error: r.error }); return; }
+    if (r.item) updateNodeData(id, { pending: [...pending, r.item.id] });
+    refreshCredits();
+  }
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    const onRun = (e: Event) => { if ((e as CustomEvent<{ id: string }>).detail?.id === id) void runRef.current(); };
+    window.addEventListener("eclipse-node-run", onRun);
+    return () => window.removeEventListener("eclipse-node-run", onRun);
+  }, [id]);
+  return (
+    <Shell id={id} kind="model3d" selected={selected}
+      display={<div className="cv-disp">
+        {busy ? <div className="cv-disp-empty"><Loader2 size={30} className="cv-spin" /><span>Making your model…</span></div>
+          : picked ? <div className="cv-model nodrag nowheel"><Viewer3D url={`/api/design/3d/${picked}/file`} label="3D model" /></div>
+          : <div className="cv-disp-empty">{BIG.model3d}<span>Ready to generate</span></div>}
+      </div>}
+      controls={<>
+        {gens.length > 1 && (
+          <div className="cv-thumbs" aria-label="Models made">
+            {gens.map((g, i) => <button key={g} type="button" className={`cv-chip nodrag ${g === picked ? "is-on" : ""}`} aria-pressed={g === picked} onClick={() => updateNodeData(id, { pick: g })}>Model {i + 1}</button>)}
+          </div>
+        )}
+        <GrowArea className="cv-input cv-area nodrag nowheel" rows={3} value={data.prompt ?? ""} placeholder="Describe the model, or wire pictures into Ingredients…" aria-label="3D model description"
+          onChange={(e) => updateNodeData(id, { prompt: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void run(); } }} />
+        {models.length > 0 && (
+          <label className="cv-chip cv-sel cv-wide nodrag"><span className="cv-muted">Model:</span>
+            <select value={model?.id ?? ""} aria-label="3D model" onChange={(e) => updateNodeData(id, { m3model: e.target.value })}>
+              {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </label>
+        )}
+        <div className="cv-controls nodrag">
+          <button type="button" className={`cv-chip ${textured ? "is-on" : ""}`} aria-pressed={textured} onClick={() => updateNodeData(id, { m3tex: !textured })}>{textured ? <Check size={13} /> : null} Colour and texture</button>
+        </div>
+        <button type="button" className="cv-go nodrag" disabled={!canGo} onClick={() => void run()}>
+          {submitting ? <><Loader2 size={15} className="cv-spin" /> Starting</> : busy ? <><Loader2 size={15} className="cv-spin" /> Making it</> : <>Generate{model?.credits ? <><CoinIcon size={13} /> {model.credits}</> : null} <ArrowUp size={15} /></>}
+        </button>
+        {reason && <p className="cv-nhint">{reason}</p>}
+        {waiting.length > 0 && <p className="cv-nhint">{waiting[0].why}</p>}
+        {data.error && <p className="cv-error" role="alert">{data.error}</p>}
+      </>} />
   );
 }

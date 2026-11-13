@@ -4,12 +4,14 @@ import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { Box, Download, Layers, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { Box, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import Viewer3D from "./Viewer3D";
 import { delete3DModel, rename3DModel, start3DModel, use3D, type Item3D, type Model3DInfo } from "@/lib/use-design";
+import { useRouter } from "next/navigation";
+import { createCanvasFrom3D } from "@/lib/canvas-store";
 import { readCurrentProject, timeAgo } from "@/lib/projects";
 import { uploadPicture } from "@/lib/use-uploads";
 import { putModel } from "@/lib/shot/world-store";
@@ -44,6 +46,7 @@ export default function DesignStudio() {
 }
 
 function ThreeD() {
+  const router = useRouter();
   const { items, models, reload } = use3D();
   const [picked, setPicked] = useState<RefPick[]>([]);
   // The model list shows every model. Until one is chosen, the model follows what you add: nothing means words, one picture means one picture, more means several views.
@@ -191,6 +194,11 @@ function ThreeD() {
             </div>
             <div className="cr-row">
               <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
+              <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas" onClick={async () => {
+                const text = prompt.trim();
+                if (!text) { router.push("/canvas"); return; }
+                try { const made = await createCanvasFrom3D(readCurrentProject()?.id ?? "default", { prompt: text }); router.push(made ? `/canvas?c=${made.id}` : "/canvas"); } catch { router.push("/canvas"); }
+              }}><Workflow size={14} /> Open canvas</button>
               <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
               <AtlasChip />
             </div>

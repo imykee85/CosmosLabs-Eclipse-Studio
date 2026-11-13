@@ -26,12 +26,16 @@ export function use3D() {
   return { items, models, reload: load };
 }
 
-export async function start3DModel(body: { model: string; mode: string; prompt: string; refs: { type: "upload" | "render"; id: string }[]; options: { textured: boolean; pbr: boolean; polycount: number | null; detailed: boolean; avoid: string; rig: boolean }; projectId?: string | null }): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
+export async function start3DModel(body: { model: string; mode: string; prompt: string; refs: { type: "upload" | "render"; id: string }[]; options: { textured: boolean; pbr: boolean; polycount: number | null; detailed: boolean; avoid: string; rig: boolean }; projectId?: string | null }): Promise<{ ok: true; item: Item3D | null } | { ok: false; error: string; code?: string }> {
   try {
     const r = await fetch("/api/design/3d", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    return r.ok ? { ok: true } : { ok: false, error: j.error ?? "Something went wrong.", code: j.code };
+    return r.ok ? { ok: true, item: (j && j.id ? j : null) as Item3D | null } : { ok: false, error: j.error ?? "Something went wrong.", code: j.code };
   } catch { return { ok: false, error: "Could not reach Eclipse. Check your connection." }; }
 }
 export const delete3DModel = async (id: string) => (await fetch(`/api/design/3d/${id}`, { method: "DELETE" })).ok;
 export const rename3DModel = async (id: string, name: string) => (await fetch(`/api/design/3d/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })).ok;
+
+export async function fetch3DItem(id: string): Promise<Item3D | null> {
+  try { const r = await fetch(`/api/design/3d/${id}`, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; }
+}

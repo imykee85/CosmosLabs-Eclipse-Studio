@@ -250,3 +250,21 @@ test.describe("Canvas on a phone", () => {
     await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeVisible();
   });
 });
+
+test("a 3D model node builds a model from its description and shows it is working", async ({ page }) => {
+  await seed(page);
+  const models = [{ id: "meshy_v6_text_to_3d", label: "Meshy 6 (text)", maker: "Meshy", modes: ["text"], minImages: 0, maxImages: 0, blurb: "", polyMin: 100, polyMax: 300000, polyDefault: 30000, rig: false, credits: 3 }];
+  const posts: Record<string, unknown>[] = [];
+  await page.route("**/api/design/3d**", (r) => {
+    if (r.request().method() === "POST") { posts.push(r.request().postDataJSON()); return r.fulfill({ json: { id: "m1", status: "pending", fileUrl: null } }); }
+    return r.fulfill({ json: { items: [], models } });
+  });
+  await openNewCanvas(page);
+  await addFromPanel(page, "^3D model$");
+  const node = page.locator(".react-flow__node").first();
+  await node.getByLabel("3D model description").fill("A weathered wooden fishing boat");
+  await node.getByRole("button", { name: /^Generate/ }).click();
+  await expect.poll(() => posts.length).toBe(1);
+  expect(posts[0]).toMatchObject({ model: "meshy_v6_text_to_3d", mode: "text", prompt: "A weathered wooden fishing boat", refs: [] });
+  await expect(node.getByText("Making your model…")).toBeVisible();
+});
