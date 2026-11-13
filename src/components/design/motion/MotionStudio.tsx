@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Check, ChevronDown, Clock, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Layers, LayoutTemplate, Shuffle,
+  ArrowLeft, Check, ChevronDown, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Layers, LayoutTemplate, Shuffle,
   Square, Star, Trash2, X, Zap, ShieldCheck, ArrowUp, Film,
 } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
@@ -188,17 +188,15 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
               {MOTION_ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </label>
-          <div className="mt-pop-wrap">
-          <button type="button" className="cr-chip" aria-expanded={menu === "duration"} onClick={() => toggle("duration")}><Clock size={14} />{s.duration === "auto" ? "Auto" : `${s.duration}s`}{s.loop && <span className="mt-loopdot">∞</span>}</button>
-          {menu === "duration" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Duration">
-            <button type="button" className="mt-pop-x" aria-label="Close" onClick={() => setMenu(null)}><X size={16} /></button>
-            <b className="mt-pop-h">Duration</b>
-            <button type="button" className={`mt-auto${s.duration === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, duration: "auto" })}><b>Auto</b><em>Picks the length for you</em></button>
-            <em className="mt-pop-sub">Or choose a length</em>
-            <div className="mt-seg">{DURATIONS.map((d) => <button key={d} type="button" className={s.duration === d ? "is-on" : ""} onClick={() => setS({ ...s, duration: d })}>{d < 60 ? `${d}s` : "1 min"}</button>)}</div>
-            <label className="mt-switch"><span><b>Loop</b><em>The end matches the start, so it repeats without a seam.</em></span><input type="checkbox" checked={s.loop} onChange={(e) => setS({ ...s, loop: e.target.checked })} /></label>
-          </div>}
-        </div>
+          <label className="cr-chip cr-select">
+            <span className="sr-only">Length</span>
+            <select value={String(s.duration)} onChange={(e) => setS({ ...s, duration: e.target.value === "auto" ? "auto" : (Number(e.target.value) as MotionSettings["duration"]) })} aria-label="Length">
+              <option value="auto">Auto length</option>
+              {DURATIONS.map((d) => <option key={d} value={d}>{d < 60 ? `${d} seconds` : "1 minute"}</option>)}
+            </select>
+          </label>
+          <button type="button" className={`cr-chip${s.loop ? " is-on" : ""}`} aria-pressed={s.loop} title="The end matches the start, so it repeats without a seam" onClick={() => setS({ ...s, loop: !s.loop })}>Loop</button>
+        
           <div className="mt-pop-wrap">
           <button type="button" className={`cr-chip${audioOn ? " is-on" : ""}`} aria-expanded={menu === "audio"} onClick={() => toggle("audio")}><Music size={14} />Audio</button>
           {menu === "audio" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Audio">
