@@ -193,7 +193,7 @@ function ThreeD() {
               </label>
             </div>
             <div className="cr-row">
-              <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
+              <button type="button" className={`cr-chip ds-detail ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
               <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
               <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas" onClick={async () => {
                 const text = prompt.trim();

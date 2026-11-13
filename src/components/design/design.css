@@ -121,3 +121,4 @@ html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
   .ds { display: flex; flex-direction: column; min-height: calc(100dvh - 141px); }
   .ds .cr-wrap.ds-3d { display: flex; flex-direction: column; flex: 1; min-height: 0; max-height: none; }
 }
+.ds-3d .cr-row > .cr-chip.ds-detail { width: 76px; justify-content: center; }
