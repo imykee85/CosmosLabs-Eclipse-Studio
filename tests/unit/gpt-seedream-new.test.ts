@@ -45,12 +45,12 @@ test("registry: 2.6 Sunburst on, Flare off until a real call passes, Seedream 5.
   const sun = getModelById("gpt_image_2_6_sunburst")!, flare = getModelById("gpt_image_2_6_flare")!, s55 = getModelById("seedream_5_5")!;
   assert.equal(sun.apiModel, "gpt-image-2.6-sunburst"); assert.equal(flare.apiModel, "gpt-image-2.6-flare");
   assert.equal(sun.provider, "openai"); assert.equal(sun.seed.supported, false); assert.equal(sun.references.max, 16);
-  assert.equal(flare.enabled, true); assert.equal(s55.enabled, false); assert.equal(s55.apiModel, undefined); assert.equal(s55.provider, "byteplus"); assert.equal(s55.seed.supported, false); assert.equal(s55.references.max, 10);
+  assert.equal(flare.enabled, true); assert.equal(s55.enabled, true); assert.equal(s55.apiModel, "dola-seedream-5-5-261028"); assert.equal(s55.provider, "byteplus"); assert.equal(s55.seed.supported, false); assert.equal(s55.references.max, 10);
   const old = { O: process.env.OPENAI_API_KEY, A: process.env.ARK_API_KEY, M: process.env.ARK_MODEL_SEEDREAM_5_5, E: process.env.ENABLED_MODELS };
   process.env.OPENAI_API_KEY = "k"; process.env.ARK_API_KEY = "k"; delete process.env.ARK_MODEL_SEEDREAM_5_5; delete process.env.ENABLED_MODELS;
   try {
     const ids = enabledModels().map((m) => m.id);
-    assert.ok(ids.includes("gpt_image_2_6_sunburst")); assert.ok(ids.includes("gpt_image_2_6_flare")); assert.ok(!ids.includes("seedream_5_5"));
+    assert.ok(ids.includes("gpt_image_2_6_sunburst")); assert.ok(ids.includes("gpt_image_2_6_flare")); assert.ok(ids.includes("seedream_5_5"));
     process.env.ARK_MODEL_SEEDREAM_5_5 = "seedream-5-5-261110"; process.env.ENABLED_MODELS = "gpt_image_2_6_flare,seedream_5_5";
     const on = enabledModels().map((m) => m.id);
     assert.ok(on.includes("gpt_image_2_6_flare")); assert.ok(on.includes("seedream_5_5"));
