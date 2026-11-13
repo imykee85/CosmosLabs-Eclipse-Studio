@@ -105,3 +105,7 @@ html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
 .ds-tabs button { flex: 1 1 0; justify-content: center; min-width: 96px; padding: 7px 12px; font-size: 14px; }
 .ds-tabs { padding: 3px; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ds-toprow .ds-tabs { display: inline-flex; width: auto; } .ds-tabs button { flex: 0 0 104px; padding: 7px 8px; } }
+/* The tab bar is the same height as the chips (36px). */
+.ds-tabs { height: 36px; padding: 2px; box-sizing: border-box; align-items: stretch; }
+.ds-tabs button { padding: 0 12px; font-size: 14px; line-height: 1; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ds-tabs button { padding: 0 8px; } }
