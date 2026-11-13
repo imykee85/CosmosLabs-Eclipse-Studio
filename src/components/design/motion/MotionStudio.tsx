@@ -169,6 +169,18 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
       </div>
       <div className="cr-tools">
         <div className="cr-row cr-row-a">
+          <button type="button" className={`cr-chip${dict.listening ? " is-on" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={14} /></button>
+          <div className="mt-pop-wrap">
+          <button type="button" className="cr-chip" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
+          {menu === "settings" && <div className="mt-pop mt-pop-wide" role="dialog" aria-label="Motion settings">
+            <b className="mt-pop-h">Agent model</b>
+            {MOTION_MODELS.map((m) => <button key={m.id} type="button" className={`mt-opt${s.model === m.id ? " is-on" : ""}`} onClick={() => setS({ ...s, model: m.id })}><b>{m.name}</b><em>{m.blurb}</em>{s.model === m.id && <Check size={14} />}</button>)}
+            <b className="mt-pop-h">Permissions</b>
+            <button type="button" className={`mt-opt${s.approval === "ask" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "ask" })}><ShieldCheck size={15} /><span><b>Ask first</b><em>Asks before paid sound (music, voiceover, sound effects). The motion itself is made right away.</em></span>{s.approval === "ask" && <Check size={14} />}</button>
+            <button type="button" className={`mt-opt${s.approval === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "auto" })}><Zap size={15} /><span><b>Auto approve</b><em>Makes everything the motion needs without asking. The cost shows on the version.</em></span>{s.approval === "auto" && <Check size={14} />}</button>
+            <DefaultsPicker d={s.defaults} models={models} onChange={(defaults) => setS({ ...s, defaults })} />
+          </div>}
+        </div>
           <label className="cr-chip cr-select">
             <span className="sr-only">Aspect ratio</span>
             <select value={s.aspect} onChange={(e) => setS({ ...s, aspect: e.target.value as MotionSettings["aspect"] })} aria-label="Aspect ratio">
@@ -192,18 +204,6 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
             {(["sfx", "music", "voice"] as const).map((k) => (
               <label key={k} className="mt-switch"><span><b>{k === "sfx" ? "Sound effects" : k === "music" ? "Music" : "Voiceover"}</b></span><input type="checkbox" checked={s.audio[k]} onChange={(e) => setS({ ...s, audio: { ...s.audio, [k]: e.target.checked } })} /></label>
             ))}
-          </div>}
-        </div>
-          <button type="button" className={`cr-chip${dict.listening ? " is-on" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={14} /></button>
-          <div className="mt-pop-wrap">
-          <button type="button" className="cr-chip" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
-          {menu === "settings" && <div className="mt-pop mt-pop-wide mt-pop-right" role="dialog" aria-label="Motion settings">
-            <b className="mt-pop-h">Agent model</b>
-            {MOTION_MODELS.map((m) => <button key={m.id} type="button" className={`mt-opt${s.model === m.id ? " is-on" : ""}`} onClick={() => setS({ ...s, model: m.id })}><b>{m.name}</b><em>{m.blurb}</em>{s.model === m.id && <Check size={14} />}</button>)}
-            <b className="mt-pop-h">Permissions</b>
-            <button type="button" className={`mt-opt${s.approval === "ask" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "ask" })}><ShieldCheck size={15} /><span><b>Ask first</b><em>Asks before paid sound (music, voiceover, sound effects). The motion itself is made right away.</em></span>{s.approval === "ask" && <Check size={14} />}</button>
-            <button type="button" className={`mt-opt${s.approval === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "auto" })}><Zap size={15} /><span><b>Auto approve</b><em>Makes everything the motion needs without asking. The cost shows on the version.</em></span>{s.approval === "auto" && <Check size={14} />}</button>
-            <DefaultsPicker d={s.defaults} models={models} onChange={(defaults) => setS({ ...s, defaults })} />
           </div>}
         </div>
         </div>
