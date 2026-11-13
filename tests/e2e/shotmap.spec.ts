@@ -21,7 +21,7 @@ async function openShotMap(page: Page) {
   await page.goto("/generate");
   await page.getByRole("button", { name: "a clip" }).first().click();
   await page.getByRole("button", { name: /^Motion/ }).click();
-  await page.getByRole("menuitemradio", { name: /ShotMap/ }).click();
+  await page.getByRole("menuitemradio", { name: /ShotMap · Keyframes/ }).click();
   return page.getByRole("dialog", { name: "ShotMap" });
 }
 
@@ -124,24 +124,14 @@ test.describe("ShotMap", () => {
     await expect(d.getByRole("button", { name: "Take a still" })).toBeVisible();
     await ctx.close();
   });
-  test("Motion has two ways: keyframes, or the manual Moves controls that set the camera's keys", async ({ page }) => {
+  test("ShotMap · Moves is its own panel: one camera, move pickers and sliders, no timeline", async ({ page }) => {
     await setup(page);
-    const d = await openShotMap(page);
-    await d.getByRole("tab", { name: "None" }).click();
-    await d.getByRole("button", { name: "Create empty scene" }).click();
-    await d.getByRole("tab", { name: "Motion" }).click();
-    await expect(d.getByRole("tab", { name: "Keyframes" })).toHaveAttribute("aria-selected", "true");
-    await d.getByRole("tab", { name: "Moves" }).click();
-    const panel = d.getByRole("group", { name: "Camera moves" });
-    await expect(panel).toBeVisible();
-    await panel.getByLabel("Move", { exact: true }).selectOption("orbit-180");
-    await panel.getByLabel("Then also").selectOption("crane-up");
-    await expect(panel.getByLabel("Combine")).toBeVisible();
-    await panel.getByLabel("Distance").fill("7");
-    await expect(panel.getByText("7.0 m")).toBeVisible();
-    await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeHidden();
-    await d.getByRole("tab", { name: "Keyframes" }).click();
-    await expect(panel).toBeHidden();
-    await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeVisible();
+    await page.goto("/generate");
+    await page.getByRole("button", { name: "a clip" }).first().click();
+    await page.getByRole("button", { name: /^Motion/ }).click();
+    await page.getByRole("menuitemradio", { name: /ShotMap · Moves/ }).click();
+    await expect(page.getByRole("button", { name: "Make guide video" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Dolly/ }).first()).toBeVisible();
+    await expect(page.getByText("Add keyframe")).toHaveCount(0);
   });
 });
