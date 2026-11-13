@@ -3,7 +3,7 @@
 // ShotMap: build a 3D scene (by hand or by asking), design camera moves with keyframes, look through the camera, take stills, then record the move
 // and hand it to Video Studio as the camera-motion reference. Three modes: Compose (build and arrange), Shoot (stills through a camera), Motion (camera keyframes on a timeline).
 import { MovesPanel } from "./MovesPanel";
-import { DEFAULT_MOVES, movesToKeys, type MovesState } from "@/lib/shot/moves";
+import { DEFAULT_MOVES, type MovesState } from "@/lib/shot/moves";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight, Box, Camera, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronUp, Copy, Crosshair, Download, Expand, Focus, Maximize2, Minimize2,
@@ -113,14 +113,14 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
 
   const shot = shotOf(world), cam = cameraOf(world), D = shot.durationS;
   // Motion has two ways to direct the camera: keyframes on the timeline, or Moves (the original ShotMap controls: pick a move, set the sliders; the camera runs it).
-  const motionKind: "keys" | "moves" = cam.move ? "moves" : "keys";
+  const motionKind: "keys" | "moves" = cam.useMove ? "moves" : "keys";
   const kindNow: string = motionKind;
   const moves = cam.move ?? DEFAULT_MOVES;
   const applyMoves = (patch: Partial<MovesState>) => {
     const next = { ...(cameraOf(worldRef.current).move ?? DEFAULT_MOVES), ...patch };
-    commit((w) => { const c = cameraOf(w); return editCamera(w, c.id, { move: next, keys: movesToKeys(w.items, next, shotOf(w).durationS) }); });
+    commit((w) => editCamera(w, cameraOf(w).id, { move: next, useMove: true }));
   };
-  const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { move: undefined }));
+  const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { useMove: false }));
   const selItem = sel?.kind === "item" ? world.items.find((i) => i.id === sel.id) ?? null : null;
   const selKey = sel?.kind === "key" ? (() => { const c = world.cameras.find((x) => x.id === sel.camId); return c && c.keys[sel.index] ? { cam: c, key: c.keys[sel.index] } : null; })() : null;
   const viewMode = camEdit ? "camera" : mode === "shoot" ? "shoot" : mode;

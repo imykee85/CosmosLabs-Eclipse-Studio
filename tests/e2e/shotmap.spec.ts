@@ -131,6 +131,7 @@ test.describe("ShotMap", () => {
     await d.getByRole("button", { name: "Create empty scene" }).click();
     await d.getByRole("tab", { name: "Motion" }).click();
     await expect(d.getByRole("tab", { name: "Keyframes" })).toHaveAttribute("aria-selected", "true");
+    const keysBefore = await d.locator("[data-key]").count();
     await d.getByRole("tab", { name: "Moves" }).click();
     const panel = d.getByRole("group", { name: "Camera moves" });
     await expect(panel).toBeVisible();
@@ -143,5 +144,6 @@ test.describe("ShotMap", () => {
     await d.getByRole("tab", { name: "Keyframes" }).click();
     await expect(panel).toBeHidden();
     await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeVisible();
+    await expect(d.locator("[data-key]")).toHaveCount(keysBefore); // Moves left the keyframes exactly as they were
   });
 });
