@@ -206,7 +206,10 @@
 .ss-add-wrap { position: relative; }
 .ss-toggle { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
 .ss-toggle input { accent-color: #c00707; }
-.ss-transport { display: flex; align-items: center; gap: 2px; }
+.ss-transport { display: grid; grid-template-columns: minmax(64px, 1fr) auto minmax(64px, 1fr); align-items: center; gap: 4px; }
+.ss-tr-side, .ss-tr-mid { display: flex; align-items: center; gap: 2px; }
+.ss-tr-side.is-left { justify-content: flex-end; }
+.ss-tr-side.is-right { justify-content: flex-start; }
 .ss-play { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--a-fg); color: var(--a-bg) !important; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; margin: 0 4px; }
 .ss-speed { border: 0; background: transparent; cursor: pointer; padding: 0 6px; font-variant-numeric: tabular-nums; }
 .ss-dur { display: inline-flex; align-items: center; gap: 2px; height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--a-line); background: var(--a-input); }

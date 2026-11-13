@@ -655,16 +655,22 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
               </>); })()}
             </div>
             <div className="ss-transport">
+              <div className="ss-tr-side is-left">
+              <button type="button" className={`ss-icon${loop ? " is-on" : ""}`} aria-pressed={loop} aria-label="Loop" onClick={() => setLoop((v) => !v)}><Repeat size={14} /></button>
+              <button type="button" className="ss-icon" aria-label="Cut the shot at the playhead" title="Cut the shot here" onClick={() => { const n = splitShot(world, t); if (n === world) flash("Move the playhead inside the shot to cut it."); else { commit(n); setT(0); } }}><Scissors size={14} /></button>
+              </div>
+              <div className="ss-tr-mid">
               <button type="button" className="ss-icon" aria-label="Go to start" onClick={() => setT(0)}><ChevronFirst size={15} /></button>
               <button type="button" className="ss-icon" aria-label="Previous keyframe" onClick={() => { const k = [...cam.keys].reverse().find((x) => x.t < t - 0.02); setT(k ? k.t : 0); }}><ChevronLeft size={15} /></button>
               <button type="button" className="ss-play" aria-label={playing ? "Pause" : "Play"} onClick={() => { if (!playing && t >= D) setT(0); setPlaying((p) => !p); }}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
               <button type="button" className="ss-icon" aria-label="Next keyframe" onClick={() => { const k = cam.keys.find((x) => x.t > t + 0.02); setT(k ? k.t : D); }}><ChevronRight size={15} /></button>
               <button type="button" className="ss-icon" aria-label="Go to end" onClick={() => setT(D)}><ChevronLast size={15} /></button>
+              </div>
+              <div className="ss-tr-side is-right">
               <button type="button" className="ss-speed" aria-label="Playback speed" onClick={() => setSpeed((s) => (s === 1 ? 2 : s === 2 ? 0.5 : 1))}>{speed}×</button>
-              <button type="button" className={`ss-icon${loop ? " is-on" : ""}`} aria-pressed={loop} aria-label="Loop" onClick={() => setLoop((v) => !v)}><Repeat size={14} /></button>
-              <button type="button" className="ss-icon" aria-label="Cut the shot at the playhead" title="Cut the shot here" onClick={() => { const n = splitShot(world, t); if (n === world) flash("Move the playhead inside the shot to cut it."); else { commit(n); setT(0); } }}><Scissors size={14} /></button>
               <button type="button" className="ss-icon" aria-label="Duplicate the shot" onClick={() => commit(duplicateShot(world))}><Copy size={14} /></button>
               <button type="button" className="ss-icon" aria-label="Delete the shot" disabled={world.shots.length < 2} onClick={() => { commit(removeShot(world, shot.id)); setT(0); }}><Trash2 size={14} /></button>
+              </div>
             </div>
             <div className="ss-tl-right">
               <select className="ss-select is-small" aria-label="Aspect ratio" value={world.aspect} onChange={(e) => commit((w) => ({ ...w, aspect: e.target.value as WAspect }))}>{ASPECT_LIST.map((a) => <option key={a} value={a}>{a}</option>)}</select>
