@@ -14,7 +14,7 @@ import { creditsText } from "@/lib/credit-units";
 // work today) and All models by maker. Models not connected yet are listed with the Soon tag; choosing one still selects it so the controls show its
 // settings greyed, but Generate says it is not connected.
 // The models most people reach for first; every connected model is also under its maker below.
-const POPULAR = ["kling_4_0", "kling_3_pro", "seedance_2_5", "seedance_2_5_draft", "seedance_2_0", "wan3_0", "minimax_h3"];
+const POPULAR = ["kling_4_0", "seedance_2_5", "seedance_2_5_draft", "wan3_0", "minimax_h3"];
 const range = (m: VideoModel) => `${m.durations[0]} to ${m.durations[m.durations.length - 1]} s${m.qualities.length ? ` · ${m.qualities[0]} to ${m.qualities[m.qualities.length - 1]}` : ""}${m.sound === "toggle" ? " · sound" : ""}`;
 
 // "from 18 credits": a 5 second clip (or the model's shortest) at its cheapest quality, sound off. Null while credits are off or the model is not connected.
