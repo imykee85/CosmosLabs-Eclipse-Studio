@@ -194,9 +194,21 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
             ))}
           </div>}
         </div>
-          <button type="button" className={`cr-chip${kit ? " is-on" : ""}`} onClick={() => setKitOpen(true)}><Palette size={14} />{kit ? kit.name : "Brand kit"}</button>
+          <button type="button" className={`cr-chip${dict.listening ? " is-on" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={14} /></button>
+          <div className="mt-pop-wrap">
+          <button type="button" className="cr-chip" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
+          {menu === "settings" && <div className="mt-pop mt-pop-wide mt-pop-right" role="dialog" aria-label="Motion settings">
+            <b className="mt-pop-h">Agent model</b>
+            {MOTION_MODELS.map((m) => <button key={m.id} type="button" className={`mt-opt${s.model === m.id ? " is-on" : ""}`} onClick={() => setS({ ...s, model: m.id })}><b>{m.name}</b><em>{m.blurb}</em>{s.model === m.id && <Check size={14} />}</button>)}
+            <b className="mt-pop-h">Permissions</b>
+            <button type="button" className={`mt-opt${s.approval === "ask" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "ask" })}><ShieldCheck size={15} /><span><b>Ask first</b><em>Asks before paid sound (music, voiceover, sound effects). The motion itself is made right away.</em></span>{s.approval === "ask" && <Check size={14} />}</button>
+            <button type="button" className={`mt-opt${s.approval === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "auto" })}><Zap size={15} /><span><b>Auto approve</b><em>Makes everything the motion needs without asking. The cost shows on the version.</em></span>{s.approval === "auto" && <Check size={14} />}</button>
+            <DefaultsPicker d={s.defaults} models={models} onChange={(defaults) => setS({ ...s, defaults })} />
+          </div>}
+        </div>
         </div>
         <div className="cr-row">
+          <button type="button" className={`cr-chip${kit ? " is-on" : ""}`} onClick={() => setKitOpen(true)}><Palette size={14} />{kit ? kit.name : "Brand kit"}</button>
           <button type="button" className="cr-chip" title="Use pictures and clips from your Ingredients, Assets or earlier work" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{pics.length + clips.length ? ` (${pics.length + clips.length})` : ""}</button>
           <div className="mt-pop-wrap">
             <button type="button" className="cr-chip" aria-expanded={menu === "templates"} onClick={() => toggle("templates")}><LayoutTemplate size={14} /> Templates</button>
@@ -210,18 +222,6 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
             </div>}
           </div>
           <AtlasChip />
-          <div className="mt-pop-wrap">
-          <button type="button" className="cr-chip" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
-          {menu === "settings" && <div className="mt-pop mt-pop-wide mt-pop-right" role="dialog" aria-label="Motion settings">
-            <b className="mt-pop-h">Agent model</b>
-            {MOTION_MODELS.map((m) => <button key={m.id} type="button" className={`mt-opt${s.model === m.id ? " is-on" : ""}`} onClick={() => setS({ ...s, model: m.id })}><b>{m.name}</b><em>{m.blurb}</em>{s.model === m.id && <Check size={14} />}</button>)}
-            <b className="mt-pop-h">Permissions</b>
-            <button type="button" className={`mt-opt${s.approval === "ask" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "ask" })}><ShieldCheck size={15} /><span><b>Ask first</b><em>Asks before paid sound (music, voiceover, sound effects). The motion itself is made right away.</em></span>{s.approval === "ask" && <Check size={14} />}</button>
-            <button type="button" className={`mt-opt${s.approval === "auto" ? " is-on" : ""}`} onClick={() => setS({ ...s, approval: "auto" })}><Zap size={15} /><span><b>Auto approve</b><em>Makes everything the motion needs without asking. The cost shows on the version.</em></span>{s.approval === "auto" && <Check size={14} />}</button>
-            <DefaultsPicker d={s.defaults} models={models} onChange={(defaults) => setS({ ...s, defaults })} />
-          </div>}
-        </div>
-          <button type="button" className={`cr-chip${dict.listening ? " is-on" : ""}`} aria-label={dict.listening ? "Stop dictation" : "Dictate"} onClick={dict.toggle}><Mic size={14} /></button>
         </div>
         <button type="submit" className="cr-go" disabled={busy || prompt.trim().length < 3}>{busy ? <Loader2 size={16} className="cr-spin" /> : null}Generate</button>
       </div>
