@@ -179,9 +179,11 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
     for (const o of [...camLayer.children]) { camLayer.remove(o); free(o); }
     keyRigs.length = 0;
     if (!world || !opts.helpers) return;
-    const activeId = shotOf(world).cameraId;
+    const activeId = shotOf(world).cameraId, activeMove = !!world.cameras.find((c) => c.id === activeId)?.useMove;
     for (const cam of world.cameras) {
       if (!cam.showPath && cam.id !== activeId) continue;
+      // while the active camera is run by a move, only that camera is drawn: no keyframe cameras or paths from other cameras
+      if (activeMove && cam.id !== activeId) continue;
       const dur = Math.max(...world.shots.filter((s) => s.cameraId === cam.id).map((s) => s.durationS), cam.keys[cam.keys.length - 1].t, 1);
       if (cam.keys.length > 1 && cam.showPath) {
         const pts: THREE.Vector3[] = []; for (let i = 0; i <= 120; i++) pts.push(new THREE.Vector3(...cameraAt(world, cam, (i / 120) * dur).key.pos));
