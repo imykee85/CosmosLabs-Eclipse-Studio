@@ -5,6 +5,7 @@ import { toAudioItem } from "@/lib/audio/jobs";
 import { audioUser } from "@/lib/audio/route-helpers";
 import { sniffAudio } from "@/lib/audio/voices";
 import { copyObjectIfMatch, deleteObject, getObjectHead, headObjectInfo, signedPutUrl, storageEnabled } from "@/lib/storage";
+import { notePendingUpload } from "@/lib/upload-sweep";
 import { claimUsage } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
     if (!(await claimUsage(u.userId, "audio-upload", 30, 3600_000))) return NextResponse.json({ error: "You are adding sounds very quickly. Please try again later." }, { status: 429 });
     if ((await db.audioJob.count({ where: { userId: u.userId, kind: "upload" } })) >= MAX_ROWS) return NextResponse.json({ error: `You can keep up to ${MAX_ROWS} sounds in Assets. Delete some first.` }, { status: 409 });
     const key = `audio/${u.userId}/up/${randomUUID()}.${ext}`;
+    await notePendingUpload(u.userId, key);
     return NextResponse.json({ key, url: await signedPutUrl(key, type) });
   }
 

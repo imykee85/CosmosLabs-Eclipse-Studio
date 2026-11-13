@@ -912,3 +912,14 @@ model BrandKit {
   @@index([userId, updatedAt(sort: Desc)])
   @@map("brand_kits")
 }
+
+// Every upload link we hand out (picture, video, sound). A daily sweep deletes the file when nobody finished the upload within 24 hours.
+model PendingUpload {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  key       String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("pending_uploads")
+}
