@@ -156,7 +156,7 @@ function ThreeD() {
               <label className="cr-chip cr-select" title={model?.blurb}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
-                  {available.map((m) => <option key={m.id} value={m.id}>{m.label}{m.credits ? ` · ${m.credits} credits` : ""}</option>)}
+                  {available.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </label>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-pressed={textured} onClick={() => { setTextured(!textured); if (textured) setPbr(false); }}>Colour and texture</button>
