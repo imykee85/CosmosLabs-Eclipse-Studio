@@ -18,7 +18,7 @@ function promptText(v: unknown): string {
 }
 
 // Settings Atlas chose for the prompt box (owner 2026-10-21). Only known keys with the right kind of value get through; the screen checks the values against what its box really offers.
-export type Controls = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
+export type Controls = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string; move?: string; move2?: string; combine?: string; rotate?: number; vertical?: number; distance?: number; speed?: number; lens?: number; shake?: number; length?: number };
 export function cleanControls(i: Record<string, unknown>): Controls {
   const c: Controls = {};
   const str = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : undefined);
@@ -30,6 +30,18 @@ export function cleanControls(i: Record<string, unknown>): Controls {
   if (typeof i.sound === "boolean") c.sound = i.sound;
   if (typeof i.fixed_seed === "boolean") c.fixed_seed = i.fixed_seed;
   const prompt = promptText(i.prompt); if (prompt) c.prompt = prompt;
+  // ShotMap camera move (owner 2026-11-13): a described camera motion as the Moves settings. The screen checks each value against what it offers.
+  const move = str(i.move, 20); if (move) c.move = move;
+  const move2 = str(i.second_move, 20); if (move2) c.move2 = move2;
+  const combine = str(i.combine, 12); if (combine) c.combine = combine;
+  const num = (v: unknown, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi ? v : undefined);
+  const rot = num(i.rotate_deg, 0, 359); if (rot !== undefined) c.rotate = rot;
+  const vert = num(i.vertical_deg, -30, 80); if (vert !== undefined) c.vertical = vert;
+  const dist = num(i.distance_m, 1, 40); if (dist !== undefined) c.distance = dist;
+  const spd = num(i.speed_percent, 25, 300); if (spd !== undefined) c.speed = spd;
+  const lens = num(i.lens_mm, 12, 200); if (lens !== undefined) c.lens = lens;
+  const shake = num(i.shake_percent, 0, 100); if (shake !== undefined) c.shake = shake;
+  const len = num(i.length_seconds, 2, 30); if (len !== undefined) c.length = len;
   return c;
 }
 

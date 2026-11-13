@@ -21,10 +21,10 @@ export type AttachedDoc = { name: string; text?: string; pdf?: string };
 export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; proposal?: Proposal; plan?: PlanState; mission?: { spec: MissionSpec; id?: string; error?: string }; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
 
 // What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
-export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
+export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string; move?: string; move2?: string; combine?: string; rotate?: number; vertical?: number; distance?: number; speed?: number; lens?: number; shake?: number; length?: number };
 
 export type AgentHost = {
-  page: "studio" | "canvas" | "treatment" | "video" | "core" | "design" | "voice";
+  page: "studio" | "canvas" | "treatment" | "video" | "core" | "design" | "voice" | "shotmap";
   // Everything on and in the prompt box, as the person sees it: the text, the other settings, the pictures and clips attached (ids only: the server
   // loads the pictures itself, owner-checked, and shows them to the agent), and the message showing on the box's top edge (an error or a notice).
   context: () => { prompt: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[]; videos?: { id: string; label: string; role?: string }[] };
@@ -52,8 +52,8 @@ export function useAgentHost(h: AgentHost) {
       controls: ctl ? { options: () => ref.current.controls?.options() ?? [], apply: (p) => ref.current.controls?.apply(p) ?? { set: [], refused: [] } } : undefined,
       make: mk ? (o) => ref.current.make?.(o) ?? Promise.resolve("") : undefined,
     };
-    host = proxy;
-    return () => { if (host === proxy) host = null; };
+    const prev = host; host = proxy;
+    return () => { if (host === proxy) host = prev; };
   }, [h.page, can, ctl, mk]);
 }
 

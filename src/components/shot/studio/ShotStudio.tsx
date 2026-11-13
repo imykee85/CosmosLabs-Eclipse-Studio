@@ -3,6 +3,9 @@
 // ShotMap: build a 3D scene (by hand or by asking), design camera moves with keyframes, look through the camera, take stills, then record the move
 // and hand it to Video Studio as the camera-motion reference. Three modes: Compose (build and arrange), Shoot (stills through a camera), Motion (camera keyframes on a timeline).
 import { MovesPanel } from "./MovesPanel";
+import AtlasChip from "@/components/design/AtlasChip";
+import { useAgentHost } from "@/lib/agent-chat";
+import { COMBINABLE, PRESETS, type PresetId } from "@/lib/shot/setup";
 import { DEFAULT_MOVES, suggestDistance, type MovesState } from "@/lib/shot/moves";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -121,6 +124,48 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
     commit((w) => editCamera(w, cameraOf(w).id, { move: next, useMove: true }));
   };
   const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { useMove: false }));
+  // Atlas on this screen (owner 2026-11-13): he sees the scene and can set the Moves from a described camera motion. Nothing renders: the guide is made by Use video.
+  const LENS_STEPS = [14, 24, 35, 50, 85, 135, 200];
+  useAgentHost({
+    page: "shotmap",
+    context: () => {
+      const w = worldRef.current, c = cameraOf(w), m = c.useMove ? c.move : undefined;
+      return {
+        prompt: w.prompt || "",
+        settings: [`Tab: ShotMap, ${mode}${mode === "motion" ? (c.useMove ? " (Moves)" : " (Keyframes)") : ""}`, `Shot length: ${shotOf(w).durationS} s, aspect ratio ${w.aspect}`,
+          ...(m ? [`Current move: ${m.preset}${m.preset2 ? ` + ${m.preset2} (${m.combine})` : ""}, rotate ${m.rotate}, vertical ${m.vertical}, distance ${m.distance} m, speed ${Math.round(m.speed * 100)}%, lens ${m.lensMm} mm, shake ${Math.round(m.shake * 100)}%`] : []),
+          `In the scene: ${w.items.filter((i) => i.id !== "floor").slice(0, 12).map((i) => i.name).join(", ") || "nothing yet"}`],
+      };
+    },
+    setPrompt: (t) => commit((w) => ({ ...w, prompt: t })),
+    generate: async () => "ShotMap makes the guide video when you press Use video.",
+    controls: {
+      options: () => [
+        `move: ${PRESETS.map((p) => `${p.id} (${p.label})`).join(", ")}`,
+        `second_move: any of ${COMBINABLE.join(", ")} (not the same as move); combine: together | then`,
+        "rotate_deg 0 to 359; vertical_deg -30 to 80; distance_m 1 to 40; speed_percent 25 to 300; lens_mm 12 to 200 (nearest of 14, 24, 35, 50, 85, 135, 200 is used); shake_percent 0 to 100; length_seconds 2 to 30",
+      ],
+      apply: (p) => {
+        const set: string[] = [], refused: string[] = [], patch: Partial<MovesState> = {};
+        const ids = PRESETS.map((x) => x.id as string);
+        if (p.move !== undefined) { if (ids.includes(p.move)) { patch.preset = p.move as PresetId; if (!COMBINABLE.includes(p.move as PresetId)) patch.preset2 = null; set.push(`camera move ${p.move}`); } else refused.push(`"${p.move}" is not a camera move.`); }
+        if (p.move2 !== undefined) { const base = (patch.preset ?? cameraOf(worldRef.current).move?.preset ?? DEFAULT_MOVES.preset) as PresetId; if (COMBINABLE.includes(p.move2 as PresetId) && p.move2 !== base && COMBINABLE.includes(base)) { patch.preset2 = p.move2 as PresetId; set.push(`second move ${p.move2}`); } else refused.push(`"${p.move2}" cannot be stacked on ${base}.`); }
+        if (p.combine === "together" || p.combine === "then") { patch.combine = p.combine; set.push(`combine ${p.combine}`); }
+        if (p.rotate !== undefined) { patch.rotate = Math.round(p.rotate); set.push(`rotate ${patch.rotate}°`); }
+        if (p.vertical !== undefined) { patch.vertical = Math.round(p.vertical); set.push(`vertical ${patch.vertical}°`); }
+        if (p.distance !== undefined) { patch.distance = Math.round(p.distance * 10) / 10; set.push(`distance ${patch.distance} m`); }
+        if (p.speed !== undefined) { patch.speed = p.speed / 100; set.push(`speed ${Math.round(p.speed)}%`); }
+        if (p.lens !== undefined) { patch.lensMm = LENS_STEPS.reduce((a, b) => (Math.abs(b - p.lens!) < Math.abs(a - p.lens!) ? b : a)); set.push(`lens ${patch.lensMm} mm`); }
+        if (p.shake !== undefined) { patch.shake = p.shake / 100; set.push(`shake ${Math.round(p.shake)}%`); }
+        const camera = Object.keys(patch).length > 0 || p.length !== undefined;
+        if (Object.keys(patch).length) applyMoves(patch);
+        else if (p.length !== undefined && !cameraOf(worldRef.current).useMove) applyMoves({});
+        if (p.length !== undefined) { const v = Math.max(2, Math.min(30, Math.round(p.length))); commit((w) => editShot(w, shotOf(w).id, { durationS: v })); setT(0); set.push(`length ${v} s`); }
+        if (camera) setMode("motion");
+        return { set, refused };
+      },
+    },
+  });
   const selItem = sel?.kind === "item" ? world.items.find((i) => i.id === sel.id) ?? null : null;
   const selKey = sel?.kind === "key" ? (() => { const c = world.cameras.find((x) => x.id === sel.camId); return c && c.keys[sel.index] ? { cam: c, key: c.keys[sel.index] } : null; })() : null;
   const viewMode = camEdit ? "camera" : mode === "shoot" ? "shoot" : mode;
@@ -612,6 +657,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
               </div>
             <button type="button" className="ss-play" aria-label={playing ? "Pause" : "Play"} onClick={() => { if (!playing && t >= D) setT(0); setPlaying((p) => !p); }}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
             <span className="ss-tl-time">{t.toFixed(1)} / {D} s</span>
+            <AtlasChip />
           </div>
           <MovesPanel m={moves} maxDistance={Math.ceil(suggestDistance(world.items) * 2)} onChange={applyMoves} lengthS={D} maxLengthS={MAX_SHOT_S} onLength={(v) => { commit((w) => editShot(w, shotOf(w).id, { durationS: v })); setT(0); }} />
         </div>
@@ -673,6 +719,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
               </div>
             </div>
             <div className="ss-tl-right">
+              <label className="ss-dur" title="Shot duration"><input inputMode="decimal" aria-label="Shot duration in seconds" value={D} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v > 0) commit((w) => editShot(w, shot.id, { durationS: Math.min(MAX_SHOT_S, v) })); }} />s</label>
               <select className="ss-select is-small" aria-label="Aspect ratio" value={world.aspect} onChange={(e) => commit((w) => ({ ...w, aspect: e.target.value as WAspect }))}>{ASPECT_LIST.map((a) => <option key={a} value={a}>{a}</option>)}</select>
               <div className="ss-add-wrap">
                 <button type="button" className="ss-pill" onClick={() => setShotMenu((v) => !v)} aria-expanded={shotMenu} aria-label="Shots"><span className="ss-dotred" /> {shot.name} <ChevronDown size={12} /></button>
@@ -683,7 +730,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
                   </div>
                 )}
               </div>
-              <label className="ss-dur" title="Shot duration"><input inputMode="decimal" aria-label="Shot duration in seconds" value={D} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v > 0) commit((w) => editShot(w, shot.id, { durationS: Math.min(MAX_SHOT_S, v) })); }} />s</label>
+              <AtlasChip />
             </div>
           </div>
           {askOpen && (

@@ -146,4 +146,27 @@ test.describe("ShotMap", () => {
     await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeVisible();
     await expect(d.locator("[data-key]")).toHaveCount(keysBefore); // Moves left the keyframes exactly as they were
   });
+  test("Atlas sits after the Shot chip and sets a described camera move in Moves", async ({ page }) => {
+    await setup(page);
+    await page.addInitScript(() => { localStorage.setItem("eclipse-agent", "Atlas"); localStorage.setItem("eclipse-agent-on:generate", "1"); });
+    await page.route("**/api/agent/chat", (r) => r.fulfill({ json: { runId: "r1" } }));
+    await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE" ? r.fulfill({ json: { ok: true } })
+      : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "A slow orbit while rising.", actions: [], controls: { move: "orbit-180", second_move: "crane-up", combine: "together", distance: 8, speed: 60 } } } } }));
+    const d = await openShotMap(page);
+    await d.getByRole("tab", { name: "None" }).click();
+    await d.getByRole("button", { name: "Create empty scene" }).click();
+    await d.getByRole("tab", { name: "Motion" }).click();
+    const row = d.locator(".ss-tl-right");
+    await expect(row.locator(".cr-grp")).toBeVisible(); // Atlas chip, after the Shot chip
+    await page.locator(".aw-btn").click();
+    await page.locator(".aw-input textarea").fill("a slow orbit that rises as it goes");
+    await page.locator(".aw-input button[type=submit], .aw-input .aw-go").first().click();
+    const card = page.locator(".aw-prop");
+    await expect(card).toBeVisible({ timeout: 20000 });
+    await card.locator(".aw-prop-apply").click();
+    await d.getByRole("tab", { name: "Moves" }).waitFor();
+    const panel = d.getByRole("group", { name: "Camera moves" });
+    await expect(panel.getByText("8.0 m")).toBeVisible();
+    await expect(panel.getByText("60%").first()).toBeVisible();
+  });
 });

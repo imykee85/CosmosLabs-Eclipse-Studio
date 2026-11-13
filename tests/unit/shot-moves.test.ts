@@ -30,3 +30,9 @@ test("the starting distance clears a big subject such as a boat", async () => {
   assert.ok(suggestDistance([boat]) > 8);
   assert.equal(suggestDistance([person]), 4);
 });
+test("Atlas camera fields are cleaned: known ids only pass through, numbers are range-checked", async () => {
+  const { cleanControls } = await import("../../src/lib/agent-reply");
+  const c = cleanControls({ move: "orbit-180", second_move: "crane-up", combine: "then", rotate_deg: 40, vertical_deg: 200, distance_m: 8, speed_percent: 60, lens_mm: 50, shake_percent: 30, length_seconds: 6 });
+  assert.equal(c.move, "orbit-180"); assert.equal(c.move2, "crane-up"); assert.equal(c.rotate, 40); assert.equal(c.distance, 8); assert.equal(c.length, 6);
+  assert.equal(c.vertical, undefined); // 200 degrees is out of range
+});

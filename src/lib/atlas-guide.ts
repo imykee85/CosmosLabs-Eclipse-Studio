@@ -36,7 +36,10 @@ export function guideFor(page: unknown, settings: unknown): string | null {
   return SCREEN_GUIDES[page] ?? null;
 }
 
+const SHOTMAP = `SHOTMAP (you are here). ShotMap is a 3D camera planner: build a rough set (Compose), look through the camera (Shoot), and direct the camera in Motion, then Use video makes a guide clip that Seedance 2.5 follows. Motion has two options: Keyframes (a timeline: add keyframes where the camera should be, ease between them, cut shots) and Moves (pick a camera move and set sliders; the camera runs it for you, no keyframes). Moves: Dolly in/out, Truck left/right, Crane up/down/left/right, Orbit 180/360, Pan left/right, Tilt up/down, Hero low/high, Look (shin height, handheld, follow); stack a second move at the same time or one after the other; sliders Rotate, Vertical, Distance, Speed, Lens, Length and Handheld shake. YOU CAN set the Moves for the user from a described camera motion (set_prompt_box with the camera fields): pick the closest move, add a second one when it fits, and set distance and lens to suit the subject.`;
+
 export const SCREEN_GUIDES: Record<string, string> = {
+  shotmap: SHOTMAP,
   create: IMAGE, canvas: CANVAS, video: VIDEO, generate: VIDEO, voice: VOICE, design: DESIGN, core: CORE, treatment: TREATMENT, prompts: PROMPTS_PAGE,
 };
 

@@ -13,8 +13,9 @@ export type Proposal = {
 export type ProposalContext = { prompt?: string; ratio?: string; qty?: number; model?: string };
 type ActionLike = { kind: "generate" | "use_prompt" | "reply" | "make"; prompt?: string; count?: number };
 
-const LABEL: Record<string, string> = { model: "Model", ratio: "Aspect ratio", count: "Images", quality: "Quality", duration: "Length", sound: "Sound", fixed_seed: "Fixed seed" };
-const show = (k: string, v: unknown) => (k === "sound" || k === "fixed_seed" ? (v ? "On" : "Off") : k === "duration" ? `${v} s` : String(v));
+const LABEL: Record<string, string> = { model: "Model", ratio: "Aspect ratio", count: "Images", quality: "Quality", duration: "Length", sound: "Sound", fixed_seed: "Fixed seed", move: "Camera move", move2: "Then also", combine: "Combine", rotate: "Rotate", vertical: "Vertical", distance: "Distance", speed: "Speed", lens: "Lens", shake: "Handheld shake", length: "Length" };
+const UNIT: Record<string, string> = { duration: " s", length: " s", rotate: "°", vertical: "°", distance: " m", speed: "%", shake: "%", lens: " mm" };
+const show = (k: string, v: unknown) => (k === "sound" || k === "fixed_seed" ? (v ? "On" : "Off") : `${v}${UNIT[k] ?? ""}`);
 
 export function buildProposal(page: string, controls: Record<string, unknown> | undefined, actions: ActionLike[], ctx: ProposalContext): Proposal | null {
   const ctl: Record<string, unknown> = {};
@@ -54,7 +55,7 @@ export const THINKING_VIDEO = ["Blocking the scene", "Planning the camera move",
 export const THINKING_AUDIO = ["Tuning the voice", "Finding the rhythm", "Mixing the sound"];
 export function thinkingLines(page: string | undefined): string[] {
   if (page === "studio") return [...THINKING_GENERAL, ...THINKING_IMAGE];
-  if (page === "video") return [...THINKING_GENERAL, ...THINKING_VIDEO];
+  if (page === "video" || page === "shotmap") return [...THINKING_GENERAL, ...THINKING_VIDEO];
   if (page === "voice") return [...THINKING_GENERAL, ...THINKING_AUDIO];
   return THINKING_GENERAL;
 }
