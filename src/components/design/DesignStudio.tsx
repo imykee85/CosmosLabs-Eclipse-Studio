@@ -4,7 +4,7 @@ import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { Box, ChevronDown, Download, Loader2, Pencil, Plus, Trash2, Wand2, X, Clapperboard, Check } from "lucide-react";
+import { Box, ChevronDown, Download, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
@@ -44,11 +44,12 @@ export default function DesignStudio() {
 
 function ThreeD() {
   const { items, models, reload } = use3D();
-  const [mode, setMode] = useState<Mode>("image");
+  const [picked, setPicked] = useState<RefPick[]>([]);
+  // No mode picker: nothing added means words, one picture means one picture, more means several views.
+  const mode: Mode = picked.length === 0 ? "text" : picked.length === 1 ? "image" : "multi";
   const available = useMemo(() => models.filter((m) => m.modes.includes(mode)), [models, mode]);
   const [modelId, setModelId] = useState<string>("");
   const model: Model3DInfo | undefined = available.find((m) => m.id === modelId) ?? available[0];
-  const [picked, setPicked] = useState<RefPick[]>([]);
   const [picker, setPicker] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [textured, setTextured] = useState(true);
@@ -66,14 +67,14 @@ function ThreeD() {
   useAgentHost({
     page: "design",
     context: () => ({ prompt, model: model?.label, settings: [`Tab: 3D models. Mode: ${MODE_LABEL[mode]}`, `Models for this mode: ${available.map((m) => m.label).join(", ")}`, `Colour and texture: ${textured ? "on" : "off"}, realistic materials: ${pbr ? "on" : "off"}, extra detail: ${detailed ? "on" : "off"}`], pictures: picked.map((p, i) => ({ type: p.type, id: p.id, role: mode === "multi" ? `view ${i + 1}` : "source picture" })) }),
-    setPrompt: (t) => { setMode("text"); setModelId(""); setPicked([]); setPrompt(t); },
+    setPrompt: (t) => { setModelId(""); setPicked([]); setPrompt(t); },
     generate: async (o) => {
       const text = (o.prompt ?? prompt).trim();
       if (mode !== "text" && picked.length) { await go(); return ""; }
       const m = models.find((x) => x.modes.includes("text"));
       if (!m) return "No text-to-3D model is available.";
       if (text.length < 3) return "Describe the model first.";
-      setMode("text"); setPrompt(text);
+      setPrompt(text);
       const r = await start3DModel({ model: m.id, mode: "text", prompt: text, refs: [], options: { textured, pbr, polycount: null, detailed, avoid: "", rig: false }, projectId: readCurrentProject()?.id ?? null });
       if (!r.ok) return r.code === "UPGRADE" || r.code === "SUBSCRIBE" ? "It needs a plan upgrade." : r.error;
       await reload(); return "";
@@ -81,8 +82,8 @@ function ThreeD() {
   });
 
   const needPics = mode !== "text";
-  const maxPics = mode === "image" ? 1 : model?.maxImages ?? 4;
-  const picsOk = !needPics || (picked.length >= (mode === "image" ? 1 : model?.minImages ?? 1) && picked.length <= maxPics);
+  const maxPics = Math.max(1, Math.min(4, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 4), 4)));
+  const picsOk = !needPics || (picked.length >= (mode === "image" ? 1 : model?.minImages ?? 1) && picked.length <= (model?.maxImages ?? maxPics));
   const canGo = !!model && !busy && picsOk && (mode !== "text" || prompt.trim().length >= 3);
 
   async function go() {
@@ -129,30 +130,25 @@ function ThreeD() {
       <div className="cr-dock">
         {error && <p className="ds-error" role="alert">{error}</p>}
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void go(); }}>
-          {needPics ? (
-            <div className="ds-pics">
+          {picked.length > 0 && (
+            <div className="cr-refs">
               {picked.map((p, i) => (
-                <div key={p.id} className="ds-pic">
+                <div key={p.id} className="cr-ref">
                   {/* eslint-disable-next-line @next/next/no-img-element -- plain img like the rest of the app */}
                   <img src={p.url} alt={p.label || `Picture ${i + 1}`} />
-                  <button type="button" aria-label={`Remove picture ${i + 1}`} onClick={() => setPicked(picked.filter((x) => x.id !== p.id))}><X size={12} /></button>
+                  <i className="cr-ref-n">{i + 1}</i>
+                  <button type="button" className="cr-ref-x" aria-label={`Remove picture ${i + 1}`} onClick={() => setPicked(picked.filter((x) => x.id !== p.id))}><X size={12} /></button>
                 </div>
               ))}
-              {picked.length < maxPics && <button type="button" className="ds-pic ds-pic-add" onClick={() => setPicker(true)} aria-label="Add a picture"><Plus size={20} /><span>{picked.length ? "Add view" : "Add picture"}</span></button>}
             </div>
-          ) : (
-            <GrowArea className="ds-text" rows={2} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe the model you imagine…" aria-label="Describe the model" maxLength={600} />
           )}
+          <div className="cr-field">
+            <button type="button" className="cr-plus" aria-label="Add a picture" title="Add a picture to build the model from, or several views of the same thing" onClick={() => setPicker(true)}><Plus size={18} /></button>
+            <GrowArea className="ds-text" rows={2} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={picked.length ? "Add a note (optional)…" : "Describe the model you imagine, or add a picture…"} aria-label="Describe the model" maxLength={600} />
+          </div>
           {mode === "text" && model?.id === "tripo_3d" && <GrowArea className="ds-text" rows={1} value={avoid} onChange={(e) => setAvoid(e.target.value)} placeholder="Leave out: blurry, flat, extra parts" aria-label="Things to leave out" maxLength={1024} />}
-          {mode === "multi" && <p className="ds-hint">Same thing from different sides, in order: front, left, right, back.</p>}
-          <div className="cr-tools">
+                    <div className="cr-tools">
             <div className="cr-row cr-row-a">
-              <label className="cr-chip cr-select">
-                <span className="sr-only">How to start</span>
-                <select value={mode} onChange={(e) => { setMode(e.target.value as Mode); setPicked([]); setModelId(""); }} aria-label="How to start">
-                  {(Object.keys(MODE_LABEL) as Mode[]).map((m) => <option key={m} value={m}>{MODE_LABEL[m]}</option>)}
-                </select>
-              </label>
               <label className="cr-chip cr-select" title={model?.blurb}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
@@ -179,12 +175,12 @@ function ThreeD() {
               <AtlasChip />
             </div>
             <button type="submit" className="cr-go ds-go3" disabled={!canGo}>
-              {busy ? <Loader2 size={18} className="ds-spin" /> : <Wand2 size={18} />}Make 3D model{model?.credits ? <span className="ds-price">{model.credits}</span> : null}
+              {busy && <Loader2 size={18} className="ds-spin" />}Make 3D model{model?.credits ? <span className="ds-price">{model.credits}</span> : null}
             </button>
           </div>
         </form>
       </div>
-      {picker && <ReferencePicker max={maxPics} picked={picked} onChange={setPicked} onClose={() => setPicker(false)} />}
+      {picker && <ReferencePicker max={Math.min(maxPics, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 1), 1))} picked={picked} onChange={setPicked} onClose={() => setPicker(false)} />}
     </section>
   );
 }

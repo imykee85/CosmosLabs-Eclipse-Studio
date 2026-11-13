@@ -37,14 +37,12 @@ test.describe("Design Studio", () => {
     const gen = page.getByRole("region", { name: "3D generator" });
     await expect(gen.getByRole("button", { name: "Make 3D model" })).toBeDisabled();
     await expect(gen.getByText("The model could not be made. Nothing was charged.")).toBeVisible();
-    await gen.getByRole("combobox", { name: "How to start" }).selectOption({ label: "Describe it" });
     await expect(gen.getByRole("combobox", { name: "3D model" })).toContainText("Meshy 6 (text)");
     await gen.getByRole("textbox", { name: "Describe the model" }).fill("A weathered wooden fishing boat");
     await gen.getByRole("button", { name: /Make 3D model/ }).click();
     await expect.poll(() => posts.length).toBe(1);
     expect(posts[0]).toMatchObject({ model: "meshy_v6_text_to_3d", mode: "text", prompt: "A weathered wooden fishing boat", refs: [] });
-    await gen.getByRole("combobox", { name: "How to start" }).selectOption({ label: "Several views" });
-    await expect(gen.getByText(/front, left, right, back/)).toBeVisible();
+    await expect(gen.getByRole("button", { name: "Add a picture" })).toBeVisible();
   });
 
   test("it fits a phone without sideways scroll, and the Create page lists the studio", async ({ browser }) => {
