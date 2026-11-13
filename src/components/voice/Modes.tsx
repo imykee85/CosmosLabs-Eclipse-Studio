@@ -219,7 +219,7 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
           : <button type="button" className={`vc-pill ${loop ? "is-on" : ""}`} aria-pressed={loop} disabled={!model?.options.loop} title={model?.options.loop ? "A clip that loops cleanly" : `Not supported by ${model?.label ?? "this model"}`} onClick={() => setLoop((v) => !v)}><Repeat size={14} /> Loop</button>}
         <AtlasChip />
       </div>
-      {!music && <span className="vc-count vc-count-corner">{text.length.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>}
+      {model && text.length >= model.maxChars && <span className={`vc-count vc-count-corner ${text.length > model.maxChars ? "is-over" : ""}`} role="status">{text.length.toLocaleString("en-US")}/{model.maxChars.toLocaleString("en-US")}</span>}
       <Go label={music ? "Make music" : "Make sound"} busy={busy} disabled={!model || over} price={price} onClick={() => void go()} />
     </div>
   );

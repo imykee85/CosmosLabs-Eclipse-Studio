@@ -250,3 +250,4 @@ html:has(.vc.is-idle) body { position: fixed; inset: 0; width: 100%; }
 .vc-spk { display: flex; align-items: center; }
 .vc-spk button:first-child { flex: 1; }
 .vc-speakers select { margin: 6px 6px 4px; padding: 9px 10px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; }
+.vc-count.is-over { color: var(--a-redtext); font-weight: 600; }
