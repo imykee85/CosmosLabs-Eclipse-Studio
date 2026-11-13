@@ -4,7 +4,7 @@ import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { Box, Download, Layers, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { Box, Download, Layers, Settings, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
@@ -63,6 +63,7 @@ function ThreeD() {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [uploading, setUploading] = useState(0);
+  const [detailOpen, setDetailOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Atlas on the 3D tab: it sees the generator and can describe a model and start it (a description switches to "Describe it").
@@ -174,16 +175,22 @@ function ThreeD() {
               </label>
             </div>
             <div className="cr-row">
-              <button type="button" className={`cr-chip ${detailed ? "is-on" : ""}`} aria-pressed={detailed} disabled={!textured} onClick={() => setDetailed(!detailed)}>Extra detail (slower)</button>
+              <button type="button" className={`cr-chip ${detailed ? "is-on" : ""}`} aria-pressed={detailed} title="Slower, sharper" disabled={!textured} onClick={() => setDetailed(!detailed)}>Extra detail</button>
               <button type="button" className={`cr-chip ${pbr ? "is-on" : ""}`} aria-pressed={pbr} disabled={!textured} onClick={() => setPbr(!pbr)}>Realistic materials</button>
               {model?.rig && <button type="button" className={`cr-chip ${rig ? "is-on" : ""}`} aria-pressed={rig} onClick={() => setRig(!rig)}>Rig for animation</button>}
               <AtlasChip />
-              {model && model.polyMax > 0 && (
-                <label className="ds-field ds-poly"><span>Detail</span>
-                  <input type="range" min={model.polyMin} max={model.polyMax} step={Math.max(1, Math.round((model.polyMax - model.polyMin) / 100))} value={poly ?? model.polyDefault} onChange={(e) => setPoly(Number(e.target.value))} aria-label="Detail (faces)" />
-                  <em>{(poly ?? model.polyDefault).toLocaleString()} faces</em>
-                </label>
-              )}
+              <div className="ds-gearwrap">
+                <button type="button" className={`cr-chip ds-gear ${poly !== null ? "is-on" : ""}`} aria-label="Detail settings" aria-haspopup="dialog" aria-expanded={detailOpen} title="Detail settings" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}><Settings size={16} /></button>
+                {detailOpen && model && model.polyMax > 0 && (
+                  <div className="ds-pop" role="dialog" aria-label="Detail settings">
+                    <label className="ds-field ds-poly"><span>Detail</span>
+                      <input type="range" min={model.polyMin} max={model.polyMax} step={Math.max(1, Math.round((model.polyMax - model.polyMin) / 100))} value={poly ?? model.polyDefault} onChange={(e) => setPoly(Number(e.target.value))} aria-label="Detail (faces)" />
+                      <em>{(poly ?? model.polyDefault).toLocaleString()} faces</em>
+                    </label>
+                    <button type="button" className="ds-pop-reset" onClick={() => setPoly(null)}>Use the default</button>
+                  </div>
+                )}
+              </div>
             </div>
             <button type="submit" className="cr-go ds-go3" disabled={!canGo}>
               {busy && <Loader2 size={18} className="ds-spin" />}Make 3D model{model?.credits ? <span className="ds-price">{model.credits}</span> : null}
