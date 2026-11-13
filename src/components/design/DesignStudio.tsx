@@ -65,6 +65,7 @@ function ThreeD() {
   const [open, setOpen] = useState<string | null>(null);
   const [uploading, setUploading] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [lookAnchor, setLookAnchor] = useState<DOMRect | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Atlas on the 3D tab: it sees the generator and can describe a model and start it (a description switches to "Describe it").
@@ -173,7 +174,7 @@ function ThreeD() {
             {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
               <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
-              <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-pressed={textured} onClick={() => { setTextured(!textured); if (textured) setPbr(false); }}>Colour and texture</button>
+              <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
               <label className="cr-chip cr-select" title={model?.blurb}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
@@ -183,8 +184,6 @@ function ThreeD() {
             </div>
             <div className="cr-row">
               <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
-              <button type="button" className={`cr-chip ${detailed ? "is-on" : ""}`} aria-pressed={detailed} title="Slower, sharper" disabled={!textured} onClick={() => setDetailed(!detailed)}>Extra detail</button>
-              <button type="button" className={`cr-chip ${pbr ? "is-on" : ""}`} aria-pressed={pbr} disabled={!textured} onClick={() => setPbr(!pbr)}>Realistic materials</button>
               <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <AtlasChip />
             </div>
@@ -203,6 +202,23 @@ function ThreeD() {
           </div>
         </form>
       </div>
+      {lookAnchor && (
+        <>
+          <div className="am-scrim" onMouseDown={() => setLookAnchor(null)} onTouchStart={() => setLookAnchor(null)} />
+          <div className="am-menu ds-lookmenu" role="menu" aria-label="Colour and texture" style={{ left: Math.max(8, Math.min(lookAnchor.left, window.innerWidth - 308)), width: Math.min(300, window.innerWidth - 16), bottom: window.innerHeight - lookAnchor.top + 8 }}>
+            {([
+              { on: textured, title: "Colour and texture", text: "Paint the model with colours and surface detail. Off gives a plain grey shape.", toggle: () => { setTextured(!textured); if (textured) setPbr(false); }, off: false },
+              { on: detailed && textured, title: "Extra detail", text: "A sharper result. Slower.", toggle: () => setDetailed(!detailed), off: !textured },
+              { on: pbr && textured, title: "Realistic materials", text: "Metal, cloth and glass look real.", toggle: () => setPbr(!pbr), off: !textured },
+            ]).map((o) => (
+              <button key={o.title} type="button" role="menuitemcheckbox" aria-checked={o.on} disabled={o.off} className="am-item" onClick={o.toggle}>
+                <span><b>{o.title}</b><small>{o.text}</small></span>
+                {o.on && <Check size={15} className="am-check" />}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       {picker && <ReferencePicker max={Math.min(maxPics, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 1), 1))} picked={picked} onChange={setPicked} onClose={() => setPicker(false)} />}
     </section>
   );

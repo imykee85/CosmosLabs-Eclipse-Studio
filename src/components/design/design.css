@@ -87,3 +87,6 @@
 .ds-pop { padding: 14px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); box-shadow: 0 12px 40px var(--a-shadow); display: grid; gap: 10px; }
 .ds-pop .ds-poly { flex: none; }
 .ds-pop-reset { justify-self: start; padding: 0; border: 0; background: none; color: var(--a-muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+.ds-lookmenu .am-item b, .ds-lookmenu .am-item small { display: block; }
+.ds-lookmenu .am-item small { margin-top: 2px; color: var(--a-muted); font-size: 13px; line-height: 1.35; }
+.ds-lookmenu .am-item:disabled { opacity: .45; cursor: default; }
