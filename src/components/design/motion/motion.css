@@ -183,3 +183,12 @@
 /* The Motion box is Image Studio's box: popups open upward from the docked box. */
 .cr-dock .mt-pop { top: auto; bottom: calc(100% + 6px); }
 .cr-dock .mt-pop { max-height: min(320px, 50dvh); overflow-y: auto; }
+
+/* The Motion box fills its rows edge to edge: every chip grows to share the line. */
+.mt-composer .cr-row { flex-wrap: wrap; }
+.mt-composer .cr-row > .cr-chip, .mt-composer .cr-row > .cr-grp, .mt-composer .cr-row > .mt-pop-wrap { flex: 1 1 auto; }
+.mt-composer .cr-row > .mt-pop-wrap > .cr-chip { width: 100%; justify-content: center; }
+.mt-composer .cr-row > .cr-chip { justify-content: center; }
+.mt-composer .cr-row > .cr-grp { display: flex; }
+.mt-composer .cr-row > .cr-grp > .cr-chip { flex: 1 1 auto; justify-content: center; }
+@media (max-width: 560px) { .mt-composer .cr-row { gap: 5px; } .mt-composer .cr-row .cr-chip { padding: 0 8px; gap: 4px; } .mt-composer .cr-row > .cr-grp { gap: 4px; } }

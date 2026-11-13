@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Check, ChevronDown, Clock, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Layers, LayoutTemplate, Shuffle,
-  Square, Star, Trash2, Wand2, X, Zap, ShieldCheck, ArrowUp, Film,
+  Square, Star, Trash2, X, Zap, ShieldCheck, ArrowUp, Film,
 } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
 import AtlasChip from "../AtlasChip";
@@ -95,7 +95,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
   const fileInput = useRef<HTMLInputElement>(null);
   const [clips, setClips] = useState<ClipPick[]>(() => (initial?.settings.clips ?? []).map((c) => ({ type: "render" as const, id: c.id, url: "", label: c.label ?? "Clip", sec: c.duration ?? null })));
   const [making, setMaking] = useState<Making[]>([]);
-  const [busy, setBusy] = useState(false), [writing, setWriting] = useState(false), [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const models = useModels() ?? [];
   const dict = useDictation(prompt, setPrompt, setError);
   useEffect(() => { try { const { refs: _r, clips: _c, ...keep } = s; void _r; void _c; localStorage.setItem(SETTINGS_KEY, JSON.stringify(keep)); } catch { /* ignore */ } }, [s]);
@@ -116,12 +116,6 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
       const it = r.item;
       setPics((l) => [...l, { type: "upload" as const, id: it.id, url: it.imageUrl, label: it.name }].slice(0, 8));
     } finally { setUploading((n) => n - 1); }
-  }
-  async function writeIt() {
-    setWriting(true); setError(null);
-    const r = await call("/api/design/motion/write", { idea: prompt, duration: s.duration === "auto" ? null : s.duration });
-    setWriting(false);
-    if (r.ok) setPrompt(r.body.text); else setError(errOf(r));
   }
   async function go(text = prompt): Promise<string> {
     if (text.trim().length < 3) return "Describe the motion first.";
@@ -215,7 +209,6 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
               ))}
             </div>}
           </div>
-          <button type="button" className="cr-chip" disabled={writing || !prompt.trim()} title="Turns your idea into a full description" onClick={writeIt}>{writing ? <Loader2 size={14} className="cr-spin" /> : <Wand2 size={14} />} Write it for me</button>
           <AtlasChip />
           <div className="mt-pop-wrap">
           <button type="button" className="cr-chip" aria-label="Motion settings" aria-expanded={menu === "settings"} onClick={() => toggle("settings")}><Settings2 size={16} /></button>
