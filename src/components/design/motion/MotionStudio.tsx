@@ -216,6 +216,7 @@ function Composer({ kits, reloadKits, onStarted, initial }: { kits: BrandKitItem
               <b className="mt-pop-h">Start from a template</b>
               {TEMPLATES.map((tp) => (
                 <button key={tp.id} type="button" role="menuitem" onClick={() => { setPrompt(tp.prompt); setS((x) => ({ ...x, aspect: tp.aspect, duration: tp.duration, loop: tp.id === "loop" })); setMenu(null); }}>
+                  <span className={`mt-tpl-art mt-tpl-mini is-${tp.id}`} aria-hidden="true"><i /><i /><i /></span>
                   <span><b>{tp.name}</b><em>{tp.aspect} · {tp.duration}s</em></span>
                 </button>
               ))}

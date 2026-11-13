@@ -192,3 +192,9 @@
 .mt-composer .cr-row > .cr-grp { display: flex; }
 .mt-composer .cr-row > .cr-grp > .cr-chip { flex: 1 1 auto; justify-content: center; }
 @media (max-width: 700px) { .mt-composer .cr-row { gap: 5px; } .mt-composer .cr-row .cr-chip { padding: 0 8px; gap: 4px; } .mt-composer .cr-row > .cr-grp { gap: 4px; } }
+/* Template previews inside the Templates list. */
+.mt-pop > button .mt-tpl-mini { flex: none; width: 92px; margin: 0; }
+/* On phones the popups are sheets above the tab bar (this must beat the upward rule for the docked box). */
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
+  .cr-dock .mt-pop { position: fixed; left: 12px !important; right: 12px !important; top: auto; bottom: calc(80px + env(safe-area-inset-bottom)); width: auto; max-height: 60dvh; overflow: auto; }
+}
