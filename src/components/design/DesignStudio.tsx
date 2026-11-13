@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
@@ -47,8 +47,7 @@ function ThreeD() {
   const { items, models, reload } = use3D();
   const [picked, setPicked] = useState<RefPick[]>([]);
   // The model list shows every model. Until one is chosen, the model follows what you add: nothing means words, one picture means one picture, more means several views.
-  const [modeSel, setModeSel] = useState<Mode | null>(null);
-  const want: Mode = modeSel ?? (picked.length === 0 ? "text" : picked.length === 1 ? "image" : "multi");
+  const want: Mode = (picked.length === 0 ? "text" : picked.length === 1 ? "image" : "multi");
   const available = models;
   const [modelId, setModelId] = useState<string>("");
   const model: Model3DInfo | undefined = models.find((m) => m.id === modelId) ?? models.find((m) => m.modes.includes(want)) ?? models[0];
@@ -66,6 +65,13 @@ function ThreeD() {
   const [open, setOpen] = useState<string | null>(null);
   const [uploading, setUploading] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
+  // The model chip is as wide as the longest model name (measured in the chip's own font), plus room for the arrow.
+  const [nameW, setNameW] = useState(0);
+  useEffect(() => {
+    const ctx = document.createElement("canvas").getContext("2d"); if (!ctx || !models.length) return;
+    ctx.font = "500 14px Inter, system-ui, sans-serif";
+    setNameW(Math.ceil(Math.max(...models.map((m) => ctx.measureText(m.label).width))));
+  }, [models]);
   const [lookAnchor, setLookAnchor] = useState<DOMRect | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -73,7 +79,7 @@ function ThreeD() {
   useAgentHost({
     page: "design",
     context: () => ({ prompt, model: model?.label, settings: [`Tab: 3D models. Mode: ${MODE_LABEL[mode]}`, `Models for this mode: ${available.map((m) => m.label).join(", ")}`, `Colour and texture: ${textured ? "on" : "off"}, realistic materials: ${pbr ? "on" : "off"}, extra detail: ${detailed ? "on" : "off"}`], pictures: picked.map((p, i) => ({ type: p.type, id: p.id, role: mode === "multi" ? `view ${i + 1}` : "source picture" })) }),
-    setPrompt: (t) => { setModeSel("text"); setModelId(""); setPicked([]); setPrompt(t); },
+    setPrompt: (t) => { setModelId(""); setPicked([]); setPrompt(t); },
     generate: async (o) => {
       const text = (o.prompt ?? prompt).trim();
       if (mode !== "text" && picked.length) { await go(); return ""; }
@@ -105,7 +111,7 @@ function ThreeD() {
       if (!r.ok) { setError(r.error); return; }
       if (!r.item) return;
       const it = r.item;
-      setModeSel(null); setPicked((l) => [...l, { type: "upload" as const, id: it.id, url: it.imageUrl, label: it.name }].slice(0, maxPics));
+      setPicked((l) => [...l, { type: "upload" as const, id: it.id, url: it.imageUrl, label: it.name }].slice(0, maxPics));
     } finally { setUploading((n) => n - 1); }
   }
 
@@ -174,20 +180,14 @@ function ThreeD() {
                     <div className="cr-tools">
             {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
-              <label className="cr-chip cr-select ds-modesel">
-                <span className="sr-only">Mode</span>
-                <select value={mode} onChange={(e) => { setModeSel(e.target.value as Mode); setModelId(""); }} aria-label="Mode">
-                  {(Object.keys(MODE_LABEL) as Mode[]).map((m) => <option key={m} value={m}>{MODE_LABEL[m]}</option>)}
-                </select>
-              </label>
+              <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
-              <label className="cr-chip cr-select ds-modelsel" title={model?.blurb} style={{ width: `calc(${Math.max(8, ...models.map((m) => m.label.length))}ch + 52px)` }}>
+              <label className="cr-chip cr-select ds-modelsel" title={model?.blurb} style={nameW ? { width: nameW + 46 } : undefined}>
                 <span className="sr-only">3D model</span>
                 <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
                   {available.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </label>
-              <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
             </div>
             <div className="cr-row">
               <button type="button" className={`cr-chip ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
@@ -226,7 +226,7 @@ function ThreeD() {
           </div>
         </>
       )}
-      {picker && <ReferencePicker max={Math.min(maxPics, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 1), 1))} picked={picked} onChange={(l) => { setPicked(l); setModeSel(null); }} onClose={() => setPicker(false)} />}
+      {picker && <ReferencePicker max={Math.min(maxPics, models.filter((m) => m.modes.includes("multi")).reduce((a, m) => Math.max(a, m.maxImages ?? 1), 1))} picked={picked} onChange={(l) => { setPicked(l); }} onClose={() => setPicker(false)} />}
     </section>
   );
 }
