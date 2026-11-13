@@ -234,8 +234,8 @@ export function buildStage(scene: Scene, canvas: HTMLCanvasElement, width: numbe
   for (const shp of scene.shots) {
     const cd = scene.cameras.find((c) => c.id === shp.cameraId)!, Ts = Math.max(0.5, shp.endS - shp.startS), still2 = { ...cd, shake: { ...cd.shake, amount: 0 } }, pts: THREE.Vector3[] = [];
     for (let i = 0; i <= 80; i++) { const c = cameraAt(scene, still2, shp.startS + (i / 80) * Ts, shp.aspect as AspectId); pts.push(new THREE.Vector3(...c.pos)); }
-    const pathN = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0x8a5cf5, dashSize: 0.35, gapSize: 0.2 })); pathN.computeLineDistances(); three.add(pathN);
-    for (const k of cd.keys) { if (k.t < shp.startS - 1e-6 || k.t > shp.endS + 1e-6) continue; const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0x8a5cf5 })); d.position.set(...k.pos); three.add(d); }
+    const pathN = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0x9a9aa3, dashSize: 0.35, gapSize: 0.2 })); pathN.computeLineDistances(); three.add(pathN);
+    for (const k of cd.keys) { if (k.t < shp.startS - 1e-6 || k.t > shp.endS + 1e-6) continue; const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0x9a9aa3 })); d.position.set(...k.pos); three.add(d); }
   }
   void samples;
   const view = new THREE.PerspectiveCamera(42, width / height, 0.1, 800);

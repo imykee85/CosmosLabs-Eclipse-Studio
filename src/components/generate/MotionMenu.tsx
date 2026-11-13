@@ -7,7 +7,7 @@ export type MotionMode = "subject" | "scene";
 
 const MODES: { id: MotionMode; title: string; text: string; icon: typeof Video; soon?: boolean }[] = [
   { id: "subject", title: "Motion + subject", text: "Moves your subject picture like the person in one of your clips (Kling Motion Control or Genjutsu), or changes what is in a video you made (Eclone).", icon: Video },
-  { id: "scene", title: "ShotMap", text: "Direct the shot yourself: build the set, place the camera and its move, then generate from the guide video.", icon: Clapperboard },
+  { id: "scene", title: "ShotMap", text: "Direct the shot yourself: build the set, pick the camera move, then generate from the guide video.", icon: Clapperboard },
 ];
 
 // Pop-up above the Motion chip: how the reference clip should steer the video. Choose the same one again to clear it.

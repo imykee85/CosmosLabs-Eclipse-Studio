@@ -124,4 +124,24 @@ test.describe("ShotMap", () => {
     await expect(d.getByRole("button", { name: "Take a still" })).toBeVisible();
     await ctx.close();
   });
+  test("Motion has Keyframes or Moves: Moves shows the pickers and sliders, no keyframe buttons", async ({ page }) => {
+    await setup(page);
+    const d = await openShotMap(page);
+    await d.getByRole("tab", { name: "None" }).click();
+    await d.getByRole("button", { name: "Create empty scene" }).click();
+    await d.getByRole("tab", { name: "Motion" }).click();
+    await expect(d.getByRole("tab", { name: "Keyframes" })).toHaveAttribute("aria-selected", "true");
+    await d.getByRole("tab", { name: "Moves" }).click();
+    const panel = d.getByRole("group", { name: "Camera moves" });
+    await expect(panel).toBeVisible();
+    await panel.getByLabel("Move", { exact: true }).selectOption("orbit-180");
+    await panel.getByLabel("Then also").selectOption("crane-up");
+    await expect(panel.getByLabel("Combine")).toBeVisible();
+    await panel.getByLabel("Distance").fill("7");
+    await expect(panel.getByText("7.0 m")).toBeVisible();
+    await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeHidden();
+    await d.getByRole("tab", { name: "Keyframes" }).click();
+    await expect(panel).toBeHidden();
+    await expect(d.getByRole("button", { name: /Add keyframe/ })).toBeVisible();
+  });
 });
