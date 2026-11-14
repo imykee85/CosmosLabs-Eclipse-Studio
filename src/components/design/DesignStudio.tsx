@@ -7,7 +7,7 @@ import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { ArrowRight, Box, Camera, ChevronDown, FolderOpen, Grid3x3, Info, Lightbulb, Palette, Search, Square, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { ArrowRight, Box, Camera, ChevronDown, FolderOpen, Grid3x3, Info, Lightbulb, Palette, Search, Square, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check, Rotate3d } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
@@ -81,6 +81,18 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   const [toolMenu, setToolMenu] = useState<null | "info" | "formats">(null);
   const [toolNote, setToolNote] = useState("");
   const [lookAnchor, setLookAnchor] = useState<DOMRect | null>(null);
+  const [viewAnchor, setViewAnchor] = useState<DOMRect | null>(null);
+  // Which side of the object each picture shows. The models read the pictures in a fixed order, so choosing a side also puts the picture in that place.
+  const [views, setViews] = useState<Record<string, string>>({});
+  const VIEW_ORDER = model?.id === "hitem3d_2_0" ? ["Front", "Back", "Left", "Right"] : ["Front", "Left", "Right", "Back"];
+  const setView = (id: string, v: string) => {
+    const next: Record<string, string> = { ...views };
+    for (const k of Object.keys(next)) if (next[k] === v) delete next[k];
+    if (views[id] === v) delete next[id]; else next[id] = v;
+    setViews(next);
+    const rank = (x: RefPick) => { const i = VIEW_ORDER.indexOf(next[x.id] ?? ""); return i < 0 ? 9 : i; };
+    setPicked([...picked].sort((a, b) => rank(a) - rank(b)));
+  };
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Atlas on the 3D tab: it sees the generator and can describe a model and start it (a description switches to "Describe it").
@@ -210,7 +222,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
                 <div key={p.id} className="cr-ref">
                   {/* eslint-disable-next-line @next/next/no-img-element -- plain img like the rest of the app */}
                   <img src={p.url} alt={p.label || `Picture ${i + 1}`} />
-                  <i className="cr-ref-n">{i + 1}</i>
+                  <i className="cr-ref-n">{views[p.id] ?? i + 1}</i>
                   <button type="button" className="cr-ref-x" aria-label={`Remove picture ${i + 1}`} onClick={() => setPicked(picked.filter((x) => x.id !== p.id))}><X size={12} /></button>
                 </div>
               ))}
@@ -226,6 +238,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
             {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
               <button type="button" className="cr-chip ds-iconchip" aria-label="Open your own .glb" title="Open your own .glb from your device (viewed on this device only)" onClick={() => glbInput.current?.click()}><FolderOpen size={15} /></button>
+              {picked.length > 1 && <button type="button" className={`cr-chip ds-iconchip ${Object.keys(views).length ? "is-on" : ""}`} aria-label="Label each picture's side" title="Say which side of the object each picture shows" aria-haspopup="menu" aria-expanded={!!viewAnchor} onClick={(e) => setViewAnchor(e.currentTarget.getBoundingClientRect())}><Rotate3d size={15} /></button>}
               <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
               <button type="button" className="cr-chip ds-modelsel" aria-haspopup="dialog" aria-expanded={modelSheet} aria-label="3D model" title={model?.blurb} onClick={() => setModelSheet(true)}>
@@ -258,6 +271,20 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
           </div>
         </form>
       </div>
+      {viewAnchor && picked.length > 1 && (
+        <>
+          <div className="am-scrim" onMouseDown={() => setViewAnchor(null)} onTouchStart={() => setViewAnchor(null)} />
+          <div className="am-menu ds-viewmenu" role="menu" aria-label="Picture sides" style={{ left: Math.max(8, Math.min(viewAnchor.left, window.innerWidth - 308)), width: Math.min(300, window.innerWidth - 16), bottom: window.innerHeight - viewAnchor.top + 8 }}>
+            {picked.map((p, i) => (
+              <div key={p.id} className="ds-viewrow">
+                {/* eslint-disable-next-line @next/next/no-img-element -- plain img like the rest of the app */}
+                <img src={p.url} alt={p.label || `Picture ${i + 1}`} />
+                <div>{VIEW_ORDER.map((v) => <button key={v} type="button" className={`cr-chip ${views[p.id] === v ? "is-on" : ""}`} aria-pressed={views[p.id] === v} onClick={() => setView(p.id, v)}>{v}</button>)}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
       {lookAnchor && (
         <>
           <div className="am-scrim" onMouseDown={() => setLookAnchor(null)} onTouchStart={() => setLookAnchor(null)} />

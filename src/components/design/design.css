@@ -148,3 +148,8 @@ html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
 .ds-iconchip { padding-left: 11px; padding-right: 11px; }
 .ds-3d .ds-bar .ds-actions { justify-content: center; }
 .ds-3d .cr-row .cr-chip { padding: 0 8px; gap: 4px; } .ds-3d .cr-row { gap: 5px; } .ds-3d .cr-row .ds-iconchip { padding: 0 9px; }
+
+.ds-viewmenu { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.ds-viewrow { display: flex; align-items: center; gap: 10px; }
+.ds-viewrow img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; flex: none; }
+.ds-viewrow > div { display: flex; flex-wrap: wrap; gap: 5px; }
