@@ -652,6 +652,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
               <button type="button" className="ss-icon" aria-label="Redo camera change" title="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
             <button type="button" className="ss-play" aria-label={playing ? "Pause" : "Play"} onClick={() => { if (!playing && t >= D) setT(0); setPlaying((p) => !p); }}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
               <label className="ss-dur" title="Shot duration"><input inputMode="decimal" aria-label="Shot duration in seconds" value={D} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v > 0) commit((w) => editShot(w, shot.id, { durationS: Math.min(MAX_SHOT_S, v) })); }} />s</label>
+              <select className="ss-select is-small" aria-label="Aspect ratio" value={world.aspect} onChange={(e) => commit((w) => ({ ...w, aspect: e.target.value as WAspect }))}>{ASPECT_LIST.map((a) => <option key={a} value={a}>{a}</option>)}</select>
             <AtlasChip />
           </div>
           <MovesPanel m={moves} maxDistance={Math.ceil(suggestDistance(world.items) * 2)} onChange={applyMoves} />
