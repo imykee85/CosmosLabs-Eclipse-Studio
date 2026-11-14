@@ -12,7 +12,6 @@ Completeness basis (2026-11-04 sweep): every "NOT built / NOT tested / NOT verif
 | # | Item | Priority | Why it matters | Who |
 |---|---|---|---|---|
 | 1 | Save a Slack or Discord channel webhook as the Secret `OPS_ALERT_WEBHOOK_URL` in Vercel | High | Failure alerts stay silent without it. | Owner |
-| 2 | Set a separate Secret `CONNECT_SECRET_KEY` in Vercel | High | Today the Clerk key also encrypts connector logins and signs share links. Changing it later breaks both. | Owner |
 | 3 | Open Production `/admin/health` after the next deploy: confirm the table list (newer tables `chat_states`, `pending_sends`, `canvas_*`, `oauth_*`, `agent_plans`), the settings (`CRON_SECRET`, Web Analytics switched on in Vercel) and the page-security line | Not immediately necessary | The only way to see that the newest schema and settings really reached Production; I cannot read Vercel. | Owner |
 | 4 | Watch the first real monthly Whop renewal in Payment events on the Production health page | High | The renewal field names have never been seen live, so credits might not be granted. | Owner, then me |
 | 5 | Watch free-trial signups against real accounts | High | Free trials cost real provider money, and a farm would drain it. | Owner and me |
@@ -108,4 +107,4 @@ Completeness basis (2026-11-04 sweep): every "NOT built / NOT tested / NOT verif
 | --- | --- | --- | --- | --- |
 | 76 | Check the terms for the ShotMap models: Xbot mannequin (Mixamo) and the Wayfair sofa (CC BY 4.0 needs a visible credit) | Not immediately necessary | Licences decide whether they can ship and how they must be credited | Owner |
 | 77 | Live checks: Atlas seeing and watching the ShotMap scene, the 3D tray (formats, picture, open own .glb, Add to ShotMap from Design Studio), the new Why Eclipse film in the pop-up | Not immediately necessary | Tested with mocks and headless Chromium only | Owner |
-| 78 | Email alerts: Secret `RESEND_API_KEY`, Config `ALERT_EMAIL`, Clerk webhook plus Secret `CLERK_WEBHOOK_SIGNING_SECRET`, Secret `ADMIN_PASSWORD` (confirm which are saved; row 1 may be replaced by these) | High | Sign-up and failure alerts and the admin lock stay off without them | Owner |
+| 78 | Email alerts: Secret `RESEND_API_KEY`, Config `ALERT_EMAIL`, Clerk webhook plus Secret `CLERK_WEBHOOK_SIGNING_SECRET`, (`ADMIN_PASSWORD` is saved, owner 2026-11-14; confirm the others; row 1 may be replaced by these) | High | Sign-up and failure alerts and the admin lock stay off without them | Owner |
