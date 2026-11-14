@@ -35,7 +35,7 @@ export const videoSettings = () => ({
 
 export type StartVideoInput = {
   userId: string; personId?: string | null; prompt: unknown; model: unknown; duration?: unknown; resolution?: unknown; aspectRatio?: unknown; audio?: unknown;
-  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; audioRefs?: unknown; shots?: unknown; motion?: { orientation?: unknown; keepSound?: unknown } | null; confirm?: unknown; projectId?: unknown; draft?: unknown;
+  seed?: unknown; lockSeed?: unknown; negativePrompt?: unknown; cfgScale?: unknown; start?: unknown; end?: unknown; refs?: unknown; videoRefs?: unknown; audioRefs?: unknown; shots?: unknown; motion?: { orientation?: unknown; keepSound?: unknown; background?: unknown } | null; confirm?: unknown; projectId?: unknown; draft?: unknown;
 };
 export type StartVideoResult = { ok: true; item: RenderItem; seedNote?: string } | { ok: false; status: number; error: string; needsConfirm?: boolean; cost?: number; code?: string; need?: PlanId };
 
@@ -140,6 +140,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   // Motion transfer: the length of the result follows the motion clip, so the price and the stored length come from the clip's recorded length.
   const keepSound = input.motion?.keepSound === false ? false : true;
   const orientation = input.motion?.orientation === "image" ? "image" : "video";
+  const background = input.motion?.background === "image" || input.motion?.background === "video" ? input.motion.background : undefined; // Scene control: where the background comes from
   if (motion) {
     const clip = await db.generation.findFirst({ where: { id: videoRefIds[0], userId, kind: "video", status: "completed", deletedAt: null }, select: { durationSec: true } });
     if (!clip) return { ok: false, status: 400, error: "That motion clip could not be found. It may have been deleted." };
@@ -162,7 +163,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
   }
 
   // Check the request against the model BEFORE anything is held or limited (placeholder addresses stand in for the pictures).
-  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined, refAudioUrls: audioRefIds.length ? audioRefIds.map((_, i) => `https://x.invalid/a${i}`) : undefined, shots });
+  const probe = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, background, startUrl: start ? "https://x.invalid/s" : undefined, endUrl: end ? "https://x.invalid/e" : undefined, refUrls: refs.length ? refs.map((_, i) => `https://x.invalid/r${i}`) : undefined, refVideoUrls: videoRefIds.length ? videoRefIds.map((_, i) => `https://x.invalid/v${i}`) : undefined, refAudioUrls: audioRefIds.length ? audioRefIds.map((_, i) => `https://x.invalid/a${i}`) : undefined, shots });
   if (!probe.ok) return { ok: false, status: 400, error: probe.error };
 
   const resolutionUsed = typeof probe.body.resolution === "string" ? probe.body.resolution : undefined;
@@ -226,7 +227,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     if (!clips.ok) return { ok: false, status: 400, error: clips.error };
     refVideoUrls = clips.urls;
   }
-  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, startUrl, endUrl, refUrls, refVideoUrls, refAudioUrls, shots });
+  const built = buildVideoBody(model, { prompt, duration, resolution, aspectRatio: aspectIn, audio, seed, negativePrompt, cfgScale: typeof input.cfgScale === "number" ? input.cfgScale : undefined, keepSound, orientation, background, startUrl, endUrl, refUrls, refVideoUrls, refAudioUrls, shots });
   if (!built.ok) return { ok: false, status: 400, error: built.error };
   if (draft) built.body.draft = true;
 
@@ -237,7 +238,7 @@ export async function startVideoRender(input: StartVideoInput): Promise<StartVid
     userId, projectId, kind: "video", prompt, status: "pending", statusUrl: null, requestId: null, provider: "higgsfield", model: model.id,
     aspectRatio: aspect, resolution: resolutionUsed ?? null, seed, seedLocked, durationSec: duration, hasAudio: motion ? (motion.kind === "kling" ? keepSound : null) : caps.audio ? audioUsed : null,
     creditsHeld: cost, idemKey, references: pictures.length ? pictures : undefined,
-    params: { draft: draft || undefined, inputVideoSec: draft && inputVideoSec != null ? inputVideoSec : undefined, conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, audioRefs: audioRefIds.length ? audioRefIds : undefined, shots, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, keepSound, clipId: videoRefIds[0] } : undefined },
+    params: { draft: draft || undefined, inputVideoSec: draft && inputVideoSec != null ? inputVideoSec : undefined, conform: conform ?? undefined, workflow: built.workflow, endpoint: built.endpoint, duration, resolution: resolutionUsed ?? null, videoRefs: videoRefIds.length ? videoRefIds : undefined, audioRefs: audioRefIds.length ? audioRefIds : undefined, shots, negativePrompt: negativePrompt || undefined, motion: motion ? { orientation, background, keepSound, clipId: videoRefIds[0] } : undefined },
   });
   if (!("row" in made)) return { ok: false, status: 402, ...(await refusal(userId, outOfCredits(model.label, cost as number, made.have, made.held, false, made.locked), made.locked > 0 && made.have < (cost as number))) };
 
