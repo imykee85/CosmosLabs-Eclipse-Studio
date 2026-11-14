@@ -1,0 +1,773 @@
+{
+ "n_moments": 4971,
+ "by_label": {
+  "naturalistic": 923,
+  "improvised": 4048
+ },
+ "dur_s": {
+  "median": 3.0,
+  "p10": 1,
+  "p90": 6
+ },
+ "role": {
+  "listening": 2479,
+  "speaking": 2085,
+  "unknown": 209,
+  "silence": 198
+ },
+ "beh_overall_pct": {
+  "smile": 12.7,
+  "laugh": 5.9,
+  "nod": 11.2,
+  "head shake": 5.0,
+  "eyebrows": 19.8,
+  "gaze away/down/up": 8.8,
+  "eye contact": 3.9,
+  "hand gesture": 16.1,
+  "self-touch (face/hair/neck)": 5.1,
+  "lean": 10.8,
+  "shrug": 3.1,
+  "head tilt": 17.2,
+  "arms crossed": 0.9,
+  "lips/mouth": 17.2,
+  "eyes widen/close/squint": 9.5,
+  "breath/sigh": 4.3,
+  "fidget/object": 2.7,
+  "posture shift": 2.9,
+  "head movement": 7.9,
+  "pause/stop": 0.3
+ },
+ "beh_by_role_pct": {
+  "speaking": {
+   "smile": 10.6,
+   "laugh": 5.5,
+   "nod": 6.4,
+   "head shake": 5.6,
+   "eyebrows": 18.7,
+   "gaze away/down/up": 8.5,
+   "eye contact": 3.0,
+   "hand gesture": 23.7,
+   "self-touch (face/hair/neck)": 4.6,
+   "lean": 11.4,
+   "shrug": 3.0,
+   "head tilt": 14.9,
+   "arms crossed": 1.0,
+   "lips/mouth": 9.5,
+   "eyes widen/close/squint": 7.6,
+   "breath/sigh": 2.4,
+   "fidget/object": 2.5,
+   "posture shift": 3.1,
+   "head movement": 6.2,
+   "pause/stop": 0.4
+  },
+  "listening": {
+   "smile": 14.0,
+   "laugh": 6.1,
+   "nod": 15.3,
+   "head shake": 4.7,
+   "eyebrows": 20.3,
+   "gaze away/down/up": 9.4,
+   "eye contact": 4.6,
+   "hand gesture": 10.2,
+   "self-touch (face/hair/neck)": 5.5,
+   "lean": 10.2,
+   "shrug": 2.9,
+   "head tilt": 19.3,
+   "arms crossed": 0.8,
+   "lips/mouth": 23.7,
+   "eyes widen/close/squint": 11.3,
+   "breath/sigh": 5.5,
+   "fidget/object": 2.9,
+   "posture shift": 2.8,
+   "head movement": 9.0,
+   "pause/stop": 0.2
+  },
+  "silence": {
+   "smile": 13.6,
+   "laugh": 7.6,
+   "nod": 9.6,
+   "head shake": 2.0,
+   "eyebrows": 14.6,
+   "gaze away/down/up": 8.1,
+   "eye contact": 5.1,
+   "hand gesture": 12.1,
+   "self-touch (face/hair/neck)": 6.6,
+   "lean": 11.6,
+   "shrug": 5.6,
+   "head tilt": 15.7,
+   "arms crossed": 1.0,
+   "lips/mouth": 19.7,
+   "eyes widen/close/squint": 6.6,
+   "breath/sigh": 7.6,
+   "fidget/object": 3.0,
+   "posture shift": 2.5,
+   "head movement": 12.6,
+   "pause/stop": 0.0
+  }
+ },
+ "n_behaviors_per_moment": {
+  "1": 1623,
+  "2": 1564,
+  "4": 267,
+  "3": 782,
+  "0": 735
+ },
+ "states_pct": {
+  "amused": 3.4,
+  "happy": 12.5,
+  "confident": 7.1,
+  "thinking": 5.9,
+  "uncertain": 8.5,
+  "nervous": 7.7,
+  "frustrated": 9.2,
+  "surprised": 6.7,
+  "engaged": 10.4,
+  "sad": 2.7,
+  "skeptical": 2.3,
+  "empathetic": 5.5
+ },
+ "beh_by_state_pct": {
+  "amused": {
+   "n": 168,
+   "speaking_pct": 45,
+   "top": [
+    [
+     "laugh",
+     49
+    ],
+    [
+     "smile",
+     29
+    ],
+    [
+     "head tilt",
+     16
+    ],
+    [
+     "lean",
+     15
+    ],
+    [
+     "hand gesture",
+     12
+    ],
+    [
+     "eyebrows",
+     11
+    ]
+   ]
+  },
+  "happy": {
+   "n": 621,
+   "speaking_pct": 37,
+   "top": [
+    [
+     "smile",
+     34
+    ],
+    [
+     "eyebrows",
+     19
+    ],
+    [
+     "nod",
+     16
+    ],
+    [
+     "hand gesture",
+     16
+    ],
+    [
+     "head tilt",
+     15
+    ],
+    [
+     "lips/mouth",
+     14
+    ]
+   ]
+  },
+  "confident": {
+   "n": 353,
+   "speaking_pct": 62,
+   "top": [
+    [
+     "hand gesture",
+     22
+    ],
+    [
+     "eyebrows",
+     19
+    ],
+    [
+     "head tilt",
+     17
+    ],
+    [
+     "nod",
+     13
+    ],
+    [
+     "lips/mouth",
+     11
+    ],
+    [
+     "smile",
+     10
+    ]
+   ]
+  },
+  "thinking": {
+   "n": 292,
+   "speaking_pct": 34,
+   "top": [
+    [
+     "head tilt",
+     24
+    ],
+    [
+     "lips/mouth",
+     23
+    ],
+    [
+     "nod",
+     17
+    ],
+    [
+     "eyebrows",
+     13
+    ],
+    [
+     "hand gesture",
+     12
+    ],
+    [
+     "gaze away/down/up",
+     10
+    ]
+   ]
+  },
+  "uncertain": {
+   "n": 424,
+   "speaking_pct": 39,
+   "top": [
+    [
+     "lips/mouth",
+     25
+    ],
+    [
+     "eyebrows",
+     22
+    ],
+    [
+     "head tilt",
+     22
+    ],
+    [
+     "hand gesture",
+     12
+    ],
+    [
+     "gaze away/down/up",
+     10
+    ],
+    [
+     "eyes widen/close/squint",
+     10
+    ]
+   ]
+  },
+  "nervous": {
+   "n": 381,
+   "speaking_pct": 44,
+   "top": [
+    [
+     "head tilt",
+     24
+    ],
+    [
+     "eyebrows",
+     18
+    ],
+    [
+     "lips/mouth",
+     16
+    ],
+    [
+     "gaze away/down/up",
+     15
+    ],
+    [
+     "smile",
+     11
+    ],
+    [
+     "self-touch (face/hair/neck)",
+     10
+    ]
+   ]
+  },
+  "frustrated": {
+   "n": 459,
+   "speaking_pct": 39,
+   "top": [
+    [
+     "hand gesture",
+     20
+    ],
+    [
+     "eyebrows",
+     19
+    ],
+    [
+     "lips/mouth",
+     19
+    ],
+    [
+     "head tilt",
+     17
+    ],
+    [
+     "breath/sigh",
+     12
+    ],
+    [
+     "lean",
+     11
+    ]
+   ]
+  },
+  "surprised": {
+   "n": 333,
+   "speaking_pct": 20,
+   "top": [
+    [
+     "eyebrows",
+     48
+    ],
+    [
+     "lips/mouth",
+     30
+    ],
+    [
+     "eyes widen/close/squint",
+     21
+    ],
+    [
+     "head tilt",
+     19
+    ],
+    [
+     "head movement",
+     16
+    ],
+    [
+     "lean",
+     14
+    ]
+   ]
+  },
+  "engaged": {
+   "n": 515,
+   "speaking_pct": 27,
+   "top": [
+    [
+     "eyebrows",
+     23
+    ],
+    [
+     "lips/mouth",
+     22
+    ],
+    [
+     "nod",
+     19
+    ],
+    [
+     "head tilt",
+     19
+    ],
+    [
+     "smile",
+     14
+    ],
+    [
+     "hand gesture",
+     12
+    ]
+   ]
+  },
+  "sad": {
+   "n": 136,
+   "speaking_pct": 40,
+   "top": [
+    [
+     "head tilt",
+     25
+    ],
+    [
+     "lips/mouth",
+     23
+    ],
+    [
+     "eyebrows",
+     15
+    ],
+    [
+     "gaze away/down/up",
+     12
+    ],
+    [
+     "head movement",
+     12
+    ],
+    [
+     "head shake",
+     11
+    ]
+   ]
+  },
+  "skeptical": {
+   "n": 116,
+   "speaking_pct": 37,
+   "top": [
+    [
+     "eyebrows",
+     40
+    ],
+    [
+     "head tilt",
+     31
+    ],
+    [
+     "lips/mouth",
+     22
+    ],
+    [
+     "hand gesture",
+     18
+    ],
+    [
+     "head movement",
+     15
+    ],
+    [
+     "eyes widen/close/squint",
+     14
+    ]
+   ]
+  },
+  "empathetic": {
+   "n": 273,
+   "speaking_pct": 41,
+   "top": [
+    [
+     "nod",
+     38
+    ],
+    [
+     "eyebrows",
+     23
+    ],
+    [
+     "hand gesture",
+     18
+    ],
+    [
+     "head tilt",
+     17
+    ],
+    [
+     "lips/mouth",
+     14
+    ],
+    [
+     "smile",
+     13
+    ]
+   ]
+  }
+ },
+ "self_vs_observer": {
+  "n": 654,
+  "n_both_categorized": 252,
+  "any_overlap_pct": 29.0,
+  "top_pairs": [
+   [
+    [
+     "thinking",
+     "thinking"
+    ],
+    18
+   ],
+   [
+    [
+     "thinking",
+     "engaged"
+    ],
+    18
+   ],
+   [
+    [
+     "engaged",
+     "engaged"
+    ],
+    18
+   ],
+   [
+    [
+     "thinking",
+     "confident"
+    ],
+    9
+   ],
+   [
+    [
+     "thinking",
+     "uncertain"
+    ],
+    9
+   ],
+   [
+    [
+     "happy",
+     "confident"
+    ],
+    9
+   ],
+   [
+    [
+     "happy",
+     "happy"
+    ],
+    9
+   ],
+   [
+    [
+     "amused",
+     "thinking"
+    ],
+    7
+   ],
+   [
+    [
+     "confident",
+     "thinking"
+    ],
+    7
+   ],
+   [
+    [
+     "happy",
+     "engaged"
+    ],
+    7
+   ],
+   [
+    [
+     "engaged",
+     "happy"
+    ],
+    7
+   ],
+   [
+    [
+     "empathetic",
+     "empathetic"
+    ],
+    6
+   ],
+   [
+    [
+     "happy",
+     "thinking"
+    ],
+    6
+   ],
+   [
+    [
+     "engaged",
+     "thinking"
+    ],
+    6
+   ],
+   [
+    [
+     "amused",
+     "amused"
+    ],
+    6
+   ]
+  ],
+  "self_state_freq": [
+   [
+    "thinking",
+    101
+   ],
+   [
+    "engaged",
+    70
+   ],
+   [
+    "happy",
+    66
+   ],
+   [
+    "confident",
+    37
+   ],
+   [
+    "nervous",
+    36
+   ],
+   [
+    "empathetic",
+    35
+   ],
+   [
+    "amused",
+    32
+   ],
+   [
+    "frustrated",
+    23
+   ],
+   [
+    "uncertain",
+    17
+   ],
+   [
+    "surprised",
+    15
+   ]
+  ],
+  "observer_state_freq_same_moments": [
+   [
+    "engaged",
+    89
+   ],
+   [
+    "thinking",
+    77
+   ],
+   [
+    "confident",
+    68
+   ],
+   [
+    "happy",
+    55
+   ],
+   [
+    "amused",
+    39
+   ],
+   [
+    "empathetic",
+    39
+   ],
+   [
+    "nervous",
+    34
+   ],
+   [
+    "uncertain",
+    25
+   ],
+   [
+    "surprised",
+    15
+   ],
+   [
+    "sad",
+    13
+   ]
+  ]
+ },
+ "low_E": {
+  "n": 252,
+  "E_cut": [
+   3.6666666666666665,
+   4.25
+  ],
+  "beh_pct": {
+   "smile": 12.7,
+   "laugh": 20.6,
+   "nod": 12.7,
+   "head shake": 1.6,
+   "eyebrows": 6.0,
+   "gaze away/down/up": 9.9,
+   "eye contact": 0.8,
+   "hand gesture": 15.5,
+   "self-touch (face/hair/neck)": 7.1,
+   "lean": 8.3,
+   "shrug": 1.2,
+   "head tilt": 11.1,
+   "arms crossed": 0.8,
+   "lips/mouth": 11.9,
+   "eyes widen/close/squint": 5.6,
+   "breath/sigh": 0.4,
+   "fidget/object": 3.6,
+   "posture shift": 3.2,
+   "head movement": 3.2,
+   "pause/stop": 0.4
+  },
+  "states_pct": {
+   "amused": 6.7,
+   "happy": 15.9,
+   "confident": 7.5,
+   "thinking": 4.0,
+   "uncertain": 5.6,
+   "nervous": 8.3,
+   "frustrated": 1.6,
+   "surprised": 4.8,
+   "engaged": 11.9,
+   "sad": 2.0,
+   "skeptical": 0.4,
+   "empathetic": 3.6
+  }
+ },
+ "high_E": {
+  "n": 223,
+  "E_cut": [
+   3.6666666666666665,
+   4.25
+  ],
+  "beh_pct": {
+   "smile": 15.2,
+   "laugh": 8.5,
+   "nod": 13.0,
+   "head shake": 1.8,
+   "eyebrows": 16.6,
+   "gaze away/down/up": 9.0,
+   "eye contact": 7.2,
+   "hand gesture": 21.5,
+   "self-touch (face/hair/neck)": 9.0,
+   "lean": 12.1,
+   "shrug": 0.9,
+   "head tilt": 8.1,
+   "arms crossed": 1.3,
+   "lips/mouth": 9.9,
+   "eyes widen/close/squint": 6.3,
+   "breath/sigh": 0.0,
+   "fidget/object": 2.2,
+   "posture shift": 1.8,
+   "head movement": 4.9,
+   "pause/stop": 0.0
+  },
+  "states_pct": {
+   "amused": 4.9,
+   "happy": 15.7,
+   "confident": 7.6,
+   "thinking": 10.3,
+   "uncertain": 1.8,
+   "nervous": 6.7,
+   "frustrated": 3.1,
+   "surprised": 5.8,
+   "engaged": 17.0,
+   "sad": 0.0,
+   "skeptical": 0.9,
+   "empathetic": 6.7
+  }
+ }
+}

@@ -566,6 +566,7 @@ export default function VideoStudio() {
           )}
           {mc && (
             <div className="vs-motion" role="group" aria-label="Motion transfer">
+              <div className="vs-motion-head"><b>Motion + subject</b><button type="button" className="vs-motion-x" aria-label="Close motion" onClick={() => setMotion(null)}><X size={16} /></button></div>
               <label><span>Engine</span>
                 <select value={mcEngine} onChange={(e) => { setMcEngine(e.target.value as typeof mcEngine); setQuality(""); }}>
                   <option value="kling3">Kling 3.0 Motion Control</option>
