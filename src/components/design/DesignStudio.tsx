@@ -80,13 +80,6 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   const [info, setInfo] = useState<ModelInfo | null>(null);
   const [toolMenu, setToolMenu] = useState<null | "info" | "formats">(null);
   const [toolNote, setToolNote] = useState("");
-  // The model chip is as wide as the longest model name (measured in the chip's own font), plus room for the arrow.
-  const [nameW, setNameW] = useState(0);
-  useEffect(() => {
-    const ctx = document.createElement("canvas").getContext("2d"); if (!ctx || !models.length) return;
-    ctx.font = "500 14px Inter, system-ui, sans-serif";
-    setNameW(Math.ceil(Math.max(...models.map((m) => ctx.measureText(m.label).width))));
-  }, [models]);
   const [lookAnchor, setLookAnchor] = useState<DOMRect | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -235,7 +228,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
               <button type="button" className="cr-chip ds-iconchip" aria-label="Open your own .glb" title="Open your own .glb from your device (viewed on this device only)" onClick={() => glbInput.current?.click()}><FolderOpen size={15} /></button>
               <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
-              <button type="button" className="cr-chip ds-modelsel" aria-haspopup="dialog" aria-expanded={modelSheet} aria-label="3D model" title={model?.blurb} style={nameW ? { width: nameW + 58 } : undefined} onClick={() => setModelSheet(true)}>
+              <button type="button" className="cr-chip ds-modelsel" aria-haspopup="dialog" aria-expanded={modelSheet} aria-label="3D model" title={model?.blurb} onClick={() => setModelSheet(true)}>
                 <span>{model?.label ?? "Model"}</span><ChevronDown size={14} aria-hidden="true" />
               </button>
             </div>
