@@ -6,7 +6,7 @@
 .cn-hero h1 { margin: 8px 0 0; font-size: clamp(30px, 5vw, 44px); font-weight: 700; letter-spacing: -.03em; line-height: 1.05; }
 .cn-hero p { margin: 0; max-width: 420px; color: var(--a-muted); font-size: 16px; line-height: 1.5; }
 .cn-dock { margin-top: 12vh; }
-.cn-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.cn-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 12px; }
 .cn-chip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: border-color .18s; }
 .cn-chip:hover:not(:disabled) { border-color: var(--a-line4); }
 .cn-chip:disabled { opacity: .6; cursor: default; }
@@ -138,7 +138,7 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 .cn-stack .cn-logo:first-child { margin-left: 0; }
 .cn-chip { flex: none; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
-  .cn-chips { flex-wrap: nowrap; overflow-x: auto; margin-right: -18px; padding-right: 18px; scrollbar-width: none; }
+  .cn-chips { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; margin-right: -18px; padding-right: 18px; scrollbar-width: none; }
   .cn-chips::-webkit-scrollbar { display: none; }
 }
 
@@ -184,7 +184,7 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
   .cn-chat.is-chatting { min-height: 0; }
   /* Sticky, not fixed: an iPhone keyboard moves fixed elements out of view, which made the message box disappear while typing (owner 2026-11-07). */
   .cn-chat.is-chatting .cn-dock { position: sticky; bottom: calc(var(--tabs-h, 82px) + env(safe-area-inset-bottom, 0px) + 10px); margin: auto 18px 0; background: var(--a-bg); padding-top: 8px; z-index: 10; }
-  .cn-chat .cn-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .cn-chat .cn-chips { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
   .cn-pop { max-height: 34vh; }
 }
 
@@ -277,3 +277,11 @@ html[data-app-theme="light"] .cn-opt-text em.is-new { color: #3f8a1f; background
 
 /* Files on their way into the message box: one small "Adding…" chip with the percentage, as in the Atlas chat. */
 .cn-adding { display: inline-flex; align-items: center; gap: 5px; align-self: center; padding: 3px 8px; border: 1px solid var(--a-line2); border-radius: 999px; background: var(--a-card); color: var(--a-fg2); font-size: 12px; }
+
+/* Desktop: the message box sits low, 22px from the bottom, like Audio Studio's */
+@media (min-width: 801px) and (pointer: fine) {
+  .cn-chat { display: flex; flex-direction: column; min-height: calc(100dvh - 141px); }
+  .cn-chat .cn-dock { position: sticky; bottom: 22px; margin-top: auto; padding-top: 12px; }
+  .cn-chat:not(.is-chatting) .cn-hero { margin-bottom: 40px; }
+}
+@media (min-width: 801px) and (pointer: fine) { .ws-main:has(.cn-chat) { padding-bottom: 0; } }

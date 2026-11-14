@@ -49,7 +49,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
         const tool = toolNames.get(b.tool_use_id);
         try {
           if (tool === "generate_image") { const id = JSON.parse(b.content).generation_id; if (typeof id === "string") lines[lines.length - 1]?.parts.push({ kind: "render", id }); }
-          else if (tool === "send_to_app") { const id = JSON.parse(b.content).pending_send_id; if (typeof id === "string") lines[lines.length - 1]?.parts.push({ kind: "send", id }); }
+          else if (tool === "send_to_app" || tool === "edit_video" || tool === "make_kinetic_film" || tool?.startsWith("sandbox_")) { try { const j = JSON.parse(b.content); const id = j.pending_send_id ?? j.pending_id; if (typeof id === "string") lines[lines.length - 1]?.parts.push({ kind: "send", id }); } catch { /* a plain text answer carries no card */ } }
         } catch {}
       }
     }

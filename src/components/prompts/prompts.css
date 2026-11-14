@@ -85,3 +85,9 @@
 .pm-past-row > button:first-child span { font-size: 12px; color: var(--a-muted); }
 .pm-past-del { display: grid; place-items: center; width: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--a-muted); cursor: pointer; }
 .pm-past-del:hover { background: var(--a-hover); color: var(--a-fg); }
+
+@media (min-width: 801px) and (pointer: fine) {
+  .pm-wrap { display: flex; flex-direction: column; min-height: calc(100dvh - 141px); padding-bottom: 0; }
+  .pm-dock { margin-top: auto; bottom: 22px; }
+}
+@media (min-width: 801px) and (pointer: fine) { .ws-main:has(.pm-wrap) { padding-bottom: 0; } }

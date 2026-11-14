@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!b || typeof b !== "object") return NextResponse.json({ error: "Bad request" }, { status: 400 });
   const r = await startAudioJob({
-    userId: u.userId, kind: b.kind, text: b.text, model: b.model, voiceId: b.voiceId, voiceName: b.voiceName, speed: b.speed, projectId: b.projectId,
+    userId: u.userId, kind: b.kind, text: b.text, model: b.model, voiceId: b.voiceId, voiceName: b.voiceName, speakerVoiceIds: b.speakerVoiceIds, speed: b.speed, projectId: b.projectId,
     durationSec: b.durationSec, loop: b.loop, instrumental: b.instrumental, inputKey: b.inputKey, inputName: b.inputName, diarize: b.diarize, language: b.language,
     videoId: b.videoId, variants: b.variants, negativePrompt: b.negativePrompt, preserveSpeech: b.preserveSpeech, format: b.format,
   });

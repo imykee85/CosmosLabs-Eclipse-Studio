@@ -1,4 +1,4 @@
-import { getAdmin } from "@/lib/admin";
+import { requireAdminPage } from "@/lib/admin-gate";
 import { fmtCredits } from "@/lib/credit-units";
 import { expiryDryRun, expiryRules } from "@/lib/expiry";
 
@@ -8,7 +8,7 @@ const cell = { padding: "6px 10px", textAlign: "left", borderBottom: "1px solid 
 
 // Owner only: what the credit-expiry rule would do if it started on a date. Reads the ledger, writes nothing. Open it with ?start=2026-11-20.
 export default async function AdminExpiryPage({ searchParams }: { searchParams: Promise<{ start?: string }> }) {
-  const admin = await getAdmin();
+  const admin = await requireAdminPage();
   if (!admin) return <p className="app-muted">This page is not available.</p>;
   const q = await searchParams;
   const live = expiryRules().start;

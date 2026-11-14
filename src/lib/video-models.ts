@@ -135,6 +135,22 @@ const kling25t = (tier: "pro" | "standard"): VideoLive => ({
   timeoutMinutes: SLOW,
 });
 
+// Kling 4.0 (Higgsfield `kling-video/v4.0/...`): 3 to 30 s, 720p or 1080p, start and end frame. The image-to-video endpoint is documented (no aspect ratio: the frames set it; the
+// last frame is `end_image_url`); the text-to-video path follows the same pattern and is NOT verified live. Prices: Higgsfield's image-to-video page says $0.1257 (720p) and
+// $0.1879 (1080p) a second but its reference page lists $0.157 and $0.235 for the same model, so the higher list rate is used until real jobs show the true cost.
+const kling4: VideoLive = {
+  endpoints: { t2v: "kling-video/v4.0/text-to-video", i2v: "kling-video/v4.0/image-to-video" },
+  promptMax: 2500,
+  promptRequired: { t2v: true, i2v: false },
+  durations: { t2v: { min: 3, max: 30 }, i2v: { min: 3, max: 30 } },
+  durationDefault: 5,
+  resolution: { values: ["720p", "1080p"], default: "720p" },
+  aspect: { values: ["16:9", "9:16", "1:1", "21:9"], default: "16:9" },
+  endFrameField: "end_image_url",
+  price: { usd: { "720p": 0.157, "1080p": 0.235 }, estimate: ["720p", "1080p"] },
+  timeoutMinutes: 40,
+};
+
 const SEEDANCE_RES = ["480p", "720p", "1080p", "4k"];
 const seedance2: VideoLive = {
   endpoints: { t2v: "bytedance/seedance-2.0/text-to-video", i2v: "bytedance/seedance-2.0/image-to-video", ref: "bytedance/seedance-2.0/reference-to-video" },
@@ -402,6 +418,7 @@ const genjutsuMotion: VideoLive = {
 
 // --- The list ---------------------------------------------------------------------------------------------------------------------------------------------------
 export const VIDEO_MODELS: VideoModel[] = [
+  { id: "kling_4_0", label: "Kling 4.0", maker: "Kling", blurb: "The newest Kling: 3 to 30 seconds, 720p or 1080p, start and end frame.", ratios: ["16:9", "9:16", "1:1", "21:9"], durations: range(3, 30), qualities: ["720p", "1080p"], sound: "none", startFrame: true, endFrame: true, refImages: 0, live: kling4 },
   { id: "kling_3_pro", label: "Kling 3.0 Pro", maker: "Kling", blurb: "Multi-shot, sound and the best general motion. Pro tier.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("pro") },
   { id: "kling_3_std", label: "Kling 3.0 Standard", maker: "Kling", blurb: "The same model at the lower, cheaper tier.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("std") },
   { id: "kling_3_4k", label: "Kling 3.0 4K", maker: "Kling", blurb: "The 3.0 model at 4K, with sound.", ratios: R3, durations: range(3, 15), qualities: [], sound: "toggle", startFrame: true, endFrame: true, refImages: 0, live: kling3("4k") },

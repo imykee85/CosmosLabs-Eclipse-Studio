@@ -1,4 +1,4 @@
-import type { AudioJob, Generation, Prisma, SandboxJob } from "@prisma/client";
+import type { AudioJob, Generation, Model3D, Prisma, SandboxJob } from "@prisma/client";
 import { autoTopup } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { chargeFor, getModelById } from "@/lib/models";
@@ -86,4 +86,17 @@ export async function freeCredits(userId: string): Promise<number> {
     const u = await unusable(userId, tx);
     return (sum._sum.delta ?? 0) - u.locked - u.expired - (await heldNow(tx, userId));
   });
+}
+
+/** A 3D model row, created only when the balance minus everything held covers its price (same lock as renders, voices and sandbox jobs). */
+export function createModel3DHeld(userId: string, cost: number, data: Prisma.Model3DUncheckedCreateInput): Promise<{ row: Model3D } | { have: number; held: number; locked: number }> {
+  return withTopup(userId, cost, () => db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+    const sum = await tx.creditLedger.aggregate({ where: { userId }, _sum: { delta: true } });
+    const u = await unusable(userId, tx);
+    const have = (sum._sum.delta ?? 0) - u.locked - u.expired;
+    const held = await heldNow(tx, userId);
+    if (have - held < cost) return { have, held, locked: u.locked };
+    return { row: await tx.model3D.create({ data }) };
+  }));
 }

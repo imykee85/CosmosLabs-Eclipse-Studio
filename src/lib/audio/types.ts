@@ -6,6 +6,7 @@ export type AudioRequest = {
   modelId: string;
   text: string;
   voiceId?: string;
+  voiceIds?: string[];       // Fish Drama 3: the other speakers' voices (speaker 1, 2...); `voiceId` is speaker 0
   speed?: number;            // 1 = normal; only sent to models whose registry entry says `supports.speed`
   languageCode?: string;
   format?: "mp3";            // MP3 wherever the provider offers it (constant bitrate, so chunks can be joined); Qwen answers WAV

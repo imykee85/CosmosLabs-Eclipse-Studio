@@ -7,11 +7,22 @@ import { EMPTY_AUDIO, NEEDS_VOICE, send } from "./http";
 // so it is always sent. Bracket cues only ([happy]); (parenthesis) tags are never sent to S2 models.
 const MODELS = new Set(["s2.1-pro", "s2.1-pro-free", "s2-pro", "drama-3"]);
 const STT_MODELS = new Set(["transcribe-1-pro"]);
+const DIRECTION_MODELS = new Set(["drama-3"]); // [anything in brackets] is a direction here, and (round brackets) are ordinary text
 
 export function fishBody(req: AudioRequest): Record<string, unknown> {
-  const body: Record<string, unknown> = { text: req.text, reference_id: req.voiceId, format: "mp3", mp3_bitrate: 128, sample_rate: 44100 };
+  // One voice: a string. A Drama 3 scene with several speakers: an array, one voice per speaker, in the order of the <|speaker:N|> tags.
+  const body: Record<string, unknown> = { text: req.text, reference_id: req.voiceIds?.length ? [req.voiceId, ...req.voiceIds] : req.voiceId, format: "mp3", mp3_bitrate: 128, sample_rate: 44100 };
   if (req.speed != null && req.speed !== 1) body.prosody = { speed: req.speed };
   return body;
+}
+
+// The `model` header picks the model, and a missing or misspelled one does NOT fail: Fish quietly runs s2.1-pro (another price, and no directions). So the header is built in
+// one place and checked before every request.
+export function fishTtsHeaders(modelId: string, apiKey: string): Record<string, string> {
+  return { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", model: modelId };
+}
+export function assertModelHeader(headers: Record<string, string>, modelId: string): void {
+  if (!MODELS.has(modelId) || headers.model !== modelId) throw new ProviderFailure({ retryable: false, code: "model_header", userMessage: "This voice model could not be started. Please choose another model." });
 }
 
 // S2 reads (happy) aloud as words: refuse it before spending anything.
@@ -41,8 +52,10 @@ export const fish: AudioProvider = {
   async generate(req: AudioRequest, ctx: ProviderCtx): Promise<AudioResult> {
     if (req.kind === "stt") return transcribe(req, ctx);
     if (!req.voiceId) throw new ProviderFailure(NEEDS_VOICE);
-    if (hasParenTag(req.text)) throw new ProviderFailure({ retryable: false, code: "paren_tag", userMessage: "Fish models read cues in square brackets, like [happy]. Change the round brackets and try again." });
-    const res = await send("fish", ctx, `${ctx.baseUrl}/v1/tts`, { method: "POST", headers: { Authorization: `Bearer ${ctx.apiKey}`, "Content-Type": "application/json", model: req.modelId }, body: JSON.stringify(fishBody(req)) }, mapFishError);
+    if (!DIRECTION_MODELS.has(req.modelId) && hasParenTag(req.text)) throw new ProviderFailure({ retryable: false, code: "paren_tag", userMessage: "Fish models read cues in square brackets, like [happy]. Change the round brackets and try again." });
+    const headers = fishTtsHeaders(req.modelId, ctx.apiKey);
+    assertModelHeader(headers, req.modelId);
+    const res = await send("fish", ctx, `${ctx.baseUrl}/v1/tts`, { method: "POST", headers, body: JSON.stringify(fishBody(req)) }, mapFishError);
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (!bytes.length) throw new ProviderFailure(EMPTY_AUDIO);
     return { bytes, mime: "audio/mpeg", usage: { bytes: Buffer.byteLength(req.text, "utf8") } };

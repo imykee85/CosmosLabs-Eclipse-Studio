@@ -2,7 +2,7 @@ import { expiryRules } from "@/lib/expiry";
 import Anthropic from "@anthropic-ai/sdk";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getAdmin } from "@/lib/admin";
+import { getAdminSession as getAdmin } from "@/lib/admin-gate";
 import { connectModels } from "@/lib/connect-models";
 import { db } from "@/lib/db";
 import { safeText } from "@/lib/safe-text";
@@ -37,6 +37,9 @@ const SETTINGS: { name: string; kind: "Secret" | "Config"; needed: string }[] = 
   { name: "TOPAZ_API_KEY", kind: "Secret", needed: "Upscale (pictures and clips) in Image Studio and Video Studio" },
   { name: "TOPAZ_CREDIT_USD", kind: "Config", needed: "Upscale: dollars per Topaz credit on your plan, e.g. 0.01 (Upscale stays off without it)" },
   { name: "CRON_SECRET", kind: "Secret", needed: "daily finishing job" },
+  { name: "RESEND_API_KEY", kind: "Secret", needed: "emails to the owner (alerts, new sign-ups)" },
+  { name: "ALERT_EMAIL", kind: "Config", needed: "where those emails go" },
+  { name: "CLERK_WEBHOOK_SIGNING_SECRET", kind: "Secret", needed: "the new sign-up email (Clerk webhook)" },
   { name: "ADMIN_EMAILS", kind: "Config", needed: "these owner pages" },
   { name: "CREDITS_ENABLED", kind: "Config", needed: "charging for renders" },
   { name: "NEXT_PUBLIC_CONTACT_EMAIL", kind: "Config", needed: "contact on legal pages" },

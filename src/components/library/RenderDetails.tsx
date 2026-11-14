@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors, Grid3x3, Pencil, Wrench, Film } from "lucide-react";
+import { Award, Check, Copy, Download, Info, RotateCcw, Share2, Shuffle, Trash2, Volume2, Scissors, Grid3x3, Pencil, Wrench, Film, Link2Off } from "lucide-react";
 import { refreshCredits } from "@/lib/use-credits";
 import { getCertificate } from "@/lib/certificate-client";
 import { trashRender } from "@/lib/render-actions";
@@ -127,6 +127,15 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
     }
   }
 
+  async function stopSharing() {
+    setNote("");
+    try {
+      const r = await fetch(`/api/generations/${g.id}/share`, { method: "DELETE" });
+      if (!r.ok) throw new Error();
+      setNote("Sharing stopped. Links you made before no longer open.");
+    } catch { setNote("Could not stop sharing. Please try again."); }
+  }
+
   const rows: [string, string | null][] = [
     ["File name", g.fileName],
     ["Size", g.sizeBytes != null ? fmtBytes(g.sizeBytes) : null],
@@ -147,6 +156,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
         <button type="button" className="rd-btn" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={15} /> : <Copy size={15} />}<span className="rd-lbl">{copied ? "Copied" : "Copy prompt"}</span></button>
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined} aria-label="Download" title="Download"><Download size={15} /><span className="rd-lbl">Download</span></a>
         <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>
+        <button type="button" className="rd-btn" onClick={() => void stopSharing()} aria-label="Stop sharing" title="Links you shared stop working"><Link2Off size={15} /><span className="rd-lbl">Stop sharing</span></button>
         {g.kind === "video" && g.draft && !g.finalMade && <button type="button" className="rd-btn" onClick={() => void makeFinal()} disabled={finalBusy} aria-label="Generate in 1080p" title="The same video in 1080p, nothing else changes"><Film size={15} /><span className="rd-lbl">{finalBusy ? "Starting…" : "Generate in 1080p"}{g.finalCredits != null && !finalBusy ? ` · ${fmtCredits(g.finalCredits)}` : ""}</span></button>}
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setSound(true)} aria-label="Add sound" title="Add sound to this video"><Volume2 size={15} /><span className="rd-lbl">Add sound</span></button>}
         {!collapsible && <button type="button" className="rd-btn" onClick={() => router.push(`${g.kind === "video" ? "/generate" : "/create"}?tool=${g.id}`)} aria-label="Tools" title={g.kind === "video" ? "Open this video in Video Studio with its tools (upscale, relight, edit)" : "Open this picture in Image Studio with its tools (upscale, edit, relight, variations)"}><Wrench size={15} /><span className="rd-lbl">Tools</span></button>}

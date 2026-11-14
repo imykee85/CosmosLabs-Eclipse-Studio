@@ -1,5 +1,6 @@
 "use client";
 
+import { afterAuthPath } from "@/lib/pending-plan";
 import { useRouter } from "next/navigation";
 import { clerkEnabled } from "@/lib/clerk-enabled";
 import AuthView, { type Handlers, type Mode } from "./AuthView";
@@ -28,7 +29,7 @@ function DemoAuth({ mode }: { mode: Mode }) {
     google: async () => ({ error: "Google sign-in is not available in demo mode." }),
     verify: async (code) => {
       if (!/^\d{6}$/.test(code.trim())) return { error: "Demo mode: enter any 6-digit code, for example 123456." };
-      router.push("/onboarding");
+      router.push(afterAuthPath("/onboarding"));
     },
     resend: async () => ({ notice: "Demo mode: no email is sent. Use any 6-digit code." }),
     forgot: unavailable,

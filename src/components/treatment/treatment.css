@@ -113,3 +113,9 @@
 .tr-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; display: grid; min-width: 230px; padding: 6px; border: 1px solid var(--a-line2); border-radius: 16px; background: var(--a-card); box-shadow: 0 14px 40px rgba(0,0,0,.28); }
 .tr-menu button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--a-fg); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .tr-menu button:hover:not(:disabled) { background: var(--a-active); } .tr-menu button:disabled { opacity: .45; cursor: default; }
+
+@media (min-width: 801px) and (pointer: fine) {
+  .tr-wrap { display: flex; flex-direction: column; min-height: calc(100dvh - 141px); }
+  .tr-composer { margin-top: auto; position: sticky; bottom: 22px; z-index: 10; }
+}
+@media (min-width: 801px) and (pointer: fine) { .ws-main:has(.tr-wrap) { padding-bottom: 0; } }

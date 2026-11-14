@@ -17,7 +17,7 @@ export const isEditor = (t?: string) => t === "editor" || t === "upscaler" || t 
 export const isAudioNode = (t?: string) => t === "voiceover" || t === "sfx" || t === "music";
 /** Nodes whose finished renders (gens) are pictures. */
 export const makesPicture = (t?: string) => isGen(t) || isEditor(t);
-export const takesInputs = (t?: string) => isGen(t) || isVideoGen(t) || isEditor(t) || isAudioNode(t) || t === "assistant";
+export const takesInputs = (t?: string) => t === "model3d" || isGen(t) || isVideoGen(t) || isEditor(t) || isAudioNode(t) || t === "assistant";
 
 export type PortId = "description" | "character" | "product" | "scene" | "style" | "ingredients" | "start" | "clips" | "sounds";
 export type PortDef = { id: PortId; label: string; many: boolean };
@@ -40,7 +40,7 @@ const VIDEO_PORTS: PortId[] = ["description", "start", "ingredients", "clips", "
 export const OUT_HANDLE = "out";
 
 // The inputs a generator offers, top to bottom.
-export const inPortsOf = (kind?: string): PortDef[] => (kind === "editor" || kind === "variations" ? ["description", "ingredients"] as PortId[] : kind === "upscaler" ? ["ingredients"] as PortId[] : kind === "assistant" || isAudioNode(kind) ? ["description"] as PortId[] : kind === "generator" ? IMAGE_PORTS : kind === "fullbody" || kind === "sheet" ? IMAGE_PORTS.filter((p) => p !== "scene") : kind === "videogen" ? VIDEO_PORTS : []).map((p) => PORTS[p]);
+export const inPortsOf = (kind?: string): PortDef[] => (kind === "editor" || kind === "variations" || kind === "model3d" ? ["description", "ingredients"] as PortId[] : kind === "upscaler" ? ["ingredients"] as PortId[] : kind === "assistant" || isAudioNode(kind) ? ["description"] as PortId[] : kind === "generator" ? IMAGE_PORTS : kind === "fullbody" || kind === "sheet" ? IMAGE_PORTS.filter((p) => p !== "scene") : kind === "videogen" ? VIDEO_PORTS : []).map((p) => PORTS[p]);
 export const portLabel = (id: string): string => PORTS[id as PortId]?.label ?? id;
 export const isMany = (id: string): boolean => PORTS[id as PortId]?.many ?? true;
 
@@ -80,7 +80,7 @@ export const portFor = (sourceKind: string | undefined, targetKind: string | und
 export const TITLES: Record<NodeKind, string> = {
   character: "Character", product: "Product", scene: "Scene", text: "Text prompt", style: "Style", note: "Note", fullbody: "Full-body generator", generator: "Image generator",
   sheet: "Character sheet generator", image: "Image", clip: "Video", videogen: "Video generator",
-  assistant: "Assistant", voiceover: "Voiceover", sfx: "Sound effects", music: "Music", editor: "Edit image", upscaler: "Upscaler", variations: "Variations", list: "List", group: "Group",
+  model3d: "3D model", assistant: "Assistant", voiceover: "Voiceover", sfx: "Sound effects", music: "Music", editor: "Edit image", upscaler: "Upscaler", variations: "Variations", list: "List", group: "Group",
 };
 
 // The picture a generator hands on: the one marked, else its first finished render.
@@ -220,5 +220,5 @@ export function migrateEdges(nodes: CNode[], edges: Edge[]): Edge[] {
 }
 
 // What the "+" beside a node offers: after a node (its output) only generators can take it in; before a generator (its input) any input node.
-export const NEXT_KINDS: NodeKind[] = ["generator", "fullbody", "sheet", "videogen", "editor", "upscaler", "variations", "assistant", "voiceover", "sfx", "music"];
+export const NEXT_KINDS: NodeKind[] = ["generator", "fullbody", "sheet", "videogen", "model3d", "editor", "upscaler", "variations", "assistant", "voiceover", "sfx", "music"];
 export const PREV_KINDS: NodeKind[] = ["text", "assistant", "list", "character", "product", "scene", "style", "image", "clip", "generator", "fullbody", "sheet", "editor", "upscaler", "variations", "videogen", "voiceover", "sfx", "music"];

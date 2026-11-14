@@ -4,6 +4,7 @@ import GrowArea from "@/components/GrowArea";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Mic, Plus, Repeat, Square, Users } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
+import AtlasChip from "@/components/design/AtlasChip";
 import GenerateButton from "@/components/GenerateButton";
 import { estimateSeconds } from "@/lib/audio/pricing-client";
 import { typeOfFile, uploadRecording, type VoiceModel } from "@/lib/use-voice";
@@ -28,6 +29,7 @@ export function ModeTabs({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => vo
   );
 }
 
+export const FILL_EVENT = "eclipse-voice-fill";
 type Props = { models: VoiceModel[]; onStart: (body: Record<string, unknown>) => Promise<string | null>; setError: (e: string) => void };
 
 function useModel(models: VoiceModel[], key: string) {
@@ -127,6 +129,7 @@ export function TranscribeConsole({ models, onStart, setError }: Props) {
       <div className="vc-controls">
         <ModelSelect models={models} model={model} onChange={choose} />
         <button type="button" className={`vc-pill ${diarize ? "is-on" : ""}`} aria-pressed={diarize} disabled={!model?.options.diarize} title={model?.options.diarize ? "Tell speakers apart" : `${model?.label ?? "This model"} cannot tell speakers apart`} onClick={() => setDiarize((d) => !d)}><Users size={14} /> Speakers</button>
+        <AtlasChip />
         <span className="vc-count">{file ? sizeOf(file.size) : ""}</span>
       </div>
       <Go label="Transcribe" busy={busy} disabled={!model} price={price} onClick={() => void go()} />
@@ -151,6 +154,13 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
   const [format, setFormat] = useState("wav");
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
+  // Atlas fills this box (and may start it) through an event from Audio Studio.
+  const [autoGo, setAutoGo] = useState(false);
+  useEffect(() => {
+    const on = (e: Event) => { const d = (e as CustomEvent).detail as { kind: string; text: string; go?: boolean }; if (d.kind !== kind) return; setText(d.text); if (d.go) setAutoGo(true); };
+    window.addEventListener(FILL_EVENT, on); return () => window.removeEventListener(FILL_EVENT, on);
+  }, [kind]);
+  useEffect(() => { if (autoGo) { setAutoGo(false); void go(); } });
   const lengths = useMemo(() => (music ? MUSIC_LENGTHS : (model?.options.maxSeconds ?? 30) > 30 ? SFX_LONG_LENGTHS : SFX_LENGTHS).filter((s) => s >= (model?.options.minSeconds ?? 0) && s <= (model?.options.maxSeconds ?? 9999)), [music, model]);
   useEffect(() => { if (len != null && lengths.length && !lengths.includes(len)) setLen(lengths.includes(60) ? 60 : lengths[lengths.length - 1]); }, [lengths, len]);
   // A model that needs a length (Mirelo) has no Auto: pick 5 seconds when none is set. Variants and format follow what the model offers.
@@ -207,8 +217,9 @@ function DescribeConsole({ kind, models, onStart, setError }: Props & { kind: "s
         {music
           ? <button type="button" className={`vc-pill ${instrumental ? "is-on" : ""}`} aria-pressed={instrumental} disabled={!model?.options.instrumental} onClick={() => setInstrumental((v) => !v)}>Instrumental</button>
           : <button type="button" className={`vc-pill ${loop ? "is-on" : ""}`} aria-pressed={loop} disabled={!model?.options.loop} title={model?.options.loop ? "A clip that loops cleanly" : `Not supported by ${model?.label ?? "this model"}`} onClick={() => setLoop((v) => !v)}><Repeat size={14} /> Loop</button>}
+        <AtlasChip />
       </div>
-      <span className="vc-count vc-count-corner">{text.length.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
+      {model && text.length >= model.maxChars && <span className={`vc-count vc-count-corner ${text.length > model.maxChars ? "is-over" : ""}`} role="status">{text.length.toLocaleString("en-US")}/{model.maxChars.toLocaleString("en-US")}</span>}
       <Go label={music ? "Make music" : "Make sound"} busy={busy} disabled={!model || over} price={price} onClick={() => void go()} />
     </div>
   );

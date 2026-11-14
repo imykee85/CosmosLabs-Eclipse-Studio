@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { gateFeature } from "@/lib/access";
 import { connectorGroups, connectorId } from "@/lib/connectors";
 import { performSend } from "@/lib/connect-tools";
+import { isJobApp, startQueuedJob } from "@/lib/sandbox/confirm";
 import { claimUsage } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +19,10 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   const u = await requireUser(); if ("fail" in u) return u.fail;
   const r = await db.pendingSend.findFirst({ where: { id, userId: u.userId } });
   if (!r) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const link = await db.connectorLink.findUnique({ where: { userId_connector: { userId: u.userId, connector: r.app } }, select: { label: true } });
+  const job = isJobApp(r.app);
+  const link = job ? null : await db.connectorLink.findUnique({ where: { userId_connector: { userId: u.userId, connector: r.app } }, select: { label: true } });
   const expired = r.status === "pending" && Date.now() - r.createdAt.getTime() > EXPIRES_MS;
-  return NextResponse.json({ id: r.id, app: r.app, appName: appName(r.app), destination: link?.label ?? "", text: r.text, hasPicture: Boolean(r.generationId), status: expired ? "expired" : r.status, error: r.error });
+  return NextResponse.json({ id: r.id, app: r.app, appName: job ? "Core" : appName(r.app), isJob: job, destination: link?.label ?? "", text: r.text, hasPicture: Boolean(r.generationId), status: expired ? "expired" : r.status, error: r.error });
 }
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
@@ -43,6 +45,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   // Claimed once: two taps (or two tabs) can never send twice.
   const claimed = await db.pendingSend.updateMany({ where: { id, userId: u.userId, status: "pending" }, data: { status: "sending" } });
   if (claimed.count !== 1) return NextResponse.json({ error: "This message was already handled." }, { status: 409 });
+  if (isJobApp(r.app)) {
+    const started = await startQueuedJob(r);
+    if (started.ok) { await db.pendingSend.update({ where: { id }, data: { status: "sent", decidedAt: new Date() } }); return NextResponse.json({ status: "sent" }); }
+    await db.pendingSend.update({ where: { id }, data: { status: "failed", error: started.error.slice(0, 300), decidedAt: new Date() } });
+    return NextResponse.json({ status: "failed", error: started.error }, { status: 502 });
+  }
   const out = await performSend(u.userId, r.app, r.text, r.generationId);
   if (out.ok) {
     await db.pendingSend.update({ where: { id }, data: { status: "sent", decidedAt: new Date() } });

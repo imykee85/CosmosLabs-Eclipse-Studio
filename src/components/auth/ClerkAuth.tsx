@@ -4,11 +4,12 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import { safeNext } from "@/lib/safe-next";
+import { afterAuthPath } from "@/lib/pending-plan";
 import AuthView, { type Handlers, type Mode, type Result } from "./AuthView";
 
 const AFTER_SIGN_IN = "/dashboard";
 // Connecting an outside app (Claude) sends the person here to sign in first: after signing in they go back to the connection page, never anywhere else.
-const afterSignIn = () => safeNext(new URLSearchParams(window.location.search).get("next")) ?? AFTER_SIGN_IN;
+const afterSignIn = () => safeNext(new URLSearchParams(window.location.search).get("next")) ?? afterAuthPath(AFTER_SIGN_IN);
 const AFTER_SIGN_UP = "/onboarding"; // new accounts answer a few questions first
 
 // Signing in can need one more code: a second factor, or Clerk's "new device" check, which sends an email code. The installed Clerk typings
@@ -72,7 +73,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
 
     async google() {
       try {
-        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: mode === "signup" ? AFTER_SIGN_UP : afterSignIn() } as const;
+        const opts = { strategy: "oauth_google", redirectUrl: "/sso-callback", redirectUrlComplete: mode === "signup" ? afterAuthPath(AFTER_SIGN_UP) : afterSignIn() } as const;
         if (mode === "signin") {
           if (!inLoaded) return loading;
           await signIn.authenticateWithRedirect(opts);
@@ -101,7 +102,7 @@ export default function ClerkAuth({ mode }: { mode: Mode }) {
         const res = await signUp.attemptEmailAddressVerification({ code });
         if (res.status === "complete") {
           await setActiveUp({ session: res.createdSessionId });
-          router.push(AFTER_SIGN_UP);
+          router.push(afterAuthPath(AFTER_SIGN_UP));
           return;
         }
         return { error: "That code didn't work. Check it and try again." };

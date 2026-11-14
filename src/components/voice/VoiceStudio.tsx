@@ -9,7 +9,12 @@ import GenerateButton from "@/components/GenerateButton";
 import Stage from "./Stage";
 import SoundTake from "./SoundTake";
 import TranscriptView from "./Transcript";
-import { EffectsConsole, ModeTabs, MusicConsole, TranscribeConsole, type Mode } from "./Modes";
+import { EffectsConsole, FILL_EVENT, ModeTabs, MusicConsole, TranscribeConsole, type Mode } from "./Modes";
+import AtlasChip from "@/components/design/AtlasChip";
+import AgentWidget from "@/components/create/AgentWidget";
+import { useAgent } from "@/lib/use-agent";
+import { useAgentHost } from "@/lib/agent-chat";
+import "@/components/create/create.css";
 import VoiceCreator from "./VoiceCreator";
 import VoicePicker from "./VoicePicker";
 import SheetPortal from "./SheetPortal";
@@ -56,6 +61,9 @@ export default function VoiceStudio() {
   const [picking, setPicking] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [wordsOpen, setWordsOpen] = useState(false);
+  const [speakersOpen, setSpeakersOpen] = useState(false);
+  const [extra, setExtra] = useState<Chosen[]>([]); // Drama 3: the voices of speakers 1, 2... (speaker 0 is the chosen voice)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -139,19 +147,71 @@ export default function VoiceStudio() {
     requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(a + t.length, a + t.length); });
   }, [text]);
 
-  async function generate() {
-    if (!canGo || !model) return;
-    if (!ready) { setError(NOT_READY); return; }
-    if (!voice && !model.voiceOptional) { setError("Pick a voice first."); return; }
+  // Drama 3 helpers: a direction in [brackets], a paired word tag around the selection, a speaker tag at the caret.
+  const wrap = useCallback((open: string, close: string) => {
+    const el = box.current;
+    const a = el?.selectionStart ?? text.length, b = el?.selectionEnd ?? text.length, sel = text.slice(a, b);
+    setText(text.slice(0, a) + open + sel + close + text.slice(b));
+    setWordsOpen(false); setSpeakersOpen(false);
+    requestAnimationFrame(() => { el?.focus(); if (sel) el?.setSelectionRange(a + open.length, a + open.length + sel.length); else el?.setSelectionRange(a + open.length, a + open.length); });
+  }, [text]);
+  useEffect(() => { if (!model?.drama) setExtra([]); }, [model?.drama]);
+
+  async function generate(script = text): Promise<string> {
+    const body = script.trim();
+    if (!model) return "No voice model is available.";
+    if (!body) return "Write the script first.";
+    if (submitting) return "A take is already starting.";
+    if (body.length > model.maxChars) return `The script is longer than ${model.label} takes (${model.maxChars.toLocaleString("en-US")} characters).`;
+    if (!ready) { setError(NOT_READY); return NOT_READY; }
+    if (!voice && !model.voiceOptional) { setError("Pick a voice first."); return "Pick a voice first."; }
     setError("");
     setSubmitting(true);
-    const r = await startVoice({ text: text.trim(), model: model.id, voiceId: voice?.id ?? "", voiceName: voice?.name, speed: model.supports.speed && speed !== 1 ? speed : undefined, projectId: readCurrentProject()?.id ?? null });
+    const r = await startVoice({ text: body, model: model.id, voiceId: voice?.id ?? "", voiceName: voice?.name, speakerVoiceIds: model.drama && extra.length ? extra.map((e) => e.id) : undefined, speed: model.supports.speed && speed !== 1 ? speed : undefined, projectId: readCurrentProject()?.id ?? null });
     setSubmitting(false);
-    if (!r.ok) { setError(r.error); return; }
+    if (!r.ok) { setError(r.error); return r.error; }
     setText("");
     write(DRAFT_KEY, null);
     void reload();
+    return "";
   }
+
+  // Atlas in Audio Studio: he sees the mode and its box, writes scripts and sound or music briefs, and can start them (each start is the person's button).
+  const agent = useAgent();
+  useAgentHost({
+    page: "voice",
+    context: () => ({
+      prompt: studioMode === "speak" ? text : "",
+      model: studioMode === "speak" ? model?.label : undefined,
+      settings: [
+        `Mode: ${studioMode === "speak" ? "Speak (voiceover from a script)" : studioMode === "effects" ? "Effects (sound effects from a description)" : studioMode === "music" ? "Music (music from a description)" : "Transcribe (a recording to text; nothing to write)"}`,
+        ...(studioMode === "speak" ? [`Voice: ${voice?.name ?? "none chosen"}`, `Speed: ${speed.toFixed(1)}x${model?.supports.speed ? "" : " (this model has no speed control)"}`, model?.tags.length ? `Delivery tags this model reads: ${model.tags.slice(0, 20).join(" ")}` : "This model reads no delivery tags", model ? `Script limit: ${model.maxChars} characters` : ""] : []),
+      ].filter(Boolean),
+    }),
+    setPrompt: (t) => {
+      if (studioMode === "effects" || studioMode === "music") window.dispatchEvent(new CustomEvent(FILL_EVENT, { detail: { kind: studioMode === "effects" ? "sfx" : "music", text: t } }));
+      else { if (studioMode !== "speak") changeMode("speak"); setText(t); }
+    },
+    generate: async (o) => {
+      if (studioMode === "effects" || studioMode === "music") {
+        if (!o.prompt?.trim()) return "Write the description first.";
+        window.dispatchEvent(new CustomEvent(FILL_EVENT, { detail: { kind: studioMode === "effects" ? "sfx" : "music", text: o.prompt, go: true } }));
+        return "";
+      }
+      if (studioMode === "transcribe") return "Transcribe works on a recording: add one in the box below.";
+      if (o.prompt) setText(o.prompt);
+      return generate(o.prompt ?? text);
+    },
+    controls: studioMode === "speak" && models?.length ? {
+      options: () => [`model: ${(models ?? []).map((m) => m.id).join(", ")}`, "prompt: the script"],
+      apply: (p) => {
+        const set: string[] = [], refused: string[] = [];
+        if (p.model) { const m = models?.find((x) => x.id === p.model); if (m) { setModelId(m.id); write(MODEL_KEY, m.id); set.push(`model ${m.label}`); } else refused.push(`model ${p.model}`); }
+        if (p.prompt) { setText(p.prompt); set.push("script"); }
+        return { set, refused };
+      },
+    } : undefined,
+  });
 
   const seen = useRef<Set<string> | null>(null);
   useEffect(() => {
@@ -266,7 +326,9 @@ export default function VoiceStudio() {
 
       <div className="vc-console-wrap">
         {message && <p className="vc-error" role="alert">{message}</p>}
-        <ModeTabs mode={studioMode} onMode={changeMode} />
+        <div className="vc-modebar">
+          <ModeTabs mode={studioMode} onMode={changeMode} />
+        </div>
         {studioMode === "transcribe" && <TranscribeConsole models={allModels?.filter((m) => m.kind === "stt") ?? []} onStart={startKind} setError={setError} />}
         {studioMode === "effects" && <EffectsConsole models={allModels?.filter((m) => m.kind === "sfx") ?? []} onStart={startKind} setError={setError} />}
         {studioMode === "music" && <MusicConsole models={allModels?.filter((m) => m.kind === "music") ?? []} onStart={startKind} setError={setError} />}
@@ -286,6 +348,40 @@ export default function VoiceStudio() {
               <output>{speed.toFixed(1)}x</output>
               <button type="button" aria-label="Faster" disabled={!model?.supports.speed || speed >= SPEEDS[SPEEDS.length - 1]} onClick={() => setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(speed) + 1)])}><Plus size={14} /></button>
             </div>
+            {model?.drama && (
+              <>
+                <button type="button" className="vc-pill vc-tagbtn" title="Add a direction in square brackets before the words it affects" onClick={() => wrap("[", "]")}>[ ] Direction</button>
+                <div className="vc-tagwrap">
+                  <button type="button" className={`vc-pill vc-tagbtn ${wordsOpen ? "is-open" : ""}`} aria-haspopup="menu" aria-expanded={wordsOpen} title="Wrap the selected words in a tag" onClick={() => { setWordsOpen((o) => !o); setSpeakersOpen(false); setTagsOpen(false); }}><Tag size={14} /> Word tag</button>
+                  {wordsOpen && (
+                    <div className="vc-tagmenu" role="menu" aria-label="Word tags">
+                      {model.drama.wordTags.map((t) => <button key={t} type="button" role="menuitem" onClick={() => wrap(`<${t}>`, `</${t}>`)}>{`<${t}>`}</button>)}
+                    </div>
+                  )}
+                </div>
+                {model.drama.multiSpeaker && (
+                  <div className="vc-tagwrap">
+                    <button type="button" className={`vc-pill vc-tagbtn ${speakersOpen ? "is-open" : ""}`} aria-haspopup="menu" aria-expanded={speakersOpen} title="Several voices in one scene" onClick={() => { setSpeakersOpen((o) => !o); setWordsOpen(false); setTagsOpen(false); }}>Speakers{extra.length ? ` · ${extra.length + 1}` : ""}</button>
+                    {speakersOpen && (
+                      <div className="vc-tagmenu vc-speakers" role="menu" aria-label="Speakers">
+                        {[{ id: "0", name: voice?.name ?? "Chosen voice" }, ...extra].map((s, i) => (
+                          <div key={`${s.id}-${i}`} className="vc-spk">
+                            <button type="button" role="menuitem" onClick={() => wrap(`<|speaker:${i}|>`, "")}>{`<|speaker:${i}|>`} {s.name}</button>
+                            {i > 0 && <button type="button" aria-label={`Remove speaker ${i}`} onClick={() => setExtra((e) => e.filter((_, k) => k !== i - 1))}>×</button>}
+                          </div>
+                        ))}
+                        {extra.length + 1 < model.drama.maxSpeakers && (
+                          <select aria-label={`Voice for speaker ${extra.length + 1}`} value="" onChange={(e) => { const v = stripVoices.find((x) => x.voiceId === e.target.value); if (v) setExtra((x) => [...x, { id: v.voiceId, name: v.name }]); }}>
+                            <option value="">{`Add a voice for speaker ${extra.length + 1}…`}</option>
+                            {stripVoices.filter((v) => v.voiceId !== voice?.id && !extra.some((x) => x.id === v.voiceId)).map((v) => <option key={v.voiceId} value={v.voiceId}>{v.name}</option>)}
+                          </select>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
             <div className="vc-tagwrap">
               <button type="button" className={`vc-pill vc-tagbtn ${tagsOpen ? "is-open" : ""}`} aria-haspopup="menu" aria-expanded={tagsOpen} disabled={!model?.tags.length} title={model?.supports.emotionTags ? "Delivery tags" : `${model?.label ?? "This model"} does not read delivery tags`} onClick={() => setTagsOpen((o) => !o)}><Tag size={14} /> Delivery</button>
               {tagsOpen && (
@@ -294,12 +390,14 @@ export default function VoiceStudio() {
                 </div>
               )}
             </div>
-            <span className="vc-count">{chars.toLocaleString("en-US")}{model ? `/${model.maxChars.toLocaleString("en-US")}` : ""}</span>
+            <AtlasChip studio="Audio Studio" />
+            {model && chars >= model.maxChars && <span className={`vc-count ${over ? "is-over" : ""}`} role="status">{chars.toLocaleString("en-US")}/{model.maxChars.toLocaleString("en-US")}</span>}
           </div>
           <GenerateButton wide className="vc-go-slot" price={price} busy={submitting} disabled={!canGo} onClick={() => void generate()} />
         </div>}
       </div>
 
+      {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
       {picking && <SheetPortal><VoicePicker voices={sheet.voices} error={model && !model.ready ? NOT_READY : sheet.ready ? sheet.error : NOT_READY} selected={voice?.id ?? null} onPick={choose} onSearch={sheet.search} onClose={() => setPicking(false)} onNew={() => { setPicking(false); setCreating(true); }} onDelete={removeOwn} /></SheetPortal>}
       {creating && models && <SheetPortal><VoiceCreator models={models} provider={provider} costs={costs} consentText={consentText} onClose={() => setCreating(false)} onCreated={created} /></SheetPortal>}
     </div>

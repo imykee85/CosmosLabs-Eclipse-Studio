@@ -14,6 +14,7 @@ const ORIGINS: Record<string, string> = {
   "/prompts": "Prompts",
   "/generate": "Video Studio",
   "/voice": "Audio Studio",
+  "/design": "Design Studio",
   "/connect": "Core",
   "/memory": "Memory",
   "/skills": "Skills",

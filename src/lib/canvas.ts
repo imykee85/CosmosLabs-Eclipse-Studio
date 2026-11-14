@@ -4,7 +4,7 @@ import type { VarState } from "./variations/prompt";
 
 // Canvas: a free-form graph of nodes that feeds the image generator. Saved per project in this browser and, when signed in, to the account.
 export type NodeKind = "character" | "product" | "scene" | "text" | "style" | "fullbody" | "note" | "generator" | "sheet" | "image" | "clip" | "videogen"
-  | "assistant" | "voiceover" | "sfx" | "music" | "editor" | "upscaler" | "variations" | "list" | "group";
+  | "assistant" | "voiceover" | "sfx" | "music" | "editor" | "upscaler" | "variations" | "list" | "group" | "model3d";
 
 export type PicRef = { type: "upload" | "render"; id: string; label: string };
 
@@ -41,6 +41,8 @@ export type CanvasNodeData = {
   keep?: boolean;       // generators fed by a List: keep the earlier results instead of replacing them
   title?: string;       // group: its title
   color?: string;       // group: its colour name
+  m3model?: string;     // 3D model node: a 3D model id
+  m3tex?: boolean;      // 3D model node: colour and texture (default on)
   option?: string;      // upscaler and image editor: unused for now
   edOp?: string;        // edit image: which tool (prompt, removebg, relight, camera)
   edOpt?: string;       // edit image: the chosen relight / camera option, or the aspect ratio for Crop and Expand
@@ -63,6 +65,7 @@ export const NODE_GROUPS: { title: string; items: CatalogItem[] }[] = [
   { title: "Generators", items: [
     { id: "generator", kind: "generator", label: "Image generator", blurb: "Turns the wired-in nodes into a picture" },
     { id: "video", kind: "videogen", label: "Video generator", blurb: "Turns a picture into motion" },
+    { id: "model3d", kind: "model3d", label: "3D model", blurb: "Builds a 3D model from pictures or words" },
   ] },
   { title: "Tools", items: [
     { id: "assistant", kind: "assistant", label: "Assistant", blurb: "Writes or rewrites text for you" },

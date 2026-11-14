@@ -3,7 +3,7 @@
 .cp-head { max-width: 640px; }
 .cp-head h1 { margin: 12px 0 0; color: var(--a-fg); font-size: clamp(36px, 4.6vw, 56px); font-weight: 700; letter-spacing: -.04em; line-height: 1.02; }
 .cp-head p { margin: 14px 0 0; color: var(--a-muted); font-size: 17px; line-height: 1.5; }
-.cp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 44px; }
+.cp-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 44px; }
 
 .cp-card { position: relative; display: block; aspect-ratio: 3 / 4; overflow: hidden; border-radius: 28px; background: #0b0b0b; color: #fff; isolation: isolate; box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 20px 50px -30px var(--a-shadow); transition: transform .5s cubic-bezier(.2,.8,.2,1), box-shadow .5s ease; }
 .cp-card:hover { transform: translateY(-6px); box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 34px 70px -34px rgba(192,7,7,.55); }
@@ -73,3 +73,15 @@
 }
 .cp-film img, .cp-film video { object-position: 50% 18%; }
 @media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .cp-stills img { top: 6%; width: 22%; } }
+
+/* Design Studio card: a slowly turning wire cube on a dark field */
+.cp-design { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(90% 60% at 50% 32%, #26272b 0%, #101113 50%, #070707 85%); perspective: 700px; }
+.cp-cube { --s: 45px; position: relative; width: 90px; height: 90px; transform-style: preserve-3d; animation: cp-spin 14s linear infinite; margin-top: -14%; }
+.cp-cube i { position: absolute; inset: 0; border: 2px solid rgba(214, 218, 226, .9); border-radius: 6px; background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,0) 60%); box-shadow: 0 0 22px rgba(200, 206, 218, .35), inset 0 0 18px rgba(200, 206, 218, .2); }
+.cp-cube i:nth-child(1) { transform: translateZ(calc(var(--s, 60px))); }
+.cp-cube i:nth-child(2) { transform: rotateY(90deg) translateZ(var(--s, 60px)); }
+.cp-cube i:nth-child(3) { transform: rotateX(90deg) translateZ(var(--s, 60px)); }
+@keyframes cp-spin { to { transform: rotateX(-24deg) rotateY(360deg); } }
+@media (min-width: 801px) { .cp-body h2 { font-size: 22px; } }
+@media (max-width: 1180px) and (min-width: 801px) { .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cp-body h2 { font-size: 28px; } }
+@media (prefers-reduced-motion: reduce) { .cp-cube { animation: none; transform: rotateX(-24deg) rotateY(32deg); } }

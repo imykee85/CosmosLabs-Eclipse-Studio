@@ -3,7 +3,7 @@ import { cleanPlan, type PlanRef, type PlanSpec } from "./agent-plan";
 import { cleanMission, type MissionSpec } from "./agent-mission-spec";
 
 // Turns the model's answer into what the browser shows: the text and the buttons made from its tool calls. Kept apart from the route so it can be tested.
-export type Action = { kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number };
+export type Action = { kind: "generate" | "use_prompt" | "reply" | "make"; label: string; prompt?: string; count?: number; asset?: "image" | "video"; ratio?: string };
 const clip = (s: unknown, n: number) => (typeof s === "string" ? s.trim().slice(0, n) : "");
 const MAX_PROMPT = 32000; // the longest prompt any model takes (GPT Image); the box shows the chosen model's own limit
 const PRETTY_UP_TO = 8000; // JSON prompts are written out with indentation while they stay this short, else on one line
@@ -18,7 +18,7 @@ function promptText(v: unknown): string {
 }
 
 // Settings Atlas chose for the prompt box (owner 2026-10-21). Only known keys with the right kind of value get through; the screen checks the values against what its box really offers.
-export type Controls = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
+export type Controls = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string; move?: string; move2?: string; combine?: string; rotate?: number; vertical?: number; distance?: number; speed?: number; lens?: number; shake?: number; length?: number; sceneMode?: string; sceneRequest?: string };
 export function cleanControls(i: Record<string, unknown>): Controls {
   const c: Controls = {};
   const str = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : undefined);
@@ -30,6 +30,19 @@ export function cleanControls(i: Record<string, unknown>): Controls {
   if (typeof i.sound === "boolean") c.sound = i.sound;
   if (typeof i.fixed_seed === "boolean") c.fixed_seed = i.fixed_seed;
   const prompt = promptText(i.prompt); if (prompt) c.prompt = prompt;
+  // ShotMap camera move (owner 2026-11-13): a described camera motion as the Moves settings. The screen checks each value against what it offers.
+  const move = str(i.move, 20); if (move) c.move = move;
+  const move2 = str(i.second_move, 20); if (move2) c.move2 = move2;
+  const combine = str(i.combine, 12); if (combine) c.combine = combine;
+  const num = (v: unknown, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi ? v : undefined);
+  const rot = num(i.rotate_deg, 0, 359); if (rot !== undefined) c.rotate = rot;
+  const vert = num(i.vertical_deg, -30, 80); if (vert !== undefined) c.vertical = vert;
+  const dist = num(i.distance_m, 1, 40); if (dist !== undefined) c.distance = dist;
+  const spd = num(i.speed_percent, 25, 300); if (spd !== undefined) c.speed = spd;
+  const lens = num(i.lens_mm, 12, 200); if (lens !== undefined) c.lens = lens;
+  const shake = num(i.shake_percent, 0, 100); if (shake !== undefined) c.shake = shake;
+  const len = num(i.length_seconds, 2, 30); if (len !== undefined) c.length = len;
+  const sceneRequest = str(i.scene_request, 600); if (sceneRequest) { c.sceneRequest = sceneRequest; c.sceneMode = i.scene_mode === "motion" ? "motion" : "scene"; }
   return c;
 }
 
@@ -48,6 +61,11 @@ export function buildReply(content: Anthropic.ContentBlock[], stopReason: string
         const n = Number.isInteger(i.count) ? Math.min(4, Math.max(1, i.count as number)) : undefined;
         actions.push({ kind: "generate", label: n && n > 1 ? `Generate ${n}` : "Generate", prompt, count: n });
       } else if (b.name === "suggest_prompt" && prompt) actions.push({ kind: "use_prompt", label: "Use this prompt", prompt });
+      else if (b.name === "make_asset" && prompt) {
+        const asset = i.kind === "video" ? "video" : "image";
+        const ratio = typeof i.aspect_ratio === "string" && /^\d{1,2}:\d{1,2}$/.test(i.aspect_ratio) ? i.aspect_ratio : undefined;
+        actions.push({ kind: "make", label: asset === "video" ? "Make this clip" : "Make this picture", prompt, asset, ...(ratio ? { ratio } : {}) });
+      }
       else if (b.name === "propose_plan") plan = cleanPlan(i, pictures) ?? plan;
       else if (b.name === "propose_mission") mission = cleanMission(i) ?? mission;
       else if (b.name === "set_prompt_box") controls = { ...controls, ...cleanControls(i) };

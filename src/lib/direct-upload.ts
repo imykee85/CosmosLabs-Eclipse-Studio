@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { readImageSize } from "@/lib/image-info";
+import { notePendingUpload } from "@/lib/upload-sweep";
 import { copyObjectIfMatch, deleteObject, getObjectBytes, getObjectHead, headObjectInfo, putObject, signedGetUrl, signedPutUrl, storageEnabled } from "@/lib/storage";
 import { MAX_UPLOADS_PER_USER, convertPicture, isUploadKind, sniffImageType, type UploadKind } from "@/lib/uploads";
 import { scanUpload } from "@/lib/upload-scan";
@@ -40,6 +41,7 @@ export async function startUpload(userId: string, i: StartInput): Promise<{ ok: 
   if (!plan.ok) return { ok: false, status: 400, error: plan.error };
   if (i.fileKind === "image" && (await db.upload.count({ where: { userId } })) >= MAX_UPLOADS_PER_USER) return { ok: false, status: 409, error: `You have reached the limit of ${MAX_UPLOADS_PER_USER} uploads. Delete some to add more.` };
   const key = plan.key(userId);
+  await notePendingUpload(userId, key);
   return { ok: true, key, url: await signedPutUrl(key, i.contentType) };
 }
 

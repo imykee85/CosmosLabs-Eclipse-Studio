@@ -19,6 +19,9 @@ import { PICKER_MODELS, capsFor, findVideoModel, isLive, videoPrice, workflowOf 
 import { CORE_TOOLS, isCoreTool, runCoreTool } from "./agent-core-tools";
 import { toolDefs, runTool, performSend } from "./connect-tools";
 import { realDeps, type PlanDeps, VOICE_MODEL, MUSIC_MODEL } from "./agent-plan-server";
+import { start3D } from "./design/jobs3d";
+import { find3D, price3D } from "./design/models3d";
+const SFX_MODEL = "eleven_text_to_sound_v2";
 import { LEDGER_UNITS_PER_CREDIT } from "./credit-units";
 import { MAX_GOAL, type MissionCall, type MissionStatus, type MissionView, type TraceItem, type TraceKind } from "./agent-mission-spec";
 
@@ -44,7 +47,7 @@ const READ_TOOLS: Anthropic.Tool[] = [
   { name: "list_video_models", description: "The video models you can use with make_video, with the clip lengths, aspect ratios, qualities and how many reference pictures each takes.", input_schema: obj({}) },
   { name: "list_canvases", description: "The canvases (node boards) in the person's projects, newest first: id, name, project and how many nodes. Use it to find the board that holds their plan, prompts or references.", input_schema: obj({ project_id: { type: "string" } }) },
   { name: "read_canvas", description: "Read one canvas: its nodes (kind, title, text/prompt, chosen picture ids, settings) and how they are wired. Use it to understand or continue the person's board. You cannot edit a canvas.", input_schema: obj({ canvas_id: { type: "string" } }, ["canvas_id"]) },
-  { name: "check_job", description: "Where something you started is now: its status (pending, completed or failed) and, if it failed, why. Use it before you rely on a result, and after wait.", input_schema: obj({ kind: { type: "string", enum: ["image", "video", "audio"] }, id: { type: "string" } }, ["kind", "id"]) },
+  { name: "check_job", description: "Where something you started is now: its status (pending, completed or failed) and, if it failed, why. Use it before you rely on a result, and after wait.", input_schema: obj({ kind: { type: "string", enum: ["image", "video", "audio", "model3d"] }, id: { type: "string" } }, ["kind", "id"]) },
 ];
 const refs = { type: "array", maxItems: 16, description: "Pictures to build from: {\"type\":\"render\",\"id\":<generation id>} or {\"type\":\"upload\",\"id\":<upload id>}.", items: obj({ type: { type: "string", enum: ["render", "upload"] }, id: { type: "string" } }, ["type", "id"]) };
 const ACTION_TOOLS: Anthropic.Tool[] = [
@@ -53,6 +56,8 @@ const ACTION_TOOLS: Anthropic.Tool[] = [
   { name: "make_voice", description: "Make a voiceover take from a script. It costs credits, so the person approves it first.", input_schema: obj({ text: { type: "string" } }, ["text"]) },
   { name: "send_to_app", description: "Send a message (optionally with one finished picture) to an app the person connected (see list_connected_apps). It goes OUT to the world, so the person ALWAYS approves it first, even on autopilot. Write the exact text to send.", input_schema: obj({ app: { type: "string" }, text: { type: "string" }, generation_id: { type: "string", description: "A finished picture to attach (not a video)." } }, ["app", "text"]) },
   { name: "make_music", description: "Make music from a description (mood, instruments, pace; no artist names or lyrics). It costs credits, so the person approves it first.", input_schema: obj({ prompt: { type: "string" }, seconds: { type: "integer", minimum: 3, maximum: 240 } }, ["prompt"]) },
+  { name: "make_sfx", description: "Make a sound effect from a description (a door slam, rain on a window, a whoosh). It costs credits, so the person approves it first.", input_schema: obj({ prompt: { type: "string" }, seconds: { type: "number", minimum: 0.5, maximum: 30, description: "Length in seconds; leave out to let it decide." } }, ["prompt"]) },
+  { name: "make_3d", description: "Make a 3D model (.glb) in Design Studio, from words, or from ONE picture you made or the person has (give its id). It costs credits, so the person approves it first. It is saved in Design Studio's 3D tab.", input_schema: obj({ prompt: { type: "string", description: "What to make (words), or a short name when a picture is given." }, picture: { type: "object", description: "Optional: build from this picture.", properties: { type: { type: "string", enum: ["render", "upload"] }, id: { type: "string" } }, required: ["type", "id"] } }, ["prompt"]) },
 ];
 const FLOW_TOOLS: Anthropic.Tool[] = [
   { name: "wait", description: "Pause while something you started is being made. The mission carries on after the pause and you are called again. Use it instead of checking over and over.", input_schema: obj({ seconds: { type: "integer", minimum: 5, maximum: 240 }, reason: { type: "string" } }, ["seconds"]) },
@@ -67,7 +72,7 @@ const SYSTEM = `You are Atlas, running a MISSION: the person gave you a goal and
 How you work:
 1. Start by reading what you need (their Library, memory, the model lists) and decide a short plan. Write it in one or two lines before the first tool call.
 2. Do the next step with a tool. Read the result. Decide again. Keep going without asking for permission to think.
-3. Anything that costs credits (make_image, make_video, make_voice, make_music) is only a REQUEST: the person approves it (or it runs inside a budget they set). Group the requests that belong together into one reply so they approve once. If they decline, change the plan; do not ask again for the same thing.
+3. Anything that costs credits (make_image, make_video, make_voice, make_music, make_sfx, make_3d) is only a REQUEST: the person approves it (or it runs inside a budget they set). Group the requests that belong together into one reply so they approve once. If they decline, change the plan; do not ask again for the same thing.
 4. LOOK at what you made before you call it good: use check_job until it is completed, then view_render to see a picture. If it is off (wrong subject, bad hands, text errors, not matching the references), say what is wrong and fix it with a better prompt, within the budget. Do not repeat the same prompt hoping for a different result.
 5. Use wait while things are made. Do not poll in a tight loop.
 6. Ask the person (ask_user) only for what you truly cannot decide. Otherwise make a sensible choice and say which.
@@ -142,6 +147,17 @@ async function quote(c: { tool: string; input: Record<string, unknown> }, userId
     const q = await deps.quoteAudio({ userId, kind: "tts", model: VOICE_MODEL, text: str(i.text, 5000), voiceId: voice.id });
     return q.ok ? { price: q.quote, summary: `Voiceover: ${str(i.text, 90)}` } : { error: q.error };
   }
+  if (c.tool === "make_sfx") {
+    const sec = Number(i.seconds);
+    const q = await deps.quoteAudio({ userId, kind: "sfx", model: SFX_MODEL, text: str(i.prompt, 1000), ...(Number.isFinite(sec) && sec > 0 ? { durationSec: Math.min(30, Math.max(0.5, sec)) } : {}) });
+    return q.ok ? { price: q.quote, summary: `Sound effect: ${str(i.prompt, 90)}` } : { error: q.error };
+  }
+  if (c.tool === "make_3d") {
+    const pic = i.picture && typeof i.picture === "object";
+    const m = find3D(pic ? "meshy_v7_image_to_3d" : "meshy_v6_text_to_3d");
+    if (!m) return { error: "3D models are not available right now." };
+    return { price: process.env.CREDITS_ENABLED === "1" ? price3D(m) : null, summary: `3D model (${m.label}): ${str(i.prompt, 90)}` };
+  }
   const secs = Math.min(240, Math.max(3, Math.round(Number(i.seconds)) || 30));
   const q = await deps.quoteAudio({ userId, kind: "music", model: MUSIC_MODEL, text: str(i.prompt, 1000), durationSec: secs, instrumental: true });
   return q.ok ? { price: q.quote, summary: `${secs}s of music: ${str(i.prompt, 90)}` } : { error: q.error };
@@ -171,6 +187,16 @@ async function runAction(row: AgentMission, c: Call, deps: MissionDeps): Promise
     const r = await deps.startAudio({ userId, kind: "tts", model: VOICE_MODEL, text: str(i.text, 5000), voiceId: voice.id, voiceName: voice.name, projectId });
     return r.ok ? { content: JSON.stringify({ kind: "audio", id: r.item.id, status: "pending" }), ids: [r.item.id] } : fail(r.error);
   }
+  if (c.tool === "make_sfx") {
+    const sec = Number(i.seconds);
+    const r = await deps.startAudio({ userId, kind: "sfx", model: SFX_MODEL, text: str(i.prompt, 1000), ...(Number.isFinite(sec) && sec > 0 ? { durationSec: Math.min(30, Math.max(0.5, sec)) } : {}), projectId });
+    return r.ok ? { content: JSON.stringify({ kind: "audio", id: r.item.id, status: "pending" }), ids: [r.item.id] } : fail(r.error);
+  }
+  if (c.tool === "make_3d") {
+    const pic = i.picture && typeof i.picture === "object" ? (i.picture as { type?: unknown; id?: unknown }) : null;
+    const r = await start3D({ userId, model: pic ? "meshy_v7_image_to_3d" : "meshy_v6_text_to_3d", mode: pic ? "image" : "text", prompt: str(i.prompt, 600), refs: pic ? [{ type: pic.type, id: pic.id }] : [], options: {}, projectId });
+    return r.ok ? { content: JSON.stringify({ kind: "model3d", id: r.item.id, status: "pending", note: "Started. It takes several minutes: use wait, then check_job (kind model3d). It appears in Design Studio's 3D tab." }), ids: [r.item.id] } : fail(r.error);
+  }
   const r = await deps.startAudio({ userId, kind: "music", model: MUSIC_MODEL, text: str(i.prompt, 1000), durationSec: Math.min(240, Math.max(3, Math.round(Number(i.seconds)) || 30)), instrumental: true, projectId });
   return r.ok ? { content: JSON.stringify({ kind: "audio", id: r.item.id, status: "pending" }), ids: [r.item.id] } : fail(r.error);
 }
@@ -195,6 +221,10 @@ async function runRead(row: AgentMission, name: string, input: Record<string, un
     const kind = input.kind === "video" || input.kind === "audio" ? input.kind : "image";
     const id = str(input.id, 80);
     if (!id) return { res: { content: "Give the id.", isError: true } };
+    if (input.kind === "model3d") {
+      const m3 = await db.model3D.findFirst({ where: { id, userId: row.userId }, select: { status: true } });
+      return { res: { content: JSON.stringify({ kind: "model3d", id, status: m3 ? (m3.status === "completed" ? "completed" : m3.status === "failed" ? "failed" : "pending") : "failed" }) } };
+    }
     const c = await deps.check(kind, id, row.userId);
     return { res: { content: JSON.stringify({ kind, id, status: c.status, ...(c.error ? { error: c.error } : {}) }) } };
   }
@@ -343,7 +373,9 @@ async function pass(row: AgentMission, deps: MissionDeps): Promise<Patch> {
       if (actions.length) {
         const priced = actions.every((a) => a.price != null);
         const total = priced ? actions.reduce((s, a) => s + (a.price ?? 0), 0) : null;
-        if (row.autopilot && total != null && committed + total <= row.budget) {
+        // Web pages are untrusted text: once any has entered the conversation, nothing is spent without the person's OK, whatever the budget.
+        const sawWeb = JSON.stringify(messages).includes('"web_search_tool_result"') || JSON.stringify(messages).includes('"web_fetch_tool_result"') || JSON.stringify(convo).includes('"web_search_tool_result"') || JSON.stringify(convo).includes('"web_fetch_tool_result"');
+        if (row.autopilot && !sawWeb && total != null && committed + total <= row.budget) {
           if ((await freeCredits(row.userId)) < total) { for (const a of actions) results[a.id] = { content: "Not enough credits. Choose something cheaper or tell the person to top up.", isError: true }; trace.push(item("error", "Not enough credits for the next step.")); }
           else for (const a of actions) {
             const rr = await runAction(row, a, deps);
@@ -470,9 +502,14 @@ export async function driveMission(id: string, deps: MissionDeps = realMissionDe
 }
 
 const secret = () => serverSecret(process.env.CRON_SECRET, process.env.CLERK_SECRET_KEY);
-export const missionToken = (id: string) => createHmac("sha256", secret()).update(`mission:${id}`).digest("hex");
-export function validMissionToken(id: string, given: string | null): boolean {
-  const a = Buffer.from(given ?? ""), b = Buffer.from(missionToken(id));
+// A hand-over token carries its own time and is good for 15 minutes, so a leaked one cannot keep triggering the continue route.
+const missionMac = (id: string, ts: string) => createHmac("sha256", secret()).update(`mission:${id}:${ts}`).digest("hex");
+export const missionToken = (id: string, now = Date.now()) => { const ts = String(now); return `${ts}.${missionMac(id, ts)}`; };
+export function validMissionToken(id: string, given: string | null, now = Date.now()): boolean {
+  const [ts, mac] = (given ?? "").split(".");
+  const t = Number(ts);
+  if (!ts || !mac || !Number.isFinite(t) || now - t > 15 * 60_000 || t - now > 60_000) return false;
+  const a = Buffer.from(mac), b = Buffer.from(missionMac(id, ts));
   return a.length === b.length && timingSafeEqual(a, b);
 }
 const base = () => (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"));

@@ -12,8 +12,7 @@ Completeness basis (2026-11-04 sweep): every "NOT built / NOT tested / NOT verif
 | # | Item | Priority | Why it matters | Who |
 |---|---|---|---|---|
 | 1 | Save a Slack or Discord channel webhook as the Secret `OPS_ALERT_WEBHOOK_URL` in Vercel | High | Failure alerts stay silent without it. | Owner |
-| 2 | Set a separate Secret `CONNECT_SECRET_KEY` in Vercel | High | Today the Clerk key also encrypts connector logins and signs share links. Changing it later breaks both. | Owner |
-| 3 | Open Production `/admin/health` after the next deploy: confirm the table list (newer tables `chat_states`, `pending_sends`, `canvas_*`, `oauth_*`, `agent_plans`), the settings (`CRON_SECRET`, Web Analytics switched on in Vercel) and the page-security line | High | The only way to see that the newest schema and settings really reached Production; I cannot read Vercel. | Owner |
+| 3 | Open Production `/admin/health` after the next deploy: confirm the table list (newer tables `chat_states`, `pending_sends`, `canvas_*`, `oauth_*`, `agent_plans`), the settings (`CRON_SECRET`, Web Analytics switched on in Vercel) and the page-security line | Not immediately necessary | The only way to see that the newest schema and settings really reached Production; I cannot read Vercel. | Owner |
 | 4 | Watch the first real monthly Whop renewal in Payment events on the Production health page | High | The renewal field names have never been seen live, so credits might not be granted. | Owner, then me |
 | 5 | Watch free-trial signups against real accounts | High | Free trials cost real provider money, and a farm would drain it. | Owner and me |
 | 6 | Ghana registrations (business and Data Protection Commission) | High | A legal exposure. Ask your lawyer whether you need them. | Owner |
@@ -80,11 +79,32 @@ Completeness basis (2026-11-04 sweep): every "NOT built / NOT tested / NOT verif
 | 54 | Timeline editor (Editor chip, Eclipse's own build): check with a real clip on desktop and a phone (export speed, Safari/Firefox support, preview sound sync); decide if cross-fades, captions or Atlas control are wanted | Not immediately necessary | Built and tested in headless Chromium only | Owner |
 | 55 | Upscale (Topaz): save Secret `TOPAZ_API_KEY` and Config value `TOPAZ_CREDIT_USD` (dollars per Topaz credit on your plan), then run one picture and one clip upscale on the preview and send me the result; the status words, upload parts and estimate fields are unverified (`docs/topaz.md`) | High | The feature stays off until both are set | Owner |
 | 65 | Launch film (`media-archive/launch-video/`, v2 rendered 2026-11-11): watch it and say what to change; after that I make the 15 s cut and the no-flash version, run the flash check, write the README and merge. The soundtrack is original (`score.py`); I have never heard it | High | The film is the launch piece; the cuts for social posts and the flash safety check are not made yet | Owner, then me |
+| 66 | ShotMap rebuilt after the Magnific 3D Scenes study (draft PR, preview only): try it on the preview (build from a prompt, arrange, keyframes, Enter camera, Shoot, Use video into Seedance 2.5) and say whether to merge | Not immediately necessary | Held for your OK; production keeps the old ShotMap until you merge | Owner |
+| 67 | ShotMap Real environment (from pictures, a real place on a map, uploading a .ply/.spz scan) and Image to 3D: shown with Soon tags; need a 3D-reconstruction / Gaussian-splat provider and a maps key | Not immediately necessary | No provider in Eclipse can make these today | Owner decision, then me |
+| 68 | ShotMap live checks: the scene assistant (build, edit, camera moves) against the live model, Shoot stills on the live image models, and whether Seedance 2.5 follows a multi-key camera path from the recorded guide | Not immediately necessary | Tested with mocked answers and in headless Chromium only | Owner |
 
 
 ## Added by security audit run 3 (2026-11-05)
 | # | Item | Priority | Why it matters | Who |
 | --- | --- | --- | --- | --- |
-| 61 | R2 lifecycle rule: delete abandoned uploads (`u/*/up-*`, `u/*/vid-*`, `u/*/tools/in/*`) older than 24 hours | Not immediately necessary | People can start direct uploads and never finish them; the files stay in storage and cost money | Owner (Cloudflare R2 settings) |
-| 62 | Decide: confirm button before Core starts paid sandbox jobs (video edit, kinetic film, build session) | Not immediately necessary | Today it is a prompt rule only; worst case about 300 credits a day of self-harm, no cross-user effect | Owner decision, then me |
+| 61 | Optional, in Cloudflare R2: abort incomplete multipart uploads after 1 day (the daily sweep `/api/cron/upload-sweep` already deletes abandoned upload files; a path-prefix lifecycle rule cannot target them) | Not immediately necessary | Cleans up half-finished large uploads, which the sweep does not cover | Owner (Cloudflare R2 settings) |
+| 62 | Core asks before paid cloud jobs (video edit, kinetic film, build machine): BUILT 2026-11-13 as a card with a price and a Start button; live check with a real sandbox and a real chat | Not immediately necessary | Only tested with fakes | Owner |
 | 63 | Live checks: Whop checkout metadata and chargeback events, Clerk session cookie SameSite, sandbox allowlist DNS | Not immediately necessary | Audit run 3 could not verify these from source | Owner |
+| 75 | Share links can be stopped: BUILT 2026-11-13 (Stop sharing button, `DELETE /api/generations/<id>/share`); live check with a real shared link opened in a private window before and after | Not immediately necessary | Only tested in code and unit tests | Owner |
+
+## Added with Design Studio (2026-11-12)
+| # | Item | Priority | Why it matters | Who |
+| --- | --- | --- | --- | --- |
+| 69 | Higgsfield REST details for the 3D models: endpoint paths, the field that holds the picture(s) and the .glb in the answer, and the real price per model | High | Request fields and ranges now follow Higgsfield's own model list (read 2026-11-12), so what is still a guess is the REST path (`HIGGSFIELD_3D_PATH_<ID>`), where pictures go in the body, the result field and prices (`DESIGN3D_USD_<ID>`) | Owner (paste one 3D request page) |
+| 70 | One live 3D run on the owner's account (picture to model, then Add to ShotMap) and read `/admin/jobs` or the failure if any | High | The result parser scans for any https `.glb`; only a real answer proves it | Owner |
+| 71 | One live Motion run on the owner's account: a brief, an edit with a pinned comment, sound with Ask first, then Download (check the MP4 and the Library copy) | High | Motion was built 2026-11-12 and tested only with a scripted model and mocked routes; whether the live model writes good, working motion code is unproven | Owner |
+| 74 | Motion: several people editing the same motion at once with live cursors (seen in the video). Needs a live connection service (an account and key, e.g. Liveblocks or Ably) or polling, which costs Vercel CPU | Not immediately necessary | Today a teammate sees changes after reopening; the agent making pictures and clips (Atlas) and the default model pickers are built | Owner's choice of service |
+| 72 | Design Studio extras not built: Image to 3D inside ShotMap's Add panel, 3D files in the Library, remeshing/format export (OBJ, FBX, USDZ), graphics editor on a canvas | Not immediately necessary | Today a model is downloaded as .glb or sent to ShotMap | Owner's go |
+| 73 | 3D models Higgsfield lists that are not built: Meshy standalone rigging, remesh and retexture, 3D body, animation clips; Microsoft Trellis 2 (shown in the owner's Magnific video) is NOT in Higgsfield's catalog | Not immediately necessary | More choices and rigged characters; Trellis 2 would need another provider | Owner's go |
+
+## Added 2026-11-14
+| # | Item | Priority | Why it matters | Who |
+| --- | --- | --- | --- | --- |
+| 76 | Check the terms for the ShotMap models: Xbot mannequin (Mixamo) and the Wayfair sofa (CC BY 4.0 needs a visible credit) | Not immediately necessary | Licences decide whether they can ship and how they must be credited | Owner |
+| 77 | Live checks: Atlas seeing and watching the ShotMap scene, the 3D tray (formats, picture, open own .glb, Add to ShotMap from Design Studio), the new Why Eclipse film in the pop-up | Not immediately necessary | Tested with mocks and headless Chromium only | Owner |
+| 78 | Email alerts: Secret `RESEND_API_KEY`, Config `ALERT_EMAIL`, Clerk webhook plus Secret `CLERK_WEBHOOK_SIGNING_SECRET`, (`ADMIN_PASSWORD` is saved, owner 2026-11-14; confirm the others; row 1 may be replaced by these) | High | Sign-up and failure alerts and the admin lock stay off without them | Owner |

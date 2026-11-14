@@ -29,20 +29,20 @@ export function fetchAssets(): Promise<Assets> {
   })();
   return assetCache;
 }
-const bentPose = (pose: string) => !XBOT_CLIP[pose] && pose !== "lying";
+export const bentPose = (pose: string) => !XBOT_CLIP[pose] && pose !== "lying";
 const _q = new THREE.Quaternion(), _p = new THREE.Quaternion(), _axis = new THREE.Vector3();
 /** Swings a limb bone forward (positive) or back about the body's left-right axis, whatever way the model's own bone axes point: the turn is worked out in world space and handed back to the bone. */
-function swingForward(holder: THREE.Object3D, bone: THREE.Object3D, angle: number) {
+export function swingForward(holder: THREE.Object3D, bone: THREE.Object3D, angle: number) {
   if (!bone.parent) return;
   holder.getWorldQuaternion(_q); _axis.set(1, 0, 0).applyQuaternion(_q).normalize();
   bone.parent.getWorldQuaternion(_p);
   const world = new THREE.Quaternion().setFromAxisAngle(_axis, -angle);
   bone.quaternion.premultiply(_p.clone().invert().multiply(world).multiply(_p));
 }
-const bonesOf = (root: THREE.Object3D) => { const o: Record<string, THREE.Object3D> = {}; root.traverse((n) => { if (n.name.startsWith("mixamorig")) o[n.name.slice(9).replace(/^:/, "")] = n; }); return o; };
-const tintTo = (root: THREE.Object3D, hex: string) => root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = new THREE.MeshLambertMaterial({ color: hex }); });
+export const bonesOf = (root: THREE.Object3D) => { const o: Record<string, THREE.Object3D> = {}; root.traverse((n) => { if (n.name.startsWith("mixamorig")) o[n.name.slice(9).replace(/^:/, "")] = n; }); return o; };
+export const tintTo = (root: THREE.Object3D, hex: string) => root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = new THREE.MeshLambertMaterial({ color: hex }); });
 /** A copy of a loaded model scaled to `height` metres, standing on the ground with its middle at x 0, z 0. */
-function fitModel(src: THREE.Object3D, height: number, skinned: boolean) {
+export function fitModel(src: THREE.Object3D, height: number, skinned: boolean) {
   const root = skinned ? cloneSkinned(src) : src.clone(true), holder = new THREE.Group();
   holder.add(root); holder.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(root, true), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
   const k = size.y > 0 ? height / size.y : 1; root.scale.multiplyScalar(k); root.position.set(-c.x * k, -box.min.y * k, -c.z * k);
@@ -50,9 +50,9 @@ function fitModel(src: THREE.Object3D, height: number, skinned: boolean) {
 }
 
 const mat = (hex: string) => new THREE.MeshLambertMaterial({ color: hex });
-type Rig = { g: THREE.Group; h: number; pelvis: THREE.Group; torso: THREE.Group; hips: THREE.Group[]; knees: THREE.Group[]; shoulders: THREE.Group[]; elbows: THREE.Group[] };
+export type Rig = { g: THREE.Group; h: number; pelvis: THREE.Group; torso: THREE.Group; hips: THREE.Group[]; knees: THREE.Group[]; shoulders: THREE.Group[]; elbows: THREE.Group[] };
 /** A smooth human mannequin, man or woman: ellipsoid head, neck, chest, waist and pelvis, tapered limbs with round joints, hands and feet. One colour, so the colour names the person. */
-function personMesh(a: Actor): Rig {
+export function personMesh(a: Actor): Rig {
   const m = mat(colorHex(a.color)), h = a.heightM, B = BODY, w = a.build === "woman";
   const ell = (rx: number, ry: number, rz: number) => { const e = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), m); e.scale.set(rx * h, ry * h, rz * h); return e; };
   // a limb from y = 0 down to y = -len, radius rTop at the top and rBot at the bottom, with a swell in the middle (muscle)
@@ -92,12 +92,12 @@ function personMesh(a: Actor): Rig {
   }
   return { g, h, pelvis, torso, hips, knees, shoulders, elbows };
 }
-function poseRig(r: Rig, j: Joints) {
+export function poseRig(r: Rig, j: Joints) {
   r.pelvis.position.y = hipHeight(j, r.h);
   r.g.rotation.x = j.pitch; r.torso.rotation.x = j.lean;
   for (let i = 0; i < 2; i++) { r.hips[i].rotation.x = -j.hip[i]; r.knees[i].rotation.x = j.knee[i]; r.shoulders[i].rotation.x = -j.shoulder[i]; r.elbows[i].rotation.x = -j.elbow[i]; }
 }
-function vehicleMesh(v: Vehicle) {
+export function vehicleMesh(v: Vehicle) {
   const g = new THREE.Group(), m = mat(colorHex(v.color));
   const closed = v.type === "truck" || v.type === "van"; // cars and pickups are open so the driver stand-in shows
   const L = v.type === "truck" ? 6.5 : v.type === "van" ? 5 : v.type === "bike" ? 2 : v.type === "pickup" ? 5 : 4.3, W = v.type === "bike" ? 0.5 : 1.9, H = closed ? 1.7 : 0.4;
@@ -234,8 +234,8 @@ export function buildStage(scene: Scene, canvas: HTMLCanvasElement, width: numbe
   for (const shp of scene.shots) {
     const cd = scene.cameras.find((c) => c.id === shp.cameraId)!, Ts = Math.max(0.5, shp.endS - shp.startS), still2 = { ...cd, shake: { ...cd.shake, amount: 0 } }, pts: THREE.Vector3[] = [];
     for (let i = 0; i <= 80; i++) { const c = cameraAt(scene, still2, shp.startS + (i / 80) * Ts, shp.aspect as AspectId); pts.push(new THREE.Vector3(...c.pos)); }
-    const pathN = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0x8a5cf5, dashSize: 0.35, gapSize: 0.2 })); pathN.computeLineDistances(); three.add(pathN);
-    for (const k of cd.keys) { if (k.t < shp.startS - 1e-6 || k.t > shp.endS + 1e-6) continue; const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0x8a5cf5 })); d.position.set(...k.pos); three.add(d); }
+    const pathN = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0x9a9aa3, dashSize: 0.35, gapSize: 0.2 })); pathN.computeLineDistances(); three.add(pathN);
+    for (const k of cd.keys) { if (k.t < shp.startS - 1e-6 || k.t > shp.endS + 1e-6) continue; const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0x9a9aa3 })); d.position.set(...k.pos); three.add(d); }
   }
   void samples;
   const view = new THREE.PerspectiveCamera(42, width / height, 0.1, 800);

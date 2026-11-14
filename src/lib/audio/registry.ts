@@ -33,7 +33,11 @@ export type AudioModel = {
   asyncAlways?: boolean;     // always runs on the provider's side and is followed by polling (Mirelo)
   promo?: { price: number; until: string }; // a lower launch price until this date (YYYY-MM-DD, inclusive)
   priceEnv?: string;         // a Config value (USD per unit) that replaces the registry price
-  needsEnv?: string;         // the model is listed only when this Config value is set (Fish drama-3's price)
+  needsEnv?: string;         // the model is listed only when this Config value is set (Fish drama-3 stays off until FISH_DRAMA3_ENABLED=1, after its real test passes)
+  directions?: boolean;      // Fish Drama 3: plain-language directions in [square brackets] before the words they affect (NOT the fixed S2 tag list)
+  multiSpeaker?: boolean;    // several voices in one script: `reference_id` as an array and <|speaker:N|> before each turn
+  wordTags?: string[];       // paired tags that affect only the words they wrap, such as <emphasis>...</emphasis>
+  maxSpeakers?: number;      // voices in one scene (the API states no limit; capped for safety)
   deprecatedOn?: string;
   endsOn?: string;           // the provider stops serving it after this date (YYYY-MM-DD)
   note?: string;
@@ -64,13 +68,16 @@ export const AUDIO_MODELS: AudioModel[] = [
   { id: "eleven_flash_v2_5", provider: "elevenlabs", label: "Flash v2.5", kinds: ["tts"], maxChars: 40000, callChars: 5000, priceUnit: "char", price: 0.04, per: 1000, supports: { emotionTags: false, speed: true, pitch: false, voiceClone: true, streaming: true, subtitles: false }, note: "About 75 ms, 32 languages" },
 
   // Fish Audio (docs/audio-providers/fish-audio.md). Priced and limited in UTF-8 bytes. The reference states no maximum text length: 10,000 chars per job and
-  // 2,000 bytes per call are cautious (VERIFY). drama-3 is not registered (price not stated); s1 retires 2026-12-31 and is not registered.
+  // 2,000 bytes per call are cautious (VERIFY). s1 retires 2026-12-31 and is not registered.
   { id: "s2.1-pro", provider: "fish", label: "Fish S2.1 Pro", kinds: ["tts"], maxChars: 10000, callChars: 2000, callUnit: "byte", priceUnit: "byte", price: 15, per: 1_000_000, supports: { emotionTags: true, speed: true, ...NO_EXTRAS }, tags: FISH_TAGS, note: "83 languages, bracket cues such as [happy]" },
   // The free model still charges Eclipse credits (at the Pro price) and is switched off with AUDIO_FISH_FREE_ENABLED=0 or after 2026-11-30.
   { id: "s2.1-pro-free", provider: "fish", label: "Fish S2.1 Pro (free tier)", kinds: ["tts"], maxChars: 10000, callChars: 2000, callUnit: "byte", priceUnit: "byte", price: 15, per: 1_000_000, supports: { emotionTags: true, speed: true, ...NO_EXTRAS }, tags: FISH_TAGS, endsOn: "2026-11-30", note: "Same model, may be slower" },
   { id: "s2-pro", provider: "fish", label: "Fish S2 Pro", kinds: ["tts"], maxChars: 10000, callChars: 2000, callUnit: "byte", priceUnit: "byte", price: 15, per: 1_000_000, supports: { emotionTags: true, speed: true, ...NO_EXTRAS }, tags: FISH_TAGS },
-  // Drama 3 (plain-language direction, language switching experimental). Its price is NOT STATED, so it is listed only once the owner sets FISH_DRAMA3_PRICE_PER_MILLION_BYTES (USD).
-  { id: "drama-3", provider: "fish", label: "Fish Drama 3", kinds: ["tts"], maxChars: 10000, callChars: 2000, callUnit: "byte", priceUnit: "byte", price: 15, per: 1_000_000, needsEnv: "FISH_DRAMA3_PRICE_PER_MILLION_BYTES", supports: { emotionTags: true, speed: true, ...NO_EXTRAS }, tags: ["[whispering]", "[laughing]", "[sighing]", "[excited]", "[calm]", "[break]"], note: "Plain-language direction in brackets" },
+  // Drama 3 (docs: Fish Audio Drama 3 page, 2026-11-12): voice direction in plain words. List price $50 per 1M UTF-8 bytes (a launch price of $10 ended 2026-11-12, so Eclipse
+  // prices from $50; FISH_DRAMA3_PRICE_PER_MILLION_BYTES overrides it). OFF until its real test passes: set FISH_DRAMA3_ENABLED=1 (Config value). The `model: drama-3` header is
+  // asserted on every request because a missing one silently runs s2.1-pro. The API states no maximum text length: one scene is kept to one 2,000-byte take (VERIFY). It does not
+  // use the S2 tag list (no emotion-tag buttons) and prosody.speed is unconfirmed for it, so speed stays off.
+  { id: "drama-3", provider: "fish", label: "Fish Drama 3", kinds: ["tts"], maxChars: 2000, callChars: 2000, callUnit: "byte", priceUnit: "byte", price: 50, per: 1_000_000, needsEnv: "FISH_DRAMA3_ENABLED", priceEnv: "FISH_DRAMA3_PRICE_PER_MILLION_BYTES", directions: true, multiSpeaker: true, maxSpeakers: 5, wordTags: ["whisper", "emphasis", "soft", "fast", "slow", "stress", "forceful"], supports: { emotionTags: false, speed: false, ...NO_EXTRAS }, tags: [], note: "Direct the voice in plain words, several speakers in one scene" },
 
   // MiniMax sync TTS (docs/audio-providers/minimax.md section 4): under 10,000 chars per request; calls kept to 3,000 so each answers quickly. Long async TTS is phase 6.
   { id: "speech-2.8-hd", provider: "minimax", label: "MiniMax Speech 2.8 HD", kinds: ["tts"], maxChars: 50000, callChars: 3000, asyncAbove: 3000, priceUnit: "char", price: 100, per: 1_000_000, supports: { emotionTags: true, speed: true, ...NO_EXTRAS }, tags: MINIMAX_TAGS, note: "40 languages, interjections such as (laughs)" },
@@ -109,9 +116,8 @@ export const fakeEnabled = () => process.env.AUDIO_FAKE === "1";
 const fishFreeOn = () => process.env.AUDIO_FISH_FREE_ENABLED !== "0" && process.env.AUDIO_FISH_FREE_ENABLED !== "false";
 const live = (m: AudioModel, today = new Date().toISOString().slice(0, 10)) => (!m.endsOn || today <= m.endsOn) && (m.id !== "s2.1-pro-free" || fishFreeOn()) && (!m.needsEnv || Number(process.env[m.needsEnv]) > 0);
 
-// The price of a model whose price comes from Config (Fish drama-3), else the registry's.
+// The price of a model: a Config override (priceEnv), else the launch price while it lasts, else the registry's.
 export const priceOf = (m: AudioModel, today = new Date().toISOString().slice(0, 10)) => {
-  if (m.needsEnv && Number(process.env[m.needsEnv]) > 0) return Number(process.env[m.needsEnv]);
   if (m.priceEnv && Number(process.env[m.priceEnv]) > 0) return Number(process.env[m.priceEnv]);
   return m.promo && today <= m.promo.until ? m.promo.price : m.price;
 };

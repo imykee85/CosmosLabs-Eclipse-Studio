@@ -177,7 +177,7 @@ async function runInline(a: { model: ImageModel; userId: string; projectId: stri
     try {
       const references = await Promise.all(a.items.map(loadReference));
       const maskImage = a.mask ? { bytes: await openaiMask(await getObjectBytes(a.mask.storageKey, 8 * 1024 * 1024), references[0].bytes), contentType: "image/png" } : undefined;
-      const out = await provider.generate({ apiModel, prompt: a.prompt, aspectRatio: a.exact && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.exact) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, ...(maskImage ? { mask: maskImage } : {}), sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
+      const out = await provider.generate({ apiModel, prompt: a.prompt, aspectRatio: a.exact && (model.sizing === "custom16" || model.sizeRule) ? ratioString(a.exact) : a.aspectRatio, resolution: a.resolution ?? model.defaultResolution, references, ...(maskImage ? { mask: maskImage } : {}), sizing: model.sizing, sizeRule: model.sizeRule, outputPng: model.outputPng, user: model.provider === "openai" ? openaiUser(userId) : undefined, quality: model.quality, complexity: model.complexity, safetyId: model.safetyIdentifier, signal: AbortSignal.timeout(INLINE_TIMEOUT_MS) });
       const saved = await saveImageBytes(userId, out.bytes, out.contentType, a.conform);
       await completeFromBytes(row, saved, out.usage);
     } catch (err) {

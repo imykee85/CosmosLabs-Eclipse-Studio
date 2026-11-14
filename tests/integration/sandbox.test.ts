@@ -323,7 +323,18 @@ test("core.exec: the first tool call opens a session; commands come back labelle
   await reset();
   fake.on("bash", ({ args }: { args: string[] }) => ({ exitCode: 0, stdout: `ran: ${args[1]}` }));
   fake.on("find", () => ({ exitCode: 0, stdout: "main.js\t20\n" }));
-  let r = await L.session.runSessionTool("sandbox_exec", { command: "echo hi" }, U1, "chat1");
+  await L.db.pendingSend.deleteMany({ where: { userId: { in: [U1, U2] } } });
+  let cardId = "";
+  let r = await L.session.runSessionTool("sandbox_exec", { command: "echo hi" }, U1, "chat1", (id: string) => { cardId = id; });
+  // A build session is billed by the minute, so the first call only queues a card; nothing starts until the person presses Start.
+  assert.match(r.text, /NOT STARTED YET/);
+  assert.equal(await L.db.sandboxJob.count({ where: { userId: U1, kind: "core.exec" } }), 0);
+  const card = await L.db.pendingSend.findUnique({ where: { id: cardId } });
+  assert.equal(card.app, "job:core.exec");
+  const confirm = await import("../../src/lib/sandbox/confirm");
+  assert.equal((await confirm.startQueuedJob(card)).ok, true);
+  await L.runner.drive((await L.db.sandboxJob.findFirst({ where: { userId: U1, kind: "core.exec" } })).id, 25_000, 800);
+  r = await L.session.runSessionTool("sandbox_exec", { command: "echo hi" }, U1, "chat1");
   assert.match(r.text, /<sandbox_output>/);
   assert.match(r.text, /ran: echo hi/);
   const job = await L.db.sandboxJob.findFirst({ where: { userId: U1, kind: "core.exec" } });

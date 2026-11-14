@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { toAudioItem } from "@/lib/audio/jobs";
 import { audioUser } from "@/lib/audio/route-helpers";
 import { sniffAudio } from "@/lib/audio/voices";
-import { deleteObject, getObjectHead, headObjectInfo, signedPutUrl, storageEnabled } from "@/lib/storage";
+import { copyObjectIfMatch, deleteObject, getObjectHead, headObjectInfo, signedPutUrl, storageEnabled } from "@/lib/storage";
+import { notePendingUpload } from "@/lib/upload-sweep";
 import { claimUsage } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
     if (!(await claimUsage(u.userId, "audio-upload", 30, 3600_000))) return NextResponse.json({ error: "You are adding sounds very quickly. Please try again later." }, { status: 429 });
     if ((await db.audioJob.count({ where: { userId: u.userId, kind: "upload" } })) >= MAX_ROWS) return NextResponse.json({ error: `You can keep up to ${MAX_ROWS} sounds in Assets. Delete some first.` }, { status: 409 });
     const key = `audio/${u.userId}/up/${randomUUID()}.${ext}`;
+    await notePendingUpload(u.userId, key);
     return NextResponse.json({ key, url: await signedPutUrl(key, type) });
   }
 
@@ -49,13 +51,18 @@ export async function POST(req: Request) {
     const kind = sniffAudio(await getObjectHead(key, 64).catch(() => new Uint8Array()));
     if (!kind) { await deleteObject(key).catch(() => {}); return NextResponse.json({ error: "That file is not a sound file Eclipse can use. Use MP3, WAV, M4A or OGG." }, { status: 400 }); }
     if (await db.audioJob.findFirst({ where: { userId: u.userId, storageKey: key }, select: { id: true } })) return NextResponse.json({ error: "That sound was already added." }, { status: 409 });
+    // The signed link could still overwrite the file after the checks above: copy the checked version (same ETag) to a fresh key the browser never saw.
+    const ext = key.match(/\.([a-z0-9]+)$/)?.[1] ?? "bin";
+    const freshKey = `audio/${u.userId}/up/${randomUUID()}.${ext}`;
+    if (!info.etag || !(await copyObjectIfMatch(key, freshKey, info.etag, kind.mime))) { await deleteObject(key).catch(() => {}); return NextResponse.json({ error: "That file changed while it was being checked. Please upload it again." }, { status: 409 }); }
+    await deleteObject(key).catch(() => {});
     const name = cleanName(b.name);
     const ms = typeof b.durationMs === "number" && Number.isFinite(b.durationMs) && b.durationMs > 0 ? Math.min(Math.round(b.durationMs), 6 * 3600_000) : null;
     const now = new Date();
     const row = await db.audioJob.create({
       data: {
         userId: u.userId, projectId: typeof b.projectId === "string" && b.projectId.length > 0 && b.projectId.length <= 64 ? b.projectId : null, kind: "upload", provider: "upload", model: "upload", text: name,
-        textHash: createHash("sha256").update(name).digest("hex"), chars: 0, status: "completed", storageKey: key, contentType: kind.mime, sizeBytes: info.size,
+        textHash: createHash("sha256").update(name).digest("hex"), chars: 0, status: "completed", storageKey: freshKey, contentType: kind.mime, sizeBytes: info.size,
         durationMs: ms, params: { uploaded: true }, startedAt: now, finishedAt: now,
       },
     });

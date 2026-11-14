@@ -28,6 +28,9 @@ export type SyncGenerateInput = {
   sizeRule?: SizeRule; // BytePlus: target pixels per tier and the allowed total pixel range
   outputPng?: boolean;         // BytePlus: ask for PNG (only some models take output_format)
   user?: string;               // an opaque id for the person (never their real id)
+  quality?: string;            // OpenAI: quality tier (default medium)
+  complexity?: string;         // OpenAI 2.6: sent on edits only
+  safetyId?: boolean;          // OpenAI 2.6: send `user` as `safety_identifier`
   signal?: AbortSignal;
 };
 export type SyncGenerateResult = { bytes: Uint8Array; contentType: string; usage?: unknown };

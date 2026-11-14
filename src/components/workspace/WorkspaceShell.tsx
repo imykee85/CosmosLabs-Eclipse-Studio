@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  ArrowLeft, ChevronDown, Clapperboard, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Lightbulb, Menu, MessageSquareText, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, User, Video, Workflow, X,
+  ArrowLeft, Box, ChevronDown, Clapperboard, FolderOpen, House, Image as ImageIcon, Images, Layers, LayoutDashboard, Library, Lightbulb, Menu, MessageSquareText, Mic, Mountain, Music, Package, PanelLeft, Plus, Settings, User, Video, Workflow, X,
 } from "lucide-react";
 import { AccountName } from "@/components/account";
 import NotificationsButton from "@/components/Notifications";
@@ -40,7 +40,8 @@ const gallery: Item = { label: "Gallery", hint: "Finished renders", href: "/gall
 const assets: Item = { label: "Assets", hint: "Your uploads", href: "/assets", icon: <FolderOpen size={17} /> };
 const ingredients: Item = { label: "Ingredients", hint: "Character · Product · Scene", href: "/ingredients", icon: <Layers size={17} /> };
 const plan: Item[] = [treatmentItem, promptsItem];
-const create: Item[] = [imageStudio, videoStudio, voiceStudio];
+const designStudio: Item = { label: "Design Studio", hint: "3D and motion", href: "/design", icon: <Box size={17} /> };
+const create: Item[] = [imageStudio, videoStudio, voiceStudio, designStudio];
 // Library is in the desktop sidebar only: on a phone it is already the bottom tab.
 const files: Item[] = [libraryItem, gallery, assets, ingredients];
 const filesPhone: Item[] = files.filter((i) => i !== libraryItem);
@@ -163,7 +164,7 @@ const tabIcon = (icon: React.ReactNode) => (isValidElement(icon) ? cloneElement(
 
 const SLOT_KEY = "eclipse-create-slot";
 // Shortcuts that can take over the Create tab.
-const SLOT_ITEMS: Item[] = [imageStudio, agentsItem, canvasItem, ingredients, gallery, assets, treatmentItem, promptsItem, videoStudio, voiceStudio];
+const SLOT_ITEMS: Item[] = [imageStudio, agentsItem, canvasItem, ingredients, gallery, assets, treatmentItem, promptsItem, videoStudio, voiceStudio, designStudio];
 
 function CreateTab({ pathname }: { pathname: string }) {
   const m = useTabMenu(pathname);
@@ -266,7 +267,7 @@ function LibraryTab({ pathname }: { pathname: string }) {
 }
 
 const TITLES: Record<string, string> = {
-  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/voice": "Audio Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
+  "/project": "Eclipse Studio", "/create": "Image Studio", "/gallery": "Gallery", "/library": "Library", "/assets": "Assets", "/ingredients": "Ingredients", "/canvas": "Canvas", "/agents": "Agents", "/treatment": "Treatment", "/prompts": "Prompts", "/generate": "Video Studio", "/voice": "Audio Studio", "/design": "Design Studio", "/connect": "Core", "/connect/apps": "Connectors", "/connect/history": "History", "/memory": "Memory", "/skills": "Skills", "/tools": "Tools", "/portfolio": "Portfolio", "/certificates": "Certificates", "/settings": "Settings",
 };
 
 export default function WorkspaceShell({ children }: { children: React.ReactNode }) {

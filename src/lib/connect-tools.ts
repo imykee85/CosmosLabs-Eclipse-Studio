@@ -165,7 +165,7 @@ const str = (v: unknown, max = 4000) => (typeof v === "string" ? v.trim().slice(
 export async function runTool(name: string, input: unknown, ctx: ToolContext): Promise<ToolOutcome> {
   const args = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
   try {
-    if (editToolNames.has(name)) return runEditTool(name, args, ctx.userId, ctx.projectId);
+    if (editToolNames.has(name)) return runEditTool(name, args, ctx.userId, ctx.projectId, ctx.chatId ?? null, ctx.onSend);
     switch (name) {
       case "list_image_models":
         return { text: JSON.stringify(enabledModels().map((m) => ({ id: m.id, name: m.label, about: m.blurb, aspect_ratios: m.ratios, max_prompt_chars: m.maxPrompt, takes_pictures: m.references.max > 0, needs_picture: m.references.min > 0 }))) };
@@ -278,7 +278,7 @@ export async function runTool(name: string, input: unknown, ctx: ToolContext): P
       }
 
       default:
-        if ((SESSION_TOOL_NAMES as readonly string[]).includes(name)) return runSessionTool(name, args, ctx.userId, ctx.chatId ?? null);
+        if ((SESSION_TOOL_NAMES as readonly string[]).includes(name)) return runSessionTool(name, args, ctx.userId, ctx.chatId ?? null, ctx.onSend);
         return { text: `Unknown tool ${name}.`, isError: true };
     }
   } catch (err) {

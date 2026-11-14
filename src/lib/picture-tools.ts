@@ -43,7 +43,7 @@ export function toolPrompt(tool: ToolId, option?: ToolOption): string {
 export const TOOL_LABEL: Record<ToolId, string> = { upscale: "Upscale", removebg: "Remove background", relight: "Relight", camera: "Change camera" };
 
 // Best editing models first (strongest at keeping identity and detail while following an instruction).
-const ORDER = ["nano_banana_pro", "gpt_image_2_5_sunburst", "gpt_image_2_5_flare", "gpt_image_2", "seedream_5_pro", "nano_banana_2", "nano_banana_2_1", "qwen_image_3_edit", "seedream_5_flash", "seedream_4_5", "grok_image_2", "gpt_image_1_5", "ads_studio"];
+const ORDER = ["nano_banana_pro", "gpt_image_2_5_sunburst", "gpt_image_2_5_flare", "seedream_5_pro", "nano_banana_2", "nano_banana_2_1", "qwen_image_3_edit", "seedream_5_flash", "seedream_4_5", "grok_image_2", "gpt_image_1_5", "ads_studio"];
 
 /** The model a tool uses: the first editing model on the list this account can run, else any model that takes a picture. Upscale prefers one that makes 4K. */
 export function toolModel(models: PublicModel[], tool: ToolId): PublicModel | null {

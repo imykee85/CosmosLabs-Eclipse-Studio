@@ -15,6 +15,11 @@ Where each setting lives: **Secret** = Vercel Environment Variables, marked Sens
 | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ARK_API_KEY` | Secret | Google, GPT, Seedream models | Models hide while the key is missing |
 | `ARK_MODEL_SEEDREAM_*` | Config | Seedream | Ids from the BytePlus console |
 | `CRON_SECRET` | Secret | Daily finish-renders job | 503 without it |
+| `ADMIN_PASSWORD` | Secret | Second lock on the admin area (`/admin`): 8 characters or more. The owner account (`ADMIN_EMAILS`) must also enter it; the session lasts 12 hours | Admin area open to the owner account without a password |
+| `RESEND_API_KEY` | Secret | Emails to the owner: alerts and "New sign-up" (Resend, resend.com) | No emails |
+| `ALERT_EMAIL` | Config value | The address those emails go to | No emails |
+| `ALERT_EMAIL_FROM` | Config value | Optional sender; the default `Eclipse <onboarding@resend.dev>` only delivers to the address the Resend account was made with | Default sender |
+| `CLERK_WEBHOOK_SIGNING_SECRET` | Secret | Checks Clerk's sign-up notifications to `/api/webhooks/clerk` (Clerk, Webhooks, add endpoint, event `user.created`) | Sign-up emails are refused |
 | `OPS_ALERT_WEBHOOK_URL` | Secret | Alerts to a Slack or Discord channel (failed or stuck renders, unmatched payments; daily check `/api/cron/health-alert`, plus at once on a bad payment event) | No alerts, nothing breaks |
 | `ADMIN_EMAILS` | Config | `/admin/credits`, `/admin/jobs` | Comma-separated, verified Clerk addresses |
 | `CREDITS_ENABLED` | Config | Charging | Set to `1` after granting credits |

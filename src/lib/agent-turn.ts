@@ -26,9 +26,10 @@ import { planAllows } from "@/lib/access-table";
 import { buildReply, type Action, type Controls } from "@/lib/agent-reply";
 import { VIDEO_TOOLS, isServerTool as isVideoServerTool, runVideoTool, type Frame } from "@/lib/agent-video";
 import { WEB_NOTE, WEB_TOOLS } from "@/lib/web-tools";
+import { GUIDE_TOOL, guideFor, TEACHING_NOTE, isGuideTool, runGuideTool } from "@/lib/atlas-guide";
 import { CORE_TOOLS, CORE_TOOLS_NOTE, isCoreTool, runCoreTool } from "@/lib/agent-core-tools";
 
-const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n);
+const isServerTool = (n: string) => isVideoServerTool(n) || isCoreTool(n) || isGuideTool(n);
 
 // One turn of a conversation with a studio agent (Atlas or one of the person's own agents), shared by the app's chat route and the MCP endpoint (src/lib/mcp-agents.ts).
 // prepareAgentTurn checks the request and returns the work to run; the caller decides how to run it (now, or as a background job).
@@ -59,7 +60,10 @@ const TOOLS: Anthropic.Tool[] = [
 ];
 
 // Offered only where the screen can apply it (Image Studio, Video Studio, Core): Atlas sets the prompt box for the person. Free and instant; Generate stays their button.
-const SET_BOX: Anthropic.Tool = { name: "set_prompt_box", description: "Set the prompt box's controls for the user: model, aspect ratio, number of results, quality, clip length, sound, fixed seed and the prompt text. It takes effect at once and costs nothing; the user still presses Generate. Use ONLY values listed under 'Controls you can set'. Include only what the user asked for or what clearly helps their idea. When the user is unsure what to pick, choose sensible values and say in one short line why.", input_schema: { type: "object", properties: { model: { type: "string", description: "A model id from the list (or auto)." }, aspect_ratio: { type: "string" }, count: { type: "integer", minimum: 1, maximum: 4, description: "How many images per run." }, quality: { type: "string", description: "A quality from the list." }, duration_seconds: { type: "integer", description: "Clip length in seconds." }, sound: { type: "boolean" }, fixed_seed: { type: "boolean" }, prompt: { type: "string", description: "Fill the prompt box with this text." } } } };
+// Design Studio Motion: Atlas makes the pictures and video clips a motion uses. Each becomes a button; nothing is made until the person presses it,
+// and the finished picture or clip is attached to the motion (pictures as @1, @2, clips as V1, V2).
+const MAKE_ASSET: Anthropic.Tool = { name: "make_asset", description: "Offer to make a picture or a short video clip for the motion graphic the user is building (a background plate, a product shot, a texture, a b-roll clip). Shows a button; when the user presses it the picture or clip is made with their default model and attached to the motion. One call per asset (up to 4).", input_schema: { type: "object", properties: { kind: { type: "string", enum: ["image", "video"] }, prompt: { type: "string", description: "The full prompt for the picture or clip." }, aspect_ratio: { type: "string", description: "Usually the motion's aspect ratio, e.g. 16:9." } }, required: ["kind", "prompt"] } };
+const SET_BOX: Anthropic.Tool = { name: "set_prompt_box", description: "Set the prompt box's controls for the user: model, aspect ratio, number of results, quality, clip length, sound, fixed seed and the prompt text. It takes effect at once and costs nothing; the user still presses Generate. Use ONLY values listed under 'Controls you can set'. Include only what the user asked for or what clearly helps their idea. When the user is unsure what to pick, choose sensible values and say in one short line why.", input_schema: { type: "object", properties: { model: { type: "string", description: "A model id from the list (or auto)." }, aspect_ratio: { type: "string" }, count: { type: "integer", minimum: 1, maximum: 4, description: "How many images per run." }, quality: { type: "string", description: "A quality from the list." }, duration_seconds: { type: "integer", description: "Clip length in seconds." }, sound: { type: "boolean" }, fixed_seed: { type: "boolean" }, prompt: { type: "string", description: "Fill the prompt box with this text." }, move: { type: "string", description: "ShotMap only: the camera move id from the list." }, second_move: { type: "string", description: "ShotMap only: a second move to stack, from the list." }, combine: { type: "string", enum: ["together", "then"] }, rotate_deg: { type: "number" }, vertical_deg: { type: "number" }, distance_m: { type: "number" }, speed_percent: { type: "number" }, lens_mm: { type: "number" }, shake_percent: { type: "number" }, length_seconds: { type: "number" }, scene_request: { type: "string", description: "ShotMap only: a change for the scene assistant (your helper) to make, in plain words: scene edits or a camera motion written as keyframes." }, scene_mode: { type: "string", enum: ["scene", "motion"], description: "scene = edit what is in the set; motion = write the camera keyframes." } } } };
 
 // Scale only (FEATURE_MIN.plans): a whole small production run after ONE approval. Atlas decides how many pictures the video needs.
 const PLAN_TOOL: Anthropic.Tool = { name: "propose_plan", description: "Propose a small production the user approves ONCE: a hero image, then the extra pictures the video needs (you decide how many, 1 to 8, each made from the hero so the look stays the same), then ONE video that uses all of the pictures as references. Use it when the user wants a video or ad built from scratch. Shows one plan card with the total price; nothing is made or charged until the user presses Approve. Write every prompt in full.", input_schema: { type: "object", properties: { title: { type: "string" }, hero_prompt: { type: "string", description: "The hero image prompt. When reference_pictures are given they are images 1, 2, ... of the hero request, in the order listed." }, scenes: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 8, description: "One prompt per extra picture (image 1 of each request is the hero, the user's reference pictures follow; a different angle, moment or shot of the same subject and look), in story order." }, video_prompt: { type: "string", description: "The motion prompt: how the video moves through the pictures. Refer to the pictures as image 1, image 2, ... in order: image 1 is the hero, then the extra pictures in the order you list them, then the user's reference pictures (if any)." }, duration_seconds: { type: "integer", minimum: 4, maximum: 30 }, aspect_ratio: { type: "string", description: "16:9, 9:16, 1:1, 4:3, 3:4 or 21:9." }, voiceover_script: { type: "string", description: "Optional. The exact words of a voiceover to speak over the video (English unless the user asked otherwise). Only when the user wants narration or a spoken line." }, music_prompt: { type: "string", description: "Optional. A description of music to go with the video (mood, instruments, pace), no artist names or lyrics. Only when the user wants music." }, reference_pictures: { type: "array", items: { type: "integer" }, maxItems: 4, description: "Numbers of the pictures the user gave you (Picture 1, Picture 2, ...) that the plan should use as references: they go into the hero, every extra picture and the video. Use the ones the user meant; leave out if none." } }, required: ["hero_prompt", "scenes", "video_prompt"] } };
@@ -90,11 +94,12 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
 
   const c = body?.context ?? {};
   const ctx = [
-    `Where: ${c.page === "canvas" ? "a canvas generator node" : c.page === "video" ? "Video Studio, where the user writes a video prompt and makes the video (video generation works here)" : c.page === "mcp" ? "Claude (an outside assistant) talking to you through Eclipse's MCP connection on the person's behalf: there is no prompt box and no buttons, so write finished prompts in your answer inside code blocks and name the settings to use; the person asks Claude to start the render with Eclipse's generate_image or generate_video tools" : c.page === "core" ? "Core, the user's creative computer: a chat that can make pictures, run skills, use memory and send finished work to apps" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : "Image Studio"}`,
+    `Where: ${c.page === "shotmap" ? "ShotMap, the 3D camera planner in Video Studio: the user describes a camera move and you set it with set_prompt_box using the camera fields (move, second_move, combine, rotate_deg, vertical_deg, distance_m, speed_percent, lens_mm, shake_percent, length_seconds) from the list. Pick the closest move for what they describe, stack a second one when it helps, and say in one short line what you set. For anything the camera fields cannot say (add or move things in the set, or a camera path with keyframes) use scene_request with scene_mode, which hands the job to your helper, the scene assistant. The guide video is made with the Use video button" : c.page === "canvas" ? "a canvas generator node" : c.page === "video" ? "Video Studio, where the user writes a video prompt and makes the video (video generation works here)" : c.page === "mcp" ? "Claude (an outside assistant) talking to you through Eclipse's MCP connection on the person's behalf: there is no prompt box and no buttons, so write finished prompts in your answer inside code blocks and name the settings to use; the person asks Claude to start the render with Eclipse's generate_image or generate_video tools" : c.page === "core" ? "Core, the user's creative computer: a chat that can make pictures, run skills, use memory and send finished work to apps" : c.page === "treatment" ? "the Treatment screen, where the user plans a video concept (brief, concept, guide); pictures are made in Image Studio" : c.page === "voice" ? "Audio Studio, where the user makes voiceovers (Speak: a script read by a chosen voice; the model may read delivery tags like [whispers]), sound effects, music, and transcripts of recordings. Use this prompt fills the box of the mode they are on; Generate makes it. Write scripts as they should be spoken (numbers and abbreviations spelled out), sound and music briefs as short vivid descriptions without artist names" : c.page === "design" ? "Design Studio, where the user makes graphics (opened in Image Studio), 3D models and motion graphics (animated typography, logo reveals, explainers written as code by Eclipse Motion). The box below belongs to the tab they are on" : "Image Studio"}`,
     clip(c.prompt, 1500) ? `${c.page === "treatment" ? "The user has typed" : c.page === "core" ? "Message box now" : "Prompt box now"}: ${clip(c.prompt, 1500)}` : c.page === "treatment" ? "Nothing typed yet." : c.page === "core" ? "Message box is empty." : "Prompt box is empty.",
     clip(c.ratio, 12) ? `Ratio: ${clip(c.ratio, 12)}` : "",
     Number.isInteger(c.qty) ? `Images per run: ${c.qty}` : "",
     clip(c.model, 60) ? `Model: ${clip(c.model, 60)}` : "",
+    typeof c.sceneOutline === "string" && c.sceneOutline.trim() ? `The 3D scene, in words:\n${clip(c.sceneOutline, 3500)}` : "",
     c.ingredients ? `Ingredient pictures attached: ${Math.min(Number(c.ingredients) || 0, 20)}` : "",
     ...(Array.isArray(c.settings) ? (c.settings as unknown[]).slice(0, 16).map((l) => clip(l, 140)).filter(Boolean).map((l) => `Setting: ${l}`) : []),
     Array.isArray(c.clips) && c.clips.length ? `Video clips attached: ${(c.clips as unknown[]).slice(0, 10).map((l) => clip(l, 60)).filter(Boolean).join("; ")}` : "",
@@ -103,6 +108,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     ...(Array.isArray(c.options) && c.options.length ? ["Controls you can set with set_prompt_box (use only these values):", ...(c.options as unknown[]).slice(0, 12).map((l) => clip(l, 1800)).filter(Boolean)] : []),
   ].filter(Boolean).join("\n");
   const canSet = Array.isArray(c.options) && c.options.length > 0;
+  const canMake = c.page === "design" && c.make === true;
 
   const work = async (): Promise<Out> => {
     const turnStarted = Date.now();
@@ -110,6 +116,24 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     const messages = buildMessages(turns, await loadHistoryImages(userId, historyPictures(turns), loadPromptImages));
     // The pictures attached to the box are shown to the agent (up to 8, ids only, owner-checked, read from our own storage).
     const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
+    // ShotMap: a small snapshot of the 3D view goes in front of the message so Atlas can see the set (a jpeg the browser drew, size and format checked, never stored).
+    const sceneImg = typeof c.sceneImage === "string" && c.sceneImage.length < 400_000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(c.sceneImage) ? c.sceneImage.slice("data:image/jpeg;base64,".length) : "";
+    if (sceneImg && c.page === "shotmap") {
+      const last = messages[messages.length - 1];
+      const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
+      last.content = [...own.slice(0, -1), { type: "text", text: "Snapshot of the 3D view in ShotMap as it looks now (it also shows the grid and the camera markers; people are simple mannequins, and some objects are plain shapes while others are real models):" }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: sceneImg } }, own[own.length - 1]];
+    }
+    // ShotMap Motion: frames of the shot camera's own view from the first second to the last, labelled with their time, so Atlas can watch the motion (checked, never stored).
+    if (c.page === "shotmap" && Array.isArray(c.sceneFrames)) {
+      const jpegs = (c.sceneFrames as { t?: unknown; jpeg?: unknown }[]).slice(0, 10).filter((f) => typeof f?.jpeg === "string" && (f.jpeg as string).length < 160_000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(f.jpeg as string));
+      if (jpegs.length >= 2) {
+        const last = messages[messages.length - 1];
+        const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
+        const blocks: Anthropic.ContentBlockParam[] = [{ type: "text", text: `The shot camera's own view across the whole motion, ${jpegs.length} frames in time order. Judge the motion from these frames (what it reveals, where it starts and ends, how it feels), not from the path alone:` }];
+        for (const f of jpegs) blocks.push({ type: "text", text: `Frame at ${Math.max(0, Math.round(Number(f.t) * 10) / 10 || 0)} s` }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: (f.jpeg as string).slice("data:image/jpeg;base64,".length) } });
+        last.content = [...own.slice(0, -1), ...blocks, own[own.length - 1]];
+      }
+    }
     // PDFs the person attached to this message go to the agent as files (text documents are already in the message text).
     const pdfs = documentBlocks(parseDocuments(body?.documents));
     if (pdfs.length) {
@@ -169,11 +193,13 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
       const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
       const withWeb = isAtlas && planAllows(access.plan, "web");
-      const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}` : "";
+      const screen = isAtlas ? guideFor(c.page, c.settings) : null;
+      const guide = screen ? `\n\n<screen_guide>\n${screen}\n</screen_guide>` : "";
+      const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}\n\n${TEACHING_NOTE}${guide}` : "";
       const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
-      const base = canSet ? [...TOOLS, SET_BOX] : TOOLS;
+      const base = [...TOOLS, ...(canSet ? [SET_BOX] : []), ...(canMake ? [MAKE_ASSET] : [])];
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
-      let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;
+      let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), GUIDE_TOOL, ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;
       // Atlas may call its video tools (run here, results go back to it) before it answers; buttons it offers along the way are kept for the final reply.
       const convo: Anthropic.MessageParam[] = messages;
       const earlier: Action[] = [];
@@ -201,7 +227,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
           if (isServerTool(b.name)) {
             const input = (b.input ?? {}) as Record<string, unknown>;
             // the agent's own tools (library, memory) first; the video tools otherwise. Memory is the person's, the Library the workspace's.
-            const toolWork = isCoreTool(b.name) ? runCoreTool(userId, personId ?? userId, b.name, input) : runVideoTool(userId, b.name, input, state);
+            const toolWork = isGuideTool(b.name) ? Promise.resolve(runGuideTool(input)) : isCoreTool(b.name) ? runCoreTool(userId, personId ?? userId, b.name, input) : runVideoTool(userId, b.name, input, state);
             const budget = Math.max(5_000, Math.min(TOOL_LIMIT_MS, deadline + 40_000 - Date.now()));
             const r = await withTimeLimit(toolWork, budget, { content: "This step took too long and was stopped. Tell the user, and suggest a shorter clip or fewer pictures.", isError: true } as Awaited<typeof toolWork>);
             if ("frames" in r && Array.isArray(r.frames)) frames.push(...(r.frames as Frame[]));

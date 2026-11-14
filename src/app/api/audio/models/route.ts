@@ -19,7 +19,7 @@ export async function GET() {
       kind: kindOf(m), kinds: m.kinds,
       options: { maxVariants: m.maxVariants ?? null, negativePrompt: !!m.negativePrompt, videoInput: !!m.videoInput, durationRequired: !!m.durationRequired, formats: m.formats ?? null, diarize: !!m.diarize, loop: !!m.loop, instrumental: !!m.instrumental, minSeconds: m.minSeconds ?? null, maxSeconds: m.kinds.includes("music") ? musicMaxSeconds(m) : m.maxSeconds ?? null, maxInputBytes: m.maxInputBytes ?? null, maxInputSeconds: m.maxInputSeconds ?? null, long: !!m.asyncAbove },
       id: m.id, label: m.label, provider: m.provider, providerLabel: PROVIDER_LABEL[m.provider], maxChars: m.maxChars, supports: m.supports, note: m.note ?? null,
-      tags: m.supports.emotionTags ? m.tags ?? [] : [], voiceOptional: !!m.voiceOptional,
+      tags: m.supports.emotionTags ? m.tags ?? [] : [], drama: m.directions ? { wordTags: m.wordTags ?? [], multiSpeaker: !!m.multiSpeaker, maxSpeakers: m.maxSpeakers ?? 5 } : null, voiceOptional: !!m.voiceOptional,
       ready: clerkEnabled && modelAvailable(m),
       pricing: on ? pagePricing(m) : null,
       canClone: CLONE_PROVIDERS.includes(m.provider), canDesign: DESIGN_PROVIDERS.includes(m.provider),

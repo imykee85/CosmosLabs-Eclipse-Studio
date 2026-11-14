@@ -10,6 +10,7 @@ const STUDIOS = [
   { href: "/create", n: "01", name: "Image Studio", line: "Campaign-grade stills from a single prompt.", kind: "photo" },
   { href: "/generate", n: "02", name: "Video Studio", line: "Cinematic clips with motion, sound and story.", kind: "video" },
   { href: "/voice", n: "03", name: "Audio Studio", line: "Voices, music and sound, cloned or designed.", kind: "voice" },
+  { href: "/design", n: "04", name: "Design Studio", line: "3D models and motion graphics", kind: "design" },
 ] as const;
 
 function Visual({ kind }: { kind: (typeof STUDIOS)[number]["kind"] }) {
@@ -27,6 +28,9 @@ function Visual({ kind }: { kind: (typeof STUDIOS)[number]["kind"] }) {
       <span className="cp-tc">00:00:08:14</span>
       <span className="cp-scrub"><i /></span>
     </div>
+  );
+  if (kind === "design") return (
+    <div className="cp-design" aria-hidden="true"><span className="cp-cube"><i /><i /><i /></span></div>
   );
   return (
     <div className="cp-voice" aria-hidden="true">

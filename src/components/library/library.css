@@ -58,8 +58,8 @@ button.lib-tile { padding: 0; border: 0; background: none; font: inherit; text-a
 .rd-close { position: absolute; top: 12px; right: 12px; z-index: 2; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--a-line2); border-radius: 50%; background: var(--a-bg); color: var(--a-fg); cursor: pointer; }
 .rd-close:hover { border-color: var(--a-line4); }
 @media (max-width: 800px) {
-  .rd-scrim { padding: 10px; align-items: end; }
-  .rd-dialog { grid-template-columns: 1fr; max-height: calc(100dvh - 20px); padding: 14px; border-radius: 24px; }
+  .rd-scrim { padding: 0; align-items: end; }
+  .rd-dialog { grid-template-columns: 1fr; width: 100%; max-height: calc(100dvh - 20px); padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; border-bottom: 0; }
   .rd-list > div { grid-template-columns: 96px minmax(0, 1fr); }
 }
 

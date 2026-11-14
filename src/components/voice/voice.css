@@ -243,3 +243,11 @@
 /* Idle: lock the document itself (iPhone Safari rubber-bands even when the content fits). */
 html:has(.vc.is-idle), html:has(.vc.is-idle) body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
 html:has(.vc.is-idle) body { position: fixed; inset: 0; width: 100%; }
+.vc-modebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.vc-agent { flex: none; }
+
+.vc-speakers { min-width: 230px; }
+.vc-spk { display: flex; align-items: center; }
+.vc-spk button:first-child { flex: 1; }
+.vc-speakers select { margin: 6px 6px 4px; padding: 9px 10px; border: 1px solid var(--a-line2); border-radius: 10px; background: var(--a-card); color: var(--a-fg); font: inherit; font-size: 14px; }
+.vc-count.is-over { color: var(--a-redtext); font-weight: 600; }

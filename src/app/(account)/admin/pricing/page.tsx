@@ -1,4 +1,4 @@
-import { getAdmin } from "@/lib/admin";
+import { requireAdminPage } from "@/lib/admin-gate";
 import { fmtCredits } from "@/lib/credit-units";
 import { plans } from "@/lib/plans";
 import { db } from "@/lib/db";
@@ -12,7 +12,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 // Owner only: every priced model and setting with the provider's list cost, the credits charged, and the gross margin if all of a plan's credits were used on that
 // setting (after the payment fee). A check only: nothing is ever charged from these numbers beyond the registry's own prices. Rows marked "estimate" are not confirmed list prices.
 export default async function AdminPricingPage() {
-  const admin = await getAdmin();
+  const admin = await requireAdminPage();
   if (!admin) return <p className="app-muted">This page is not available.</p>;
   const rows = allPriceRows();
   const since = new Date(); since.setUTCDate(1); since.setUTCHours(0, 0, 0, 0);

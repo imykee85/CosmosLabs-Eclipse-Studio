@@ -55,7 +55,7 @@ const maskRow = (userId: string) => lib.db.upload.create({ data: { userId, kind:
 
 test("a mask goes to the picture editor as a mask the size of the picture, transparent where selected", { skip }, async () => {
   const g = await pic(A), m = await maskRow(A);
-  const r = await lib.start.startRender({ userId: A, prompt: "Remove what is inside the masked area", model: "gpt_image_2", aspectRatio: "auto", references: [{ type: "render", id: g.id }], maskId: m.id });
+  const r = await lib.start.startRender({ userId: A, prompt: "Remove what is inside the masked area", model: "gpt_image_2_5_sunburst", aspectRatio: "auto", references: [{ type: "render", id: g.id }], maskId: m.id });
   assert.ok(r.ok, JSON.stringify(r));
   for (let i = 0; i < 50 && !seen.length; i++) await new Promise((x) => setTimeout(x, 100));
   assert.equal(seen.length, 1);
@@ -76,8 +76,8 @@ test("refused: a mask on a model that cannot take one, another person's mask, a 
   const g = await pic(A), mine = await maskRow(A), theirs = await maskRow(B);
   const noMask = await lib.start.startRender({ userId: A, prompt: "x", model: "soul_v2", references: [{ type: "render", id: g.id }], maskId: mine.id });
   assert.ok(!noMask.ok && noMask.status === 400);
-  const other = await lib.start.startRender({ userId: A, prompt: "x", model: "gpt_image_2", references: [{ type: "render", id: g.id }], maskId: theirs.id });
+  const other = await lib.start.startRender({ userId: A, prompt: "x", model: "gpt_image_2_5_sunburst", references: [{ type: "render", id: g.id }], maskId: theirs.id });
   assert.ok(!other.ok && other.status === 400);
-  const noPic = await lib.start.startRender({ userId: A, prompt: "x", model: "gpt_image_2", maskId: mine.id });
+  const noPic = await lib.start.startRender({ userId: A, prompt: "x", model: "gpt_image_2_5_sunburst", maskId: mine.id });
   assert.ok(!noPic.ok && noPic.status === 400);
 });

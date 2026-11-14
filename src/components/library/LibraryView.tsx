@@ -7,6 +7,7 @@ import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library
 import { useRenders } from "@/lib/use-renders";
 import UploadPanel from "@/components/uploads/UploadPanel";
 import LibraryAudio from "./LibraryAudio";
+import LibraryDesign, { DESIGN_FILTERS, type DesignFilter } from "./LibraryDesign";
 import MoreSentinel from "./MoreSentinel";
 import RenderTile from "./RenderTile";
 import "./library.css";
@@ -21,6 +22,7 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
   const more = useCallback(() => setLimit((l) => l + PAGE), []);
   const renders = all ?? [];
   const [query, setQuery] = useState("");
+  const [design, setDesign] = useState<DesignFilter>("all");
   const [role, setRole] = useState<(typeof INGREDIENT_ROLES)[number]>("All");
 
   const q = query.trim().toLowerCase();
@@ -46,6 +48,14 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
         </div>
       )}
 
+      {kind === "Design" && (
+        <div className="lib-roles" role="group" aria-label="Design type">
+          {DESIGN_FILTERS.map(([id, label]) => (
+            <button key={id} type="button" aria-pressed={design === id} className={design === id ? "is-active" : ""} onClick={() => setDesign(id)}>{label}</button>
+          ))}
+        </div>
+      )}
+
       <label className="lib-search">
         <Search size={16} aria-hidden="true" />
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search your library..." aria-label="Search your library" />
@@ -55,6 +65,8 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
         <UploadPanel show="ingredients" addKinds={["character", "product", "scene"]} addLabel="Add ingredient" role={role === "All" ? "all" : (role.toLowerCase() as "character" | "product" | "scene")} empty={{ title: "No ingredients yet", copy: "Characters, products and scenes you add appear here, ready to reuse in any project." }} />
       ) : kind === "Audio" ? (
         <LibraryAudio query={query} />
+      ) : kind === "Design" ? (
+        <LibraryDesign query={query} filter={design} />
       ) : (kind === "All" || kind === "Images" || kind === "Videos") && shown.length > 0 ? (
         <>
           <div className="lib-grid">

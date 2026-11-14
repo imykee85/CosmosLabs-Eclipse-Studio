@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-user";
+import { gateFeature } from "@/lib/access";
 import { signedPutUrl, storageEnabled } from "@/lib/storage";
 import { claimUsage } from "@/lib/usage";
 
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const u = await requireUser();
   if ("fail" in u) return u.fail;
+  const gated = await gateFeature("core");
+  if (gated) return gated;
   if (!storageEnabled) return NextResponse.json({ error: "Storage is not set up yet." }, { status: 503 });
   const b = (await req.json().catch(() => null)) as { name?: unknown; size?: unknown } | null;
   const size = typeof b?.size === "number" ? b.size : 0;

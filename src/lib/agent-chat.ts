@@ -12,7 +12,7 @@ import type { MissionSpec } from "./agent-mission-spec";
 // The conversation between the user and a studio agent. One chat per agent, kept in this browser and shared live by everything that shows it
 // (the floating agent's card, the Image Studio prompt box, a canvas generator). The agent only PROPOSES: its replies carry buttons, and the screen the
 // user is on (the "host") does the work when one is pressed.
-export type Act = { id: string; kind: "generate" | "use_prompt" | "reply"; label: string; prompt?: string; count?: number; used?: boolean };
+export type Act = { id: string; kind: "generate" | "use_prompt" | "reply" | "make"; label: string; prompt?: string; count?: number; asset?: "image" | "video"; ratio?: string; used?: boolean };
 // A frame Atlas captured from a video: saved to the user's Assets (an upload), shown in the chat with buttons to use it.
 export type Frame = { id: string; label: string; sec: number; used?: string };
 // A picture or video the person added in the chat itself (the paperclip): already uploaded, so only its id travels with the message.
@@ -21,13 +21,15 @@ export type AttachedDoc = { name: string; text?: string; pdf?: string };
 export type Msg = { id: string; role: "user" | "agent"; text: string; actions?: Act[]; frames?: Frame[]; attach?: { kind: "picture" | "video"; name: string; id?: string }[]; docs?: { name: string; text?: string }[]; proposal?: Proposal; plan?: PlanState; mission?: { spec: MissionSpec; id?: string; error?: string }; error?: boolean; note?: boolean; seen?: { pictures: { type: "upload" | "render"; id: string; role: string }[]; videos: { id: string; label: string; role: string }[] } };
 
 // What Atlas may set on the prompt box for the person (owner 2026-10-21): the same controls they can reach by hand. Applying costs nothing; Generate still needs their button.
-export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string };
+export type ControlPatch = { model?: string; ratio?: string; count?: number; quality?: string; duration?: number; sound?: boolean; fixed_seed?: boolean; prompt?: string; move?: string; move2?: string; combine?: string; rotate?: number; vertical?: number; distance?: number; speed?: number; lens?: number; shake?: number; length?: number; sceneMode?: string; sceneRequest?: string };
 
 export type AgentHost = {
-  page: "studio" | "canvas" | "treatment" | "video" | "core";
+  page: "studio" | "canvas" | "treatment" | "video" | "core" | "design" | "voice" | "shotmap";
   // Everything on and in the prompt box, as the person sees it: the text, the other settings, the pictures and clips attached (ids only: the server
   // loads the pictures itself, owner-checked, and shows them to the agent), and the message showing on the box's top edge (an error or a notice).
-  context: () => { prompt: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[]; videos?: { id: string; label: string; role?: string }[] };
+  context: () => { prompt: string; sceneOutline?: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[]; videos?: { id: string; label: string; role?: string }[] };
+  // Heavy extras gathered only when a message is sent (never while the box is read): a snapshot of the 3D view and frames of the camera's motion.
+  attach?: () => { sceneImage?: string; sceneFrames?: { t: number; jpeg: string }[] };
   setPrompt: (text: string) => void;
   // Starts the render. Resolves with "" when it started, or a plain reason when it could not.
   generate: (opts: { prompt?: string; count?: number }) => Promise<string>;
@@ -35,6 +37,8 @@ export type AgentHost = {
   useFrame?: (frame: { id: string; label: string }, as: "start" | "ingredient") => Promise<string> | string;
   // The settings Atlas can change right now (plain lines it reads, with the values that are valid) and the way to apply a choice. Returns what was set, then what was refused.
   controls?: { options: () => string[]; apply: (patch: ControlPatch) => { set: string[]; refused: string[] } };
+  // Design Studio Motion: makes a picture or clip Atlas proposed and attaches it to the motion. Resolves with "" when it was started, or a plain reason.
+  make?: (o: { kind: "image" | "video"; prompt: string; ratio?: string }) => Promise<string>;
 };
 let host: AgentHost | null = null;
 export function useAgentHost(h: AgentHost) {
@@ -42,15 +46,17 @@ export function useAgentHost(h: AgentHost) {
   ref.current = h;
   const can = !!h.useFrame;
   const ctl = !!h.controls;
+  const mk = !!h.make;
   useEffect(() => {
     const proxy: AgentHost = {
-      page: h.page, context: () => ref.current.context(), setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o),
+      page: h.page, context: () => ref.current.context(), attach: () => ref.current.attach?.() ?? {}, setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o),
       useFrame: can ? (f, as) => ref.current.useFrame?.(f, as) ?? "" : undefined,
       controls: ctl ? { options: () => ref.current.controls?.options() ?? [], apply: (p) => ref.current.controls?.apply(p) ?? { set: [], refused: [] } } : undefined,
+      make: mk ? (o) => ref.current.make?.(o) ?? Promise.resolve("") : undefined,
     };
-    host = proxy;
-    return () => { if (host === proxy) host = null; };
-  }, [h.page, can, ctl]);
+    const prev = host; host = proxy;
+    return () => { if (host === proxy) host = prev; };
+  }, [h.page, can, ctl, mk]);
 }
 
 const KEY = (agent: string) => `eclipse-agent-chat-${agent}`;
@@ -135,7 +141,7 @@ function showReply(agent: string, page: string, status: number, body: Record<str
   // A new prompt and/or new box settings become ONE proposal card (Apply, Apply and generate); nothing is changed until the person presses a button.
   const ctx = host?.page === page ? host.context() : { prompt: "" };
   const proposal = buildProposal(page, data.controls as Record<string, unknown> | undefined, all, ctx);
-  const actions = proposal ? all.filter((a) => a.kind === "reply") : all;
+  const actions = proposal ? all.filter((a) => a.kind === "reply" || a.kind === "make") : all;
   const planSpec = data.plan && typeof data.plan === "object" ? data.plan : null;
   const missionSpec = data.mission && typeof data.mission === "object" && typeof data.mission.goal === "string" ? data.mission : null;
   const id = uid();
@@ -291,7 +297,7 @@ export function useAgentChat(agent: string | null) {
       const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text + (m.docs ?? []).filter((d) => d.text !== undefined).map((d) => `\n\n[Attached file: ${d.name}]\n${d.text}`).join(""), ...(m.seen ? { seen: m.seen } : {}) }));
       const pdfs = docs.filter((d) => d.pdf !== undefined).map((d) => ({ name: d.name, pdf: d.pdf }));
       const page = host?.page ?? "studio";
-      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, documents: pdfs, context: { page, ...base, pictures, videos, options: host?.controls?.options() } }) });
+      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, documents: pdfs, context: { page, ...base, ...(host?.attach?.() ?? {}), pictures, videos, options: host?.controls?.options(), make: !!host?.make } }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || typeof data.runId !== "string") { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
       if (stopRequested.delete(agent)) {
@@ -342,6 +348,14 @@ export function useAgentChat(agent: string | null) {
     if (act.kind === "reply") { mark(); await send(act.label); return; }
     if (!host) { add({ role: "agent", text: "Open Image Studio or a canvas generator and I can do that there.", note: true }); return; }
     if (act.kind === "use_prompt") { host.setPrompt(act.prompt ?? ""); mark(); add({ role: "agent", text: host.page === "core" ? "Done. It's in your message box." : "Done. The prompt is in your prompt box.", note: true }); return; }
+    if (act.kind === "make") {
+      if (!host.make) { add({ role: "agent", text: "Open Design Studio's Motion tab and I can make it there.", note: true }); return; }
+      mark();
+      add({ role: "agent", text: act.asset === "video" ? "Making the clip. I'll attach it to your motion when it's ready." : "Making the picture. I'll attach it to your motion when it's ready.", note: true });
+      const why = await host.make({ kind: act.asset ?? "image", prompt: act.prompt ?? "", ratio: act.ratio });
+      if (why) add({ role: "agent", text: `I couldn't make it: ${why}`, note: true, error: true });
+      return;
+    }
     mark();
     add({ role: "agent", text: "Approved. Starting it now.", note: true });
     const why = await host.generate({ prompt: act.prompt, count: act.count });

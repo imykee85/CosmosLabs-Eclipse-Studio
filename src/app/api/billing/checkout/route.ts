@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   if (!(await claimUsage(userId, "checkout", 20, 3600_000))) return NextResponse.json({ error: "Too many checkouts started. Try again in a little while." }, { status: 429 });
 
   try {
-    const { url } = await provider.createCheckout({ userId, planId: plan.id, ...(plan.id === CUSTOM_PACK_ID ? { custom: { credits: plan.credits, price: plan.price } } : {}), returnUrl: `${new URL(req.url).origin}/settings?tab=billing&paid=1` });
+    const { url } = await provider.createCheckout({ userId, planId: plan.id, ...(plan.id === CUSTOM_PACK_ID ? { custom: { credits: plan.credits, price: plan.price } } : {}), returnUrl: `${new URL(req.url).origin}${body?.after === "onboarding" ? "/onboarding?paid=1" : "/settings?tab=billing&paid=1"}` });
     return NextResponse.json({ url });
   } catch (err) {
     console.error("checkout failed", err);

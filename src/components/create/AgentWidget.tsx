@@ -22,7 +22,7 @@ import { MAX_ATTACH } from "@/lib/limits";
 const SIZE = 64;
 
 // Where Atlas may stand (owner 2026-10-21): never up in the header, never below a prompt box, and beside the open sidebar (it moves with it).
-const BOXES = ".cr-dock, .cr-box, .vc-console-wrap, .cn-dock, .cn-box, .pm-box, .tr-composer";
+const BOXES = ".cr-dock, .cr-box, .vc-console-wrap, .cn-dock, .cn-box, .pm-box, .tr-composer, .mt-composer";
 const seen = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? r : null; };
 const headerBottom = () => { for (const el of Array.from(document.querySelectorAll(".mb-top, .ws-topbar"))) { const r = seen(el); if (r) return Math.max(0, r.bottom); } return 0; };
 // The sidebar (desktop) or the menu drawer (phone), when open: Atlas stands just right of its edge.
@@ -402,6 +402,12 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
   }, [open]);
   useEffect(() => { const el = list.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.messages.length, chat.busy, open, big]);
   useEffect(() => { if (!open) { setBig(false); setShowPast(false); } }, [open]);
+  // On desktop the screen makes room for the open panel (the studio centres between the sidebar and the panel); CSS reads this mark.
+  useEffect(() => {
+    if (!open) return;
+    document.documentElement.dataset.atlasPanel = big ? "big" : "on";
+    return () => { delete document.documentElement.dataset.atlasPanel; };
+  }, [open, big]);
 
   if (!pos) return null;
 
@@ -481,7 +487,7 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
       )}
       {open && <div className="aw-dim" onClick={() => setOpen(false)} />}
       {open && (
-        <div className={`aw-card aw-panel ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={{ ["--aw-top" as string]: `${headerBottom() + 8}px` }}>
+        <div className={`aw-card aw-panel ${big ? "is-big" : ""}`} role="dialog" aria-label={`${name} chat`} style={{ ["--aw-top" as string]: `${headerBottom()}px` }}>
           <div className="aw-grab" aria-hidden="true" />
           <div className="aw-head"><span ref={hbot} className={`aw-hbot ${chat.busy ? "is-thinking" : ""} ${nod ? "is-nod" : ""}`} aria-hidden="true"><Bot /></span><b>{name}</b>
             <button type="button" aria-label="Chat history" title="Chat history" className={showPast ? "is-on" : ""} onClick={() => setShowPast((v) => !v)}><History size={15} /></button>
