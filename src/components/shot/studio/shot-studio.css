@@ -321,3 +321,5 @@
 .ss-moves-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px 0; }
 .ss-tl-left .ss-ur { min-width: 22px; padding: 0 1px; }
 .ss-tl-left .ss-ur + .ss-ur { margin-left: -4px; }
+.ss-moves-sliders { gap: 8px; }
+.ss-moves-sliders .cr-bar { height: 32px; font-size: 12.5px; padding: 0 10px; border-radius: 9px; }

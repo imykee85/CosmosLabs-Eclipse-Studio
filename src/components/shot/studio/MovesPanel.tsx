@@ -2,6 +2,7 @@
 // The manual camera controls (the move pickers and sliders), shown in ShotMap's Motion mode beside the keyframe timeline.
 import { COMBINABLE, MOVE_GROUPS, PRESETS, type PresetId } from "@/lib/shot/setup";
 import type { MovesState } from "@/lib/shot/moves";
+import Bar from "../../create/Bar";
 
 
 function MoveSelect({ label, value, onChange, none, combinableOnly, exclude }: { label: string; value: PresetId | null; onChange: (v: PresetId | null) => void; none?: string; combinableOnly?: boolean; exclude?: PresetId | null }) {
@@ -19,14 +20,9 @@ function MoveSelect({ label, value, onChange, none, combinableOnly, exclude }: {
   );
 }
 
+// The same filled-bar slider Image Studio's Change camera uses, at this panel's compact size.
 function Slide({ label, min, max, step = 1, value, text, onChange }: { label: string; min: number; max: number; step?: number; value: number; text: string; onChange: (v: number) => void }) {
-  return (
-    <label className="ss-mv-slide">
-      <span>{label}</span>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label={label} />
-      <em>{text}</em>
-    </label>
-  );
+  return <Bar id={`ss-mv-${label.replace(/\s+/g, "-").toLowerCase()}`} label={label} min={min} max={max} step={step} value={value} text={text} onChange={onChange} />;
 }
 
 export function MovesPanel({ m, onChange, maxDistance = 20 }: { maxDistance?: number; m: MovesState; onChange: (patch: Partial<MovesState>) => void }) {
