@@ -13,7 +13,7 @@ import { SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT, DOC
 import { MOTION_CRAFT, wantsMotion } from "@/lib/motion-knowledge";
 import { AD_DIRECTOR, CINEMA_CRAFT, UGC_CRAFT, STYLE_TEMPLATE_CRAFT, MARKETING_CRAFT, CREATOR_CRAFT, wantsMarketing, wantsCreator, wantsAds, wantsCinema, wantsUgc, wantsStyleTemplate } from "@/lib/craft-knowledge";
 import { FASHION_DIRECTOR, wantsFashion } from "@/lib/fashion-knowledge";
-import { VOICE_LOCK_CRAFT, wantsVoiceLock } from "@/lib/voice-lock-knowledge";
+import { VOICE_LOCK_CRAFT, wantsVoiceLockOn } from "@/lib/voice-lock-knowledge";
 import { ADD_MOTION_CRAFT, PRODUCT_VIDEO_CRAFT, wantsAddMotion, wantsProductVideo } from "@/lib/product-knowledge";
 import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
 import { claimUsage } from "@/lib/usage";
@@ -193,7 +193,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       // Product Video Craft (about 3,600 tokens) on creator-style product video talk; Add Motion Craft (about 1,400) on animate-a-picture talk. Atlas only.
       const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
       const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
-      const voiceLock = isAtlas && wantsVoiceLock(messages, ctx) ? `\n\n${VOICE_LOCK_CRAFT}` : "";
+      const voiceLock = isAtlas && wantsVoiceLockOn(messages, ctx, c.page) ? `\n\n${VOICE_LOCK_CRAFT}` : "";
       const withWeb = isAtlas && planAllows(access.plan, "web");
       const screen = isAtlas ? guideFor(c.page, c.settings) : null;
       const guide = screen ? `\n\n<screen_guide>\n${screen}\n</screen_guide>` : "";

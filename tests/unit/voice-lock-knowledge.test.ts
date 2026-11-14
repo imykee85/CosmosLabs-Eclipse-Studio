@@ -14,3 +14,10 @@ test("it loads only on voice-lock talk", () => {
   assert.equal(wantsVoiceLock([{ content: "I want to lock the character voice" }], ""), true);
   assert.equal(wantsVoiceLock([{ content: [{ type: "text", text: "the voice drifts and the accent slips" }] }], ""), true);
 });
+
+import { wantsVoiceLockOn } from "../../src/lib/voice-lock-knowledge";
+test("in Audio Studio a character or video mention brings the method in", () => {
+  assert.equal(wantsVoiceLockOn([{ content: "voice for my character in a Seedance video" }], "", "voice"), true);
+  assert.equal(wantsVoiceLockOn([{ content: "read this ad script warmly" }], "", "voice"), false);
+  assert.equal(wantsVoiceLockOn([{ content: "my character" }], "", "create"), false);
+});
