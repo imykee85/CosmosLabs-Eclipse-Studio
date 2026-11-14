@@ -37,8 +37,8 @@ test.describe("Design Studio", () => {
     const gen = page.getByRole("region", { name: "3D generator" });
     await expect(gen.getByRole("button", { name: "Make 3D model" })).toBeDisabled();
     await expect(gen.getByText("The model could not be made. Nothing was charged.")).toBeVisible();
-    await expect(gen.getByRole("button", { name: "3D model" })).toContainText("Meshy 6 (text)");
-    await gen.getByRole("button", { name: "3D model" }).click();
+    await expect(gen.getByRole("button", { name: "3D model", exact: true })).toContainText("Meshy 6 (text)");
+    await gen.getByRole("button", { name: "3D model", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "3D model" }).getByText("Meshy 6 (text)")).toBeVisible();
     await page.getByRole("dialog", { name: "3D model" }).getByRole("button", { name: "Close" }).click();
     await gen.getByRole("textbox", { name: "Describe the model" }).fill("A weathered wooden fishing boat");
