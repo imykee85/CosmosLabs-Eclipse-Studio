@@ -148,8 +148,9 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   async function toShotMap() {
     const src = local?.url ?? shown?.fileUrl; if (!src) return;
     try {
-      await putModel(local?.name ?? shown?.name ?? "Model", await (await fetch(src)).arrayBuffer());
-      setToolNote("Added to ShotMap. There, open Add, then Objects, and pick it from your models.");
+      const name = (local?.name ?? shown?.name ?? "Model").slice(0, 60);
+      const key = await putModel(name, await (await fetch(src)).arrayBuffer());
+      router.push(`/generate?shotmap=${encodeURIComponent(key)}&name=${encodeURIComponent(name)}`);
     } catch { setToolNote("Could not add it to ShotMap."); }
   }
   const trayOpen = !making && !!(local || (shown && shown.fileUrl));

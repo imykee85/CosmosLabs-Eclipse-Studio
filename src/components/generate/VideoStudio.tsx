@@ -77,6 +77,14 @@ export default function VideoStudio() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [upOpen, setUpOpen] = useState(false);
   const [shotOpen, setShotOpen] = useState(false);
+  const [shotModel, setShotModel] = useState<{ key: string; name: string } | undefined>(undefined);
+  // Design Studio sends a model here to be put in a new ShotMap scene (?shotmap=<saved model key>&name=...).
+  const shotKey = useSearchParams().get("shotmap"), shotName = useSearchParams().get("name");
+  useEffect(() => {
+    if (!shotKey) return;
+    if (allowedNow("shotmap")) { setShotModel({ key: shotKey, name: shotName ?? "3D model" }); setShotOpen(true); } else askUpgrade("shotmap");
+    window.history.replaceState(null, "", "/generate");
+  }, [shotKey, shotName]);
   const [mcScene, setMcScene] = useState(false);          // Scene control: not sent anywhere yet (its API field is not in our reference)
   const [mcSceneFrom, setMcSceneFrom] = useState<"video" | "image">("video");
   const mc = motion === "subject";
@@ -656,7 +664,7 @@ export default function VideoStudio() {
       {upOpen && toolVid && <SheetPortal><UpscalePanel source={{ id: toolVid.id, kind: "video", width: toolVid.width, height: toolVid.height, durationSec: toolVid.durationSec }} onClose={() => setUpOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {editorOpen && toolVid && <SheetPortal><VideoEditor video={toolVid} projectId={projectId ?? null} onClose={() => setEditorOpen(false)} onSaved={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
       {relightOpen && toolVid && <SheetPortal><RelightVideoPanel video={toolVid} onClose={() => setRelightOpen(false)} onStarted={(id) => { if (id) setActiveId(id); void reload(); }} /></SheetPortal>}
-      {shotOpen && <SheetPortal><ShotStudio projectId={projectId ?? null} onUse={applyShotMap} onClose={() => setShotOpen(false)} /></SheetPortal>}
+      {shotOpen && <SheetPortal><ShotStudio projectId={projectId ?? null} onUse={applyShotMap} onClose={() => { setShotOpen(false); setShotModel(undefined); }} addModel={shotModel} /></SheetPortal>}
       {pickingModel && <VideoModelPicker value={modelId} onPick={pickModel} onClose={() => setPickingModel(false)} creditsOn={!!config?.creditsOn} direct={config?.direct ?? []} />}
     </div>
   );

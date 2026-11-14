@@ -53,7 +53,7 @@ function imageAspect(url: string): Promise<number> {
   return new Promise((res) => { const i = new Image(); i.onload = () => res(i.naturalWidth && i.naturalHeight ? i.naturalWidth / i.naturalHeight : 1); i.onerror = () => res(1); i.src = url; });
 }
 
-export default function ShotStudio({ projectId, onUse, onClose }: { projectId: string | null; onUse: (u: ShotUse) => void; onClose: () => void }) {
+export default function ShotStudio({ projectId, onUse, onClose, addModel }: { projectId: string | null; onUse: (u: ShotUse) => void; onClose: () => void; addModel?: { key: string; name: string } }) {
   // ---- the scene and its history ----
   const [sceneId, setSceneId] = useState<string | null>(null);
   const [world, setWorldState] = useState<World>(() => emptyWorld());
@@ -174,6 +174,14 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
   const selKey = sel?.kind === "key" ? (() => { const c = world.cameras.find((x) => x.id === sel.camId); return c && c.keys[sel.index] ? { cam: c, key: c.keys[sel.index] } : null; })() : null;
   const viewMode = camEdit ? "camera" : mode === "shoot" ? "shoot" : mode;
 
+  // Opened from Design Studio with a model: start a fresh scene and put that model in it (it is already in the saved list).
+  const addedModel = useRef(false);
+  useEffect(() => {
+    if (!addModel || addedModel.current) return;
+    addedModel.current = true;
+    void listModels().then((m) => { setModels(m); openWorld(emptyWorld()); setTimeout(() => add({ kind: "model", modelKey: addModel.key, name: addModel.name }), 0); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on open
+  }, [addModel]);
   useEffect(() => { setScenes(listScenes(projectId)); setRecents(recentAdds()); void listModels().then(setModels); }, [projectId]);
   // save as the scene changes
   useEffect(() => { if (stage !== "editor" || !sceneId) return; const h = setTimeout(() => saveScene(projectId, sceneId, world), 400); return () => clearTimeout(h); }, [world, stage, sceneId, projectId]);
