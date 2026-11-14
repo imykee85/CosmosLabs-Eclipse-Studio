@@ -99,6 +99,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     clip(c.ratio, 12) ? `Ratio: ${clip(c.ratio, 12)}` : "",
     Number.isInteger(c.qty) ? `Images per run: ${c.qty}` : "",
     clip(c.model, 60) ? `Model: ${clip(c.model, 60)}` : "",
+    typeof c.sceneOutline === "string" && c.sceneOutline.trim() ? `The 3D scene, in words:\n${clip(c.sceneOutline, 3500)}` : "",
     c.ingredients ? `Ingredient pictures attached: ${Math.min(Number(c.ingredients) || 0, 20)}` : "",
     ...(Array.isArray(c.settings) ? (c.settings as unknown[]).slice(0, 16).map((l) => clip(l, 140)).filter(Boolean).map((l) => `Setting: ${l}`) : []),
     Array.isArray(c.clips) && c.clips.length ? `Video clips attached: ${(c.clips as unknown[]).slice(0, 10).map((l) => clip(l, 60)).filter(Boolean).join("; ")}` : "",
@@ -115,6 +116,13 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     const messages = buildMessages(turns, await loadHistoryImages(userId, historyPictures(turns), loadPromptImages));
     // The pictures attached to the box are shown to the agent (up to 8, ids only, owner-checked, read from our own storage).
     const seeing = await attachPictures(userId, parsePictures(c.pictures), messages[messages.length - 1], loadPromptImages);
+    // ShotMap: a small snapshot of the 3D view goes in front of the message so Atlas can see the set (a jpeg the browser drew, size and format checked, never stored).
+    const sceneImg = typeof c.sceneImage === "string" && c.sceneImage.length < 400_000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(c.sceneImage) ? c.sceneImage.slice("data:image/jpeg;base64,".length) : "";
+    if (sceneImg && c.page === "shotmap") {
+      const last = messages[messages.length - 1];
+      const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
+      last.content = [...own.slice(0, -1), { type: "text", text: "Snapshot of the 3D view in ShotMap as it looks now (grey blockout: figures are stand-ins):" }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: sceneImg } }, own[own.length - 1]];
+    }
     // PDFs the person attached to this message go to the agent as files (text documents are already in the message text).
     const pdfs = documentBlocks(parseDocuments(body?.documents));
     if (pdfs.length) {

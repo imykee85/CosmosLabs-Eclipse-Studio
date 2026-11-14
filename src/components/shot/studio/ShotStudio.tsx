@@ -53,6 +53,16 @@ function imageAspect(url: string): Promise<number> {
   return new Promise((res) => { const i = new Image(); i.onload = () => res(i.naturalWidth && i.naturalHeight ? i.naturalWidth / i.naturalHeight : 1); i.onerror = () => res(1); i.src = url; });
 }
 
+
+// What Atlas is told about the scene in words: every item with where it stands, and where the camera is.
+function describeScene(w: World, t: number): string {
+  const f = (n: number) => String(r2(n)), v = (a: Vec3) => `${f(a[0])}, ${f(a[1])}, ${f(a[2])}`;
+  const items = w.items.filter((i) => i.id !== "floor");
+  const lines = items.slice(0, 40).map((i) => `- ${i.name} (${i.kind}${i.pose && i.pose !== "standing" ? `, ${i.pose}` : ""}${i.visible ? "" : ", hidden"}): at ${v(i.pos)} m, turned ${Math.round(i.rot[1])} degrees, scale ${v(i.scale)}${i.keys?.length ? `, moves (${i.keys.length} keys)` : ""}`);
+  const cam = cameraAt(w, cameraOf(w), t);
+  return [`Positions are x (right), y (up), z (towards the viewer) in metres; the floor is y = 0.`, items.length ? `Scene items (${items.length}):` : "The scene has no items yet.", ...lines, `Camera now: at ${v(cam.key.pos)} m looking at ${v(cam.key.look)}, ${cam.key.lensMm} mm lens.`].join("\n");
+}
+
 export default function ShotStudio({ projectId, onUse, onClose, addModel }: { projectId: string | null; onUse: (u: ShotUse) => void; onClose: () => void; addModel?: { key: string; name: string } }) {
   // ---- the scene and its history ----
   const [sceneId, setSceneId] = useState<string | null>(null);
@@ -123,12 +133,26 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
   };
   const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { useMove: false }));
   // Atlas on this screen (owner 2026-11-13): he sees the scene and can set the Moves from a described camera motion. Nothing renders: the guide is made by Use video.
+  // A small picture of the 3D view as it looks right now, so Atlas can see the set (the browser draws it; nothing is stored).
+  function snapshot(): string | undefined {
+    try {
+      const c = canvasRef.current; if (!c || !view.current || stage !== "editor") return undefined;
+      view.current.drawNow();
+      const k = Math.min(1, 768 / Math.max(c.width, c.height)), o = document.createElement("canvas");
+      o.width = Math.max(1, Math.round(c.width * k)); o.height = Math.max(1, Math.round(c.height * k));
+      o.getContext("2d")!.drawImage(c, 0, 0, o.width, o.height);
+      const u = o.toDataURL("image/jpeg", 0.7);
+      return u.length < 400_000 ? u : undefined;
+    } catch { return undefined; }
+  }
   useAgentHost({
     page: "shotmap",
     context: () => {
       const w = worldRef.current, c = cameraOf(w), m = c.useMove ? c.move : undefined;
       return {
         prompt: w.prompt || "",
+        sceneOutline: describeScene(w, t),
+        sceneImage: snapshot(),
         settings: [`Tab: ShotMap, ${mode}${mode === "motion" ? (c.useMove ? " (Moves)" : " (Keyframes)") : ""}`, `Shot length: ${shotOf(w).durationS} s, aspect ratio ${w.aspect}`,
           ...(m ? [`Current move: ${m.preset}${m.preset2 ? ` + ${m.preset2} (${m.combine})` : ""}, rotate ${m.rotate}, vertical ${m.vertical}, distance ${m.distance} m, speed ${Math.round(m.speed * 100)}%, lens ${m.lensMm} mm, shake ${Math.round(m.shake * 100)}%`] : []),
           `In the scene: ${w.items.filter((i) => i.id !== "floor").slice(0, 12).map((i) => i.name).join(", ") || "nothing yet"}`],
