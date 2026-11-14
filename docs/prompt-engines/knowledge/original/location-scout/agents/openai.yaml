@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cinematic Location Scout"
+  short_description: "Real places, verified photos, cinematic shot plans"
+  default_prompt: "Use $cinematic-location-scout to find a real setting for my scene and deliver reference images with a cinematic shot plan."
