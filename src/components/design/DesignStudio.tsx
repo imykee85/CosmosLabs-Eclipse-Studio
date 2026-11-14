@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { Box, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { ArrowRight, Box, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
@@ -149,16 +150,17 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
         </div>
         {shown && shown.fileUrl && !making && <ModelBar item={shown} onChanged={reload} />}
         {(items ?? []).filter((i) => i.status === "failed").slice(0, 1).map((i) => <p key={i.id} className="ds-error">{i.error}</p>)}
-        {(items ?? []).length > 0 && (
-          <div className="ds-list" aria-label="Your 3D models">
-            {(items ?? []).map((i) => (
-              <button key={i.id} type="button" className={`ds-chip ${shown?.id === i.id ? "is-on" : ""}`} onClick={() => setOpen(i.id)} disabled={i.status !== "completed"} aria-label={`${i.name}, ${i.status}`}>
-                {i.status === "completed" ? <Box size={15} /> : i.status === "failed" ? <X size={15} /> : <Loader2 size={15} className="ds-spin" />}
-                <span>{i.name}</span><em>{i.status === "completed" ? timeAgo(i.createdAt) : i.status === "failed" ? "failed" : "making…"}</em>
-              </button>
-            ))}
-          </div>
-        )}
+        {(() => {
+          const done = (items ?? []).filter((i) => i.status === "completed").slice(0, 5);
+          return done.length > 0 && (
+            <div className="cr-earlier" aria-label="Your five most recent 3D models">
+              {done.map((i) => (
+                <button key={i.id} type="button" className={`ds-hist ${shown?.id === i.id ? "is-on" : ""}`} aria-pressed={shown?.id === i.id} title={i.name} aria-label={i.name} onClick={() => setOpen(i.id)}><Box size={18} /></button>
+              ))}
+              <Link href="/library?kind=Design" className="cr-seeall" aria-label="See all in your Library" title="See all in your Library"><ArrowRight size={16} /></Link>
+            </div>
+          );
+        })()}
       </section>
 
       <div className="cr-dock">

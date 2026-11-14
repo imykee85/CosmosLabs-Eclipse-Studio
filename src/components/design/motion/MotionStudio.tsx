@@ -1,7 +1,8 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Check, ChevronDown, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Layers, LayoutTemplate, Shuffle,
+  ArrowLeft, ArrowRight, Check, ChevronDown, Columns2, Download, Loader2, MessageSquarePlus, Mic, MonitorPlay, Music, Palette, Pencil, Plus, Settings2, Layers, LayoutTemplate, Shuffle,
   Square, Star, Trash2, X, Zap, ShieldCheck, ArrowUp, Film,
 } from "lucide-react";
 import GrowArea from "@/components/GrowArea";
@@ -58,18 +59,15 @@ function MotionHome({ kits, reloadKits, onOpen, recreate }: { kits: BrandKitItem
         <div className="cr-stage mt-stage" aria-live="polite">
           <div className="cr-empty"><MonitorPlay size={34} strokeWidth={1.4} /><p>Your motion appears here</p></div>
         </div>
+        {(items ?? []).length > 0 && (
+          <div className="cr-earlier" aria-label="Your five most recent motions">
+            {(items ?? []).slice(0, 5).map((m) => (
+              <button key={m.id} type="button" className="ds-hist" title={m.title} aria-label={m.title} onClick={() => onOpen(m.id)}>{m.status && RUNNING.has(m.status) ? <Loader2 size={16} className="mt-spin" /> : <MonitorPlay size={18} />}</button>
+            ))}
+            <Link href="/library?kind=Design" className="cr-seeall" aria-label="See all in your Library" title="See all in your Library"><ArrowRight size={16} /></Link>
+          </div>
+        )}
       </section>
-      <h3 className="mt-h3">Your motions</h3>
-      {items === null ? <p className="mt-hint">Loading…</p> : items.length === 0 ? <p className="mt-hint">Nothing yet. Describe a motion below or start from a template.</p> : (
-        <div className="mt-list">
-          {items.map((m) => (
-            <button key={m.id} type="button" className="mt-card" onClick={() => onOpen(m.id)}>
-              <span className="mt-card-art" style={{ aspectRatio: m.aspect.replace(":", " / ") }}><MonitorPlay size={22} />{m.status && RUNNING.has(m.status) && <Loader2 size={14} className="mt-spin" />}</span>
-              <b>{m.title}</b><em>{m.aspect} · {m.versions} version{m.versions === 1 ? "" : "s"} · {timeAgo(m.updatedAt)}</em>
-            </button>
-          ))}
-        </div>
-      )}
       <Composer kits={kits} reloadKits={reloadKits} onStarted={onOpen} initial={recreate} />
     </section>
   );

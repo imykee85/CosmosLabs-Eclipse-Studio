@@ -56,7 +56,7 @@
 .ds-agent { flex: none; }
 /* 3D tab uses Image Studio's layout (preview above, docked prompt box). */
 .ds-3d.cr-wrap { display: block; grid-template-columns: none; max-width: 760px; padding-top: 4px; }
-.ds-stage3 { aspect-ratio: 1 / 1; max-width: 240px; }
+
 .ds-stage3 .ds-viewer { border: 0; border-radius: 0; height: 100%; aspect-ratio: auto; }
 .ds-3d .ds-bar, .ds-3d .ds-list { max-width: 320px; margin: 12px auto 0; }
 .ds-3d .cr-box .ds-text { border: 0; background: transparent; padding: 2px; }
@@ -100,7 +100,7 @@ html:has(.ds-3d.is-idle), html:has(.ds-3d.is-idle) body { overflow: hidden; over
 html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
 .ds-3d.is-idle { max-height: none; overflow: visible; }
 /* Preview: same width as before, rectangular. */
-.ds-stage3 { aspect-ratio: 4 / 3; }
+.ds-stage3 { aspect-ratio: 16 / 9; max-width: 520px; }
 /* Tabs: both pills the same width and smaller. */
 .ds-tabs button { flex: 1 1 0; justify-content: center; min-width: 96px; padding: 7px 12px; font-size: 14px; }
 .ds-tabs { padding: 3px; }
@@ -122,3 +122,5 @@ html:has(.ds-3d.is-idle) body { position: fixed; inset: 0; width: 100%; }
   .ds .cr-wrap.ds-3d { display: flex; flex-direction: column; flex: 1; min-height: 0; max-height: none; }
 }
 .ds-3d .cr-row > .cr-chip.ds-detail { width: 76px; justify-content: center; }
+
+.cr-earlier button.ds-hist { display: grid; place-items: center; color: var(--a-fg2); background: var(--a-card); }
