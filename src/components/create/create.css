@@ -623,3 +623,13 @@ html:has(.cr-wrap.is-idle, .vc.is-idle) body { position: fixed; inset: 0; width:
 .aw-cmds button:hover { background: var(--a-input); }
 .aw-cmds b { font-size: 14px; font-weight: 600; }
 .aw-cmds span { font-size: 13px; color: var(--a-fg2); }
+
+/* Tool panels (Relight, Change camera, Upscale, Variations, Skin...) on DESKTOP dock on the right like the Atlas panel instead of a centred dialog:
+   flush to the right edge under the header, no dimming, the studio makes room and stays usable. Beside Atlas when he is open too. */
+@media (min-width: 801px) and (pointer: fine) {
+  .cr-var-back:not(.ve-back) { background: transparent; align-items: stretch; justify-content: flex-end; pointer-events: none; top: 63px; right: var(--aw-w, 0px); left: auto; width: min(420px, 40vw); z-index: 251; }
+  .cr-var-back:not(.ve-back) > .cr-var, .cr-var-back:not(.ve-back) > .cr-var.cr-cam, .cr-var-back:not(.ve-back) > .cr-var.cr-light { pointer-events: auto; width: 100%; max-height: none; height: 100%; border-radius: 0; border-left: 1px solid var(--a-line2); display: flex; flex-direction: column; align-items: stretch; padding: 16px 18px 22px; }
+  .cr-var-back:not(.ve-back) > .cr-var > * { grid-column: auto; flex-shrink: 0; }
+  .cr-var-back:not(.ve-back) .cr-cam-stage .cr-cam-3d, .cr-var-back:not(.ve-back) .cr-cam-stage svg { height: min(30dvh, 260px); }
+  html:has(.cr-var-back:not(.ve-back)) .ws-main { width: calc(100% - var(--aw-w, 0px) - min(420px, 40vw)); margin-left: 0; margin-right: calc(var(--aw-w, 0px) + min(420px, 40vw)); }
+}

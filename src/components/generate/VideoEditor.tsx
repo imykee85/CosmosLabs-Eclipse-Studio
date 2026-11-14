@@ -286,7 +286,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
   useEffect(() => { if (selText) setTab("text"); else if (selClip?.kind === "audio") setTab("audio"); else if (selClip) setTab((x) => (x === "audio" || x === "text" ? "edit" : x)); }, [selClip?.id, selClip?.kind, selText?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="cr-var-back">
+    <div className="cr-var-back ve-back">
       <div className="cr-var cr-cam ve-panel" role="dialog" aria-modal="true" aria-label="Video editor">
         <div className="cr-var-head">
           <span className="cr-var-thumb ve-thumb"><Film size={22} /></span>
