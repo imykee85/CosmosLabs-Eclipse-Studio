@@ -2,6 +2,7 @@
 
 // ShotMap: build a 3D scene (by hand or by asking), design camera moves with keyframes, look through the camera, take stills, then record the move
 // and hand it to Video Studio as the camera-motion reference. Three modes: Compose (build and arrange), Shoot (stills through a camera), Motion (camera keyframes on a timeline).
+import { baseName, toGlb } from "@/lib/design/model-import";
 import { MovesPanel } from "./MovesPanel";
 import AtlasChip from "@/components/design/AtlasChip";
 import { useAgentHost } from "@/lib/agent-chat";
@@ -621,7 +622,7 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
         )}
         {panel === "add" && !camEdit && mode !== "shoot" && (
           <AddPanel onAdd={(n) => { add(n); if (window.innerWidth < 860) setPanel(null); }} onAddCamera={() => { addCam(); if (window.innerWidth < 860) setPanel(null); }} onClose={() => setPanel("outliner")} recents={recents} models={models.list}
-            onUploadModel={async (f) => { if (f.size > 60 * 1024 * 1024) { setError("That model is larger than 60 MB."); return; } try { const buf = await f.arrayBuffer(); const key = await putModel(f.name.replace(/\.[^.]+$/, "").slice(0, 60), buf); const m = await listModels(); setModels(m); view.current?.dispose(); view.current = null; setViewReady(false); setStage("start"); setTimeout(() => { setStage("editor"); add({ kind: "model", modelKey: key, name: f.name.replace(/\.[^.]+$/, "") }); }, 0); } catch { setError("That file could not be read as a 3D model."); } }}
+            onUploadModel={async (f) => { if (f.size > 60 * 1024 * 1024) { setError("That model is larger than 60 MB."); return; } try { const buf = await toGlb(f); const key = await putModel(baseName(f.name).slice(0, 60), buf); const m = await listModels(); setModels(m); view.current?.dispose(); view.current = null; setViewReady(false); setStage("start"); setTimeout(() => { setStage("editor"); add({ kind: "model", modelKey: key, name: f.name.replace(/\.[^.]+$/, "") }); }, 0); } catch (err) { setError(err instanceof Error ? err.message : "That file could not be read as a 3D model."); } }}
             onPickCharacter={() => setPicker("character")} onPickImage={() => setPicker("image")} characters={characters} onSoon={soon} />
         )}
         {!panel && !camEdit && mode !== "shoot" && <button type="button" className="ss-reopen" aria-label="Show the scene list" onClick={() => setPanel("outliner")}><LayoutList size={15} /></button>}

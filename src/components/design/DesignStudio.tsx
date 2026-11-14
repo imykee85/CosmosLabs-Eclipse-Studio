@@ -10,6 +10,7 @@ import "@/components/create/create.css";
 import { ArrowRight, Box, Camera, ChevronDown, FolderOpen, Grid3x3, Info, Lightbulb, Palette, Search, Square, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check, Rotate3d } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
+import { MODEL_ACCEPT, baseName, toGlb } from "@/lib/design/model-import";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
 import Viewer3D, { FORMATS, type Bg, type ModelInfo, type ViewerApi } from "./Viewer3D";
 import { delete3DModel, rename3DModel, start3DModel, use3D, type Item3D, type Model3DInfo } from "@/lib/use-design";
@@ -173,7 +174,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
             <div className="cr-empty"><Box size={34} strokeWidth={1.4} /><p>Your model appears here</p></div>
           )}
         </div>
-        <input ref={glbInput} type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setLocal((l) => { if (l) URL.revokeObjectURL(l.url); return { url: URL.createObjectURL(f), name: f.name.replace(/\.glb$/i, "") }; }); }} />
+        <input ref={glbInput} type="file" accept={MODEL_ACCEPT} hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void toGlb(f).then((buf) => setLocal((l) => { if (l) URL.revokeObjectURL(l.url); return { url: URL.createObjectURL(new Blob([buf], { type: "model/gltf-binary" })), name: baseName(f.name) }; })).catch((err) => setError(err instanceof Error ? err.message : "That file could not be read.")); }} />
         {local && !making ? (
           <div className="ds-bar"><b className="ds-name">{local.name} <em className="ds-localtag">on this device only</em></b><div className="ds-actions"><button type="button" className="ds-txt" onClick={() => { URL.revokeObjectURL(local.url); setLocal(null); }}>Close</button></div></div>
         ) : shown && shown.fileUrl && !making ? <ModelBar item={shown} onChanged={reload} /> : null}
@@ -237,7 +238,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
                     <div className="cr-tools">
             {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
-              <button type="button" className="cr-chip ds-iconchip" aria-label="Open your own .glb" title="Open your own .glb from your device (viewed on this device only)" onClick={() => glbInput.current?.click()}><FolderOpen size={15} /></button>
+              <button type="button" className="cr-chip ds-iconchip" aria-label="Open your own 3D file" title="Open your own 3D file (.glb, .gltf, .obj, .stl, .fbx, .ply, .dae, .3mf), viewed on this device only" onClick={() => glbInput.current?.click()}><FolderOpen size={15} /></button>
               {picked.length > 1 && <button type="button" className={`cr-chip ds-iconchip ${Object.keys(views).length ? "is-on" : ""}`} aria-label="Label each picture's side" title="Say which side of the object each picture shows" aria-haspopup="menu" aria-expanded={!!viewAnchor} onClick={(e) => setViewAnchor(e.currentTarget.getBoundingClientRect())}><Rotate3d size={15} /></button>}
               <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>

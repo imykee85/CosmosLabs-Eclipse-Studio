@@ -1,6 +1,7 @@
 "use client";
 
 // Smaller pieces of the ShotMap editor: the scene list (outliner), Add to scene, the inspector, the camera settings popover and the start screen.
+import { MODEL_ACCEPT } from "@/lib/design/model-import";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box, Camera, ChevronDown, ChevronLeft, ChevronRight, Circle, Cone, Copy, Cylinder, Eye, EyeOff, Folder, FolderOpen, Image as ImageIcon, LayoutTemplate, Lock,
@@ -142,7 +143,7 @@ export function AddPanel({ onAdd, onAddCamera, onClose, recents, models, onUploa
           <div className="ss-add-row">
             <button type="button" className="ss-wide" onClick={() => fileRef.current?.click()}><Upload size={15} /> Upload 3D model</button>
             <a className="ss-wide" href="/design" target="_blank" rel="noopener"><ImageIcon size={15} /> Image to 3D</a>
-            <input ref={fileRef} type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadModel(f); e.target.value = ""; }} />
+            <input ref={fileRef} type="file" accept={MODEL_ACCEPT} hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadModel(f); e.target.value = ""; }} />
           </div>
           <label className="ss-search"><Search size={14} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search objects" /></label>
           {models.length > 0 && (<><div className="ss-sub">Mine</div><div className="ss-grid">{models.filter((m) => !q.trim() || m.name.toLowerCase().includes(q.toLowerCase())).map((m) => <button key={m.key} type="button" className="ss-tile" onClick={() => onAdd({ kind: "model", modelKey: m.key, name: m.name })}><Box size={22} /><span>{m.name}</span></button>)}</div></>)}
