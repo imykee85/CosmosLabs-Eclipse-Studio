@@ -6,7 +6,7 @@ import path from "node:path";
 export type KitFile = { path: string; content: Buffer; mode?: number };
 const cache = new Map<string, KitFile[]>();
 
-export function kitFiles(name: "ffmpeg-skill" | "scenario-kinetic-film", prefix: string, only: (rel: string) => boolean = () => true): KitFile[] {
+export function kitFiles(name: "ffmpeg-skill" | "scenario-kinetic-film" | "location-scout", prefix: string, only: (rel: string) => boolean = () => true): KitFile[] {
   const key = `${name}:${prefix}`;
   const hit = cache.get(key);
   if (hit) return hit;
