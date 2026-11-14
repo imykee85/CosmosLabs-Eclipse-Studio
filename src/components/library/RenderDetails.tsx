@@ -100,6 +100,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
   }
 
   // Phones and some desktops can share the picture itself; otherwise a link that stops working after a week is copied.
+  const [linked, setLinked] = useState(false); // "Stop sharing" only appears once a link was made here
   async function share() {
     setNote("");
     try {
@@ -120,6 +121,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
       const r = await fetch(`/api/generations/${g.id}/share`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data.url) throw new Error();
+      setLinked(true);
       try { await navigator.clipboard.writeText(data.url); }
       catch { window.prompt("Copy this link to share it", data.url); } // iPhone Safari refuses the clipboard once a request has been waited on
       setNote(data.days ? `Link copied. Anyone with it can view this ${g.kind === "video" ? "video" : "image"} for ${data.days} days.` : "Link copied.");
@@ -133,7 +135,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
     try {
       const r = await fetch(`/api/generations/${g.id}/share`, { method: "DELETE" });
       if (!r.ok) throw new Error();
-      setNote("Sharing stopped. Links you made before no longer open.");
+      setLinked(false); setNote("Sharing stopped. Links you made before no longer open.");
     } catch { setNote("Could not stop sharing. Please try again."); }
   }
 
@@ -157,7 +159,7 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
         <button type="button" className="rd-btn" onClick={copyPrompt} aria-label="Copy prompt" title="Copy prompt">{copied ? <Check size={15} /> : <Copy size={15} />}<span className="rd-lbl">{copied ? "Copied" : "Copy prompt"}</span></button>
         <a className="rd-btn" href={`/api/generations/${g.id}/file?download=1`} download={g.fileName ?? undefined} aria-label="Download" title="Download"><Download size={15} /><span className="rd-lbl">Download</span></a>
         <button type="button" className="rd-btn" onClick={share} aria-label="Share" title="Share"><Share2 size={15} /><span className="rd-lbl">Share</span></button>
-        <button type="button" className="rd-btn" onClick={() => void stopSharing()} aria-label="Stop sharing" title="Links you shared stop working"><Link2Off size={15} /><span className="rd-lbl">Stop sharing</span></button>
+        {linked && <button type="button" className="rd-btn" onClick={() => void stopSharing()} aria-label="Stop sharing" title="Links you shared stop working"><Link2Off size={15} /><span className="rd-lbl">Stop sharing</span></button>}
         {g.kind === "video" && g.draft && !g.finalMade && <button type="button" className="rd-btn" onClick={() => void makeFinal()} disabled={finalBusy} aria-label="Generate in 1080p" title="The same video in 1080p, nothing else changes"><Film size={15} /><span className="rd-lbl">{finalBusy ? "Starting…" : "Generate in 1080p"}{g.finalCredits != null && !finalBusy ? ` · ${fmtCredits(g.finalCredits)}` : ""}</span></button>}
         {g.kind === "video" && <button type="button" className="rd-btn" onClick={() => setSound(true)} aria-label="Add sound" title="Add sound to this video"><Volume2 size={15} /><span className="rd-lbl">Add sound</span></button>}
         {!collapsible && <button type="button" className="rd-btn" onClick={() => router.push(`${g.kind === "video" ? "/generate" : "/create"}?tool=${g.id}`)} aria-label="Tools" title={g.kind === "video" ? "Open this video in Video Studio with its tools (upscale, relight, edit)" : "Open this picture in Image Studio with its tools (upscale, edit, relight, variations)"}><Wrench size={15} /><span className="rd-lbl">Tools</span></button>}
