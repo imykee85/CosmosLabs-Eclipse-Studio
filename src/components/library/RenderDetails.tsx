@@ -120,7 +120,8 @@ export default function RenderDetails({ g, onDeleted, onStarted, collapsible = f
       const r = await fetch(`/api/generations/${g.id}/share`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data.url) throw new Error();
-      await navigator.clipboard.writeText(data.url);
+      try { await navigator.clipboard.writeText(data.url); }
+      catch { window.prompt("Copy this link to share it", data.url); } // iPhone Safari refuses the clipboard once a request has been waited on
       setNote(data.days ? `Link copied. Anyone with it can view this ${g.kind === "video" ? "video" : "image"} for ${data.days} days.` : "Link copied.");
     } catch {
       setNote(`Could not share this ${g.kind === "video" ? "video" : "image"}. Please try again.`);
