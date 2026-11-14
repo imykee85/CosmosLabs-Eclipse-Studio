@@ -6,7 +6,7 @@ import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { ArrowRight, Box, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { ArrowRight, Box, ChevronDown, Search, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
@@ -71,6 +71,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   const [open, setOpen] = useState<string | null>(openId);
   const [uploading, setUploading] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [modelSheet, setModelSheet] = useState(false);
   // The model chip is as wide as the longest model name (measured in the chip's own font), plus room for the arrow.
   const [nameW, setNameW] = useState(0);
   useEffect(() => {
@@ -163,6 +164,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
         })()}
       </section>
 
+      {modelSheet && <ModelSheet3D models={available} value={model?.id ?? ""} onPick={(id) => { setModelId(id); setModelSheet(false); }} onClose={() => setModelSheet(false)} />}
       <div className="cr-dock">
         {error && <p className="ds-error" role="alert">{error}</p>}
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void go(); }}>
@@ -189,12 +191,9 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
             <div className="cr-row cr-row-a">
               <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
-              <label className="cr-chip cr-select ds-modelsel" title={model?.blurb} style={nameW ? { width: nameW + 58 } : undefined}>
-                <span className="sr-only">3D model</span>
-                <select value={model?.id ?? ""} onChange={(e) => setModelId(e.target.value)} aria-label="3D model">
-                  {available.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-                </select>
-              </label>
+              <button type="button" className="cr-chip ds-modelsel" aria-haspopup="dialog" aria-expanded={modelSheet} aria-label="3D model" title={model?.blurb} style={nameW ? { width: nameW + 58 } : undefined} onClick={() => setModelSheet(true)}>
+                <span>{model?.label ?? "Model"}</span><ChevronDown size={14} aria-hidden="true" />
+              </button>
             </div>
             <div className="cr-row">
               <button type="button" className={`cr-chip ds-detail ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
@@ -266,6 +265,37 @@ function ModelBar({ item, onChanged }: { item: Item3D; onChanged: () => Promise<
         <button type="button" aria-label={sure ? "Confirm delete" : "Delete"} className={sure ? "is-danger" : ""} onClick={async () => { if (!sure) { setSure(true); setTimeout(() => setSure(false), 3000); return; } await delete3DModel(item.id); await onChanged(); }}>{sure ? <Check size={16} /> : <Trash2 size={16} />}</button>
       </div>
       {note && <p className="ds-hint" role="status">{note}</p>}
+    </div>
+  );
+}
+
+// The model list as an in-app sheet (like Image Studio's model picker): models grouped by maker, searchable, with what each one does and its price.
+function ModelSheet3D({ models, value, onPick, onClose }: { models: { id: string; label: string; maker: string; blurb: string; credits: number | null }[]; value: string; onPick: (id: string) => void; onClose: () => void }) {
+  const [q, setQ] = useState("");
+  const term = q.trim().toLowerCase();
+  const list = models.filter((m) => !term || `${m.label} ${m.maker} ${m.blurb}`.toLowerCase().includes(term));
+  const makers = Array.from(new Set(list.map((m) => m.maker)));
+  return (
+    <div className="mp-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="mp-sheet" role="dialog" aria-label="3D model">
+        <header className="mp-head"><h2>3D model</h2><button type="button" aria-label="Close" onClick={onClose}><X size={18} /></button></header>
+        <label className="mp-search"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search 3D models" /></label>
+        <div className="mp-body">
+          {makers.map((mk) => (
+            <div key={mk}>
+              <h3>{mk}</h3>
+              {list.filter((m) => m.maker === mk).map((m) => (
+                <button key={m.id} type="button" className={`mp-row ${value === m.id ? "is-on" : ""}`} onClick={() => onPick(m.id)}>
+                  <span className="mp-name">{m.label}{m.blurb && <small>{m.blurb}</small>}</span>
+                  {m.credits != null && <span className="mp-price">{m.credits}</span>}
+                  {value === m.id && <Check size={16} />}
+                </button>
+              ))}
+            </div>
+          ))}
+          {!list.length && <p className="mp-none">No model matches &ldquo;{q}&rdquo;.</p>}
+        </div>
+      </div>
     </div>
   );
 }
