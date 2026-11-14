@@ -192,6 +192,41 @@ test.describe("ShotMap", () => {
     expect(sent.context!.sceneFrames![0].jpeg).toMatch(/^data:image\/jpeg;base64,/);
     expect(sent.context!.sceneFrames![0].jpeg).not.toBe(sent.context!.sceneFrames!.at(-1)!.jpeg); // the camera really moved between the first and last frame
   });
+  test("Undo and redo never switch between Keyframes and Moves; they step through that mode's own changes", async ({ page }) => {
+    await setup(page);
+    const d = await openShotMap(page);
+    await d.getByRole("tab", { name: "None" }).click();
+    await d.getByRole("button", { name: "Create empty scene" }).click();
+    await d.getByRole("tab", { name: "Motion" }).click();
+    const row = d.locator(".ss-tl-row.is-cam"), keys = () => row.locator(".ss-diamond").count();
+    const before = await keys();
+    const box = (await row.boundingBox())!;
+    await row.dblclick({ position: { x: 12 + (box.width - 24) * 0.5, y: 18 } });
+    await page.keyboard.press("Escape");
+    await expect.poll(keys).toBe(before + 1);
+    // flip to Moves and back: those flips are not changes to undo
+    await d.getByRole("tab", { name: "Moves" }).click();
+    await d.getByRole("tab", { name: "Keyframes" }).click();
+    await d.getByRole("button", { name: "Undo camera change" }).click();
+    await expect(d.getByRole("tab", { name: "Keyframes" })).toHaveAttribute("aria-selected", "true");
+    await expect.poll(keys).toBe(before);
+    await d.getByRole("button", { name: "Redo camera change" }).click();
+    await expect(d.getByRole("tab", { name: "Keyframes" })).toHaveAttribute("aria-selected", "true");
+    await expect.poll(keys).toBe(before + 1);
+    // Moves: undo takes back the last move you set, and stays in Moves
+    await d.getByRole("tab", { name: "Moves" }).click();
+    const move = d.getByRole("group", { name: "Camera moves" }).getByLabel("Move", { exact: true });
+    const first = await move.inputValue();
+    await move.selectOption("orbit-180");
+    await d.getByRole("tab", { name: "Keyframes" }).click();
+    await d.getByRole("tab", { name: "Moves" }).click();
+    await d.getByRole("button", { name: "Undo camera change" }).click();
+    await expect(d.getByRole("tab", { name: "Moves" })).toHaveAttribute("aria-selected", "true");
+    await expect(move).toHaveValue(first);
+    await d.getByRole("button", { name: "Redo camera change" }).click();
+    await expect(d.getByRole("tab", { name: "Moves" })).toHaveAttribute("aria-selected", "true");
+    await expect(move).toHaveValue("orbit-180");
+  });
   test("Atlas hands a scene change to his helper, the scene assistant, when Apply is pressed", async ({ page }) => {
     await setup(page);
     await page.addInitScript(() => { localStorage.setItem("eclipse-agent", "Atlas"); localStorage.setItem("eclipse-agent-on:generate", "1"); });

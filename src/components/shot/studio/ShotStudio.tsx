@@ -74,8 +74,16 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
     setWorldState((cur) => { const n = typeof next === "function" ? next(cur) : next; if (n === cur) return cur; past.current = [...past.current.slice(-HISTORY + 1), cur]; future.current = []; return n; });
     bump((x) => x + 1);
   }, []);
-  const undo = useCallback(() => { const p = past.current.pop(); if (!p) return; future.current.push(worldRef.current); setWorldState(p); bump((x) => x + 1); }, []);
-  const redo = useCallback(() => { const f = future.current.pop(); if (!f) return; past.current.push(worldRef.current); setWorldState(f); bump((x) => x + 1); }, []);
+  // Undo and redo step through the camera and scene edits. Switching between Keyframes and Moves is not an edit to undo: the tab you are on never changes,
+  // and a step that only flipped the tab is skipped, so Undo always takes back the last real change in the mode you are in.
+  // Each camera keeps its two sets apart: going back only restores the set you are working in (its keyframes, or its Moves), and never the other one or the tab itself.
+  const keepTab = (p: World, cur: World): World => ({ ...p, cameras: p.cameras.map((c) => { const now = cur.cameras.find((x) => x.id === c.id); if (!now) return c; return now.useMove ? { ...c, keys: now.keys, useMove: true } : { ...c, move: now.move, useMove: now.useMove }; }) });
+  const differs = (a: World, b: World) => JSON.stringify(a) !== JSON.stringify(b);
+  const stepBack = (from: World[], cur: World): { at: number; world: World } | null => { for (let i = from.length - 1; i >= 0; i--) { const w = keepTab(from[i], cur); if (differs(w, cur)) return { at: i, world: w }; } return null; };
+  const canUndo = () => !!stepBack(past.current, worldRef.current);
+  const canRedo = () => !!stepBack(future.current, worldRef.current);
+  const undo = useCallback(() => { const r = stepBack(past.current, worldRef.current); if (!r) return; future.current.push(worldRef.current); past.current = past.current.slice(0, r.at); setWorldState(r.world); bump((x) => x + 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const redo = useCallback(() => { const r = stepBack(future.current, worldRef.current); if (!r) return; past.current.push(worldRef.current); future.current = future.current.slice(0, r.at); setWorldState(r.world); bump((x) => x + 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [stage, setStage] = useState<"start" | "editor">("start");
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
@@ -568,8 +576,8 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
           {(["compose", "shoot", "motion"] as Mode[]).map((m) => <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "is-on" : ""} onClick={() => { if (camEdit) doneCamera(); setMode(m); setFocusPick(false); if (window.innerWidth < 860) setPanel(null); }}>{label(m)}</button>)}
         </div>
         <div className="ss-top-right">
-          <button type="button" className="ss-icon" aria-label="Undo" disabled={!past.current.length} onClick={undo}><Undo2 size={15} /></button>
-          <button type="button" className="ss-icon" aria-label="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
+          <button type="button" className="ss-icon" aria-label="Undo" disabled={!canUndo()} onClick={undo}><Undo2 size={15} /></button>
+          <button type="button" className="ss-icon" aria-label="Redo" disabled={!canRedo()} onClick={redo}><Redo2 size={15} /></button>
           <div className="ss-use-wrap">
             <button type="button" className="ss-use" onClick={() => setUseMenu((v) => !v)} aria-expanded={useMenu}>Use video <ArrowRight size={14} /></button>
             {useMenu && (
@@ -686,8 +694,8 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
                 <button type="button" role="tab" aria-selected={kindNow === "keys"} className={kindNow === "keys" ? "is-on" : ""} onClick={useKeys}>Keyframes</button>
                 <button type="button" role="tab" aria-selected={kindNow === "moves"} className={kindNow === "moves" ? "is-on" : ""} onClick={() => applyMoves({})}>Moves</button>
               </div>
-              <button type="button" className="ss-icon" aria-label="Undo camera change" title="Undo" disabled={!past.current.length} onClick={undo}><Undo2 size={15} /></button>
-              <button type="button" className="ss-icon" aria-label="Redo camera change" title="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
+              <button type="button" className="ss-icon" aria-label="Undo camera change" title="Undo" disabled={!canUndo()} onClick={undo}><Undo2 size={15} /></button>
+              <button type="button" className="ss-icon" aria-label="Redo camera change" title="Redo" disabled={!canRedo()} onClick={redo}><Redo2 size={15} /></button>
             <button type="button" className="ss-play" aria-label={playing ? "Pause" : "Play"} onClick={() => { if (!playing && t >= D) setT(0); setPlaying((p) => !p); }}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
               <label className="ss-dur" title="Shot duration"><input inputMode="decimal" aria-label="Shot duration in seconds" value={D} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v > 0) commit((w) => editShot(w, shot.id, { durationS: Math.min(MAX_SHOT_S, v) })); }} />s</label>
               <select className="ss-select is-small" aria-label="Aspect ratio" value={world.aspect} onChange={(e) => commit((w) => ({ ...w, aspect: e.target.value as WAspect }))}>{ASPECT_LIST.map((a) => <option key={a} value={a}>{a}</option>)}</select>
@@ -716,8 +724,8 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
               </div>
               <label className="ss-toggle" title="On: people appear in the guide video. Off: they are left out."><input type="checkbox" checked={world.simpleFigures} onChange={(e) => commit((w) => ({ ...w, simpleFigures: e.target.checked }))} /> Simple figures</label>
               <button type="button" className="ss-pill" onClick={addKeyHere} title="Add keyframe · K"><Plus size={13} /> Add keyframe</button>
-              <button type="button" className="ss-icon ss-ur" aria-label="Undo camera change" title="Undo" disabled={!past.current.length} onClick={undo}><Undo2 size={15} /></button>
-              <button type="button" className="ss-icon ss-ur" aria-label="Redo camera change" title="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
+              <button type="button" className="ss-icon ss-ur" aria-label="Undo camera change" title="Undo" disabled={!canUndo()} onClick={undo}><Undo2 size={15} /></button>
+              <button type="button" className="ss-icon ss-ur" aria-label="Redo camera change" title="Redo" disabled={!canRedo()} onClick={redo}><Redo2 size={15} /></button>
               {keySel >= 0 && (<>
                 <div className="ss-add-wrap">
                   <button type="button" className="ss-pill" onClick={() => setEaseMenu((v) => !v)} aria-expanded={easeMenu} aria-label="Easing">{EASES.find((e) => e.id === cam.keys[keySel]?.ease)?.label ?? "Smooth"} <ChevronDown size={12} /></button>
