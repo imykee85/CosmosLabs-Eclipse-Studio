@@ -13,6 +13,7 @@ import { SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT, DOC
 import { MOTION_CRAFT, wantsMotion } from "@/lib/motion-knowledge";
 import { AD_DIRECTOR, CINEMA_CRAFT, UGC_CRAFT, STYLE_TEMPLATE_CRAFT, MARKETING_CRAFT, CREATOR_CRAFT, wantsMarketing, wantsCreator, wantsAds, wantsCinema, wantsUgc, wantsStyleTemplate } from "@/lib/craft-knowledge";
 import { FASHION_DIRECTOR, wantsFashion } from "@/lib/fashion-knowledge";
+import { CINEMATIC_DIRECTOR, LOCATION_SCOUT, wantsCinematicDirector, wantsLocationScout } from "@/lib/cinematic-knowledge";
 import { PERFORMANCE_CRAFT, wantsPerformance } from "@/lib/performance-knowledge";
 import { commandOf } from "@/lib/atlas-commands";
 import { VOICE_LOCK_CRAFT, wantsVoiceLockOn } from "@/lib/voice-lock-knowledge";
@@ -201,11 +202,13 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const addMotion = isAtlas && (force.has("addMotion") || wantsAddMotion(messages, ctx)) ? `\n\n${ADD_MOTION_CRAFT}` : "";
       const voiceLock = isAtlas && (force.has("voiceLock") || wantsVoiceLockOn(messages, ctx, c.page)) ? `\n\n${VOICE_LOCK_CRAFT}` : "";
       const performance = isAtlas && (force.has("performance") || wantsPerformance(messages, ctx)) ? `\n\n${PERFORMANCE_CRAFT}` : "";
+      const cinDirector = isAtlas && (force.has("cinematicDirector") || wantsCinematicDirector(messages, ctx)) ? `\n\n${CINEMATIC_DIRECTOR}` : "";
+      const locScout = isAtlas && (force.has("locationScout") || wantsLocationScout(messages, ctx)) ? `\n\n${LOCATION_SCOUT}` : "";
       const withWeb = isAtlas && planAllows(access.plan, "web");
       const screen = isAtlas ? guideFor(c.page, c.settings) : null;
       const guide = screen ? `\n\n<screen_guide>\n${screen}\n</screen_guide>` : "";
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}\n\n${TEACHING_NOTE}${guide}` : "";
-      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}${voiceLock}${performance}${cmdNote}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}${voiceLock}${performance}${cinDirector}${locScout}${cmdNote}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = [...TOOLS, ...(canSet ? [SET_BOX] : []), ...(canMake ? [MAKE_ASSET] : [])];
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
       let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), GUIDE_TOOL, ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;

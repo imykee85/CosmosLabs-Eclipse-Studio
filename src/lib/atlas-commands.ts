@@ -22,6 +22,8 @@ export const ATLAS_COMMANDS: AtlasCommand[] = [
   { id: "marketing", label: "Marketing copy", hint: "Landing pages, captions and launches", force: "marketing", start: "Marketing copy craft: help me write it." },
   { id: "creator", label: "Creator channel", hint: "Grow a channel or sell digital products", force: "creator", start: "Creator channel craft: help me plan it." },
   { id: "performance", label: "Performance", hint: "Believable people: gesture, gaze, timing, listening", force: "performance", start: "Performance Craft: build the characters and write the performance directions." },
+  { id: "direct", label: "Direct", hint: "Cinematic director: scene, first frame, take review", force: "cinematicDirector", start: "Cinematic Director: direct the scene and write the prompt." },
+  { id: "scout", label: "Scout", hint: "Find real locations and plan the shots", force: "locationScout", start: "Location Scout: find the setting and plan the shots." },
   { id: "scene", label: "Scene director", hint: "Break a picture or idea into shots", force: "scene", start: "Scene Director: break it into shots." },
 ];
 
