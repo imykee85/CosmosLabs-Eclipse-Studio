@@ -3,7 +3,6 @@
 import { COMBINABLE, MOVE_GROUPS, PRESETS, type PresetId } from "@/lib/shot/setup";
 import type { MovesState } from "@/lib/shot/moves";
 
-const LENSES = [14, 24, 35, 50, 85, 135, 200];
 
 function MoveSelect({ label, value, onChange, none, combinableOnly, exclude }: { label: string; value: PresetId | null; onChange: (v: PresetId | null) => void; none?: string; combinableOnly?: boolean; exclude?: PresetId | null }) {
   return (
@@ -56,10 +55,7 @@ export function MovesPanel({ m, onChange, maxDistance = 20 }: { maxDistance?: nu
         <Slide label="Distance" min={1} max={Math.max(20, maxDistance)} step={0.1} value={m.distance} text={`${m.distance.toFixed(1)} m`} onChange={(v) => onChange({ distance: v })} />
         <Slide label="Speed" min={25} max={300} value={Math.round(m.speed * 100)} text={`${Math.round(m.speed * 100)}%`} onChange={(v) => onChange({ speed: v / 100 })} />
         <Slide label="Handheld shake" min={0} max={100} value={Math.round(m.shake * 100)} text={`${Math.round(m.shake * 100)}%`} onChange={(v) => onChange({ shake: v / 100 })} />
-        <label className="ss-mv-slide">
-          <span>Lens</span>
-          <select value={m.lensMm} onChange={(e) => onChange({ lensMm: Number(e.target.value) })} aria-label="Lens">{LENSES.map((l) => <option key={l} value={l}>{l} mm</option>)}</select>
-        </label>
+        <Slide label="Lens" min={14} max={200} value={m.lensMm} text={`${m.lensMm} mm`} onChange={(v) => onChange({ lensMm: v })} />
       </div>
     </div>
   );

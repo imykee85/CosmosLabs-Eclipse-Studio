@@ -123,7 +123,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
   };
   const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { useMove: false }));
   // Atlas on this screen (owner 2026-11-13): he sees the scene and can set the Moves from a described camera motion. Nothing renders: the guide is made by Use video.
-  const LENS_STEPS = [14, 24, 35, 50, 85, 135, 200];
   useAgentHost({
     page: "shotmap",
     context: () => {
@@ -142,7 +141,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
         `move: ${PRESETS.map((p) => `${p.id} (${p.label})`).join(", ")}`,
         `second_move: any of ${COMBINABLE.join(", ")} (not the same as move); combine: together | then`,
         "scene_request + scene_mode (scene | motion): describe a scene edit (add, move or remove things) or a camera motion with keyframes in plain words and your helper, the scene assistant, does it. Use it for anything the move settings below cannot say; scene_request must stand on its own.",
-        "rotate_deg 0 to 359; vertical_deg -30 to 80; distance_m 1 to 40; speed_percent 25 to 300; lens_mm 12 to 200 (nearest of 14, 24, 35, 50, 85, 135, 200 is used); shake_percent 0 to 100; length_seconds 2 to 30",
+        "rotate_deg 0 to 359; vertical_deg -30 to 80; distance_m 1 to 40; speed_percent 25 to 300; lens_mm 14 to 200; shake_percent 0 to 100; length_seconds 2 to 30",
       ],
       apply: (p) => {
         const set: string[] = [], refused: string[] = [], patch: Partial<MovesState> = {};
@@ -154,7 +153,7 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
         if (p.vertical !== undefined) { patch.vertical = Math.round(p.vertical); set.push(`vertical ${patch.vertical}°`); }
         if (p.distance !== undefined) { patch.distance = Math.round(p.distance * 10) / 10; set.push(`distance ${patch.distance} m`); }
         if (p.speed !== undefined) { patch.speed = p.speed / 100; set.push(`speed ${Math.round(p.speed)}%`); }
-        if (p.lens !== undefined) { patch.lensMm = LENS_STEPS.reduce((a, b) => (Math.abs(b - p.lens!) < Math.abs(a - p.lens!) ? b : a)); set.push(`lens ${patch.lensMm} mm`); }
+        if (p.lens !== undefined) { patch.lensMm = Math.round(Math.max(14, Math.min(200, p.lens))); set.push(`lens ${patch.lensMm} mm`); }
         if (p.shake !== undefined) { patch.shake = p.shake / 100; set.push(`shake ${Math.round(p.shake)}%`); }
         if (p.sceneRequest) {
           // Atlas hands a described change to the scene assistant (his helper): it edits the scene or writes the camera keyframes, and the result is applied here.
