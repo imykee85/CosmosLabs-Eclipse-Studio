@@ -677,11 +677,9 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
                 )}
               </div>
               <label className="ss-toggle" title="On: people appear in the guide video. Off: they are left out."><input type="checkbox" checked={world.simpleFigures} onChange={(e) => commit((w) => ({ ...w, simpleFigures: e.target.checked }))} /> Simple figures</label>
-              <span className="ss-keygrp">
               <button type="button" className="ss-pill" onClick={addKeyHere} title="Add keyframe · K"><Plus size={13} /> Add keyframe</button>
-              <button type="button" className="ss-icon" aria-label="Undo camera change" title="Undo" disabled={!past.current.length} onClick={undo}><Undo2 size={15} /></button>
-              <button type="button" className="ss-icon" aria-label="Redo camera change" title="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
-              </span>
+              <button type="button" className="ss-icon ss-ur" aria-label="Undo camera change" title="Undo" disabled={!past.current.length} onClick={undo}><Undo2 size={15} /></button>
+              <button type="button" className="ss-icon ss-ur" aria-label="Redo camera change" title="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
               {keySel >= 0 && (<>
                 <div className="ss-add-wrap">
                   <button type="button" className="ss-pill" onClick={() => setEaseMenu((v) => !v)} aria-expanded={easeMenu} aria-label="Easing">{EASES.find((e) => e.id === cam.keys[keySel]?.ease)?.label ?? "Smooth"} <ChevronDown size={12} /></button>

@@ -292,6 +292,7 @@
   .ss-preview { width: 38%; }
   .ss-preview.is-big { width: 78%; }
   .ss-tl-bar { grid-template-columns: 1fr; justify-items: stretch; }
+  .ss-tl-left { justify-content: flex-start; }
   .ss-tl-right { justify-content: center; }
   .ss-tl-right { order: 2; }
   .ss-transport { order: 3; }
@@ -318,14 +319,5 @@
 .ss-mv-slide em { font-style: normal; text-align: right; color: var(--a-muted); }
 .ss-mv-slide select { grid-column: 2 / 4; }
 .ss-moves-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px 0; }
-.ss-keygrp { display: inline-flex; align-items: center; gap: 2px; flex-wrap: nowrap; }
-.ss-keygrp .ss-icon { min-width: 28px; padding: 0 3px; }
-@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) {
-  /* the whole first row (switch, Add, Simple figures, Add keyframe, undo, redo) fits on one line at the phone's layout width, with every word kept */
-  .ss-tl-left { gap: 3px; justify-content: space-between; width: 100%; }
-  .ss-tl-left .ss-pill { padding: 0 8px; gap: 3px; font-size: 12.5px; }
-  .ss-tl-left .ss-toggle { gap: 3px; font-size: 12.5px; }
-  .ss-tl-left .ss-kind button { padding: 5px 9px; font-size: 12px; }
-  .ss-keygrp { gap: 0; }
-  .ss-keygrp .ss-icon { min-width: 24px; padding: 0 2px; }
-}
+.ss-tl-left .ss-ur { min-width: 22px; padding: 0 1px; }
+.ss-tl-left .ss-ur + .ss-ur { margin-left: -4px; }
