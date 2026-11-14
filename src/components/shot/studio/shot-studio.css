@@ -318,12 +318,8 @@
 .ss-mv-slide input[type=range] { width: 100%; accent-color: #c00707; }
 .ss-mv-slide em { font-style: normal; text-align: right; color: var(--a-muted); }
 .ss-mv-slide select { grid-column: 2 / 4; }
-.ss-moves-top { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; padding: 8px 6px 0 10px; overflow-x: auto; scrollbar-width: none; }
-.ss-moves-top::-webkit-scrollbar { display: none; }
-.ss-moves-top > * { flex: none; }
+.ss-moves-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px 0; }
 .ss-moves-top .cr-grp { gap: 3px; }
-.ss-moves-top .cr-grp .cr-chip { padding: 0 8px; gap: 5px; }
-.ss-tl-left .ss-ur { min-width: 22px; padding: 0 1px; }
-.ss-tl-left .ss-ur + .ss-ur { margin-left: -4px; }
+.ss-moves-top .cr-grp .cr-chip { padding: 0 6px; gap: 5px; }
 .ss-moves-sliders { gap: 8px; }
 .ss-moves-sliders .cr-bar { height: 32px; font-size: 12.5px; padding: 0 10px; border-radius: 9px; }
