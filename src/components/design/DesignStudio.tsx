@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import SoonTag from "@/components/SoonTag";
 import { useSearchParams } from "next/navigation";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
@@ -72,6 +73,8 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   const [uploading, setUploading] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   const [modelSheet, setModelSheet] = useState(false);
+  const [local, setLocal] = useState<{ url: string; name: string } | null>(null);
+  const glbInput = useRef<HTMLInputElement>(null);
   // The model chip is as wide as the longest model name (measured in the chip's own font), plus room for the arrow.
   const [nameW, setNameW] = useState(0);
   useEffect(() => {
@@ -143,13 +146,18 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
         <div className="cr-stage ds-stage3" aria-live="polite">
           {making ? (
             <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Making your model…</p></div>
+          ) : local ? (
+            <Viewer3D url={local.url} label={local.name} />
           ) : shown && shown.fileUrl ? (
             <Viewer3D url={shown.fileUrl} label={shown.name} />
           ) : (
             <div className="cr-empty"><Box size={34} strokeWidth={1.4} /><p>Your model appears here</p></div>
           )}
         </div>
-        {shown && shown.fileUrl && !making && <ModelBar item={shown} onChanged={reload} />}
+        <input ref={glbInput} type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setLocal((l) => { if (l) URL.revokeObjectURL(l.url); return { url: URL.createObjectURL(f), name: f.name.replace(/\.glb$/i, "") }; }); }} />
+        {local && !making ? (
+          <div className="ds-bar"><b className="ds-name">{local.name} <em className="ds-localtag">on this device only</em></b><div className="ds-actions"><button type="button" className="ds-txt" onClick={() => glbInput.current?.click()}>Open another</button><button type="button" className="ds-txt" onClick={() => { URL.revokeObjectURL(local.url); setLocal(null); }}>Close</button></div></div>
+        ) : shown && shown.fileUrl && !making ? <ModelBar item={shown} onChanged={reload} onOpenFile={() => glbInput.current?.click()} /> : !making && <div className="ds-bar"><span /><div className="ds-actions"><button type="button" className="ds-txt" onClick={() => glbInput.current?.click()}>Open your own .glb</button></div></div>}
         {(items ?? []).filter((i) => i.status === "failed").slice(0, 1).map((i) => <p key={i.id} className="ds-error">{i.error}</p>)}
         {(() => {
           const done = (items ?? []).filter((i) => i.status === "completed").slice(0, 5);
@@ -242,7 +250,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   );
 }
 
-function ModelBar({ item, onChanged }: { item: Item3D; onChanged: () => Promise<void> | void }) {
+function ModelBar({ item, onChanged, onOpenFile }: { item: Item3D; onChanged: () => Promise<void> | void; onOpenFile: () => void }) {
   const [name, setName] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [sure, setSure] = useState(false);
@@ -262,7 +270,12 @@ function ModelBar({ item, onChanged }: { item: Item3D; onChanged: () => Promise<
         <button type="button" aria-label="Rename" onClick={() => setName(item.name)}><Pencil size={16} /></button>
         <a href={`${item.fileUrl}?download=1`} aria-label="Download .glb" download><Download size={16} /></a>
         <button type="button" className="ds-txt" onClick={toShotMap}>Add to ShotMap</button>
+        <button type="button" className="ds-txt" onClick={onOpenFile}>Open your own .glb</button>
         <button type="button" aria-label={sure ? "Confirm delete" : "Delete"} className={sure ? "is-danger" : ""} onClick={async () => { if (!sure) { setSure(true); setTimeout(() => setSure(false), 3000); return; } await delete3DModel(item.id); await onChanged(); }}>{sure ? <Check size={16} /> : <Trash2 size={16} />}</button>
+      </div>
+      <div className="ds-edit" role="group" aria-label="Edit this model">
+        <span>Edit this model</span>
+        {["Retexture", "Remesh", "Animate", "Versions"].map((t) => <button key={t} type="button" className="ds-chip" onClick={() => setNote(`${t} is coming soon.`)}>{t}<SoonTag /></button>)}
       </div>
       {note && <p className="ds-hint" role="status">{note}</p>}
     </div>
