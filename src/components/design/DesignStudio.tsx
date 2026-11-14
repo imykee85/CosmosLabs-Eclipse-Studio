@@ -7,7 +7,7 @@ import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { ArrowRight, Box, Camera, ChevronDown, Grid3x3, Info, Lightbulb, Palette, Search, Square, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { ArrowRight, Box, Camera, ChevronDown, FolderOpen, Grid3x3, Info, Lightbulb, Palette, Search, Square, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
@@ -145,6 +145,13 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
 
   const shown = (items ?? []).find((i) => i.id === open) ?? (items ?? []).find((i) => i.status === "completed") ?? null;
   const making = (items ?? []).some((i) => i.status !== "completed" && i.status !== "failed");
+  async function toShotMap() {
+    const src = local?.url ?? shown?.fileUrl; if (!src) return;
+    try {
+      await putModel(local?.name ?? shown?.name ?? "Model", await (await fetch(src)).arrayBuffer());
+      setToolNote("Added to ShotMap. There, open Add, then Objects, and pick it from your models.");
+    } catch { setToolNote("Could not add it to ShotMap."); }
+  }
   const trayOpen = !making && !!(local || (shown && shown.fileUrl));
   return (
     <section aria-label="3D generator" className={`cr-wrap ds-3d ${making ? "has-shot" : "is-idle"}`}>
@@ -162,8 +169,8 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
         </div>
         <input ref={glbInput} type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setLocal((l) => { if (l) URL.revokeObjectURL(l.url); return { url: URL.createObjectURL(f), name: f.name.replace(/\.glb$/i, "") }; }); }} />
         {local && !making ? (
-          <div className="ds-bar"><b className="ds-name">{local.name} <em className="ds-localtag">on this device only</em></b><div className="ds-actions"><button type="button" className="ds-txt" onClick={() => glbInput.current?.click()}>Open another</button><button type="button" className="ds-txt" onClick={() => { URL.revokeObjectURL(local.url); setLocal(null); }}>Close</button></div></div>
-        ) : shown && shown.fileUrl && !making ? <ModelBar item={shown} onChanged={reload} onOpenFile={() => glbInput.current?.click()} /> : !making && <div className="ds-bar"><span /><div className="ds-actions"><button type="button" className="ds-txt" onClick={() => glbInput.current?.click()}>Open your own .glb</button></div></div>}
+          <div className="ds-bar"><b className="ds-name">{local.name} <em className="ds-localtag">on this device only</em></b><div className="ds-actions"><button type="button" className="ds-txt" onClick={() => { URL.revokeObjectURL(local.url); setLocal(null); }}>Close</button></div></div>
+        ) : shown && shown.fileUrl && !making ? <ModelBar item={shown} onChanged={reload} /> : null}
         {(items ?? []).filter((i) => i.status === "failed").slice(0, 1).map((i) => <p key={i.id} className="ds-error">{i.error}</p>)}
         {(() => {
           const done = (items ?? []).filter((i) => i.status === "completed").slice(0, 5);
@@ -224,6 +231,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
                     <div className="cr-tools">
             {reason && <p className="ds-hint">{reason}</p>}
             <div className="cr-row cr-row-a">
+              <button type="button" className="cr-chip ds-iconchip" aria-label="Open your own .glb" title="Open your own .glb from your device (viewed on this device only)" onClick={() => glbInput.current?.click()}><FolderOpen size={15} /></button>
               <button type="button" className={`cr-chip ${rig && model?.rig ? "is-on" : ""}`} aria-pressed={!!(rig && model?.rig)} disabled={!model?.rig} title={model?.rig ? "Adds a skeleton so the model can be animated" : "Only Meshy 7 can rig a model. Choose it and add a picture."} onClick={() => setRig(!rig)}>Rig for animation</button>
               <button type="button" className={`cr-chip ${textured ? "is-on" : ""}`} aria-haspopup="menu" aria-expanded={!!lookAnchor} onClick={(e) => setLookAnchor(e.currentTarget.getBoundingClientRect())}>Colour and texture{detailed || pbr ? ` (${(detailed ? 1 : 0) + (pbr ? 1 : 0) + 1})` : ""}</button>
               <button type="button" className="cr-chip ds-modelsel" aria-haspopup="dialog" aria-expanded={modelSheet} aria-label="3D model" title={model?.blurb} style={nameW ? { width: nameW + 58 } : undefined} onClick={() => setModelSheet(true)}>
@@ -232,6 +240,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
             </div>
             <div className="cr-row">
               <button type="button" className={`cr-chip ds-detail ${poly !== null || detailOpen ? "is-on" : ""}`} aria-haspopup="dialog" aria-expanded={detailOpen} title="How many faces the model is built from" disabled={!model || model.polyMax <= 0} onClick={() => setDetailOpen(!detailOpen)}>Detail</button>
+              <button type="button" className="cr-chip" disabled={!(local || (shown && shown.fileUrl))} title="Put this model into ShotMap as a scene object" onClick={() => void toShotMap()}>ShotMap</button>
               <button type="button" className="cr-chip" title="Use pictures from your Ingredients, Assets or earlier images" onClick={() => setPicker(true)}><Layers size={14} /> Ingredients{picked.length ? ` (${picked.length})` : ""}</button>
               <button type="button" className="cr-chip" aria-label="Open canvas" title="Move this prompt to a new canvas" onClick={async () => {
                 const text = prompt.trim();
@@ -277,17 +286,10 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   );
 }
 
-function ModelBar({ item, onChanged, onOpenFile }: { item: Item3D; onChanged: () => Promise<void> | void; onOpenFile: () => void }) {
+function ModelBar({ item, onChanged }: { item: Item3D; onChanged: () => Promise<void> | void }) {
   const [name, setName] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [sure, setSure] = useState(false);
-  async function toShotMap() {
-    try {
-      const buf = await (await fetch(item.fileUrl!)).arrayBuffer();
-      await putModel(item.name || "Model", buf);
-      setNote("Added. In ShotMap open Add, then Objects, and pick it from your models.");
-    } catch { setNote("Could not add it to ShotMap."); }
-  }
   return (
     <div className="ds-bar">
       {name === null ? <b className="ds-name">{item.name}</b> : (
@@ -296,8 +298,6 @@ function ModelBar({ item, onChanged, onOpenFile }: { item: Item3D; onChanged: ()
       <div className="ds-actions">
         <button type="button" aria-label="Rename" onClick={() => setName(item.name)}><Pencil size={16} /></button>
         <a href={`${item.fileUrl}?download=1`} aria-label="Download .glb" download><Download size={16} /></a>
-        <button type="button" className="ds-txt" onClick={toShotMap}>Add to ShotMap</button>
-        <button type="button" className="ds-txt" onClick={onOpenFile}>Open your own .glb</button>
         <button type="button" aria-label={sure ? "Confirm delete" : "Delete"} className={sure ? "is-danger" : ""} onClick={async () => { if (!sure) { setSure(true); setTimeout(() => setSure(false), 3000); return; } await delete3DModel(item.id); await onChanged(); }}>{sure ? <Check size={16} /> : <Trash2 size={16} />}</button>
       </div>
       {note && <p className="ds-hint" role="status">{note}</p>}
