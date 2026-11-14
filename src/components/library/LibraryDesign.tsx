@@ -7,12 +7,12 @@ import type { Item3D } from "@/lib/design/jobs3d";
 import type { MotionSummary } from "@/lib/design/motion/spec";
 
 type Row = { kind: "3d"; at: string; item: Item3D } | { kind: "motion"; at: string; item: MotionSummary };
-const FILTERS = [["all", "All"], ["3d", "3D models"], ["motion", "Motions"]] as const;
+export const DESIGN_FILTERS = [["all", "All"], ["3d", "3D models"], ["motion", "Motions"]] as const;
+export type DesignFilter = (typeof DESIGN_FILTERS)[number][0];
 
 // Everything made in Design Studio: 3D models and motions, newest first. Opening one takes you back into the studio.
-export default function LibraryDesign({ query }: { query: string }) {
+export default function LibraryDesign({ query, filter }: { query: string; filter: DesignFilter }) {
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
   useEffect(() => {
     let live = true;
     const get = (u: string) => fetch(u, { cache: "no-store" }).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => (Array.isArray(d.items) ? d.items : [])).catch(() => []);
@@ -30,9 +30,6 @@ export default function LibraryDesign({ query }: { query: string }) {
   const shown = (rows ?? []).filter((r) => (filter === "all" || r.kind === filter) && (!q || (r.kind === "3d" ? `${r.item.name} ${r.item.prompt}` : `${r.item.title} ${r.item.prompt}`).toLowerCase().includes(q)));
   return (
     <>
-      <div className="lib-roles" role="group" aria-label="Design type">
-        {FILTERS.map(([id, label]) => <button key={id} type="button" aria-pressed={filter === id} className={filter === id ? "is-active" : ""} onClick={() => setFilter(id)}>{label}</button>)}
-      </div>
       {rows && !shown.length ? (
         <div className="lib-empty">
           <Box size={46} strokeWidth={1.4} aria-hidden="true" />
