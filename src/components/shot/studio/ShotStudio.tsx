@@ -38,6 +38,19 @@ type Capture = { key: string; status: "pending" | "done" | "failed"; id?: string
 const STYLES = [{ id: "natural", label: "Natural", text: "natural, true-to-life photograph" }, { id: "cinematic", label: "Cinematic", text: "cinematic film still, dramatic grade, anamorphic feel" }, { id: "anime", label: "Anime", text: "hand-drawn anime frame, clean line art, cel shading" }];
 const DEPTH_WORD = (f: number) => (f <= 2 ? "Very shallow · Portraits" : f <= 4 ? "Shallow · Subjects" : f <= 8 ? "Medium · Everyday" : f <= 11 ? "Deep · Landscapes" : "Very deep · Architecture");
 const HISTORY = 60;
+// UNDO HISTORY IS KEPT IN THREE SEPARATE LISTS so what you undo or redo in one place never touches another: the camera's KEYFRAMES ("k"), the camera's MOVES ("m"),
+// and everything else in the scene ("c"). An edit is filed under whichever of these it changed; Undo and Redo only ever restore the list you are working in.
+type Part = "k" | "m" | "c";
+const keysSig = (w: World) => JSON.stringify(w.cameras.map((c) => [c.id, c.keys]));
+const moveSig = (w: World) => JSON.stringify(w.cameras.map((c) => [c.id, c.move ?? null]));
+const restSig = (w: World) => JSON.stringify({ ...w, cameras: w.cameras.map(({ keys: _k, move: _m, useMove: _u, ...r }) => r) }); // eslint-disable-line @typescript-eslint/no-unused-vars
+function changedParts(a: World, b: World): Part[] { const out: Part[] = []; if (keysSig(a) !== keysSig(b)) out.push("k"); if (moveSig(a) !== moveSig(b)) out.push("m"); if (restSig(a) !== restSig(b)) out.push("c"); return out; }
+/** `cur` with only one part taken back from `snap`; the other parts and the Keyframes/Moves tab stay as they are. */
+function restorePart(cur: World, snap: World, part: Part): World {
+  if (part === "c") return { ...snap, cameras: snap.cameras.map((pc) => { const c = cur.cameras.find((x) => x.id === pc.id); return c ? { ...pc, keys: c.keys, move: c.move, useMove: c.useMove } : pc; }) };
+  return { ...cur, cameras: cur.cameras.map((c) => { const pc = snap.cameras.find((x) => x.id === c.id); return pc ? (part === "k" ? { ...c, keys: pc.keys } : { ...c, move: pc.move }) : c; }) };
+}
+
 
 async function frameFromVideo(url: string, at: number): Promise<string | null> {
   return new Promise((res) => {
@@ -67,27 +80,29 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
   // ---- the scene and its history ----
   const [sceneId, setSceneId] = useState<string | null>(null);
   const [world, setWorldState] = useState<World>(() => emptyWorld());
-  const past = useRef<World[]>([]), future = useRef<World[]>([]);
+  const none = () => ({ k: [] as World[], m: [] as World[], c: [] as World[] });
+  const past = useRef(none()), future = useRef(none());
   const [, bump] = useState(0);
   const worldRef = useRef(world); worldRef.current = world;
+  const modeRef = useRef<Mode>("compose");
+  const logEdit = (parts: Part[], snap: World) => { for (const p of parts) { past.current[p] = [...past.current[p].slice(-HISTORY + 1), snap]; future.current[p] = []; } };
   const commit = useCallback((next: World | ((w: World) => World)) => {
-    setWorldState((cur) => { const n = typeof next === "function" ? next(cur) : next; if (n === cur) return cur; past.current = [...past.current.slice(-HISTORY + 1), cur]; future.current = []; return n; });
+    setWorldState((cur) => { const n = typeof next === "function" ? next(cur) : next; if (n === cur) return cur; logEdit(changedParts(cur, n), cur); return n; });
     bump((x) => x + 1);
-  }, []);
-  // Undo and redo step through the camera and scene edits. Switching between Keyframes and Moves is not an edit to undo: the tab you are on never changes,
-  // and a step that only flipped the tab is skipped, so Undo always takes back the last real change in the mode you are in.
-  // Each camera keeps its two sets apart: going back only restores the set you are working in (its keyframes, or its Moves), and never the other one or the tab itself.
-  const keepTab = (p: World, cur: World): World => ({ ...p, cameras: p.cameras.map((c) => { const now = cur.cameras.find((x) => x.id === c.id); if (!now) return c; return now.useMove ? { ...c, keys: now.keys, useMove: true } : { ...c, move: now.move, useMove: now.useMove }; }) });
-  const differs = (a: World, b: World) => JSON.stringify(a) !== JSON.stringify(b);
-  const stepBack = (from: World[], cur: World): { at: number; world: World } | null => { for (let i = from.length - 1; i >= 0; i--) { const w = keepTab(from[i], cur); if (differs(w, cur)) return { at: i, world: w }; } return null; };
-  const canUndo = () => !!stepBack(past.current, worldRef.current);
-  const canRedo = () => !!stepBack(future.current, worldRef.current);
-  const undo = useCallback(() => { const r = stepBack(past.current, worldRef.current); if (!r) return; future.current.push(worldRef.current); past.current = past.current.slice(0, r.at); setWorldState(r.world); bump((x) => x + 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const redo = useCallback(() => { const r = stepBack(future.current, worldRef.current); if (!r) return; past.current.push(worldRef.current); future.current = future.current.slice(0, r.at); setWorldState(r.world); bump((x) => x + 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Switching between Keyframes and Moves is not an edit: it is applied without a history step.
+  const commitQuiet = useCallback((fn: (w: World) => World) => { setWorldState((cur) => fn(cur)); bump((x) => x + 1); }, []);
+  // Which list the arrows work on right now: in Motion, the camera's Keyframes or its Moves (whichever tab is open); anywhere else, the rest of the scene.
+  const partNow = (): Part => (modeRef.current === "motion" ? (cameraOf(worldRef.current).useMove ? "m" : "k") : "c");
+  const canUndo = () => past.current[partNow()].length > 0;
+  const canRedo = () => future.current[partNow()].length > 0;
+  const undo = useCallback(() => { const p = partNow(), snap = past.current[p].pop(); if (!snap) return; future.current[p].push(worldRef.current); setWorldState(restorePart(worldRef.current, snap, p)); bump((x) => x + 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const redo = useCallback(() => { const p = partNow(), snap = future.current[p].pop(); if (!snap) return; past.current[p].push(worldRef.current); setWorldState(restorePart(worldRef.current, snap, p)); bump((x) => x + 1); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [stage, setStage] = useState<"start" | "editor">("start");
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
   const [mode, setMode] = useState<Mode>("compose");
+  modeRef.current = mode;
   const [sel, setSel] = useState<Pick>(null);
   const [ikey, setIkey] = useState<IKey>(null);
   const [gizmo, setGizmo] = useState<"translate" | "rotate" | "scale">("translate");
@@ -137,9 +152,10 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
   const moves = cam.move ?? { ...DEFAULT_MOVES, distance: suggestDistance(world.items) };
   const applyMoves = (patch: Partial<MovesState>) => {
     const next = { ...(cameraOf(worldRef.current).move ?? { ...DEFAULT_MOVES, distance: suggestDistance(worldRef.current.items) }), ...patch };
-    commit((w) => editCamera(w, cameraOf(w).id, { move: next, useMove: true }));
+    const set = (w: World) => editCamera(w, cameraOf(w).id, { move: next, useMove: true });
+    if (Object.keys(patch).length === 0) commitQuiet(set); else commit(set); // an empty patch is just opening the Moves tab
   };
-  const useKeys = () => commit((w) => editCamera(w, cameraOf(w).id, { useMove: false }));
+  const useKeys = () => commitQuiet((w) => editCamera(w, cameraOf(w).id, { useMove: false }));
   // Atlas on this screen (owner 2026-11-13): he sees the scene and can set the Moves from a described camera motion. Nothing renders: the guide is made by Use video.
   // A small picture of the 3D view as it looks right now, so Atlas can see the set (the browser draws it; nothing is stored).
   function snapshot(): string | undefined {
@@ -436,7 +452,7 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
     } catch { setError("Could not reach the assistant. Check your connection."); return null; } finally { setBusy(""); }
   }, []);
   function openWorld(w: World, id = newSceneId()) {
-    past.current = []; future.current = []; setWorldState(w); setSceneId(id); setStage("editor"); setMode("compose"); setSel(null); setT(0); setPanel(typeof window !== "undefined" && window.innerWidth < 800 ? null : "outliner");
+    past.current = none(); future.current = none(); setWorldState(w); setSceneId(id); setStage("editor"); setMode("compose"); setSel(null); setT(0); setPanel(typeof window !== "undefined" && window.innerWidth < 800 ? null : "outliner");
     saveScene(projectId, id, w); setScenes(listScenes(projectId));
   }
   async function start(c: StartChoice) {
@@ -527,8 +543,8 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
     const d = drag.current; if (!d) return;
     const nt = r2(timeAt(e.clientX));
     if (d.kind === "head") { setT(nt); return; }
-    if (d.kind === "key") { if (!d.moved) { past.current.push(worldRef.current); future.current = []; d.moved = true; } setWorldState((w) => moveCameraKey(w, d.camId, d.index, nt)); setT(nt); const ks = cameraOf(worldRef.current, d.camId).keys; const ni = ks.findIndex((k) => Math.abs(k.t - nt) < 0.011); if (ni >= 0) { d.index = ni; setSel({ kind: "key", camId: d.camId, index: ni }); } }
-    if (d.kind === "ikey") { const it = worldRef.current.items.find((x) => x.id === d.id); const k = it?.keys?.[d.index]; if (!it || !k) return; if (!d.moved) { past.current.push(worldRef.current); future.current = []; d.moved = true; } const keys = it.keys!.map((x, i) => (i === d.index ? { ...x, t: nt } : x)).sort((a, b) => a.t - b.t); setWorldState((w) => editItem(w, d.id, { keys })); d.index = keys.findIndex((x) => x.t === nt); setIkey({ id: d.id, index: d.index }); setT(nt); }
+    if (d.kind === "key") { if (!d.moved) { logEdit(["k"], worldRef.current); d.moved = true; } setWorldState((w) => moveCameraKey(w, d.camId, d.index, nt)); setT(nt); const ks = cameraOf(worldRef.current, d.camId).keys; const ni = ks.findIndex((k) => Math.abs(k.t - nt) < 0.011); if (ni >= 0) { d.index = ni; setSel({ kind: "key", camId: d.camId, index: ni }); } }
+    if (d.kind === "ikey") { const it = worldRef.current.items.find((x) => x.id === d.id); const k = it?.keys?.[d.index]; if (!it || !k) return; if (!d.moved) { logEdit(["c"], worldRef.current); d.moved = true; } const keys = it.keys!.map((x, i) => (i === d.index ? { ...x, t: nt } : x)).sort((a, b) => a.t - b.t); setWorldState((w) => editItem(w, d.id, { keys })); d.index = keys.findIndex((x) => x.t === nt); setIkey({ id: d.id, index: d.index }); setT(nt); }
   }
   function onTrackUp() { drag.current = null; bump((x) => x + 1); }
   function onTrackDouble(e: React.MouseEvent, row: "camera" | string) {
