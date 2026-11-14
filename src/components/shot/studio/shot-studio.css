@@ -319,3 +319,6 @@
 .ss-mv-slide em { font-style: normal; text-align: right; color: var(--a-muted); }
 .ss-mv-slide select { grid-column: 2 / 4; }
 .ss-moves-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px 0; }
+.ss-keygrp { display: inline-flex; align-items: center; gap: 2px; flex-wrap: nowrap; }
+.ss-keygrp .ss-icon { min-width: 28px; padding: 0 3px; }
+@media (max-width: 800px), (pointer: coarse) and (max-width: 1000px) { .ss-tl-left { gap: 4px; } .ss-tl-left .ss-pill { padding-left: 10px; padding-right: 10px; } }

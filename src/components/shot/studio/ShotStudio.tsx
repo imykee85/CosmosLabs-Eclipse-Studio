@@ -653,7 +653,6 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
               <button type="button" className="ss-icon" aria-label="Redo camera change" title="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
               <label className="ss-dur" title="Shot duration"><input inputMode="decimal" aria-label="Shot duration in seconds" value={D} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v > 0) commit((w) => editShot(w, shot.id, { durationS: Math.min(MAX_SHOT_S, v) })); }} />s</label>
             <button type="button" className="ss-play" aria-label={playing ? "Pause" : "Play"} onClick={() => { if (!playing && t >= D) setT(0); setPlaying((p) => !p); }}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
-            <span className="ss-tl-time">{t.toFixed(1)} / {D} s</span>
             <AtlasChip />
           </div>
           <MovesPanel m={moves} maxDistance={Math.ceil(suggestDistance(world.items) * 2)} onChange={applyMoves} />
@@ -677,10 +676,12 @@ export default function ShotStudio({ projectId, onUse, onClose }: { projectId: s
                   </div>
                 )}
               </div>
-              <label className="ss-toggle" title="On: people appear in the guide video. Off: they are left out."><input type="checkbox" checked={world.simpleFigures} onChange={(e) => commit((w) => ({ ...w, simpleFigures: e.target.checked }))} /> Simple figures</label>
-              <button type="button" className="ss-pill" onClick={addKeyHere} title="Add keyframe · K"><Plus size={13} /> Add keyframe</button>
+              <label className="ss-toggle" title="Simple figures. On: people appear in the guide video. Off: they are left out."><input type="checkbox" checked={world.simpleFigures} onChange={(e) => commit((w) => ({ ...w, simpleFigures: e.target.checked }))} aria-label="Simple figures" /> Simple</label>
+              <span className="ss-keygrp">
+              <button type="button" className="ss-pill" onClick={addKeyHere} title="Add keyframe · K" aria-label="Add keyframe"><Plus size={13} /> Keyframe</button>
               <button type="button" className="ss-icon" aria-label="Undo camera change" title="Undo" disabled={!past.current.length} onClick={undo}><Undo2 size={15} /></button>
               <button type="button" className="ss-icon" aria-label="Redo camera change" title="Redo" disabled={!future.current.length} onClick={redo}><Redo2 size={15} /></button>
+              </span>
               {keySel >= 0 && (<>
                 <div className="ss-add-wrap">
                   <button type="button" className="ss-pill" onClick={() => setEaseMenu((v) => !v)} aria-expanded={easeMenu} aria-label="Easing">{EASES.find((e) => e.id === cam.keys[keySel]?.ease)?.label ?? "Smooth"} <ChevronDown size={12} /></button>
