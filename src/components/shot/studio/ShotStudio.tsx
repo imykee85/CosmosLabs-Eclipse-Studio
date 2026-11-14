@@ -535,6 +535,7 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
   function onTrackDown(e: React.PointerEvent) {
     const tgt = e.target as HTMLElement;
     if (tgt.closest("[data-key],[data-ikey],.ss-tl-ruler")) (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    else if (tgt.closest(".ss-playhead")) (tgt.closest(".ss-playhead") as Element).setPointerCapture?.(e.pointerId); // events stay on the line, so a double-click on it still reaches the row below
     const kd = tgt.closest("[data-key]") as HTMLElement | null, ik = tgt.closest("[data-ikey]") as HTMLElement | null;
     if (kd) { const [camId, i] = kd.dataset.key!.split(":"); drag.current = { kind: "key", camId, index: Number(i), moved: false }; setSel({ kind: "key", camId, index: Number(i) }); setIkey(null); setT(cam.keys[Number(i)]?.t ?? t); return; }
     if (ik) { const [id, i] = ik.dataset.ikey!.split(":"); drag.current = { kind: "ikey", id, index: Number(i), moved: false }; setIkey({ id, index: Number(i) }); setSel({ kind: "item", id }); const k = world.items.find((x) => x.id === id)?.keys?.[Number(i)]; if (k) setT(k.t); return; }
@@ -820,7 +821,7 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
                     {(m.keys ?? []).map((k, i) => <button key={i} type="button" data-ikey={`${m.id}:${i}`} className={`ss-diamond is-item${ikey?.id === m.id && ikey.index === i ? " is-sel" : ""}`} style={{ left: 12 + k.t * pps }} aria-label={`${m.name} keyframe at ${r2(k.t)} seconds`} />)}
                   </div>
                 ))}
-                <div className="ss-playhead" style={{ left: 12 + t * pps }}><span>{t.toFixed(1)}</span></div>
+                <div className="ss-playhead" style={{ left: 12 + t * pps }} onDoubleClick={(e) => { const row = document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.classList.contains("ss-tl-row")); row?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, clientX: e.clientX, clientY: e.clientY })); }}><span>{t.toFixed(1)}</span></div>
               </div>
             </div>
           </div>
