@@ -7,11 +7,11 @@ import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
 import "@/components/create/create.css";
-import { ArrowRight, Box, ChevronDown, Search, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
+import { ArrowRight, Box, Camera, ChevronDown, Grid3x3, Info, Lightbulb, Palette, Search, Square, Download, Layers, Workflow, Loader2, Pencil, Plus, Trash2, X, Clapperboard, Check } from "lucide-react";
 import AtlasChip from "./AtlasChip";
 import GrowArea from "@/components/GrowArea";
 import ReferencePicker, { type RefPick } from "@/components/create/ReferencePicker";
-import Viewer3D from "./Viewer3D";
+import Viewer3D, { FORMATS, type Bg, type ModelInfo, type ViewerApi } from "./Viewer3D";
 import { delete3DModel, rename3DModel, start3DModel, use3D, type Item3D, type Model3DInfo } from "@/lib/use-design";
 import { useRouter } from "next/navigation";
 import { createCanvasFrom3D } from "@/lib/canvas-store";
@@ -75,6 +75,11 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
   const [modelSheet, setModelSheet] = useState(false);
   const [local, setLocal] = useState<{ url: string; name: string } | null>(null);
   const glbInput = useRef<HTMLInputElement>(null);
+  const viewer = useRef<ViewerApi | null>(null);
+  const [wire, setWire] = useState(false), [grid, setGrid] = useState(true), [bg, setBg] = useState<Bg>("dark"), [bright, setBright] = useState(false);
+  const [info, setInfo] = useState<ModelInfo | null>(null);
+  const [toolMenu, setToolMenu] = useState<null | "info" | "formats">(null);
+  const [toolNote, setToolNote] = useState("");
   // The model chip is as wide as the longest model name (measured in the chip's own font), plus room for the arrow.
   const [nameW, setNameW] = useState(0);
   useEffect(() => {
@@ -140,6 +145,7 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
 
   const shown = (items ?? []).find((i) => i.id === open) ?? (items ?? []).find((i) => i.status === "completed") ?? null;
   const making = (items ?? []).some((i) => i.status !== "completed" && i.status !== "failed");
+  const trayOpen = !making && !!(local || (shown && shown.fileUrl));
   return (
     <section aria-label="3D generator" className={`cr-wrap ds-3d ${making ? "has-shot" : "is-idle"}`}>
       <section className="cr-preview" aria-label="Preview">
@@ -147,9 +153,9 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
           {making ? (
             <div className="cr-empty"><Loader2 size={30} className="cr-spin" /><p>Making your model…</p></div>
           ) : local ? (
-            <Viewer3D url={local.url} label={local.name} />
+            <Viewer3D url={local.url} label={local.name} wire={wire} grid={grid} bg={bg} bright={bright} apiRef={viewer} onInfo={setInfo} />
           ) : shown && shown.fileUrl ? (
-            <Viewer3D url={shown.fileUrl} label={shown.name} />
+            <Viewer3D url={shown.fileUrl} label={shown.name} wire={wire} grid={grid} bg={bg} bright={bright} apiRef={viewer} onInfo={setInfo} />
           ) : (
             <div className="cr-empty"><Box size={34} strokeWidth={1.4} /><p>Your model appears here</p></div>
           )}
@@ -174,6 +180,27 @@ function ThreeD({ openId = null }: { openId?: string | null }) {
 
       {modelSheet && <ModelSheet3D models={available} value={model?.id ?? ""} onPick={(id) => { setModelId(id); setModelSheet(false); }} onClose={() => setModelSheet(false)} />}
       <div className="cr-dock">
+        <div className={`cr-tray ${trayOpen ? "is-open" : ""}`} role="toolbar" aria-label="Tools for this model" aria-hidden={!trayOpen}>
+          {toolMenu ? (
+            <>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} onClick={() => setToolMenu(null)} aria-label="Back to the tools"><X size={14} /> {toolMenu === "info" ? "Info" : "Formats"}</button>
+              {toolMenu === "info" && info && [`${info.faces.toLocaleString()} faces`, `${info.parts} ${info.parts === 1 ? "part" : "parts"}`, `${(info.w * 100).toFixed(0)} × ${(info.h * 100).toFixed(0)} × ${(info.d * 100).toFixed(0)}`].map((t) => <button key={t} type="button" tabIndex={-1} className="ds-tray-fact">{t}</button>)}
+              {toolMenu === "formats" && FORMATS.map(([id, name, note]) => <button key={id} type="button" tabIndex={trayOpen ? 0 : -1} title={note} onClick={() => { void viewer.current?.download(id); setToolMenu(null); }}>{name}</button>)}
+            </>
+          ) : (
+            <>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} className={wire ? "is-on" : ""} aria-pressed={wire} onClick={() => setWire(!wire)} title="Show only the edges the model is built from"><Square size={14} /> Wireframe</button>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} className={grid ? "is-on" : ""} aria-pressed={grid} onClick={() => setGrid(!grid)} title="Floor grid"><Grid3x3 size={14} /> Grid</button>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} onClick={() => setBg(bg === "dark" ? "light" : bg === "light" ? "studio" : "dark")} title="Change the background"><Palette size={14} /> Background</button>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} className={bright ? "is-on" : ""} aria-pressed={bright} onClick={() => setBright(!bright)} title="Brighter light"><Lightbulb size={14} /> Light</button>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} onClick={() => viewer.current?.still()} title="Save a picture of this angle"><Camera size={14} /> Picture</button>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} onClick={() => setToolMenu("info")} title="Size and detail"><Info size={14} /> Info</button>
+              <button type="button" tabIndex={trayOpen ? 0 : -1} onClick={() => setToolMenu("formats")} title="Download in another format"><Download size={14} /> Formats</button>
+              {["Retexture", "Remesh", "Animate", "Versions"].map((t) => <button key={t} type="button" tabIndex={trayOpen ? 0 : -1} onClick={() => setToolNote(`${t} is coming soon.`)}>{t} <SoonTag /></button>)}
+            </>
+          )}
+        </div>
+        {toolNote && trayOpen && <p className="cr-hint" role="status">{toolNote}</p>}
         {error && <p className="ds-error" role="alert">{error}</p>}
         <form className="cr-box" onSubmit={(e) => { e.preventDefault(); void go(); }}>
           {picked.length > 0 && (
@@ -272,10 +299,6 @@ function ModelBar({ item, onChanged, onOpenFile }: { item: Item3D; onChanged: ()
         <button type="button" className="ds-txt" onClick={toShotMap}>Add to ShotMap</button>
         <button type="button" className="ds-txt" onClick={onOpenFile}>Open your own .glb</button>
         <button type="button" aria-label={sure ? "Confirm delete" : "Delete"} className={sure ? "is-danger" : ""} onClick={async () => { if (!sure) { setSure(true); setTimeout(() => setSure(false), 3000); return; } await delete3DModel(item.id); await onChanged(); }}>{sure ? <Check size={16} /> : <Trash2 size={16} />}</button>
-      </div>
-      <div className="ds-edit" role="group" aria-label="Edit this model">
-        <span>Edit this model</span>
-        {["Retexture", "Remesh", "Animate", "Versions"].map((t) => <button key={t} type="button" className="ds-chip" onClick={() => setNote(`${t} is coming soon.`)}>{t}<SoonTag /></button>)}
       </div>
       {note && <p className="ds-hint" role="status">{note}</p>}
     </div>
