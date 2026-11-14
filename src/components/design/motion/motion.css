@@ -208,3 +208,4 @@
 .cr-dock:has(.mt-pop), .mt-composer:has(.mt-pop) { z-index: 300; }
 .mt-scrim { z-index: 290; }
 .mt-composer .cr-chip.is-on { border-color: #c00707; background: rgba(192,7,7,.14); color: var(--a-fg); }
+.mt-stage.is-empty { background: var(--a-card); }

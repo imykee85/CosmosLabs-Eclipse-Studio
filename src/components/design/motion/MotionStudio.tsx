@@ -56,7 +56,7 @@ function MotionHome({ kits, reloadKits, onOpen, recreate }: { kits: BrandKitItem
   return (
     <section className="mt cr-wrap" aria-label="Motion">
       <section className="cr-preview" aria-label="Preview">
-        <div className="cr-stage mt-stage" aria-live="polite">
+        <div className="cr-stage mt-stage is-empty" aria-live="polite">
           <div className="cr-empty"><MonitorPlay size={34} strokeWidth={1.4} /><p>Your motion appears here</p></div>
         </div>
         {(items ?? []).length > 0 && (
