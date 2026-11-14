@@ -11,7 +11,7 @@ import { USDZExporter } from "three/examples/jsm/exporters/USDZExporter.js";
 export type Bg = "dark" | "light" | "studio";
 export type ModelInfo = { faces: number; parts: number; w: number; h: number; d: number };
 export type ViewerApi = { still: () => void; download: (f: Format) => Promise<void> };
-export const BG: Record<Bg, string> = { dark: "radial-gradient(80% 80% at 50% 30%, #2a2a31, #0d0d10)", light: "radial-gradient(80% 80% at 50% 30%, #ffffff, #dcdce2)", studio: "radial-gradient(80% 80% at 50% 30%, #6b3a3a, #1a0c0c)" };
+export const BG: Record<Bg, string> = { dark: "radial-gradient(80% 80% at 50% 30%, #2a2a31, #0d0d10)", light: "#efece8", studio: "radial-gradient(80% 80% at 50% 30%, #6b3a3a, #1a0c0c)" };
 export const FORMATS = [["glb", "GLB", "Textures and colours kept"], ["obj", "OBJ", "Shape only, no colours"], ["stl", "STL", "Shape only, for 3D printing"], ["usdz", "USDZ", "For Apple AR"]] as const;
 export type Format = (typeof FORMATS)[number][0];
 const save = (blob: Blob, name: string) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };

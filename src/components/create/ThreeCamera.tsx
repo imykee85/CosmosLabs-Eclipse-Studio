@@ -32,6 +32,9 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
     (async () => {
       try {
         const T = await import("three");
+        // the black DSLR model shared with ShotMap; the drawn camera is the fallback if it cannot be fetched
+        let camModel: import("three").Group | null = null;
+        try { const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js"); camModel = (await new GLTFLoader().loadAsync("/shot-models/camera.glb")).scene; } catch { /* use the drawn camera */ }
         const el = host.current;
         if (disposed || !el) return;
         const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: "low-power" });
@@ -91,7 +94,12 @@ export default function ThreeCamera({ thumb, cams, sel, onSelect, onMove, onFail
           const accent = new T.Mesh(new T.SphereGeometry(0.03, 12, 8), new T.MeshBasicMaterial({ color: 0xd90b0b }));
           accent.position.set(0.17, 0.1, 0.14);
           const hit = new T.Mesh(new T.SphereGeometry(0.42, 12, 8), new T.MeshBasicMaterial({ visible: false }));
-          group.add(body, lens, rim, glass, finder, accent, hit);
+          if (camModel) {
+            const shell = camModel.clone(true);
+            shell.traverse((o) => { const m = o as import("three").Mesh; if (m.isMesh) m.material = (m.material as import("three").Material).clone(); });
+            accent.position.set(0.2, 0.27, -0.05);
+            group.add(shell, accent, hit);
+          } else group.add(body, lens, rim, glass, finder, accent, hit);
           const view = new T.Mesh(viewGeo, new T.MeshBasicMaterial({ color: 0x4f6bff, transparent: true, opacity: 0.12, depthWrite: false, side: T.DoubleSide }));
           scene.add(group, view);
           return { rotate: 0, vertical: 0, dist: R, group, accent, view, hit };

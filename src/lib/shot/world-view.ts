@@ -93,10 +93,10 @@ function loadCameraModel(): Promise<void> {
   camLoading ??= new GLTFLoader().loadAsync("/shot-models/camera.glb").then((g) => { camModel = g.scene; }).catch(() => { /* keep the drawn camera */ });
   return camLoading;
 }
-/** Black camera. A chosen camera glows blue, the camera at the playhead glows white. */
+/** Black camera. A chosen camera glows blue; the camera at the playhead stays plain black. */
 function cameraRig(color: number) {
   if (!camModel) return cameraBody(color);
-  const g = camModel.clone(true), glow = color === 0x4f6bff ? 0x4f6bff : color === 0xf2f2f2 ? 0xffffff : 0;
+  const g = camModel.clone(true), glow = color === 0x4f6bff ? 0x4f6bff : 0;
   g.traverse((n) => { const m = n as THREE.Mesh; if (m.isMesh) { const mt = (m.material as THREE.MeshStandardMaterial).clone(); if (glow) { mt.emissive = new THREE.Color(glow); mt.emissiveIntensity = 0.45; } m.material = mt; } });
   g.userData.parts = true; return g;
 }
