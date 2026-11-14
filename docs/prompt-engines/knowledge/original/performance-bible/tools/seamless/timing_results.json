@@ -1,0 +1,182 @@
+{
+ "improvised": {
+  "pairs": 90,
+  "transitions": 3394,
+  "fto_median_ms": 68,
+  "fto_p25_ms": -476,
+  "fto_p75_ms": 708,
+  "overlap_pct": 45.1,
+  "gap_0_500ms_pct": 23.6,
+  "gap_over_1s_pct": 19.3,
+  "gap_over_2s_pct": 7.7,
+  "turn_dur_median_s": 3.3,
+  "turn_dur_p90_s": 14.1,
+  "turn_words_median": 10,
+  "within_turn_pause_median_ms": 420,
+  "within_pause_over_1s_pct": 17.6,
+  "backchannels_per_min_partner_speech_median": 2.4,
+  "backchannels_during_partner_turn_pct": 61.6,
+  "top_backchannels": [
+   [
+    "yeah",
+    346
+   ],
+   [
+    "okay",
+    172
+   ],
+   [
+    "right",
+    72
+   ],
+   [
+    "yes",
+    72
+   ],
+   [
+    "no",
+    33
+   ],
+   [
+    "ok",
+    32
+   ],
+   [
+    "mm-hmm",
+    27
+   ],
+   [
+    "oh",
+    27
+   ],
+   [
+    "absolutely",
+    16
+   ],
+   [
+    "yeah, yeah",
+    14
+   ],
+   [
+    "really",
+    10
+   ],
+   [
+    "hmm",
+    10
+   ]
+  ]
+ },
+ "naturalistic": {
+  "pairs": 90,
+  "transitions": 1402,
+  "fto_median_ms": 404,
+  "fto_p25_ms": -188,
+  "fto_p75_ms": 1348,
+  "overlap_pct": 31.4,
+  "gap_0_500ms_pct": 21.2,
+  "gap_over_1s_pct": 32.2,
+  "gap_over_2s_pct": 15.4,
+  "turn_dur_median_s": 4.3,
+  "turn_dur_p90_s": 27.2,
+  "turn_words_median": 11,
+  "within_turn_pause_median_ms": 420,
+  "within_pause_over_1s_pct": 16.9,
+  "backchannels_per_min_partner_speech_median": 1.3,
+  "backchannels_during_partner_turn_pct": 50.5,
+  "top_backchannels": [
+   [
+    "yeah",
+    189
+   ],
+   [
+    "okay",
+    35
+   ],
+   [
+    "right",
+    18
+   ],
+   [
+    "yes",
+    15
+   ],
+   [
+    "mm-hmm",
+    12
+   ],
+   [
+    "exactly",
+    10
+   ],
+   [
+    "oh",
+    10
+   ],
+   [
+    "nice",
+    10
+   ],
+   [
+    "yeah, yeah",
+    8
+   ],
+   [
+    "no",
+    7
+   ],
+   [
+    "sure",
+    7
+   ],
+   [
+    "oh, yeah",
+    5
+   ]
+  ]
+ },
+ "bfi_n": 191,
+ "r_E": {
+  "share": -0.06,
+  "bc": 0.01,
+  "turn": 0.02
+ },
+ "r_A": {
+  "share": -0.01,
+  "bc": -0.01,
+  "turn": -0.05
+ },
+ "r_O": {
+  "share": 0.09,
+  "bc": 0.09,
+  "turn": -0.06
+ },
+ "r_N": {
+  "share": -0.02,
+  "bc": -0.02,
+  "turn": 0.0
+ },
+ "r_C": {
+  "share": -0.06,
+  "bc": -0.03,
+  "turn": 0.12
+ },
+ "low_E_third": {
+  "share": 0.5,
+  "bc": 1.47,
+  "turn": 5.53,
+  "E_range": [
+   2.17,
+   3.67
+  ]
+ },
+ "high_E_third": {
+  "share": 0.51,
+  "bc": 1.54,
+  "turn": 4.48,
+  "E_range": [
+   4.17,
+   5.0
+  ]
+ }
+}
