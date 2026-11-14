@@ -30,7 +30,7 @@
     "@prisma/client": "^5.22.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.0.0",
-    "@vercel/sandbox": "3.8.0",
+    "@vercel/sandbox": "3.9.1",
     "@whop/elements": "^1.9.0",
     "@whop/elements-react": "^1.9.0",
     "@whop/sdk": "2.1.0",
