@@ -319,7 +319,7 @@ export default function VideoEditor({ video, projectId, onClose, onSaved }: { vi
                   </div>
                 ))}
               </div>
-              <div className="ve-head" ref={headRef} style={{ left: t * pps }} />
+              <div className="ve-head" ref={headRef} style={{ left: t * pps }} onPointerDown={scrub} aria-label="Playhead: drag to move" />
             </div>
           </div>
         </div>

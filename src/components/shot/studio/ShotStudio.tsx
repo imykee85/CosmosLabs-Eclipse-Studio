@@ -534,7 +534,7 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
   const drag = useRef<{ kind: "head" } | { kind: "key"; camId: string; index: number; moved: boolean } | { kind: "ikey"; id: string; index: number; moved: boolean } | null>(null);
   function onTrackDown(e: React.PointerEvent) {
     const tgt = e.target as HTMLElement;
-    if (tgt.closest("[data-key],[data-ikey],.ss-tl-ruler")) (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    if (tgt.closest("[data-key],[data-ikey],.ss-tl-ruler,.ss-playhead")) (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
     const kd = tgt.closest("[data-key]") as HTMLElement | null, ik = tgt.closest("[data-ikey]") as HTMLElement | null;
     if (kd) { const [camId, i] = kd.dataset.key!.split(":"); drag.current = { kind: "key", camId, index: Number(i), moved: false }; setSel({ kind: "key", camId, index: Number(i) }); setIkey(null); setT(cam.keys[Number(i)]?.t ?? t); return; }
     if (ik) { const [id, i] = ik.dataset.ikey!.split(":"); drag.current = { kind: "ikey", id, index: Number(i), moved: false }; setIkey({ id, index: Number(i) }); setSel({ kind: "item", id }); const k = world.items.find((x) => x.id === id)?.keys?.[Number(i)]; if (k) setT(k.t); return; }

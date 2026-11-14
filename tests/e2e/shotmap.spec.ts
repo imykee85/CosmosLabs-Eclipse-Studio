@@ -260,4 +260,22 @@ test.describe("ShotMap", () => {
     expect(sent.text).toBe("Add a table in the middle");
     await expect(d.getByPlaceholder("Ask the assistant to edit your scene…")).toHaveCount(0); // no separate assistant box: Atlas is the way in
   });
+
+  test("the red playhead line can be dragged", async ({ page }) => {
+    await setup(page);
+    const d = await openShotMap(page);
+    await d.getByRole("button", { name: "Templates" }).click();
+    await d.getByRole("button", { name: /Street corner/ }).click();
+    await d.getByRole("tab", { name: "Motion" }).click();
+    const head = d.locator(".ss-playhead");
+    await expect(head).toBeVisible();
+    const b = (await head.boundingBox())!;
+    const y = b.y + b.height - 10;
+    await page.mouse.move(b.x + 1, y);
+    await page.mouse.down();
+    await page.mouse.move(b.x + 301, y, { steps: 8 });
+    await page.mouse.up();
+    const after = Number(await head.locator("span").innerText());
+    expect(after).toBeGreaterThan(1);
+  });
 });

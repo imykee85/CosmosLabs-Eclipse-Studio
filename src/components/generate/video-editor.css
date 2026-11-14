@@ -27,7 +27,8 @@
 .ve-h { position: absolute; top: 0; bottom: 0; width: 14px; cursor: ew-resize; background: rgba(255,255,255,.0); }
 .ve-hl { left: 0; } .ve-hr { right: 0; }
 .ve-block.is-sel .ve-h { background: rgba(255,255,255,.28); }
-.ve-head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #c00707; pointer-events: none; z-index: 4; }
+.ve-head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #c00707; cursor: col-resize; touch-action: none; z-index: 4; }
+.ve-head::before { content: ""; position: absolute; top: 0; bottom: 0; left: -9px; right: -9px; }
 .ve-sheet-back { position: fixed; inset: 0; z-index: 270; background: rgba(0,0,0,.5); display: grid; align-items: end; }
 .ve-sheet { background: var(--a-bg, #151517); color: var(--a-fg, #f4f1ed); border-radius: 18px 18px 0 0; max-height: 78dvh; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); width: min(760px, 100%); justify-self: center; }
 .ve-sheet-top { display: flex; align-items: center; gap: 8px; padding: 12px; flex-wrap: wrap; }

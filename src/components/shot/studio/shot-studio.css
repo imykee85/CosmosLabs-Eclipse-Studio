@@ -235,8 +235,9 @@
 .ss-diamond { position: absolute; top: 11px; width: 13px; height: 13px; margin-left: -6.5px; transform: rotate(45deg); border-radius: 2px; border: 1.5px solid var(--a-fg); background: var(--a-muted, #8a8f9c); cursor: grab; padding: 0; z-index: 2; }
 .ss-diamond.is-item { background: var(--a-card); }
 .ss-diamond.is-sel { background: #4f6bff; border-color: #fff; box-shadow: 0 0 0 2px rgba(79,107,255,.4); }
-.ss-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #c00707; z-index: 3; pointer-events: none; }
-.ss-playhead span { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); background: #c00707; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.ss-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #c00707; z-index: 3; cursor: col-resize; touch-action: none; }
+.ss-playhead::before { content: ""; position: absolute; top: 0; bottom: 0; left: -9px; right: -9px; }
+.ss-playhead span { pointer-events: none; position: absolute; top: 2px; left: 50%; transform: translateX(-50%); background: #c00707; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 6px; font-variant-numeric: tabular-nums; }
 
 /* modals */
 .ss-modal { position: fixed; inset: 0; z-index: 260; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); padding: 16px; }
