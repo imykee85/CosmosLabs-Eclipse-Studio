@@ -1,0 +1,1 @@
+location_refs.py comes from the owner's "cinematic-location-scout" skill upload (2026-11-14). The upload states no licence; the owner supplied it for use in Eclipse. Eclipse runs it unchanged in a sandbox that can reach only Wikimedia Commons hosts.

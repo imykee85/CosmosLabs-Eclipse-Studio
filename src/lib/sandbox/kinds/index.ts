@@ -3,6 +3,7 @@ import { coreExec, toolRun } from "./core";
 import { edit } from "./edit";
 import { kinetic } from "./kinetic";
 import { mux } from "./mux";
+import { scout } from "./scout";
 import { shotguide } from "./shotguide";
 import type { KindDef } from "./types";
 
@@ -11,6 +12,7 @@ const KINDS: Record<string, KindDef<never>> = {
   [mux.kind]: mux as unknown as KindDef<never>,
   [edit.kind]: edit as unknown as KindDef<never>,
   [kinetic.kind]: kinetic as unknown as KindDef<never>,
+  [scout.kind]: scout as unknown as KindDef<never>,
   [shotguide.kind]: shotguide as unknown as KindDef<never>,
   [toolRun.kind]: toolRun as unknown as KindDef<never>,
   [coreExec.kind]: coreExec as unknown as KindDef<never>,
