@@ -101,6 +101,9 @@
 .vs-style-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--a-fg); font: inherit; font-size: 16px; outline: none; }
 
 .vs-motion > * { min-width: 0; }
+.vs-motion select { width: 100%; min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+.vs-motion-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; color: var(--a-fg); font-size: 14px; }
+.vs-motion-x { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: var(--a-muted); cursor: pointer; }
 @media (max-width: 400px) { .vs-motion { grid-template-columns: minmax(0, 1fr); } }
 
 /* Reference sounds (Seedance): the person's own Voice Studio takes, shown as small chips under the pictures and clips. */
