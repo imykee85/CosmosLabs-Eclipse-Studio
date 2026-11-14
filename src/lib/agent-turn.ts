@@ -121,7 +121,7 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
     if (sceneImg && c.page === "shotmap") {
       const last = messages[messages.length - 1];
       const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
-      last.content = [...own.slice(0, -1), { type: "text", text: "Snapshot of the 3D view in ShotMap as it looks now (grey blockout: figures are stand-ins):" }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: sceneImg } }, own[own.length - 1]];
+      last.content = [...own.slice(0, -1), { type: "text", text: "Snapshot of the 3D view in ShotMap as it looks now (it also shows the grid and the camera markers; people are simple mannequins, and some objects are plain shapes while others are real models):" }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: sceneImg } }, own[own.length - 1]];
     }
     // PDFs the person attached to this message go to the agent as files (text documents are already in the message text).
     const pdfs = documentBlocks(parseDocuments(body?.documents));
