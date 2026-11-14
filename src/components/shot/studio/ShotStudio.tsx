@@ -152,11 +152,17 @@ export default function ShotStudio({ projectId, onUse, onClose, addModel }: { pr
       return {
         prompt: w.prompt || "",
         sceneOutline: describeScene(w, t),
-        sceneImage: snapshot(),
         settings: [`Tab: ShotMap, ${mode}${mode === "motion" ? (c.useMove ? " (Moves)" : " (Keyframes)") : ""}`, `Shot length: ${shotOf(w).durationS} s, aspect ratio ${w.aspect}`,
           ...(m ? [`Current move: ${m.preset}${m.preset2 ? ` + ${m.preset2} (${m.combine})` : ""}, rotate ${m.rotate}, vertical ${m.vertical}, distance ${m.distance} m, speed ${Math.round(m.speed * 100)}%, lens ${m.lensMm} mm, shake ${Math.round(m.shake * 100)}%`] : []),
           `In the scene: ${w.items.filter((i) => i.id !== "floor").slice(0, 12).map((i) => i.name).join(", ") || "nothing yet"}`],
       };
+    },
+    attach: () => {
+      const w = worldRef.current, c = cameraOf(w), dur = shotOf(w).durationS;
+      // A filmstrip of what the shot camera sees from the first second to the last, when the camera moves at all.
+      const moves = c.useMove || c.keys.length >= 2, n = 8;
+      const frames = moves && view.current && stage === "editor" ? view.current.shotFrames(Array.from({ length: n }, (_, i) => (dur * i) / (n - 1)), 512) : undefined;
+      return { sceneImage: snapshot(), ...(frames?.length ? { sceneFrames: frames } : {}) };
     },
     setPrompt: (t) => commit((w) => ({ ...w, prompt: t })),
     generate: async () => "ShotMap makes the guide video when you press Use video.",

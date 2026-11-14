@@ -371,10 +371,33 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
   function setFrameLens(lens: number, f: number, focus: number) { frameLens = lens; frameF = f; frameFocus = focus; invalidate(); }
   function setPreview(r: Rect | null) { previewRect = r; invalidate(); }
   /** Draws the shot camera at time t once, synchronously (the recorder). */
+  // Frames of the shot camera's own view at the given times (small jpegs), so the motion can be looked at without playing it. The view is put back afterwards.
+  function shotFrames(times: number[], width: number): { t: number; jpeg: string }[] {
+    if (!world || disposed) return [];
+    const ar = ASPECT_RATIO[world.aspect], saved = t, out: { t: number; jpeg: string }[] = [];
+    let fw = W, fh = W / ar; if (fh > H) { fh = H; fw = H * ar; }
+    const fx = Math.round((W - fw) / 2), fy = Math.round((H - fh) / 2), pr = canvas.width / W;
+    const cv = document.createElement("canvas"); cv.width = Math.round(width); cv.height = Math.max(1, Math.round(width / ar));
+    const g = cv.getContext("2d"); if (!g) return [];
+    try {
+      for (const tt of times) {
+        setTime(tt);
+        const now = cameraAt(world, cameraOf(world), tt);
+        aimShot(now.key, now.fov, ar);
+        renderer.setClearColor(scene.background as THREE.Color);
+        renderer.setScissorTest(false); renderer.setViewport(0, 0, W, H); renderer.clear();
+        renderShot(fx, fy, Math.round(fw), Math.round(fh), false);
+        renderer.setScissorTest(false);
+        g.drawImage(canvas, fx * pr, fy * pr, fw * pr, fh * pr, 0, 0, cv.width, cv.height);
+        out.push({ t: Math.round(tt * 100) / 100, jpeg: cv.toDataURL("image/jpeg", 0.7) });
+      }
+    } finally { setTime(saved); drawNow(); }
+    return out;
+  }
   function drawNow() { if (frame) { cancelAnimationFrame(frame); frame = 0; } draw(); }
   function dispose() { disposed = true; if (frame) cancelAnimationFrame(frame); gizmo?.detach(); gizmo?.dispose(); orbit?.dispose(); for (const n of nodes.values()) free(n.root); free(scene); composer?.dispose(); renderer.dispose(); renderer.forceContextLoss(); }
   return {
-    setWorld, setAssets, setTime, setMode, select, setGizmo, pick, focusAt, floorAt, frameAll, resize, invalidate, drawNow, dispose, setPreview, setFree, getFree, nudge, setFrameLens,
+    setWorld, setAssets, setTime, setMode, select, setGizmo, pick, focusAt, floorAt, frameAll, resize, invalidate, drawNow, shotFrames, dispose, setPreview, setFree, getFree, nudge, setFrameLens,
     onChange(cb: (p: Pick, o: THREE.Object3D) => void) { listeners.change = cb; },
     onRender(cb: () => void) { listeners.render = cb; },
     editCamera: () => ({ pos: edit.position.toArray() as Vec3, target: orbit?.target.toArray() as Vec3 | undefined }),

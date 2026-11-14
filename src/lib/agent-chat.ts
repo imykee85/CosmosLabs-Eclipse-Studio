@@ -27,7 +27,9 @@ export type AgentHost = {
   page: "studio" | "canvas" | "treatment" | "video" | "core" | "design" | "voice" | "shotmap";
   // Everything on and in the prompt box, as the person sees it: the text, the other settings, the pictures and clips attached (ids only: the server
   // loads the pictures itself, owner-checked, and shows them to the agent), and the message showing on the box's top edge (an error or a notice).
-  context: () => { prompt: string; sceneOutline?: string; sceneImage?: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[]; videos?: { id: string; label: string; role?: string }[] };
+  context: () => { prompt: string; sceneOutline?: string; ratio?: string; qty?: number; model?: string; ingredients?: number; settings?: string[]; message?: string; pictures?: { type: "upload" | "render"; id: string; role?: string }[]; clips?: string[]; videos?: { id: string; label: string; role?: string }[] };
+  // Heavy extras gathered only when a message is sent (never while the box is read): a snapshot of the 3D view and frames of the camera's motion.
+  attach?: () => { sceneImage?: string; sceneFrames?: { t: number; jpeg: string }[] };
   setPrompt: (text: string) => void;
   // Starts the render. Resolves with "" when it started, or a plain reason when it could not.
   generate: (opts: { prompt?: string; count?: number }) => Promise<string>;
@@ -47,7 +49,7 @@ export function useAgentHost(h: AgentHost) {
   const mk = !!h.make;
   useEffect(() => {
     const proxy: AgentHost = {
-      page: h.page, context: () => ref.current.context(), setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o),
+      page: h.page, context: () => ref.current.context(), attach: () => ref.current.attach?.() ?? {}, setPrompt: (t) => ref.current.setPrompt(t), generate: (o) => ref.current.generate(o),
       useFrame: can ? (f, as) => ref.current.useFrame?.(f, as) ?? "" : undefined,
       controls: ctl ? { options: () => ref.current.controls?.options() ?? [], apply: (p) => ref.current.controls?.apply(p) ?? { set: [], refused: [] } } : undefined,
       make: mk ? (o) => ref.current.make?.(o) ?? Promise.resolve("") : undefined,
@@ -295,7 +297,7 @@ export function useAgentChat(agent: string | null) {
       const history = read(agent).filter((m) => !m.note).map((m) => ({ role: m.role, text: m.text + (m.docs ?? []).filter((d) => d.text !== undefined).map((d) => `\n\n[Attached file: ${d.name}]\n${d.text}`).join(""), ...(m.seen ? { seen: m.seen } : {}) }));
       const pdfs = docs.filter((d) => d.pdf !== undefined).map((d) => ({ name: d.name, pdf: d.pdf }));
       const page = host?.page ?? "studio";
-      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, documents: pdfs, context: { page, ...base, pictures, videos, options: host?.controls?.options(), make: !!host?.make } }) });
+      const res = await fetch("/api/agent/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent, background: true, messages: history, documents: pdfs, context: { page, ...base, ...(host?.attach?.() ?? {}), pictures, videos, options: host?.controls?.options(), make: !!host?.make } }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || typeof data.runId !== "string") { add({ role: "agent", text: typeof data.error === "string" ? data.error : "The agent couldn't answer. Please try again.", error: true }); return; }
       if (stopRequested.delete(agent)) {

@@ -172,19 +172,25 @@ test.describe("ShotMap", () => {
   test("Atlas is shown the scene: an outline in words and a snapshot of the 3D view", async ({ page }) => {
     await setup(page);
     await page.addInitScript(() => { localStorage.setItem("eclipse-agent", "Atlas"); localStorage.setItem("eclipse-agent-on:generate", "1"); });
-    let sent: { context?: { sceneOutline?: string; sceneImage?: string; page?: string } } = {};
+    let sent: { context?: { sceneOutline?: string; sceneImage?: string; sceneFrames?: { t: number; jpeg: string }[]; page?: string } } = {};
     await page.route("**/api/agent/chat", (r) => { sent = JSON.parse(r.request().postData() || "{}"); r.fulfill({ json: { runId: "r1" } }); });
     await page.route("**/api/agent/runs/r1", (r) => r.request().method() === "DELETE" ? r.fulfill({ json: { ok: true } }) : r.fulfill({ json: { status: "done", result: { status: 200, body: { text: "I can see it.", actions: [] } } } }));
     const d = await openShotMap(page);
     await d.getByRole("tab", { name: "None" }).click();
     await d.getByRole("button", { name: "Create empty scene" }).click();
     await d.getByRole("tab", { name: "Motion" }).click();
+    await d.getByRole("tab", { name: "Moves" }).click();
+    await d.getByRole("group", { name: "Camera moves" }).getByLabel("Move", { exact: true }).selectOption("orbit-180");
     await page.locator(".aw-btn").click();
     await page.locator(".aw-input textarea").fill("what do you see");
     await page.locator(".aw-input button[type=submit], .aw-input .aw-go").first().click();
     await expect.poll(() => sent.context?.page, { timeout: 15000 }).toBe("shotmap");
     expect(sent.context?.sceneOutline).toMatch(/Camera now: at/);
     expect(sent.context?.sceneImage ?? "").toMatch(/^data:image\/jpeg;base64,/);
+    // with a moving camera (Moves) a filmstrip of the camera's own view is sent too
+    expect(sent.context?.sceneFrames?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(sent.context!.sceneFrames![0].jpeg).toMatch(/^data:image\/jpeg;base64,/);
+    expect(sent.context!.sceneFrames![0].jpeg).not.toBe(sent.context!.sceneFrames!.at(-1)!.jpeg); // the camera really moved between the first and last frame
   });
   test("Atlas hands a scene change to his helper, the scene assistant, when Apply is pressed", async ({ page }) => {
     await setup(page);

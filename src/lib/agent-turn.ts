@@ -123,6 +123,17 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
       last.content = [...own.slice(0, -1), { type: "text", text: "Snapshot of the 3D view in ShotMap as it looks now (it also shows the grid and the camera markers; people are simple mannequins, and some objects are plain shapes while others are real models):" }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: sceneImg } }, own[own.length - 1]];
     }
+    // ShotMap Motion: frames of the shot camera's own view from the first second to the last, labelled with their time, so Atlas can watch the motion (checked, never stored).
+    if (c.page === "shotmap" && Array.isArray(c.sceneFrames)) {
+      const jpegs = (c.sceneFrames as { t?: unknown; jpeg?: unknown }[]).slice(0, 10).filter((f) => typeof f?.jpeg === "string" && (f.jpeg as string).length < 160_000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(f.jpeg as string));
+      if (jpegs.length >= 2) {
+        const last = messages[messages.length - 1];
+        const own = Array.isArray(last.content) ? last.content : [{ type: "text" as const, text: typeof last.content === "string" ? last.content : "" }];
+        const blocks: Anthropic.ContentBlockParam[] = [{ type: "text", text: `The shot camera's own view across the whole motion, ${jpegs.length} frames in time order. Judge the motion from these frames (what it reveals, where it starts and ends, how it feels), not from the path alone:` }];
+        for (const f of jpegs) blocks.push({ type: "text", text: `Frame at ${Math.max(0, Math.round(Number(f.t) * 10) / 10 || 0)} s` }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: (f.jpeg as string).slice("data:image/jpeg;base64,".length) } });
+        last.content = [...own.slice(0, -1), ...blocks, own[own.length - 1]];
+      }
+    }
     // PDFs the person attached to this message go to the agent as files (text documents are already in the message text).
     const pdfs = documentBlocks(parseDocuments(body?.documents));
     if (pdfs.length) {
