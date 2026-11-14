@@ -16,3 +16,6 @@ function talk(messages: Msg, context: string, re: RegExp): boolean {
 }
 /** Atlas carries Character Voice Lock when the talk is about keeping a character's voice consistent across shots. */
 export const wantsVoiceLock = (messages: Msg, context: string) => talk(messages, context, VOICE_LOCK_WORDS);
+/** In Audio Studio the person is already making a voice, so a mention of a character, Seedance, a video or shots is enough to bring the method in. */
+const VOICE_PAGE_WORDS = /\b(characters?|seedance|videos?|shots?|dialogue|lip ?sync)\b/i;
+export const wantsVoiceLockOn = (messages: Msg, context: string, page: string | undefined) => wantsVoiceLock(messages, context) || (page === "voice" && talk(messages, "", VOICE_PAGE_WORDS));
