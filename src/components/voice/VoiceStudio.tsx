@@ -390,7 +390,7 @@ export default function VoiceStudio() {
                 </div>
               )}
             </div>
-            <AtlasChip />
+            <AtlasChip studio="Audio Studio" />
             {model && chars >= model.maxChars && <span className={`vc-count ${over ? "is-over" : ""}`} role="status">{chars.toLocaleString("en-US")}/{model.maxChars.toLocaleString("en-US")}</span>}
           </div>
           <GenerateButton wide className="vc-go-slot" price={price} busy={submitting} disabled={!canGo} onClick={() => void generate()} />
