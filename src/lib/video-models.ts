@@ -607,6 +607,7 @@ export type VideoInput = {
   refAudioUrls?: string[]; // reference sounds, in order (reference-to-video, Seedance)
   shots?: { prompt: string; duration: number }[]; // multi-shot (Kling 3.0): the shots in order; their summed length is the duration
   keepSound?: boolean;     // motion transfer (Kling): keep the sound of the motion clip
+  background?: "image" | "video"; // Kling Motion Control scene control: the background comes from the picture or the motion clip (sent as background_source)
   orientation?: "image" | "video"; // motion transfer (Kling): whose facing direction the result follows
 };
 export type BuildResult = { ok: true; workflow: Workflow; endpoint: string; body: Record<string, unknown> } | { ok: false; error: string };
@@ -723,6 +724,7 @@ function buildMotionBody(m: VideoModel, l: VideoLive, input: VideoInput): BuildR
     const orient = input.orientation ?? "video";
     if (orient !== "image" && orient !== "video") return { ok: false, error: "The facing direction must follow the picture or the video." };
     body.character_orientation = orient;
+    if (input.background && l.endpoints.motion?.includes("/v3/")) body.background_source = input.background === "image" ? "input_image" : "input_video";
   } else {
     body.video_url = clips[0];
     body.image_urls = [input.startUrl];

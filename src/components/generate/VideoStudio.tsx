@@ -85,7 +85,7 @@ export default function VideoStudio() {
     if (allowedNow("shotmap")) { setShotModel({ key: shotKey, name: shotName ?? "3D model" }); setShotOpen(true); } else askUpgrade("shotmap");
     window.history.replaceState(null, "", "/generate");
   }, [shotKey, shotName]);
-  const [mcScene, setMcScene] = useState(false);          // Scene control: not sent anywhere yet (its API field is not in our reference)
+  const [mcScene, setMcScene] = useState(false);          // Scene control: sent as background_source (field read from the model list, not yet run live)
   const [mcSceneFrom, setMcSceneFrom] = useState<"video" | "image">("video");
   const mc = motion === "subject";
   const model = mc ? videoModelById(mcEngine === "genjutsu" ? "genjutsu_motion" : `kling_mc_${mcEngine === "kling3" ? "3" : "26"}_${mcTier}`) : pickerModel;
@@ -382,7 +382,7 @@ export default function VideoStudio() {
           resolution: caps.qualities.length ? quality : undefined, aspectRatio: caps.ratios.length ? ratio : undefined, audio: caps.audio ? sound : undefined,
           ...(caps.seed && seedLocked ? { lockSeed: true, ...(seedNumber != null ? { seed: seedNumber } : {}) } : {}),
           negativePrompt: caps.negativePrompt != null && negative.trim() ? negative.trim() : undefined, cfgScale: caps.cfgScale && creative != null ? creative : undefined,
-          start: start ? { type: start.type, id: start.id } : undefined, end: end ? { type: end.type, id: end.id } : undefined, refs: refs.length ? refs.map((r) => ({ type: r.type, id: r.id })) : undefined, videoRefs: vrefs.length ? vrefs.map((v) => ({ id: v.id })) : undefined, audioRefs: arefs.length ? arefs.map((a) => ({ id: a.id })) : undefined, motion: mc ? { orientation: mcOrient, keepSound: mcSound } : undefined, confirm: confirm || undefined,
+          start: start ? { type: start.type, id: start.id } : undefined, end: end ? { type: end.type, id: end.id } : undefined, refs: refs.length ? refs.map((r) => ({ type: r.type, id: r.id })) : undefined, videoRefs: vrefs.length ? vrefs.map((v) => ({ id: v.id })) : undefined, audioRefs: arefs.length ? arefs.map((a) => ({ id: a.id })) : undefined, motion: mc ? { orientation: mcOrient, keepSound: mcSound, background: mcScene ? mcSceneFrom : undefined } : undefined, confirm: confirm || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -582,13 +582,13 @@ export default function VideoStudio() {
               )}
               {mcEngine !== "genjutsu" && (
                 <>
-                  <div className="vs-opt" role="group" aria-label="Scene control" title="Where the background comes from: the picture or the motion video">
+                  {mcEngine === "kling3" && <div className="vs-opt" role="group" aria-label="Scene control" title="Where the background comes from: the picture or the motion video">
                     <div className="vs-opt-head">
-                      <span>Scene control <SoonTag /></span>
-                      <button type="button" role="switch" aria-checked={mcScene} aria-label="Scene control" className={`cr-switch ${mcScene ? "is-on" : ""}`} onClick={() => { setMcScene((v) => !v); setNote("Scene control isn't connected yet, so it changes nothing for now."); }}><i /></button>
+                      <span>Scene control</span>
+                      <button type="button" role="switch" aria-checked={mcScene} aria-label="Scene control" className={`cr-switch ${mcScene ? "is-on" : ""}`} onClick={() => { setMcScene((v) => !v); }}><i /></button>
                     </div>
                     <select value={mcSceneFrom} disabled={!mcScene} onChange={(e) => setMcSceneFrom(e.target.value as "video" | "image")} aria-label="Where the background comes from"><option value="video">From the video</option><option value="image">From the picture</option></select>
-                  </div>
+                  </div>}
                   <label title="character_orientation. From the video suits complex movements; from the picture supports camera moves better."><span>Orientation</span>
                     <select value={mcOrient} onChange={(e) => setMcOrient(e.target.value as "video" | "image")}><option value="video">From the video</option><option value="image">From the picture</option></select>
                   </label>
