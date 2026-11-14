@@ -87,6 +87,20 @@ function cameraBody(color: number) {
   g.userData.parts = true; return g;
 }
 
+// The camera model (public/shot-models/camera.glb, black DSLR, lens along +z) is fetched once. Until it arrives, and if it cannot be fetched, the drawn camera above is used.
+let camModel: THREE.Group | null = null, camLoading: Promise<void> | null = null;
+function loadCameraModel(): Promise<void> {
+  camLoading ??= new GLTFLoader().loadAsync("/shot-models/camera.glb").then((g) => { camModel = g.scene; }).catch(() => { /* keep the drawn camera */ });
+  return camLoading;
+}
+/** Black camera. A chosen camera glows blue, the camera at the playhead glows white. */
+function cameraRig(color: number) {
+  if (!camModel) return cameraBody(color);
+  const g = camModel.clone(true), glow = color === 0x4f6bff ? 0x4f6bff : color === 0xf2f2f2 ? 0xffffff : 0;
+  g.traverse((n) => { const m = n as THREE.Mesh; if (m.isMesh) { const mt = (m.material as THREE.MeshStandardMaterial).clone(); if (glow) { mt.emissive = new THREE.Color(glow); mt.emissiveIntensity = 0.45; } m.material = mt; } });
+  g.userData.parts = true; return g;
+}
+
 export type ViewOptions = { helpers: boolean; assets?: Assets; models?: Map<string, ArrayBuffer> };
 export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: !opts.helpers });
@@ -111,7 +125,7 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
   if (gizmo) gizmo.setSize(0.9);
   const selBox = new THREE.BoxHelper(new THREE.Object3D(), 0xffffff); selBox.visible = false; helpers.add(selBox);
   const camLayer = new THREE.Group(); helpers.add(camLayer);
-  const liveCam = cameraBody(0xf2f2f2), frustum = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })); helpers.add(liveCam, frustum);
+  let liveCam: THREE.Object3D = cameraRig(0xf2f2f2); const frustum = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })); helpers.add(liveCam, frustum);
   const focusMark = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.18, 32), new THREE.MeshBasicMaterial({ color: 0xf0c419, side: THREE.DoubleSide, depthTest: false })); focusMark.visible = false; scene.add(focusMark);
 
   let W = 1, H = 1, world: World | null = null, t = 0, mode: ViewMode = "compose", selected: Pick = null, assets = opts.assets ?? {};
@@ -192,7 +206,7 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
       // a camera driven by a move shows no keyframe markers (its keyframes are kept, unchanged, for when Keyframes is chosen again)
       if (!cam.useMove) cam.keys.forEach((k, i) => {
         const sel = selected?.kind === "key" && selected.camId === cam.id && selected.index === i;
-        const body = cameraBody(sel ? 0x4f6bff : 0x15161b); body.position.set(...k.pos); body.lookAt(...k.look);
+        const body = cameraRig(sel ? 0x4f6bff : 0x15161b); body.position.set(...k.pos); body.lookAt(...k.look);
         body.userData.camKey = { camId: cam.id, index: i }; body.traverse((o) => { o.userData.camKey = body.userData.camKey; });
         camLayer.add(body); keyRigs.push(body);
       });
@@ -227,6 +241,7 @@ export function createView(canvas: HTMLCanvasElement, opts: ViewOptions) {
     for (const n of nodes.values()) place(n);
     labelStep = 0; updateLabels(); rebuildCameras(); reattach(); invalidate();
   }
+  if (opts.helpers) void loadCameraModel().then(() => { if (disposed || !camModel) return; helpers.remove(liveCam); free(liveCam); liveCam = cameraRig(0xf2f2f2); helpers.add(liveCam); rebuildCameras(); invalidate(); });
   function setAssets(a: Assets) { assets = a; if (world) { for (const n of nodes.values()) { world3.remove(n.root); free(n.root); } nodes.clear(); setWorld(world); } }
 
   // ---- time, mode, selection ----
