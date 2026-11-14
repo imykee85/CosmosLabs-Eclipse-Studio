@@ -616,3 +616,10 @@ html:has(.cr-wrap.is-idle, .vc.is-idle) body { position: fixed; inset: 0; width:
   .cr-wrap.is-idle .cr-dock { bottom: 0; }
   .cr-dock { display: block; position: sticky; bottom: 22px; margin-top: auto; z-index: 20; padding-top: 12px; }
 }
+
+.aw-cmds { display: flex; flex-direction: column; max-height: 220px; overflow-y: auto; margin-bottom: 6px; border: 1px solid var(--a-line2); border-radius: 14px; background: var(--a-card); }
+.aw-cmds button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 12px; border: 0; background: transparent; color: var(--a-fg); text-align: left; cursor: pointer; font: inherit; }
+.aw-cmds button + button { border-top: 1px solid var(--a-line2); }
+.aw-cmds button:hover { background: var(--a-input); }
+.aw-cmds b { font-size: 14px; font-weight: 600; }
+.aw-cmds span { font-size: 13px; color: var(--a-fg2); }

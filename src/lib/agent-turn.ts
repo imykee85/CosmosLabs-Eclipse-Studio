@@ -13,6 +13,7 @@ import { SHORT_FORM_CRAFT, SCREEN_CRAFT, BRAINSTORM_CRAFT, PRODUCTION_CRAFT, DOC
 import { MOTION_CRAFT, wantsMotion } from "@/lib/motion-knowledge";
 import { AD_DIRECTOR, CINEMA_CRAFT, UGC_CRAFT, STYLE_TEMPLATE_CRAFT, MARKETING_CRAFT, CREATOR_CRAFT, wantsMarketing, wantsCreator, wantsAds, wantsCinema, wantsUgc, wantsStyleTemplate } from "@/lib/craft-knowledge";
 import { FASHION_DIRECTOR, wantsFashion } from "@/lib/fashion-knowledge";
+import { commandOf } from "@/lib/atlas-commands";
 import { VOICE_LOCK_CRAFT, wantsVoiceLockOn } from "@/lib/voice-lock-knowledge";
 import { ADD_MOTION_CRAFT, PRODUCT_VIDEO_CRAFT, wantsAddMotion, wantsProductVideo } from "@/lib/product-knowledge";
 import { SCENE_DIRECTOR, wantsSceneDirector } from "@/lib/scene-director-knowledge";
@@ -166,39 +167,43 @@ export async function prepareAgentTurn(userId: string, personId: string | null |
       const deadline = turnStarted + DEADLINE_MS;
       const model = connectModels.find((m) => m.id === "claude-sonnet-5-5")!.api;
       // The Seedance 2.5 director (the owner's storyboard workflow) rides along only while the talk is about Seedance or a storyboard: it costs about 6,000 input tokens.
-      const director = isAtlas && wantsSeedance(messages, ctx) ? `\n\n${seedanceKnowledge("atlas")}` : "";
+      // A slash command ("/voicelock ...") loads its skill whatever the words are, and tells Atlas to begin.
+      const cmd = isAtlas ? commandOf(turns.filter((t) => t.role === "user").at(-1)?.text ?? "") : null;
+      const force = new Set<string>(cmd ? [cmd.force] : []);
+      const cmdNote = cmd ? `\n\nCOMMAND: the person ran /${cmd.id}. ${cmd.start} Follow that skill now; anything typed after the command is their request.` : "";
+      const director = isAtlas && (force.has("director") || wantsSeedance(messages, ctx)) ? `\n\n${seedanceKnowledge("atlas")}` : "";
       // The Scene Director (docs/prompt-engines/knowledge/scene-director.md) rides along when a picture or clip is attached, or the talk is about shots or scenes.
       const hasMedia = parsePictures(c.pictures).length > 0 || (Array.isArray(c.clips) && c.clips.length > 0);
-      const scene = isAtlas && wantsSceneDirector(messages, hasMedia) ? `\n\n${SCENE_DIRECTOR}` : "";
+      const scene = isAtlas && (force.has("scene") || wantsSceneDirector(messages, hasMedia)) ? `\n\n${SCENE_DIRECTOR}` : "";
       // the persona (stable, cached together with the tools) comes first; what the box shows right now changes every message and is not cached
       // The Fashion Campaign Director (owner's skill, about 11,000 tokens) rides along only while the talk is about fashion, a campaign, an editorial, a lookbook or a shoot.
-      const fashion = isAtlas && wantsFashion(messages, ctx) ? `\n\n${FASHION_DIRECTOR}` : "";
+      const fashion = isAtlas && (force.has("fashion") || wantsFashion(messages, ctx)) ? `\n\n${FASHION_DIRECTOR}` : "";
       // Ad Creative Director (about 1,800 tokens) on ad talk; Cinema Craft (about 2,200) on cinematic talk. Atlas only.
-      const ads = isAtlas && wantsAds(messages, ctx) ? `\n\n${AD_DIRECTOR}` : "";
-      const cinema = isAtlas && wantsCinema(messages, ctx) ? `\n\n${CINEMA_CRAFT}` : "";
+      const ads = isAtlas && (force.has("ads") || wantsAds(messages, ctx)) ? `\n\n${AD_DIRECTOR}` : "";
+      const cinema = isAtlas && (force.has("cinema") || wantsCinema(messages, ctx)) ? `\n\n${CINEMA_CRAFT}` : "";
       // Director Craft (about 3,500 tokens) on video-problem talk; short-form craft and screenwriting craft (about 1,200 each) on script and story talk. Atlas only.
-      const directorCraft = isAtlas && wantsDirector(messages, ctx) ? `\n\n${DIRECTOR_CRAFT}` : "";
+      const directorCraft = isAtlas && (force.has("directorCraft") || wantsDirector(messages, ctx)) ? `\n\n${DIRECTOR_CRAFT}` : "";
       const lensPick = isAtlas ? pickDirector(messages, ctx) : null; // a named director: that one full module, as the owner wrote it (about 7,000 tokens)
       const directorLens = lensPick ? `\n\n${directorLensBlock(lensPick)}` : "";
-      const shortForm = isAtlas && wantsShortForm(messages, ctx) ? `\n\n${SHORT_FORM_CRAFT}` : "";
-      const screenCraft = isAtlas && wantsScreenwriting(messages, ctx) ? `\n\n${SCREEN_CRAFT}` : "";
-      const brainstorm = isAtlas && wantsBrainstorm(messages, ctx) ? `\n\n${BRAINSTORM_CRAFT}` : "";
-      const production = isAtlas && wantsProduction(messages, ctx) ? `\n\n${PRODUCTION_CRAFT}` : "";
-      const motionCraft = isAtlas && wantsMotion(messages, ctx) ? `\n\n${MOTION_CRAFT}` : "";
-      const ugc = isAtlas && wantsUgc(messages, ctx) ? `\n\n${UGC_CRAFT}` : "";
-      const styleTemplate = isAtlas && wantsStyleTemplate(messages, ctx) ? `\n\n${STYLE_TEMPLATE_CRAFT}` : "";
-      const documentary = isAtlas && wantsDocumentary(messages, ctx) ? `\n\n${DOCUMENTARY_CRAFT}` : "";
-      const marketing = isAtlas && wantsMarketing(messages, ctx) ? `\n\n${MARKETING_CRAFT}` : "";
-      const creator = isAtlas && wantsCreator(messages, ctx) ? `\n\n${CREATOR_CRAFT}` : "";
+      const shortForm = isAtlas && (force.has("shortForm") || wantsShortForm(messages, ctx)) ? `\n\n${SHORT_FORM_CRAFT}` : "";
+      const screenCraft = isAtlas && (force.has("screenCraft") || wantsScreenwriting(messages, ctx)) ? `\n\n${SCREEN_CRAFT}` : "";
+      const brainstorm = isAtlas && (force.has("brainstorm") || wantsBrainstorm(messages, ctx)) ? `\n\n${BRAINSTORM_CRAFT}` : "";
+      const production = isAtlas && (force.has("production") || wantsProduction(messages, ctx)) ? `\n\n${PRODUCTION_CRAFT}` : "";
+      const motionCraft = isAtlas && (force.has("motionCraft") || wantsMotion(messages, ctx)) ? `\n\n${MOTION_CRAFT}` : "";
+      const ugc = isAtlas && (force.has("ugc") || wantsUgc(messages, ctx)) ? `\n\n${UGC_CRAFT}` : "";
+      const styleTemplate = isAtlas && (force.has("styleTemplate") || wantsStyleTemplate(messages, ctx)) ? `\n\n${STYLE_TEMPLATE_CRAFT}` : "";
+      const documentary = isAtlas && (force.has("documentary") || wantsDocumentary(messages, ctx)) ? `\n\n${DOCUMENTARY_CRAFT}` : "";
+      const marketing = isAtlas && (force.has("marketing") || wantsMarketing(messages, ctx)) ? `\n\n${MARKETING_CRAFT}` : "";
+      const creator = isAtlas && (force.has("creator") || wantsCreator(messages, ctx)) ? `\n\n${CREATOR_CRAFT}` : "";
       // Product Video Craft (about 3,600 tokens) on creator-style product video talk; Add Motion Craft (about 1,400) on animate-a-picture talk. Atlas only.
-      const productVideo = isAtlas && wantsProductVideo(messages, ctx) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
-      const addMotion = isAtlas && wantsAddMotion(messages, ctx) ? `\n\n${ADD_MOTION_CRAFT}` : "";
-      const voiceLock = isAtlas && wantsVoiceLockOn(messages, ctx, c.page) ? `\n\n${VOICE_LOCK_CRAFT}` : "";
+      const productVideo = isAtlas && (force.has("productVideo") || wantsProductVideo(messages, ctx)) ? `\n\n${PRODUCT_VIDEO_CRAFT}` : "";
+      const addMotion = isAtlas && (force.has("addMotion") || wantsAddMotion(messages, ctx)) ? `\n\n${ADD_MOTION_CRAFT}` : "";
+      const voiceLock = isAtlas && (force.has("voiceLock") || wantsVoiceLockOn(messages, ctx, c.page)) ? `\n\n${VOICE_LOCK_CRAFT}` : "";
       const withWeb = isAtlas && planAllows(access.plan, "web");
       const screen = isAtlas ? guideFor(c.page, c.settings) : null;
       const guide = screen ? `\n\n<screen_guide>\n${screen}\n</screen_guide>` : "";
       const coreNote = isAtlas ? `\n\n${CORE_TOOLS_NOTE}${withWeb ? `\n\n${WEB_NOTE}` : ""}\n\n${TEACHING_NOTE}${guide}` : "";
-      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}${voiceLock}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
+      const system = cachedSystem(`${persona.system}${coreNote}${director}${scene}${fashion}${ads}${cinema}${directorCraft}${directorLens}${shortForm}${screenCraft}${brainstorm}${production}${motionCraft}${ugc}${styleTemplate}${documentary}${marketing}${creator}${productVideo}${addMotion}${voiceLock}${cmdNote}\n\n${BRAND_RULE}`, `<studio>\nYou see the prompt box exactly as the user does: its text, its settings, the pictures attached and any message on its top edge.\n${ctx}${seeing}\n</studio>`);
       const base = [...TOOLS, ...(canSet ? [SET_BOX] : []), ...(canMake ? [MAKE_ASSET] : [])];
       const withPlans = isAtlas && c.page !== "mcp" && planAllows(access.plan, "plans");
       let tools: Anthropic.ToolUnion[] = isAtlas ? [...base, ...(withPlans ? [PLAN_TOOL, MISSION_TOOL] : []), GUIDE_TOOL, ...VIDEO_TOOLS, ...CORE_TOOLS, ...(withWeb ? WEB_TOOLS : [])] : base;

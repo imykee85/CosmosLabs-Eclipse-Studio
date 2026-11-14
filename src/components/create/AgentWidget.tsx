@@ -1,6 +1,7 @@
 "use client";
 
 import GrowArea from "@/components/GrowArea";
+import { matchCommands } from "@/lib/atlas-commands";
 import { thumbOf, fallbackTo } from "@/lib/thumb-url";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Copy, History, Loader2, Maximize2, Minimize2, Pencil, Plus, RotateCcw, Square, SquarePen, Trash2, X } from "lucide-react";
@@ -588,6 +589,13 @@ export default function AgentWidget({ name, watch }: { name: string; watch?: str
               ))}
               {uploading !== null && <span className="aw-att"><Loader2 size={12} className="cr-spin" />{uploading > 0 && uploading < 1 ? `${Math.round(uploading * 100)}%` : "Adding…"}</span>}
               {attErr && <span className="aw-att is-error">{attErr}</span>}
+            </div>
+          )}
+          {matchCommands(draft).length > 0 && (
+            <div className="aw-cmds" role="listbox" aria-label="Commands">
+              {matchCommands(draft).map((c) => (
+                <button key={c.id} type="button" role="option" aria-selected="false" onClick={() => setDraft(`/${c.id} `)}><b>/{c.id}</b><span>{c.hint}</span></button>
+              ))}
             </div>
           )}
           <form className="aw-input" onSubmit={submit}>
