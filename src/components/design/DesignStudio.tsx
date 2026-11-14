@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AgentWidget from "@/components/create/AgentWidget";
 import { useAgent } from "@/lib/use-agent";
 import { useAgentHost } from "@/lib/agent-chat";
@@ -24,7 +25,8 @@ type Mode = "image" | "multi" | "text";
 const MODE_LABEL: Record<Mode, string> = { image: "One picture", multi: "Several views", text: "Describe it" };
 
 export default function DesignStudio() {
-  const [tab, setTab] = useState<Tab>("3d");
+  const sp = useSearchParams();
+  const [tab, setTab] = useState<Tab>(sp.get("tab") === "motion" ? "motion" : "3d");
   const agent = useAgent();
   return (
     <div className="ds">
@@ -38,14 +40,14 @@ export default function DesignStudio() {
           <button role="tab" aria-selected={tab === "motion"} className={tab === "motion" ? "is-on" : ""} onClick={() => setTab("motion")}><Clapperboard size={16} />Motion</button>
         </div>
       </div>
-      {tab === "3d" && <ThreeD />}
-      {tab === "motion" && <MotionStudio />}
+      {tab === "3d" && <ThreeD openId={sp.get("tab") === "3d" ? sp.get("open") : null} />}
+      {tab === "motion" && <MotionStudio openId={sp.get("tab") === "motion" ? sp.get("open") : null} />}
       {agent.active && agent.agent && <AgentWidget name={agent.agent} watch={null} />}
     </div>
   );
 }
 
-function ThreeD() {
+function ThreeD({ openId = null }: { openId?: string | null }) {
   const router = useRouter();
   const { items, models, reload } = use3D();
   const [picked, setPicked] = useState<RefPick[]>([]);
@@ -65,7 +67,7 @@ function ThreeD() {
   const [rig, setRig] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(openId);
   const [uploading, setUploading] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   // The model chip is as wide as the longest model name (measured in the chip's own font), plus room for the arrow.

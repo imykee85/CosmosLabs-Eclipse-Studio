@@ -7,6 +7,7 @@ import { INGREDIENT_ROLES, LIBRARY_KINDS, type LibraryKind } from "@/lib/library
 import { useRenders } from "@/lib/use-renders";
 import UploadPanel from "@/components/uploads/UploadPanel";
 import LibraryAudio from "./LibraryAudio";
+import LibraryDesign from "./LibraryDesign";
 import MoreSentinel from "./MoreSentinel";
 import RenderTile from "./RenderTile";
 import "./library.css";
@@ -55,6 +56,8 @@ export default function LibraryView({ kind }: { kind: LibraryKind }) {
         <UploadPanel show="ingredients" addKinds={["character", "product", "scene"]} addLabel="Add ingredient" role={role === "All" ? "all" : (role.toLowerCase() as "character" | "product" | "scene")} empty={{ title: "No ingredients yet", copy: "Characters, products and scenes you add appear here, ready to reuse in any project." }} />
       ) : kind === "Audio" ? (
         <LibraryAudio query={query} />
+      ) : kind === "Design" ? (
+        <LibraryDesign query={query} />
       ) : (kind === "All" || kind === "Images" || kind === "Videos") && shown.length > 0 ? (
         <>
           <div className="lib-grid">

@@ -1,6 +1,6 @@
 // The kinds of saved items the Library can be filtered by (also used by the Library tab's shortcuts).
 // Ingredients are the reusable references (character, product, scene); the others describe the file's format.
-export const LIBRARY_KINDS = ["All", "Ingredients", "Images", "Videos", "Audio"] as const;
+export const LIBRARY_KINDS = ["All", "Ingredients", "Images", "Videos", "Audio", "Design"] as const;
 export type LibraryKind = (typeof LIBRARY_KINDS)[number];
 
 export const INGREDIENT_ROLES = ["All", "Character", "Product", "Scene"] as const;

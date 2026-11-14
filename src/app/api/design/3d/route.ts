@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   if (!clerkEnabled) return NextResponse.json({ items: [], models: catalog() });
   const { workspaceId: userId } = await workspaceSession();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const rows = await db.model3D.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: "desc" }, take: 40 });
+  const rows = await db.model3D.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: "desc" }, take: 100 });
   const items = await Promise.all(rows.map(async (r) => toItem3D(await finalize3D(r).catch(() => r))));
   return NextResponse.json({ items, ...(new URL(req.url).searchParams.get("models") ? { models: catalog() } : {}) });
 }

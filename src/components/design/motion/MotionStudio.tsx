@@ -39,8 +39,8 @@ function useKits() {
   return { kits, reload };
 }
 
-export default function MotionStudio() {
-  const [open, setOpen] = useState<string | null>(null);
+export default function MotionStudio({ openId = null }: { openId?: string | null }) {
+  const [open, setOpen] = useState<string | null>(openId);
   const { kits, reload: reloadKits } = useKits();
   const [recreate, setRecreate] = useState<{ prompt: string; settings: MotionSettings } | null>(null);
   if (open) return <MotionEditor id={open} kits={kits} reloadKits={reloadKits} onBack={() => setOpen(null)} onRecreate={(r) => { setRecreate(r); setOpen(null); }} />;
